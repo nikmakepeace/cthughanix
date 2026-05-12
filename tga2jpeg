@@ -1,0 +1,5 @@
+#!/bin/sh
+for i in *.tga; do
+	echo "Converting $i"
+	cjpeg -targa $i > ${i%tga}jpg
+done

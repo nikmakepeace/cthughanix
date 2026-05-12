@@ -1,0 +1,67 @@
+CthughaNix - An oscilloscope on acid
+-----------------------------------
+
+
+RELICENSING and the Future
+--------------------------
+
+This is a relicensing, renaming, and modernization of the Cthugha-L
+distribution.  Much remains to be done, though if you are using
+Linux/x86 you should be able to enjoy Cthugha immediately. 
+Please see the TODO file for more information.
+
+For details on the new licence see the 'COPYING' file.
+
+
+The application's web site is http://cthughanix.sourceforge.net/
+
+
+
+How to install?
+---------------
+   See `INSTALL'
+
+
+
+
+Some Tips
+---------
+   * xcthugha is not reacting to '-geometry' in the "normal" way,
+     use the '-D' and '--position' options.
+
+   * Take a look at the documentation. I know it is quite long and not very
+     good written, but it is still usefull.
+
+   * Joystick: the movement of the display can be controlled by a joystick in
+     this version. Use '--no-joystick' for automatic (random) movement.
+   
+   * Example of nice full screen options for X:
+     ./xcthugha -D 5 --full-screen --play /export/home/brandon/Shared/Beach\ Boys\ -\ Good\ Vibrations.mp3
+
+Bugs
+----
+   See the file `TODO'. Known bugs and problems are usually listed there.
+   Information on new bugs (and sometimes even how to fix some old ones)
+   can be found on the sourceforge.net bug tracker at:
+   https://sourceforge.net/tracker/?group_id=201465&atid=977671 
+   If you find a new bug or problem, please submit a but report on the 
+   sourceforge.net bug tracker.  
+
+
+   If you have problems with the sound (sound reading errors) use the
+   --snd-method option. Setting a value of 3 should work.
+
+
+Any Questions left / Contact
+----------------------------
+    * E-mail		   brandon.barker@gmail.com
+    * WWW		   http://brandonbarker.blogspot.com 
+
+    * official bug page:   https://sourceforge.net/tracker/?group_id=201465&atid=977671
+    * official WWW Page:   http://cthughanix.sourceforge.net/ 
+    * official Newsgroup:  alt.graphics.cthugha
+
+   If you have any questions left feel free to send me an email. 
+
+
+

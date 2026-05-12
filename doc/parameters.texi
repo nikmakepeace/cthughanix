@@ -1,0 +1,505 @@
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Sound and CD, Automatic Changer, Parameters, Parameters
+@section Sound, CD and MixerOptions
+
+If you don't specify a special input source, Cthugha uses the DSP device
+with the the current mixer settings. 
+Cthugha does not change the settings back after exit. You have
+to do that manually if you want.
+
+You should specify at least one source of input. Where you do that
+(ini-file or command line) does not matter. But if no sound source is
+given, it might happen that Cthugha does not get the sound even if you
+specified a volume with programs like @code{mixer}.
+
+@subsection Selecting the Sound Device
+
+@table @code
+@item -x, --no-sound
+Debug mode (no sound-source). Cthugha uses some random noise.
+
+
+
+@item -N, --network HOST[:PORT]
+Use @code{cthugha-server} running at @code{HOST}. If the connection
+should get lost you can reconnect by pressing @code{n}.
+
+You can specify the port number used by the server. You should not need
+to specify that (only if you changed it with @code{--srv-port}).
+
+
+
+@item --play NAME
+Use a file as source for the sound. 
+Cthugha plays the file over and over again. In future versions playing
+multiple files will be possible.
+
+Cthugha can play .wav files directly and by using external programs also
+MOD files and MPEG Layer 3 files. To play .mod and .mp3 files 
+@code{xmp}, @code{mpg123} and @code{l3dec} are currently supported.
+The type of the file is identified by the extension only.
+
+If you don't want to use the programs supported the following is
+possible: @code{NAME} might be a fifo file, so you can so things like
+@example
+mkfifo fifo.wav
+cat something.wav > fifo.wav &     
+xcthugha --play fifo.wav
+@end example
+
+The old options @code{--exec}, @code{--mod}, ... are no longer needed.
+
+@item --silent
+This causes Cthugha to only read the sound data when using
+@code{--play}, but not to play it.
+
+
+@item --once, --loop
+Play the sound file only once and exit afterwards, or start playing the
+file over and over again.
+
+@end table
+
+
+
+
+@subsection General Sound Device Options
+
+@table @code
+@item -v, --rate N
+Set sample rate to @code{N}. The default rate is set to 44000Hz.
+
+@item -2, --stereo, -1, --mono
+Set the number of sound channels to use. (stereo by default).
+
+@item --snd-format FMT
+Set the format of the sound. This can be @code{8bit signed}, @code{8bit
+unsigned}, @code{16bit signed le}, @code{16bit signed be}, 
+@code{16bit unsigned le} or @code{16bit unsigned be}.
+
+You usually don't need to change this option. 
+
+@end table
+
+
+
+
+@subsection Advanced Dound Device Options
+
+@table @code
+@item --snd-method M
+Sets the sound method used. @code{M} is a number from 0 to 3. Lower
+values correspond to more sophisticated sound reading methods. You can
+try this method if Cthugha has problems with reading the sound.
+
+@item --snd-sync
+Reset the soundcard after reading the sound. 
+You should not need this switch. You can try it if you have problems,
+but it will only slow things down, and might produce unwanted
+clicks.
+
+@item --snd-fragments N
+Sets how many sound fragments should be used. You might try to use a
+small value, like 2 or 4. (You will then get recording overruns, but
+that is normal). Simply use the default value (0 = let the system
+decide).
+
+
+@item --dev-dsp DEV
+Specify which DSP device to use. This usually @code{/dev/dsp}, but on 
+some systems it might be @code{/dev/audio}. 
+
+
+@item --snd-buffer B
+Set the size of the sound buffer size to B kB, when using --play.
+@end table
+
+
+
+
+@subsection CD Options
+
+@table @code
+
+@item --dev-cd DEV        
+Set the CD device to @code{DEV}
+                                  
+@item --cd-stop
+Stops CD on exit (only if CD was selected as input)
+
+@item --cd-random
+Play tracks in random order.
+
+@item --cd-loop
+Start again after all tracks are played.
+
+@item --cd-eject
+Eject CD at end.
+
+@item -c, --track N
+Use CD as input, and start playing track @code{N}. This option does not
+change the volume used for the CD. So you also also have to use the
+@code{--cd} parameter.
+
+
+@end table
+
+
+
+@subsection Mixer Options
+
+@table @code
+
+@item --dev-mixer DEV     
+Set the mixer device to @code{DEV}
+
+
+@item --mixer DEV:VOL
+Set the mixer "device" @code{DEV} to volume @code{VOL}. 
+Note that things like "bass" or "treble" are also mixer "devices".
+
+@item -L, --line VOL
+Use Line In as input with volume @code{VOL}. This is a shortcut for
+@code{--mixer line:VOL}.
+
+@item -M, --mic VOL
+Use Mic (microphone) as input with volume @code{VOL}. This is a shortcut
+for @code{--mixer mic:VOL}.
+
+@item -C, --cd VOL
+Use CD as input with volume @code{VOL}. This is a shortcut for
+@code{--mixer cd:VOL}.
+                               
+@end table
+
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Automatic Changer, General CoreOptions, Sound and CD, Parameters
+@section Automatic Changer Options
+
+Cthugha automatically changes the way the data is displayed to the
+screen after some time, and after special events. All of this
+features work independently from another.
+
+Setting a timevalue to 0 disables the corresponding feature. You can
+specify all the times in 1/100th of a second or in seconds. To specify a
+time in seconds you have to appends @code{sec} after the number. So the
+following two are equivalent: @code{--time 4.2sec} and @code{--time 420}.
+
+@table @code
+
+@item -l, --lock
+Start in locked mode. That means that the display is not changed 
+automatically.
+
+@item --little
+Only change one option at a time.
+You can get nice results if you set low values for @code{--time} and
+@code{--random} and enable this option. This way you get a constant
+change, but no chaos.
+
+
+@item -T, --min-time N
+Minimum time before changing.
+
+Cthugha will change the display after:
+time + rand() % random.
+Where time and random are given by this and the next option.
+
+@item -R, --random-time N
+Extra random time before changing.
+
+
+@item --quite-time N
+Change display after an "interrupted silence". 
+That means that Cthugha changes the display
+automatically, when for some time no sound comes in and after that there is
+again sound (like the pause between two tracks on a CD). 
+
+
+
+@item --msg-time N
+How long to wait in silence until messages are displayed.
+
+@item -q, --quiet-file FILE
+Load alternate quiet messages from @code{FILE}. These are messages are
+display if for a long time no sound comes in.
+
+If a line in @code{FILE} starts with a @code{@@} then Cthugha runs 
+@code{fortune} to get a message. 
+
+
+
+@item --min-noise N
+
+Set the level under which a sound is consider to be silent.
+
+
+@item --fire-level N
+This controls how often the display is changed on beats. Lower values
+let the screen change more often.
+
+@end table
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node General CoreOptions, Initial Values, Automatic Changer, Parameters
+@section Change options
+
+
+@table @code
+
+@item -S, --buff-size SIZE
+Set the buffer size. You can use predefined sizes of specify a value
+ of the form WIDTHxHEIGHT.
+
+@item --no-trans
+Disable translation tables. Translation tables are used to define almost
+any affect you can think of. Use this option if Cthugha is not running
+fast enough.
+
+@item --stretch
+Allow stretching of translation tables to fit buffer size.
+
+@item --load-on-demand
+Create and load translation tables only when they are needed. 
+Only one translation table is kept in memory. 
+
+@item --load-late
+Load the translation tables only when they are needed. 
+Once a translation table is loaded, it is kept in memory, so
+each translation
+table is loaded only once. This can save a lot of time when starting Cthugha.
+
+@item -X, --no-use-pcx
+Disable usage of PCX image files. 
+
+@item -i, --no-ipal
+Disable the inbuilt palettes - there is no reason to do this. 
+
+@item -e, --no-epal
+Do not load external palettes.
+
+@item --no-object
+Do not load 3D objects (wire frames) used by some wave functions.
+There are no such files included with Cthugha.
+
+@item -s, --no-flashlight
+Disable usage of Flashlights. 
+Flashes (changes of the palette values with low index) will 
+come up on loud beats.
+
+This feature was called FFT in version 0.8 of Cthugha-L.
+
+
+@end table
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Initial Values, Display, General CoreOptions, Parameters
+@section Disable options
+
+Please use @code{xcthugha --help} for a list of these options.
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Display, General, Initial Values, Parameters
+@section Display Options
+
+@table @code
+
+@item -D, --disp-mode MODE
+Set graphics mode or window size.
+
+@item --zoom N
+Set the zoom factor to N. A value of 0 will cause Cthugha to fill the
+whole window.
+
+@item --max-fps N
+Set the maximal number of frames per second to N (0 for no limit). You
+can limit the speed at which Cthugha is running with this option. This
+might be usefull if you would like to use @code{xcthugha} as a desktop
+decoration. 
+
+@end table
+
+
+@subsection SVGA Options
+
+@table @code
+@item -r, --sync
+This option causes @code{cthugha} to wait for a resync before the buffer
+is displayed on the screen. So screen update and video refresh are
+synchronized. @code{--sync} causes a slight decrease in speed.
+
+
+@item --disp-direct
+Display directly to screen when using running in 320x200 mode.
+When runing on this option some flicker occurs when text is displayed.
+
+@end table
+
+
+@subsection X11 Options
+
+@table @code
+@item --root
+Draw onto the root window (the background of your desktop).
+
+@item --install
+Install a private colormap when running in a PseudoColor visual (8bit). 
+This increases performance, but the windows of all the other windows
+will be displayed wrong then.
+
+@item --mit-shm
+Use the MIT Shared Memory Extensions when displaying with X11. This
+option brings an significant increase in speed.
+
+You should only deactivate it if
+you have problems.
+
+@item --full-screen
+Let @code{xcthugha} fill the whole screen. To do that @code{xcthugha}
+fights with the window manager so I am not sure how reliable this really
+is.
+
+
+@item --panel
+Show a control panel with some buttons for common operations.
+
+@item --position NN
+Set the position of the Cthugha window. Use for example as
+@code{--position +10+20}. The normal @code{-geometry} option is not
+working (it sets the position of the control panel).
+
+@item --text-on-term
+Display all text messages in the calling xterm or print all text
+messages over the buffer or into the control panel.
+
+@item --no-decorate
+Do not decoreate the window (set is Cthugha sets the override_redirect
+flag). 
+
+@item --font F
+Set the font to use when displaying text messages.
+
+@end table
+
+
+@subsection GL Options
+
+@table @code
+
+@item --mesh-size S
+Set how fine to make the mesh for 3D displays. Bigger values will make a
+finer mesh and will take longer to display.
+
+@item --texture-quality Q
+Set the quality of the texture (low, medium, high) to use.
+
+@item --hints H
+Set the @code{glHints} for perspective correction and fog to @code{fast}
+(better quality) or  @code{nice} (faster).
+
+@item --dither 
+Turn on or off dithering. This influences the speed of @code{glcthugha}.
+
+@item -window, --full-screen
+Run @code{glcthugha} in a window or full screen. This only has an effect
+when using Mesa and a 3Dfx card. Running full screen is usually much
+faster, while for debugging a window is very usefull.
+
+
+@end table
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node General, Server, Display, Parameters
+@section General Options
+
+@table @code
+@item -E, --path LIB_DIR
+Specifies an additional directory where to search for tab, map and
+pcx-files. Cthugha also searches for an ini file
+@code{LIB_DIR/cthugha.ini}.
+
+
+@item --keymap KEYMAP
+Load extra keyboard bindings from @code{KEYMAP}.
+
+
+@item --dbl-load
+Allow loading of 2 or more palettes, translation tables or PCX images with
+the same name. 
+
+@item --prt-file FILE
+File used to save screen at PrintScreen. 
+The extensions and a number are appended automatically.
+So the first saved file is @code{FILE.pcx}, the second is @code{FILE.1.pcx}, the
+third is @code{FILE.2.pcx} and so on. When saving under @code{xcthugha}
+the images are in Xpm format.
+
+
+@item --no-esc
+If this option is given then the esc-key is ignored. 
+You should no longer need this switch, I still keep
+it just in case.
+
+
+@item --save
+Save current wave, flame, display and some more things  at end. 
+The settings are saved in the file @code{$@{HOME@}/.cthugha.auto}.
+
+
+@item --verbose=LVL
+Set the amount of extra information to print. The higher @code{LVL}, the
+more information. The parameter is optional. Using only @code{--verbose}
+sets a level of 3.
+
+
+
+@item -?, --help
+Print help information.
+
+@end table
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Server, , General, Parameters
+@section Server options
+
+@table @code
+@item -W, --srv-wait
+Time to wait after the saver sent the sound to its clients. The default
+value is 0, that is not to wait.
+
+If you set a high value here @code{cthugha-server} sends not so much data
+of the network. But if the value is too high, not enough data is sent
+(the clients have to wait - delays in the display). On the other hand if
+you set a very low value very much data is sent - waste of resources.
+
+@item --srv-port
+The port used by the server (@code{cthugha-server} or
+@code{cthugha}/@code{xcthugha} in server mode).
+
+Default value is 5555. You should change this only if you have
+problems. Don't forget to specify this port also for the clients
+accessing the server (with @code{--network}).
+
+@item --clt-port
+The port used by the clients to receive sounds from the server. 
+The default value is 5556. The clients use the port specified and the
+next one.
+
+You can use this option to use more than one client on one machine
+(e.g. @code{xcthugha-saver} and @code{xcthugha} at the same time).
+
+@end table
+

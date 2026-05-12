@@ -1,0 +1,434 @@
+ChangeLog for Cthugha-L. (-*- text -*-)
+------------------------
+
+Release 1.4a:
+   - relicensing (BSD-Style)
+
+Release 1.4:
+    bug fixes:
+    - fixed load-on-demand bug: switching translation table while loading was
+      in progress caused a pause. (pclose was blocking until cmd_ program
+      issued a write operation)
+    - fixed random-palette-bug: after creating a random palette glcthugha
+      crashed with a segment violation. 
+    - fixed makefile for precompiles binaries
+      thanks to Brock Lynn for finding this bug
+    - fixed problem: sound files now can contain spaces
+      (xcthugha --play "Land Of Confusion.mp3" is now working)
+      thanks to Simon Hill for finding this bug
+    - cthugha was not reading data sent via cthugha-server.
+      thanks to Mike Cavanagh for finding this bug
+
+    new features:
+    - new glcthugha feature: Light - light effect with glcthugha
+    - new glcthugha feature: Background - show images in background 
+    - new glcthugha feature: some new display functions (tube, 2D, Sphere)
+    - new glcthugha feature: fly - swirling rings of fire
+    - in glcthugha: Control camera movement with joystick.
+    
+    keymaps:
+    - keys are handled now completely different. 
+      now it is possible to define own keymappings
+
+    other stuff:
+    - default Mesh size is too high, reduced
+    - use fog in "plane"-like GL displays, and change position of the planes
+    - new print screen. Save exactly what is on the screen
+      print screen now also for glcthugha
+    - no longer save buffer with --save option
+    - frames were counted twice in glcthugha.
+    - additional options to glcthugha to control dither and glHints
+    - added small script to convert all .tga files to .jpg files
+    - set default value for max-fps to 25
+    - new option: --once (and --loop) to control if file is played only once
+    - text with glcthugha is now better readable
+    - backspace is now working for glcthugha
+    - changed text color
+    - new option in configure to select processor type
+    - some speedups in FFT computations
+    - new sound reading method (4) directly using the DMA buffer 
+    - new option: --load-late to load translation tables when they are used
+      for the first time
+    - lists are now updated when the Core Option changes (new random palette)
+  
+Release 1.3:
+    - check if G1600x1024x256, ... is defined 
+      (old versions of svgalib don't have it)
+    - define private as private_ before includeing xf86dga header files,
+      some versions if X11 use private as a variable name there
+    - fixed error in translate.c (error in endianess)
+      thanks to Antonio Schifano (schifano@cli.di.unipi.it)
+    - `--track' was not accepted as argument
+    - fixed a second endianess error in general-subtle flame
+    - changed network code. now without get_local_addr
+      (thanks to John Morton)
+    - translate \n to \n\r in printfv, printfe, printfee
+      (I had problems after reinstalling ncurses)
+    - cleanup of change options:
+      min-time, random-time, quiet-time, msg-time
+    - big rearrangements of the code
+    - cleanup of CD player. It works now much butter 
+    - new Help (F1), updated usage information
+    - new option: --border (change with key `=') to set the
+      border of the buffer before flame
+    - new wave: sticks
+    - changed, how PCX images are displayed. now always centered
+      and for a short time with the correct palette,
+      still not perfect but better than before
+    - removed sigsaver code, whatever that was
+    - NEW: OpenGL support. 
+        + 3D display
+	+ multiple buffers
+    - check for pentium optimization in configure
+    - changed initialization of long_options. Caused a segment
+      violation with pgcc.
+    - new option: --test, equals -e -X --no-trans (for testing)
+    - Replaced tiling by zooming
+        + removed tile and mirror options
+        + buffer is now always displayed 4times as big
+        + new option: --zoom
+        + new key: z/Z to change zoom
+    - changed predefined buffer sizes, now they match the display sizes
+    - --root (--no-root) as alias for --on-root (--no-on-root)
+    - new option: --override-redirect (--no-decoration) to set
+      the override_redirect flag for the window. It is then ignored
+      by the window manager, that is it is not decorated.
+    - new option: --max-fps to limit speed of cthugha
+    - fixed problem with 4 bytes/pixel visuals
+    - stereo is working again (I am not sure what went wrong in the last
+      version)
+    - improvements in user interface
+         + better help screen
+         + when control panel is used, text is displayed in the control panel
+         + option screen replaces info screen, possible to change options there
+    - changed some keys (Space, Enter, =, ...)
+    - lock individual options 
+    - use X11 fonts for xcthugha (new option --font),
+      very slow if shared pixmaps are not available
+    - changed sound reading a little bit. There are now always 1024 samples 
+      availble, speed improvement for DSP reading (when using method 1)
+    - removed DGA support, was of no use and caused problems with fonts
+    - removed screen saver support. Use xscreensaver or a simmilar program,
+      if you want to use xcthugha as a screen saver.
+    - removed option 'server'. always accept clients
+    - combined massage and FFT into one option: sound-process
+    - removed option cd-autoplay
+    - removed program name from ini file entries
+    - when using not private colormap now much faster
+    - turn off private colormap and control panel by default
+    - support more sound formats (8/16 bit, signed/unsigned, big/little
+      endian), replace --snd-sample-size by --snd-format
+    - big simplification of playing files. only one option remained: --play  
+      now uses players without patches. 
+    - load on demand for translation tables. faster start and less memory
+      usage
+    - random palettes. random palettes are saved automatically
+    - make bigger points when drawing waves
+    - fixed bug in load: double loading interrupted the whole directory
+Septmeber 16th 1998: Released
+
+  	
+Release 1.2 (main-changes):
+    - switched to C++
+	+ rewrite of big parts of the code
+	+ table generations program still in C
+	+ some cleanup of the code
+    - fixed some bugs (segment violations)
+	+ when using no translation
+	+ when using X11 without MIT-SHM
+	+ when having no ini files (thanks to Robert Bihlmeyer)
+	+ fixed possible segment violations in some wave functions
+    - PCX is now copied to active and passive buffer (not working correctly,
+      but I am not sure why)
+    - changed flashlight code
+    - cthugha-server now uses same interface as cthugha and xcthugha
+    - save current flame, wave, ... to hotkeys (keypad)
+      Shift+Number: save current setup
+      number      : restore setup
+      if Shift+Number is not working you can use: ^ and number
+    - changed how programs communicate with cthugha: 
+      now communication goes though named pipe `/tmp/cthugha.com' 
+      (see --fifo) the program must write to that pipe in .wav. The header 
+      must only contain the most important data.
+	+ changed AMP and NSPmod a little bit.
+	  AMP now writes a partial .wav header when run with "-convert -w"
+	  NSPmod writes the output to /tmp/cthugha.com
+	+ Both programs now give a message that they are modified for 
+	  Cthugha.
+	+ Wrote Makefile.am for both programs (replaced configure.in from 
+	  AMP)
+    - switched to GNU configure (suggested by Jamie Zawinski)
+    - rearranged directory structure
+      extra programs (MP3, MOD players) are now in extra directory
+    - cleanup of keys code
+    - new option "--position" to set position of window for X11
+      (suggested by Adam Kopacz)
+    - new option "--full-screen" to fill the whole screen when running 
+      with X11
+    - turning off the decoration for the screen saver window is no longer
+      necessary. I am not sure how reliable the new code is.
+    - Screen saver window takes focus itself - keys work even on
+      "click to focus" window managers.
+    - new option "--text-on-term" to display text for xcthugha on the
+      terminal and not in the drawing window
+    - changed how displaying is done: first draw to temporary buffer and that
+      is then converted to the desired bytes per pixel. This made the
+      display code much nicer.	
+    - buffer when playing from file or through pipe (--sound-buffer option)
+    - --listen (--exec "") and --listen-silent (--exec-silent "") to only
+      listen at /tmp/cthugha.com and not to start a program.
+    - new option --sound-loop to disable loop play when using --exec
+      switches to listen after playing once
+    - all sound options available as --snd... and --sound...
+    - new optins --dev-dsp, --dev-mixer, --dev-cd and --fifo to specify the
+      names for the devices and the named pipe used.
+    - removed experimental rgb mode. 
+    - cthugha works now also if setuid something else than root, but started
+      by root 
+    - reduced some static arrays (flame_fade, silence_strings, tables)
+    - 3 bytes/pixel might work (not tested)
+    - only one distribution including precompiled binaries, source and extra
+    - included `vroot.h'
+    - new compile time option to turn off all network code
+    - new option --sigsaver. Possibility to run xcthugha as a screen saver
+      with xautolock (see documentation).
+2nd Feb. 1998: Released
+
+Release 1.1a (changes):
+    - fixed problem: Loaded .cmd tables were disabled by default.
+    - fixed bug: Looked for wrong ini file entry for translation tables.
+    - fixed bug: Bringing up Selection, when all entry
+      are set to off, could cause a segment violation.
+	
+Release 1.1 (main-changes):
+    - 2 problems with CD code (thanks to James S. Blachly)
+    - fixed problem in wave_corner, that could cause a 
+      segment violation (thanks to James S. Blachly)
+    - fixed bug in mixer code
+    - fixed problem with text display in 16/32 bpp modes
+    - fixed small problem with "water" flames 
+    - RGB mode (--rgb). 
+	Still in development, too slow, not looking good
+	disabled by default.
+    - Run external program to play sound (--exec, --exec-silent).
+	+ Included slightly modified version of nspmod-0.1 by
+	  Toru Egashira to play MOD files. 
+	  Modifications to nspmod:
+	  * output to stdout (new dacio file)
+	  * all text output to stderr
+	  * extra output for cthugha (speed, stereo)
+	+ Included slightly modified version of amp-0.7.3 by
+	  Tomislav Uzelac to play MP3 files.
+	  * added audioIO_Cthugha to write data suitable for Cthugha
+	  * changed Makefile.in to produce Cthugha version of amp.
+    - new option --mod as shortcut for --exec INST_LIB/cth-nspmod
+    - new option --mp3 as shortcut for --exec INST_LIB/cth-amp
+    - new display functions: bent, plate
+	renamed sheet to hfield
+    - smoothing to next palette now takes at most 1 second
+    - very dark palettes are brightend up
+    - slightly changed FFT code
+    - Added value to scale waves (scale_wave)
+August 20th: Release to sunsite.unc, afn.org, homepage	
+
+Release 1.0 (main-changes):
+    - New wave, flame, display functions:
+	waves: wire2, lineHL, spiral, pyro, warp, laser, corner
+	flame: down
+	display: roll
+    - Palette override pcx on startup (when both are given,
+      value from palette is used)
+    - Fixed bug, when disabling an input source
+    - Added options to disable CDROM, dsp, mixer, ...
+      and to use older sound reading code
+    - Fixed bug, when changing sample speed while cthugha is running.
+      (caused read errors in Linux 2.1.??)
+    - Also support gray scale visuals with X11
+    - Included reference to Warper
+    - New src directory in documentation
+    - Generate documentation also as "pure" ascii (cthugha.ascii)
+    - Don't delete "INSTALL" on dist-clean, so
+      INSTALL is now included in the source distribution.
+    - Fixed bug, when saving options and PCX was disabled.
+    - Give a warning, when unknown feature is used.
+    - Generate translation table on startup -> .cmd files
+      saves lot's of disk space, but loading takes more time
+    - New option: --(no-)panel to disable/enable X11 control panel
+    - Only use root privileges, when really needed.
+    - Suspend Cthugha (free sound device, return to text mode)
+      on ^Z (SIGTSTP) and continue on SIGCONT.
+    - Big bugfix: cthugha-server was not displaying, and not
+      reacting correctly to keyboard
+    - Update Status for every frame, 
+      calculate frames/second relative to last change
+    - New beat detection code -> only one value for "beat change" (fire-level)
+    - better text display
+    - 'make install' tries to set owner 'root' and set setuid bit.
+      Add entry in "/usr/info/dir" only, when there is no Cthugha entry
+      already there.
+    - InstallColormap problem solved. You should turn off the decoration
+      for "xcthugha-saver" and "xcthugha-dga". (see docu)
+    - fixed problem with borders around drawing.
+    - disp-direct with DGA (see docu).
+    - big speed increase with DGA, when only a part of the screen was used.
+    - mirror buffer to screen. New options --mirror, --mirror-x, ... 
+      this replaces the mirror{H,HV,V} display functions.
+    - Undo last changes with Backspace
+July 10th: Release to afn.org, sunsite.unc, homepage
+	
+Release 0.9 (main-changes):
+    - faster translation tables (15% faster)
+    - cthugha-server now also accepts buffer size options
+    - documentation/Makefile: added -o option to dvips
+    - lots of source cleanups (removed almost all #ifdefs)
+    - display text in window for X11 (no longer uses ncurses)
+    - display credits in window
+    - changed sound reading (--snd-fragments)
+    - different verbose levels
+    - docu. simplifications
+    - new format for ini-files (now more like X11 resource database)
+    - play sound from file
+    - xcthugha now reacts much faster to keyboard input
+    - xcthugha now accepts keys in all windows
+    - no longer use libsx
+    - combined xcthugha and xcthugha-saver into one executable
+    - hide pointer in drawing area for xcthugha
+    - xcthugha: menus now set the feature, selection also works correctly
+    - better mixer support (all available settings)
+    - removed --vol (-V) option
+    - new display function (sheet)
+    - some changes to Makefile
+    - removed --pause option
+    - chaned order of sound massage and FFT
+    - change FFT code. now FFT and flashlight
+      FFT: compute FFT of sound data and draw that
+	   (as in old Cthugha versions)
+      Flashlight: Change palette based on sound
+	   (as in version 0.8)
+    - Added FFT and Flashlight to option dialog
+    - Search for files in directory given by INST_LIB.
+      (not in the default path /usr/local/lib/cthugha)
+      Print the correct value also in the documentation
+    - added new sound massage
+    - included DGA support (turn on with --dga)
+      also included --no-buff to force software double buffering
+      DGA supports works with screen saver
+      DGA needs root privileges
+April 16th: Release 0.9 to sunsite, and afn	
+
+Release 0.8 (main-changes):
+    - Changes from Torsten Martinsen <torsten@dk-online.dk>
+      spelling errors, Makefile, C++ comments
+    - prevent double loading of palettes, pcx, ... (--dbl-load)
+    - fixed bug: --path was not accepted as option	
+    - speedup: combined general flames & translation (up to 30% faster)
+    - slight change of buffers: Now complete buffer is displayed, but has
+      a border of 3 rows not displayed, constantly set to 0.
+    - Clean up of the code (a little bit)
+    - High and True Color support for X11
+    - Now possbile to use the default colormap - colors in other windows
+      are displayed correctly - very usefull when displaying on root
+      window (--private-cmap)
+    - Reading from soundcard is now done the right way. Thanks to Jan Kujawa
+      This also allowes more frames per second to be displayed
+    - Does pause automatically when error is printed
+    - Changed installation procedure. 
+      Makefile no longer sets suid-bit.
+July 29th 1996: Release 0.8 to sunsite, uni-linz and afn	
+	
+Release 0.7 (main-changes):
+    - stretch translation tables (from Rus Maxham), with option (--stretch)
+    - turning on random play does no longer starts cd
+    - new options for CD player (random, loop, eject)
+    - 3 new translation table
+    - options dialog
+    - now palettes of compressed PCX files are loaded correctly
+    - small changes for easier installation
+    - new --little: "little changes"
+    - Changed ini-file, new sections, now all parameters present
+    - Sound device is freed when not needed:
+      xcthugha-saver: when not active
+      cthugha-server: when no clients connected
+    - PrintScreen now really saves what you see on the screen
+    - change size of display during runtime with X11
+    - improved xcthugha: 2 Windows, one with buttons, menus, one with display
+    - specify search path also for ini-file (--path)
+    - new --srv-wait-time: make cthugha-saver much nicer
+    - server mode for cthugha and xcthugha (--server)
+    - search for tab-files also in /usr/local/lib/cthugha/WIDTHxHEIGHT
+    - ports use for network sound now also as option (--srv-port, --clt-port)
+    - new --snd-sync: disable resets of soundcard
+April 2nd 1996: Release 0.7 to sunsite, uni-linz and afn
+
+Release 0.6 (main-changes):
+    - xcthugha-saver (the X11 screen saver version)
+    - using X11 resource database
+    - loading compressed files (using 'gzip -cd')
+    - general flame table is no longer saved (was potential unsave)
+    - documentation now as texinfo
+    - changed names of executables
+    - using MIT-SHM extensions (speedup for X11 by a factor for 2)
+    - display on root window (with X11)
+    - tried to fix problems with CD random mode (maybe still a bit buggy)
+    - new directory and distribution structure
+    - fixed problem with vanishing cursor when exiting with error
+    - fixed segment violations in wave_pete1 and wave_test
+    - added searchpath for map, tab and pcx-files.
+    - fixed small problem with mixer (setting all values to 0)
+    - changes now on time-based system 
+    - changed key map - now numbers can be used instead of function keys
+    - documentation as texinfo
+    - also use 'fortune' for quiet messages + longer messages.
+December 31st 1995: Release 0.6 to sunsite, uni-linz and afn
+
+Release 0.5 (main-changes):
+    - removed problem with ESC-key (option still remains)
+    - variable buffer size, variable screen size with X11
+    - tile with X11
+    - status-display is no longer removed automatically
+    - big screen functions
+    - select a PCX at startup (--pcx)
+    - save settings and buffer on quit (--save)
+    - PrintScreen (use key '#')
+    - script to create default tab-files (mktab.sh)
+    - set table (how palette is used) with parameter and ini-file
+    - set massage (sound processing) with parameter and ini-file
+    - changed parameter for stero and mono to -2 and -1
+    - switched to gcc-2.7.0 (wrote INFO.gcc-2.7.0)
+    - smooth_palette 
+    - better CD-Player 
+    - Change prev
+    - removed bugs (some segment violations)
+September 25th 1995: Release 0.5 to sunsite, uni-linz and afn
+
+Release 0.4 (main-changes):
+    - bugfix (cursor disapearing after cthugha-L --help)
+    - bugfix at wave-functions
+August 9th 1995: Release 0.4 to sunsite..., ftp.uni-linz.ac.at, ftp.afn.org
+
+Release 0.3 (main-changes):
+    - better wave-functions (check for buffer-size)
+    - new tab-file format
+    - tabheader, tabinfo for new tab-files
+    - #defines for buffer-size are now in cth_buffer.h
+    - make install/deinstall and make .tab
+    - general flame functions
+    - options as names (e.g. flame=l-Sl) in ini-files and parameters
+July 31st 1995: Release 0.3 to sunsite.unc.edu, ftp.uni-linz.ac.at, ftp.afn.org
+
+Release 0.2 (main-changes):
+    - X11 support (using libsx)
+    - Simple network-support
+    - Speed (changes done in the flame-functions & switched to gcc-2.6.3)
+    - Different Screen-modes
+    - Different Buffer-sizes (change #defines in cthugha.h)
+    - 32-bit Tab-files if buffer > 64K
+    - Included simple CD-Player
+    - "options"
+    - selection for tab, pal, pcx
+    - changes from cthugha 5.3
+July 6th 1995:  Release 0.2 to sunsite.unc.edu, ftp.uni-linz.ac.at, ftp.afn.org
+
+
+May 15th 1995:	Release 0.1 to sunsite.unc.edu, ftp.uni-linz.ac.at
+

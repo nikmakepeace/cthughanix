@@ -1,0 +1,120 @@
+
+
+ 
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node What?, Flavors, , Introduction
+ 
+@section What does this software do then ? 
+
+Audio input seeded image processing. 
+Hook up your CD player to the input of your sound card, 
+or use your CD-ROM player (if you've got one). 
+Run cthugha-L --- then play your coolest music. 
+--- and wow, does your screen look like a 90's lava lamp or what? 
+ 
+Cthugha 'listens' to your music, and changes the display dynamically 
+to the sound.   
+ 
+Ever looked at an oscilloscope of your voice or of music? ---
+Think of this as an oscilloscope on acid. 
+ 
+ 
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Flavors, Fast Start, What?, Introduction
+@section Flavors of Cthugha-L
+
+
+@table @code
+
+@item cthugha
+displays directly on the Linux console. To do that it uses
+@code{svgalib}. Because @code{svgalib} does not support new graphics
+chipsets this version will slowly die. 
+
+
+@item xcthugha
+This program displays the graphics using X11. 
+
+
+@item @code{glcthugha}
+is the newest part. Using OpenGL/MesaGL you get the display in 3D. 
+Of course without hardware support this is quite slow.
+
+
+@item cthugha-server
+
+This program is used to access a remove sound card. Using
+@code{cthugha-server} you can use one sound card for a lot of other
+machines to run Cthugha.
+
+Simply start @code{cthugha-server} on a machine with soundcard.
+Then run Cthugha on any machine, but use the additional parameter
+@code{-N hostname}
+@footnote{@code{hostname} is the name of the machine
+running @code{cthugha-server}}.
+
+@end table
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Fast Start, Buffer and Display, Flavors, Introduction
+@section Fast Start
+
+To use Cthugha for the first time you will need just one parameter,
+describing what sound source it should use.
+
+Here are some examples. 
+
+@table @code
+
+@item xcthugha -L 100
+to start with sound coming from Line in.
+
+@item xcthugha -C 100 -c 1
+to start with sound coming from CD and to start playing track 1 of the
+CD. It is a good idea to put an audio CD in the drive before you do that.
+
+@item xcthugha -x
+to just use some random noise
+
+@end table
+
+
+This should be already quite nice, but the display is very small. 
+To get a bigger window you need two more options described in the
+next section.
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Buffer and Display, , Fast Start, Introduction
+@section Buffer and Display
+
+Cthugha uses two options to control the size of the screen.
+
+@table @code
+@item -S 
+to specify the size of the buffer. You can use a small integer value for
+a predefined size or use whatever size you like. 
+For example @code{-S 2} or @code{-S 374x234}.
+
+Bigger buffers usually look better, but take more time to compute.
+I suggest @code{-S 1} or @code{-S 2}, depending on what computer you
+have.
+
+@item -D
+is used to define how big the window for drawing should be. Again you
+use a predefined value or some special value. Predefined Buffer and
+Display sizes match, so @code{-S 2 -D 2} makes sense.
+
+But maybe you would like to have a big window, but your computer has not
+enough power to update the buffer fast enough. Then you can specify a
+bigger display. For example @code{-S 2 -D 3} 
+@footnote{Use @code{--full-screen} to make the display as big as
+possible}.
+
+@end table
+

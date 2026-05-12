@@ -1,0 +1,40 @@
+@node Configuration, Parameters, CoreOptions, Top
+
+@chapter Configuration
+
+You can set a lot of options for Cthugha. When starting Cthugha searches
+a lot of places for options (in the given order):
+
+@enumerate 
+@item @code{@value{INSTLIB}/cthugha.ini}
+@item @code{~/.cthugha.auto} 
+This is the file created when you press the
+@code{a} key or if you specify the @code{--save} option.
+@item @code{~/.cthugha.ini}
+@item @code{./cthugha.ini}
+@item @code{LIB_DIR/cthugha.ini} 
+LIB_DIR is specified by the parameter @code{--path}
+@item X11 resource database
+@item Command line options
+@end enumerate
+
+
+
+@section Format of the entries
+
+Cthugha reads all the ini files, but options in later files 
+override option in more general files.
+The format of the entries is very much the same, as in the 
+X11 resource database.
+
+The general form is: @code{cthugha.OPTION: VALUE}. Where @code{OPTION}
+is the same as the long option name. For options you can only turn on or
+off @code{VALUE} should be one of @code{on}, @code{off},
+@code{yes}, @code{no}, @code{1}, @code{0}.
+
+
+For some examples see @code{cthugha.ini.eg}, or @code{~/.cthugha.auto}
+the file generated automatically if you press 'a' when Cthugha is running.
+    
+
+

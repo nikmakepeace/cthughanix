@@ -1,0 +1,151 @@
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@node General Stuff, Palette Files, , Technical Stuff
+
+@section General Stuff
+
+@itemize @bullet
+@item
+I've testes Cthugha-L with a SoundBlaster 16. Cthugha-L should work 
+with (almost) every soundcard supported by Linux.
+
+I hear sometimes from people that Cthugha is getting no sound. I am not
+sure why such things happen -- I think the sound reading code (at least
+when using @code{--snd-method 1}) should work.
+
+@item
+You CD-ROM @emph{must} be connected to your soundcard. It is not enough
+that it can play audio CDs. The
+important thing is, that the computer gets the sound data.
+
+If there is a small audio cable (inside your computer) from your CD-ROM
+to your Soundcard it should work. If there is no such connection the
+only chance left is the program @code{cdda2wav} (by Heiko
+<@code{heiko@@colossus.escape.de}>). That program 
+reads the audio data from the CD and stores it to your
+hard disk. You can then use that data with the @code{--play} option.
+
+
+@item
+I constantly work on Cthugha-L - so when I remove one bug, I might
+introduce two new ones. If you find bugs, inefficient code, or have any
+wishes for new features please tell me about it.
+
+@end itemize
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Palette Files, Translation Tables, General Stuff, Technical Stuff
+@section Palette Files
+
+ 
+The format is the same that @code{fractint} uses.  If not all color indexes 
+are specified then they default to black.  The color values are 
+specified in RGB tuples (0-255), where 0 is black --- one line per color
+index.  Easy ! 
+
+@example 
+255 255 255 comments index 0 
+... ... ... 
+255 255 255 comments color index 255 
+@end example
+ 
+ 
+ 
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Translation Tables, PCX Files ,Palette Files, Technical Stuff
+@section  Translation Tables
+
+These tables (TAB files) are used to design just about @emph{any} effect, 
+without recompiling the source to Cthugha!!! 
+
+Since version 1.0 you can use the translation table in 2 different ways.
+Cthugha can generate the table when it is starting, or you can generate
+the tables in advance. The later is used for for which you don't have the source.
+
+Some of the program to create the translation tables have quite a lot of
+options, experiment with them - if you create a new nice translation table
+send me the options you used (or the modifications to the code you made).
+ 
+
+@subheading Here's how they work
+
+This is a bit technical. You need this part only if you want to write new
+translation-table-generation-programs (nice word, isn't it).
+
+You generate a table, @code{BUFF_WIDTH}x@code{BUFF_HEIGHT}, of 
+integers.
+The integer represents the @emph{source} pixel 
+for this @emph{destination} pixel. 
+In other words: The numbers specify where each pixel comes from.
+
+@example
+@group
+@r{e.g  in a small 3x3 world, to rotate to the left.. }
+
+1, 2, 0,   @r{so pixel 1 is moved to position 0, and so on}
+4, 5, 3, 
+7, 8, 6 
+@end group
+@end example
+
+What kind of integers are used (@code{short} or
+@code{long}) depends on the size of the buffer (If > 64k longs are
+used). @code{tint} and @code{utint} are defined in @code{cth_buffer.h}
+to give you the right kind of integer to use. 
+
+  
+Read the source of some @code{mk*.c} files to try to work out how it works, or 
+send me some email! 
+
+
+@subheading Translation tables on demand
+
+Since translation tables need quite a lot of disk space, take lots of
+time to load and need stretching to fit different buffer sizes, I
+included a new method to generate translation tables. 
+
+The generation program is activated when the translation table is
+needed. It gets the desired size for the table as parameters and should
+write the table to stdout. The output is just the table (always as
+@code{long}s without any header). 
+
+An additional file (@code{.cmd}) defines the description and what
+arguments are passed to the generation program. So one program can be
+used to generate lots of different translation tables. 
+
+
+
+@subheading tabheader, tabinfo
+
+Since version 0.3 Cthugha uses an improved format for tab-files. 
+The new format starts
+with a header (@code{tab_header} defined in @code{translate.h}). 
+
+You can convert (add the header) old tab-files to new ones by using 
+@code{tabheader}. To display the header use @code{tabinfo}. 
+
+Usage of @code{tabheader} and @code{tabinfo}: 
+
+@example
+tabheader [in-tab-file] [size-x  size-y] [description] > [out-tab-file]
+tabinfo [tab-file]
+@end example
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node PCX Files, ,Translation Tables, Technical Stuff
+@section PCX Files
+
+PCX files are pictures uses by Cthugha. They are display from time to
+time when the display is changed. You can also force the next PCX to the
+screen by pressing @key{X}. Cthugha also uses the palette stored in a
+PCX file.
+
+For information about the format of such an image, read a book about 
+file formats. PCX is a very simple form of saving pictures, it is used
+mainly for historic reasons (the DOS version used it). Maybe in future
+versions also other file formats will be supported.
+

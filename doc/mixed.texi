@@ -1,0 +1,322 @@
+
+@node Hotkeys, Screen Saver, Mixed, Mixed
+@section Hotkeys
+
+You can store up to 10 settings of the CoreOption (flame, display,
+palette, ...) to hotkeys. 
+
+
+To save the current setting press @code{h} (a message will appear on the
+bottom of the screen) and then a number key. When using @code{xcthugha}
+you can also use Shift + Number instead.
+
+To restore the settings from the hotkeys, just press @code{0}, @code{1},
+... @code{9}.
+
+
+The values for the hotkeys are saved in
+@code{~/.cthugha.auto} when you press @code{a}.
+
+
+
+
+@node Screen Saver, Sound Server, Hotkeys, Mixed
+@section Screen Saver
+
+I have removed the "native" screen saver support of @code{xcthugha}. So
+you must use a program like @code{xscreensaver} 
+@footnote{see @code{http://people.netscape.com/jwz/xscreensaver}}. 
+
+You should specify the options @code{--root} and @code{--verbose=-1}.
+The first will force @code{xcthugha} to draw onto the root window, the
+second will suppress most text displayed.
+So an entry for the resource database for @code{xcthugha} will look like
+
+@example
+   xscreensaver.programs: xcthugha --root --verbose=-1
+@end example
+
+
+Of course you can also add extra arguments to @code{xcthugha} as you need them.
+For example @code{--zoom 1} to prevent @code{xcthugha} from filling the
+whole screen.
+
+
+
+
+
+
+
+
+@node Sound Server, Pathes, Screen Saver, Mixed
+@section Sound Server
+
+@code{cthugha} and @code{xcthugha} now always work as sound servers.
+Because of that if you want to use @code{cthugha-server} and 
+@code{xcthugha} on one machine you must use the @code{--srv-port} option
+with one of the two. 
+
+
+
+
+
+
+
+@node Pathes, Other OS, Sound Server, Mixed
+
+@section Pathes
+
+Cthugha will search in the following directories for translation tables,
+palette files and pcx images:
+
+@enumerate
+@item Current directory for all 3 kinds of files
+@item @code{./tab}, @code{./map} and @code{./pcx}
+@item In @code{@value{INSTLIB}/tab/BUFF_WIDTHxBUFF_HEIGHT} for
+translation tables
+@item @code{@value{INSTLIB}/tab}, @*
+@code{@value{INSTLIB}/map} and @*
+@code{@value{INSTLIB}/pcx}
+@item @code{LIB_DIR/tab}, @code{LIB_DIR/map} and @code{LIB_DIR/pcx}.
+Where @code{LIB_DIR} is specified by the parameter @code{--path} and
+BUFF_WIDTHxBUFF_HEIGHT is the size of the buffer in dezimal (e.g. 320x200).
+@end enumerate
+
+
+
+
+
+
+
+
+
+
+
+@node Other OS, Rules, Pathes, Mixed
+@section Other Operating Systems
+
+You can find the other versions at the official Cthugha home page
+@code{http://www.afn.org/cthugha}.
+
+@itemize @bullet
+
+@item other @strong{unix} systems.
+
+@code{xcthugha} should also work on non-Linux machines, but several
+things will not work. Sound reading is probably the most important thing
+that will not work (maybe something like @code{--play /dev/audio --silent}
+works).
+
+
+@item @strong{DOS} - Cthugha V5.1 and V5.3
+
+This version of Cthugha-L is based on cthugha V5.1 and V5.3 by
+Kevin Burfitt. Most things 
+from the DOS-version work exactly the same way in the Linux-Version. 
+Cthugha-L has a lot of additional features.
+
+
+@item @strong{PowerMac} - MaCthugha
+
+Rus Maxham (@code{rus@@interstice.com}) has done a port of Cthugha for the
+PowerMac.
+
+
+@item @strong{xf86cthugha}.
+
+A special version of Cthugha-L supporting DGA
+(Direct Graphics Access) with XFree86. 
+Mark Vojkovich (@code{mvojkov@@ucsd.edu}) has done this version. You
+can also find it at @code{ftp.afn.org} or via the WWW page. 
+
+I included DGA support in some version, but I dropped it -- it only
+makes problems (especially with fonts) and is not even faster.
+
+
+@item @strong{Win95}.
+
+Kevin Burfitt (@code{zaph@@torps.apana.org.au}) is currently working on a
+new version of Cthugha for Windows 95. 
+
+
+@item @strong{BeOS}.
+
+There will (soon) be a version of Cthugha for BeOS.
+Raphael Moll (@code{<raphael.moll@@capway.com>})
+is working on this.
+
+@end itemize
+
+
+
+
+
+
+
+
+
+
+
+
+@node Rules, Press, Other OS, Mixed
+@section Rules
+
+So you want to add/modify the source code, just follow this simple rules.
+
+@table @emph
+@item Rule #1:
+Go for it!!!  This is a free project - make it big! 
+
+@item Rule #2:
+Send me some Email telling me which bits you are playing with, 
+and I will keep you up to date if I (or anyone else) make any 
+major changes to the code. 
+
+@item Rule #3:  
+Put your name/email address in the code/credits, that way you get to 
+share the fame :-) 
+
+@item Rule #4:  
+There is no Rule #4
+
+@item Rule #5:
+@emph{Please} keep me up to date, with any little functions or ideas 
+you have... The program is evolving quickly, and I'd love to 
+incorporate your ideas! 
+
+@item Rule #6:  
+Translation tables: 
+If you design a weird and wonderful translation table, send 
+me either the table or (even better) the code used to generate it! 
+
+@item Rule #7: 
+Don't Panic
+
+
+@end table
+
+
+
+
+
+
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Press, Who?, Rules, Mixed
+@section What the press says
+
+The following short quotes are about the original DOS Version of
+Cthugha. Cthugha-L can do everything the original can, and a lot of
+things more.
+ 
+@quotation
+It gives credence to the phrase 'I can see music'...There is no real 
+way to describe the patterns except as weird.
+@end quotation
+@cite{Australian PC Review Oct '94}
+
+@quotation
+@emph{Wavy Data} @*
+Upon first observation, oscilloscopes seems a bit ho-hum. After all, 
+devices that graphically represent electrical waveforms on a display
+screen tend to fall a bit short on the sex appeal scale. But if you
+spend some time exploring the ways high-end oscilloscopes can visualize
+data, you may start to think the machines are on drugs . . . 
+Cthugha 5.1, an oscilloscope program for PC sound cards, has tuned in, 
+turned on, and decidedly dropped out from the humdrum world of scientific
+analog signal processing. The product of Australian code jock Kevin 
+"Zaph" Burfitt, Cthugha takes your sound card's CD, line, or microphone 
+input and displays it as a swirling, hypnotic, 256-color confection for 
+your eyes. Although Cthugha currently requires MS-DOS, a VGA monitor, and
+a Sound Blaster or Gravis UltraSound sound card, the complete C source 
+code is part of the package, so you can port it, if you're so inclined.
+@end quotation
+@cite{WIRED 3.03 (p. 156: Music to Your Eyes)}
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Who?, Tips, Press, Mixed
+@section Who's this Cthugha dude anyway ? 
+
+@emph{Cthugha} is hard to pronounce (Kuth-ooo-Ga), and spell. 
+The name is an ancient name from the occults. 
+The following is an extract from the texts that describe him (it) the best. 
+
+@quotation 
+Cthugha resembles an enormous burning mass continually varying in shape. 
+It dwells at or near the star Fomalhaut, from whence it may be called. 
+It is one of the most obscure and remote of all the Great Old Ones.
+@end quotation
+@cite{Call of Cthulhu - Chaosium}
+ 
+When Cthugha is summoned he is always accompanied by Fire Vampires. 
+
+@quotation 
+There appeared thousands of tiny points of light. ... The myriad points of 
+light were living entities of flame!  For wherever they touched, fire sprang 
+up.
+@end quotation
+@cite{The dweller in Darkness, by August Derleth}
+
+
+
+
+@node Tips, Future, Who?, Mixed
+@c @section Tips
+
+
+Tips section is not yet written.
+
+
+
+
+
+
+@node Future, ,Tips, Mixed
+@section The Future of Cthugha for Linux
+
+Some plans I have with Cthugha for Linux:
+
+@itemize @bullet
+
+@item Make it more independent from Linux. I think @code{xcthugha}
+should run on every unix system fast enough at least when using just
+random data or a sound file as input.
+
+@item Cut it down a little bit. This has already started. Screen saver
+and DGA support are no longer included. More things might
+follow. The whole thing is just getting too big for me. I will 
+remove parts for which good alternatives exist or which are useless.
+
+@item @code{svgalib}. To me it seems, that this library is slowly
+dying. Newer chips are not longer supported. So in the future I will
+probably only continue on the X11 version. 
+
+@item User interface. The current user interface is not really good --
+here are some changes necessary.
+
+@item Copying Policy. This is definitely not change. I will never charge
+you for private use. I think about putting the whole thing under the GNU
+public license.
+
+@item GGI. Maybe I combine X, svgalib and OpenGL version into just one
+program using GGI. This should also work with linux-fb.
+
+@end itemize
+
+
+
+
+
+
+
+

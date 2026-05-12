@@ -1,0 +1,376 @@
+\input texinfo    @c -*-texinfo-*-
+@c %**start of header
+
+@c Use A4 paper - If you don't like that, remove the following 3 lines.
+@iftex
+@afourpaper
+@end iftex
+
+@setfilename cthugha.info
+@settitle Cthugha-L An Oscilloscope on Acid
+
+@finalout
+
+@ifinfo
+@copyright{} 1995-98 Deischinger Harald
+
+Permission is granted to make and distribute verbatim
+copies of this manual provided the copyright notice and
+this permission notice are preserved on all copies.
+
+@end ifinfo
+
+@c %**end of header
+
+@include version.texi
+
+@set INSTLIB /usr/local/lib/cthugha-L
+
+@titlepage
+
+@title{Cthugha-L  @value{VERSION}}
+@subtitle{An Oscilloscope on Acid}
+@subtitle{DOCUMENTATION}
+
+@author{Deischinger Harald}
+@tex 
+Am Edh\"ugel 45 
+@end tex
+@*
+4115  Kleinzell @*
+AUSTRIA           
+
+email: @code{deischi@@geocities.com} @*
+www: @code{http://www.geocities.com/CapeCanaveral/Lab/6386}
+
+@vskip 0pt plus 1filll
+
+last update: @value{UPDATED}
+
+@copyright{} 1995-98 Deischinger Harald
+ 
+Permission is granted to make and distribute verbatim
+copies of this manual provided the copyright notice and
+this permission notice are preserved on all copies.
+  
+@end titlepage
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+@node	Top,	Introduction,	(dir),	(dir)
+
+@ifinfo
+@top Cthugha-L @value{VERSION}
+@flushright 
+An Oscilloscope on Acid
+DOCUMENTATION
+
+@value{UPDATED}
+@end flushright
+@end ifinfo
+
+@menu
+* Introduction::	Please read at least this part
+* Mixed::               Several different things
+* CoreOptions::         The "important" Options
+* Configuration::       Configure Cthugha with ini-files and X11
+                        resource database
+* Parameters::          Description of all Parameters for Cthugha-L
+* Keymaps::             Define your own keyboard mappings
+* Technical Stuff::     Technical Stuff and compatibility notes
+* Contact::             How to reach the author
+@end menu
+
+
+
+
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Introduction, Mixed, Top, Top
+
+@chapter Introduction
+@menu
+* What?::               What does this software do then?
+* Flavors::             The Different Flavors of Cthugha-L
+* Fast Start::          First steps with Cthugha
+* Buffer and Display::  Use of the @code{-S} and @code{-D} option
+@end menu
+
+@include introduction.texi
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Mixed, CoreOptions, Introduction, Top
+
+@chapter Mixed
+@menu
+* Hotkeys::             Saving settings to hotkeys
+* Screen Saver::        Running @code{xcthugha} as a screen saver
+* Sound Server::        Using @code{cthugha-server}
+* Pathes::              Where Cthugha searches for tab, map, pcx files
+* Other OS::            Cthugha for DOS, PowerMac, Win95
+* Rules::               If you want to modify the source
+* Tips::                "Quer durch den Gemuesegarten"
+* Press::               What the press says
+* Who?::                Who's this Cthugha dude anyway?
+* Future::              The future -- what will it bring?
+@end menu
+
+@include mixed.texi
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node CoreOptions, Configuration, Mixed, Top
+
+@chapter CoreOptions
+
+Several options control the way Cthugha displays the sound. In lack of a
+better name I use CoreOption for those (I you know a better name, please
+tell me about it).
+
+As you already know Cthugha uses (multiple) buffers that are mapped to
+the screen. So all the CoreOptions (except the one controlling how the
+buffers are mapped to the screen) are defined for each buffer.
+
+The CoreOptions are
+@table @emph
+@item Display
+How the buffers are mapped to the screen
+
+@item Flame
+How the buffers change from one time step to the next. 
+
+@item General Flame
+A Parameter used by some flame.
+
+@item Border
+What values to use for the upper and lower border of the buffer.
+
+@item Translate
+Defines a global movement on the buffers
+
+@item Wave
+How the sound data is drawn into the buffer
+
+@item Sound Processing
+Some filters for the sound. 
+
+@item Table
+How the palette is used by some of the waves.
+
+@item WaveScale
+A parameter controlling the size of some the waves.
+
+@item Palette
+What colors to use for this buffer.
+
+@item PCX
+The next image that will be used (displayed sometimes). This feature is
+not working very well.
+
+@item Flashlight
+Change the palette based on beats. 
+@end table
+
+
+You can lock each of these CoreOptions individually. You can do this
+either when starting Cthugha for example with @code{--display lock:up}
+or when Cthugha is running: Press @code{o} to the a list of the current
+CoreOptions, select the one you would like to lock and press @code{l}.
+
+You can use the function keys (starting from @code{F5}) to get lists of
+the possible values of all the CoreOptions.
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@include configure.texi
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Parameters, Keymaps, Configuration, Top
+
+@chapter Parameters
+
+For a (short) list use @code{cthugha --help}. 
+
+Mose of the options can also
+be used in a negative form to disable the feature. This is simply done
+by including a @code{no-} in front of the options.  
+
+When giving the options at the command line, you can use abbreviations
+(like @code{--no-ins} as short for @code{--no-install}).
+
+@menu
+* Sound and CD::        Sound, CD and Mixer Options
+* Automatic Changer::   How and when the display is changed automatically
+* General CoreOptions:: General CoreOptions ("Buffer" options)
+* Initial Values::      Initial values for CoreOptions
+* Display::             Display options
+* General::             Some more options
+* Server::              Options for the sound server
+@end menu
+
+
+@include parameters.texi
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Keymaps, Technical Stuff, Parameters, Top
+
+@chapter Keymaps
+
+Since version 1.4 of Cthugha-L you can define your own keyboard
+bindings. 
+
+@code{#keymap name} marks the beginning of a new keymap. 
+There must be no white spaces after @code{name}.
+Then the keybindings are of the form @code{key action1(param1) action2(param2) ...}.
+Commenets start with an @code{#} at the beginning of the line.
+For an example of a keymap file see @code{src/default.keymap}.
+
+Key presses in Cthugha are handled by a series of keymaps. When one
+keymap can not handle the key, it is passed on to the next general one.
+The sequence of keymaps is depending on the current interface mode
+@table @emph
+@item main interface
+extraKeymap (as defined by the @code{setExtraKeymap} action)@*
+@code{main}@*
+@code{default}
+
+@item Options, CoreOptions, Sound, ...
+@code{CoreOptionElement} (only for CoreOptions), @code{OptionElement}@*
+@code{CoreOption} for CoreOptions
+@code{Option} or @code{Sound}, ...@*
+@code{default} 
+
+@item Screen, Flame, ... Lists
+@code{Option} for the yes/no value in each line, and to move the selection@*
+@code{Screen} or @code{Flame}, ...@*
+@code{List}@*
+@code{default}
+
+@end table
+
+An example keymap, that lets you select the flames by just one keypress.
+@example
+#keymap main
+# turn on new flame keys
+f   setExtraKeymap(flame)
+
+
+#keymap flame
+
+# go back to normal mode
+q   setExtraKeymap()
+
+a   flame(0)
+# or use the flame name:  flame(clear)
+s   flame(1)
+d   flame(2)
+...
+@end example
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Technical Stuff, Contact, Keymaps, Top
+
+@chapter Technical Stuff
+
+@menu
+* General Stuff::       General Technical Information
+* Palette Files::       How to specify what colors Cthugha should use
+* Translation Tables::  Specify almost any effect
+* PCX Files::           Display some extra images
+@end menu
+
+@include technical.texi
+
+
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Contact, ,Technical Stuff, Top
+@chapter Contact
+
+@itemize @bullet
+@item @strong{mail} address for postcards and CDs
+
+Deischinger Harald @*
+Am Edhuegel 45 @*
+4115  Kleinzell @*
+AUSTRIA           
+
+Please send me a postcard if you like Cthugha!
+
+
+@item @strong{email}: @code{deischi@@geocities.com} 
+
+Please tell me also if you have problems with Cthugha, so I can (at
+least try to) fix them.
+
+@item @strong{WWW}
+
+My private WWW address is
+@code{http://www.geocities.com/CapeCanaveral/Lab/6386}. 
+Sometimes you can find bug fixes under that address.
+
+The official Cthugha home (for all operating systems) is
+@code{http://www.afn.org/~cthugha}.
+
+You download Cthugha from both sites.
+
+
+@item @strong{FTP}
+
+You can get Cthugha via FTP from @code{ftp.afn.org},
+from the directory @code{/cthugha}.
+
+Or use (a mirror site of) @code{sunsite.unc.edu}.
+There you can Cthugha from the directory
+@code{/pub/Linux/apps/sound/lightshow} (or @code{/pub/Linux/Incoming}
+just after release of a new version).
+
+
+That two FTP sites and the two WWW sites are the only
+"official" sites of Cthugha-L.
+
+
+
+@item @strong{news}: @code{alt.graphics.cthugha}
+
+There is not much traffic on that list - but it is not completely dead.
+
+@end itemize
+
+If you write your postcard or mail in German, please use Du (and not Sie). 
+
+
+ 
+
+
+@contents
+
+@bye

@@ -1,0 +1,193 @@
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node Other Things, ,Technical Stuff, Top
+
+@chapter Other Things
+
+
+@menu
+* Other OS::            Cthugha for DOS and PowerMac
+* TIPS::                "Quer durch den Gemuesegarten"
+@end menu
+
+
+
+
+@node Other OS, Good CDs, , Other Things
+@section Other Operating Systems
+
+You can find the other versions at the Cthugha home page
+@code{http://www.afn.org/cthugha}.
+
+
+@itemize @bullet
+@item @strong{DOS} - Cthugha V5.1 and V5.3
+
+This version of Cthugha-L is based on cthugha V5.1 and V5.3 by
+Kevin Burfitt. Most things 
+from the DOS-version work exactly the same way in the Linux-Version. 
+Cthugha-L has a lot of additional features.
+
+
+@item @strong{PowerMac} - MaCthugha
+
+Rus Maxham (@code{rus@@interstice.com}) has done a port of Cthugha for the
+PowerMac.
+
+
+@item @strong{xf86cthugha}.
+
+A special version of Cthugha-L supporting DGA
+(Direct Graphics Access) with XFree86. 
+
+Mark Vojkovich (@code{mvojkov@@ucsd.edu}) has done this version. You
+can also find it at @code{ftp.afn.org} or via the WWW page. 
+
+DGA support is now fully integrated into this distribution. You can use
+@code{xcthugha --dga} to enable this feature.
+
+
+@item @strong{Win95}.
+
+Kevin Burfitt (@code{zaph@@torps.apana.org.au}) is currently working on a
+new version of Cthugha for Windows 95. 
+
+@end itemize
+
+
+
+
+
+@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@node TIPS, ,Good CDs, Other Things
+@section TIPS
+
+@table @strong
+@item How can I register Cthugha ?
+
+You can send me a postcard, its all I ask...  if you have too much money 
+and don't know what to do with it, then send me a CD of something that  
+looks cool with Cthugha!
+
+If you write your postcard in German (or some other language having
+@emph{Sie} and @emph{Du}), please use the @emph{Du} (I'm not that
+important).  
+
+Please send me more postcards!
+
+
+@item I think I found a bug - what can I do ?
+
+Please mail me and tell me about it, I will try to fix it. 
+It can always happen that I miss
+something when I release a new version. 
+
+
+@item I can't remember how to spell CTHUGHA.
+
+Well here's how Zaph remembers: 
+@enumerate
+@item It starts with a 'C' 
+@item It's got the word 'THUG' in it 
+@item Followed by 'HA' 
+@end enumerate
+Easy, really (You'd be surprised how many permutations we get) 
+
+
+@item @code{xcthugha --saver}, @code{xcthugha --dga}
+
+@code{xcthugha} has some problems getting the correct colors, when
+running under certain window managers. Now I found a workaround for that
+problems. 
+
+There is only one thing you should do: Set your window manager so, that 
+it does not decorate the windows named "xcthugha-saver" and "xcthugha-dga".         
+Take a look at the manual of your window manager, how to do that.
+
+It is possible, that this is not working for some very strange window
+manager. If you have any problems (or a solution) please tell me about
+it.
+
+ 
+
+@item So you want to add/modify the source code
+
+@table @emph
+@item Rule #1:
+Go for it!!!  This is a free project - make it big! 
+
+@item Rule #2:
+Send me some Email telling me which bits you are playing with, 
+and I will keep you up to date if I (or anyone else) make any 
+major changes to the code. 
+
+@item Rule #3:  
+Put your name/email address in the code, that way you get to 
+share the fame :-) 
+
+@item Rule #4:  
+There is no Rule #4
+
+@item Rule #5:
+@emph{Please} keep me up to date, with any little functions or ideas 
+you have... The program is evolving quickly, and I'd love to 
+incorporate your ideas! 
+
+@item Rule #6:  
+Translation tables: 
+If you design a weird and wonderful translation table, send 
+me either the table or (even better) the code used to generate it! 
+
+@item Rule #7: 
+Don't Panic
+
+@end table
+
+
+@item When using FFT, 
+don't set the sample rate too high (not higher
+than 22000 Hz). Many sound sources (radio) don't have any frequency
+parts above that limit --- so half of FFT buffer will be a flat line.
+
+
+@item How to show Cthugha on the wall?
+
+There are a lot of methods for doing that. 
+@table @emph
+@item Video projectors
+Like a dia projector, only that you connect your
+computer and look. This is expensive.
+
+@item Overhead projectors
+Special device you connect to your computer
+and use with the overhead projector.
+Also expensive.
+
+@item Warper
+Build your own projector device. See the included text file
+@code{warper.txt} (by Noah Spurrier). This is cheap. 
+
+@end table
+
+
+@item Some more tips
+
+@itemize @bullet
+@item You can use all you map files from fractint.
+Most are included in the extra distribution.
+
+@item Use "strange" buffer sizes. 1024x70 is good as a screen saver
+for a slow machine.
+
+@item Send me a postcard. I have received not too many so far.
+@end itemize
+
+@end table
+
+
+
+
+
+
+
+
+

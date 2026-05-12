@@ -1,0 +1,529 @@
+#include "cthugha.h"
+#include "sound.h"
+#include "imath.h"
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <ctype.h>
+
+#include <sys/types.h>
+#if HAVE_SYS_WAIT_H
+# include <sys/wait.h>
+#endif
+#ifndef WEXITSTATUS
+# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#endif
+#ifndef WIFEXITED
+# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+#endif
+
+
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
+
+char SoundDeviceFile::name[PATH_MAX] = "";
+char SoundDeviceFile::fifo[PATH_MAX] = "/tmp/cthugha.com";
+
+int soundPlayLoop = 1;			// play file(s) over and over again
+
+
+#define RIFF		0x46464952	
+#define WAVE		0x45564157
+#define FMT		0x20746D66
+#define DATA		0x61746164
+#define PCM_CODE	1
+
+typedef struct _waveheader {
+  unsigned long	main_chunk;	/* 'RIFF' */
+  unsigned long	length;		/* filelen */
+  unsigned long	chunk_type;	/* 'WAVE' */
+
+  unsigned long	sub_chunk;	/* 'fmt ' */
+  unsigned long	sc_len;		/* length of sub_chunk, =16 */
+  unsigned short format;	/* should be 1 for PCM-code */
+  unsigned short modus;		/* 1 Mono, 2 Stereo */
+  unsigned long	sample_fq;	/* frequence of sample */
+  unsigned long	byte_p_sec;
+  unsigned short byte_p_spl;	/* samplesize; 1 or 2 bytes */
+  unsigned short bit_p_spl;	/* 8, 12 or 16 bit */ 
+
+  unsigned long	data_chunk;	/* 'data' */
+  unsigned long	data_length;	/* samplecount */
+} WaveHeader;
+
+
+
+SoundDeviceFile::SoundDeviceFile() : 
+    SoundDevice(), 
+    file(NULL), dsp(NULL), bufferPid(-1), childPid(-1) {
+
+    char * tmp = tmpnam(NULL);		// generate a temporary file name for communication
+    if(tmp != NULL)
+	strncpy(fifo, tmp, PATH_MAX);
+
+    if(! soundSilent)
+	dsp = ::new SoundDeviceDSPOut;
+
+
+    //
+    // set up memory for sound buffer
+    //
+    bufferChunkSize = 4096;
+    bufferSize = int(soundBuffer) * 1024;
+    bufferPos = 0;		// start of data in the buffer (read position)
+    bufferFill = 0;		// number of elements in the buffer
+
+    if( bufferSize <= (4*bufferChunkSize) ) {
+	buffer = NULL;
+	bufferSize = 0;
+    } else {
+	buffer = new unsigned char[bufferSize+bufferChunkSize];
+    }
+}
+
+
+//
+// play the next file (currently just one file over and over again)
+//
+int SoundDeviceFile::playNext() {
+
+    static int rep = 0;
+
+    if( (rep > 0) && !soundPlayLoop) {		// stop playing
+	printfv(0, "Stopping...\n");
+	if(soundSilent) {
+	    exit(0);
+	} else {
+	    kill(getppid(), 15);		// kill parent (SoundDeviceFork process)
+	    abort();
+	}
+    }
+
+    rep ++;
+    printfv(0, "Playing file '%s'.\n", name);
+
+    if(open()) {			// open file / start program
+	error = 1;
+	return 1;
+    } 
+
+    if(dsp)
+	dsp->update();
+    sound_communicate(0);
+
+    return 0;
+}
+
+
+
+//
+// open the sound file, or
+// start the sound reading program
+//
+int SoundDeviceFile::open() {
+    char prog[PATH_MAX*6];
+    //
+    // convert file name to lowercase
+    //
+    char name_lc[PATH_MAX + 1];
+    int i;
+    for(i=0; (i < PATH_MAX) && (name[i] != '\0'); i++)
+	name_lc[i] = tolower(name[i]);
+    name_lc[i] ='\0';
+
+
+
+    if( strstr(name_lc, ".wav") != NULL) {
+	//
+	// play a .wav file
+	//
+	printfv(4,"    Playing .wav file.\n");
+
+	if( openFile() )
+	    return 1;
+	if( wavHeader() )
+	    return 1;
+
+	return 0;
+	
+
+    } else if( strstr(name_lc, ".mod") != NULL) {
+	//
+	// play a mod file
+	//
+
+	#if MOD_PLAYER == 1
+	//
+	// play using the 'xmp' player
+	//
+	printfv(4, "    Playing MOD file using 'xmp'.\n");
+	
+	soundFormat.setValue(SF_s16_le);
+	soundChannels.setValue(2);
+	soundSampleRate.setValue(22050);
+
+	sprintf(prog, "%s -c -q --stereo -b 16 -f 22050 --little-endian  \"%s\" > %s ", 
+		MOD_PATH, name, fifo);
+
+	if(openProg(prog))
+	    return 1;
+
+	#else
+
+	printfe("Sorry. No MOD Player configured.\n");
+	return 1;
+
+	#endif
+
+	return 0;
+
+
+    } else if( strstr(name_lc, ".mp3") != NULL) {
+	//
+	// play a MPEG Layer3 file
+	//
+
+	#if MP3_PLAYER == 1
+	//
+	// start mpg123. decode first frame to get sample rate, ...
+	//
+	// according to mpg123 man page the output is raw linear PCM,
+	// signed, 16 bit, host byte order
+	//
+	// I get the frequency from the output of mpg123 (by deconding
+	// just a little bit). This works as long as the output
+	// does not change.
+	// current version of mpg123: 0.59f
+	//
+	// It would be nice if mpg123 would write a .wav header.
+	//
+	printfv(4,"    Playing MP3 file using 'mpg123'.\n");
+
+	printfv(5,"    decoding first frame to get sound header...\n");
+
+	systemf("%s -s -n 1 \"%s\" 2> %s > /dev/null", MP3_PATH, name, fifo);
+
+	if( (file = fopen(fifo, "r")) == NULL) {
+	    printfee("Can not open the temporary file '%s'.\n", fifo);
+	    return 1;
+	}
+
+#if (__BYTE_ORDER == __BIG_ENDIAN)
+	soundFormat.setValue(SF_s16_be);
+#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
+	soundFormat.setValue(SF_s16_le);
+#endif
+	while(!feof(file)) {
+	    char line[512];
+	    fgets(line, 512, file);
+
+	    char * p;
+	    if( (p = strstr(line, "Freq:")) != NULL) {
+		int freq;
+		sscanf(p, "Freq:%d", &freq);
+		soundSampleRate.setValue(freq);
+	    }
+	    if( (p = strstr(line, "Channels:")) != NULL) {
+		int chnls;
+		sscanf(p, "Channels:%d", &chnls);
+		soundChannels.setValue(chnls);
+	    }
+	}
+	fclose0(file);
+	unlink(fifo);
+
+	printfv(5, "Starting 'mpg123' for decoding...\n");
+	sprintf(prog, "%s -s \"%s\" > %s", MP3_PATH, name, fifo);
+	if(openProg(prog))
+	    return 1;
+	
+	#elif MP3_PLAYER == 2
+
+	//
+	// play MP3 file using the 'l3dec' player
+	//
+	// method simmilar to mpg123, but use the .wav header 
+	//
+	printfv(4,"    Playing MP3 file using 'l3dec'.\n");
+
+	printfv(5,"    decoding first frame to get sound header...\n");
+
+	systemf("echo \"n\" | %s -wav -fn 0 \"%s\" %s 2> /dev/null", MP3_PATH, name, fifo);
+	if( (file = fopen(fifo, "r")) == NULL) {
+	    printfe("Can not open temporary file.\n");
+	    return 1;
+	}
+	if(wavHeader()) {
+	    fclose(file);
+	    return 1;
+	}
+	fclose0(file);
+	unlink(fifo);
+	
+	sprintf(prog, "echo \"n\" | %s -wav \"%s\" %s", MP3_PATH, name, fifo);
+	if(openProg(prog))
+	    return 1;
+	
+	if(wavHeader()) {
+	    fclose(file);
+	    return 1;
+	}
+
+	#else
+	printfe("Sorry. No MP3 Player configured.\n");
+	return 1;
+	#endif
+	
+    } else {	
+	printfv(4,"    Playing raw sound data..\n");
+	
+	if( openFile() )
+	    return 1;
+    }
+    
+    return 0;
+}
+
+int SoundDeviceFile::openFile() {
+    if( (file = fopen(name, "r")) == NULL) {
+	printfee("Can not open sound file `%s' for reading.", name);
+	return 1;
+    }
+
+    return 0;
+}
+
+int SoundDeviceFile::openProg(char * prog) {
+
+    mkfifo(fifo, 0666);
+
+    switch( childPid = fork()) {
+    case -1:
+	printfee("Can not fork for sound reading program.\n");
+	error = 1;
+	return 1;
+    case 0:	
+	if(dsp)
+	    delete dsp;
+
+	printfv(3, "    starting sound reader `%s'.\n", prog);
+
+	char *argv[4];
+	argv[0] = "sh";
+	argv[1] = "-c";
+	argv[2] = prog;
+	argv[3] = 0;
+	execv("/bin/sh", argv);		// should not return
+
+	printfee("execve failed.");
+
+	abort();
+	break;
+    default:
+	// now open this pipe for reading
+	printfv(3, "    opening '%s'\n", fifo);
+	if( (file = fopen(fifo, "r")) == NULL) {
+	    printfee("Can not open communication pipe `%s'.\n", fifo);
+	    return 1;
+	}
+    }
+    return 0;
+}
+
+
+
+
+int SoundDeviceFile::wavHeader() {
+    WaveHeader header;
+    
+    if( fread(&header, sizeof(header), 1, file) <= 0) {
+	if(feof(file) )
+	    printfe("Can not read header (end of file).\n");
+	else
+	    printfee("Can not read header.");
+    }
+
+    /* is it a .wav file */
+    if( (header.main_chunk == RIFF) && 
+	(header.chunk_type == WAVE) ) {
+
+	soundChannels.setValue(header.modus);
+	switch(header.bit_p_spl) {
+	case 8:
+	    soundFormat.setValue(SF_u8);
+	    break;
+	case 16:
+	    soundFormat.setValue(SF_s16_le);
+	}
+	soundSampleRate.setValue(header.sample_fq);
+    } else {
+	printfv(2, "  Error in .wav header\n");
+    }
+    return 0;
+}
+
+
+
+
+int SoundDeviceFile::read() {
+    int r = 0, w = 0;
+	    
+    //
+    // an error occured earlier, do nothing
+    //
+    if(error)
+	return 1;
+
+    //
+    // start playing a new file
+    //
+    if( (file == NULL) ) {
+	if( playNext() )
+	    return 1;
+    }
+
+    //
+    // check for end of file
+    //
+    if( feof(file) || ferror(file)) {
+	if(bufferFill > 0) {
+	    //
+	    // write remaingin data from buffer
+	    //
+	    w = min(bufferFill, rawSize);
+
+	    unsigned char * writePos = buffer + bufferPos;
+
+	    w = dsp ? dsp->write(writePos, w) : w;		// to soundcard
+	    memcpy(tmpData, writePos, w);			// to shared memory
+
+	    bufferPos = (bufferPos + w) % bufferSize;
+	    bufferFill = bufferFill - w;
+	} else {
+	    //
+	    // close the file
+	    //
+	    close();
+	}
+    } else if(dsp == NULL) {
+	//
+	// playing silently -> no buffering needed
+	//
+	w = fread(tmpData, 1, rawSize, file);
+
+    } else if (bufferSize == 0) {
+	// 
+	// play without bufferering
+	//
+	w = fread(tmpData, 1, rawSize, file);
+	w = dsp->write(tmpData, w);
+
+    } else {
+	//
+	// read the sound, do buffering, and write to soundcard
+	//
+	unsigned char * readPos = buffer + (bufferPos + bufferFill) % bufferSize;
+	unsigned char * writePos = buffer + bufferPos;
+	
+	if( bufferFill < rawSize) {					// buffer empty
+	    
+	    r = fread(readPos, 1, bufferChunkSize, file);
+	    
+	} else if( (bufferFill+bufferChunkSize) >= bufferSize) {	// buffer full
+	    
+	    w = dsp->write(writePos, rawSize);				// to soundcard
+	    memcpy(tmpData, writePos, w);				// to shared memory
+	    
+	} else {
+	    fd_set rfds, wfds;
+	    FD_ZERO(&rfds); 
+	    FD_ZERO(&wfds);
+	    
+	    FD_SET(fileno(file), &rfds);
+	    FD_SET(dsp->getHandle(), &wfds);
+
+	    switch( select(FD_SETSIZE, &rfds, &wfds, NULL, NULL) ) {
+	    case -1:
+		printfee("Error in select.");
+		break;
+	    case 0:
+		break;
+	    default:
+		if( FD_ISSET(fileno(file), &rfds) )			// reading possible
+		    r = fread(readPos, 1, bufferChunkSize, file);
+		if( FD_ISSET(dsp->getHandle(), &wfds) ) {		// write possible
+		    w = dsp->write(writePos, rawSize);			// to soundcard
+		    memcpy(tmpData, writePos, w);			// to shared memory
+		}
+	    }
+	}
+    
+	// check for read over the end of the buffer
+	if( (r > 0) && (((bufferPos + bufferFill)%bufferSize + r) > bufferSize) ) {
+	    memcpy(buffer, buffer+bufferSize, 
+		   (bufferPos + bufferFill)%bufferSize + r - bufferSize);
+	}
+	
+	// update buffer position and size
+	bufferPos = (bufferPos + w) % bufferSize;
+	bufferFill = bufferFill + r - w;
+    }
+
+    return w / bytesPerSample;
+}
+
+void SoundDeviceFile::update() {
+    if(dsp)
+	dsp->update();
+}
+
+int SoundDeviceFile::close() {
+
+    if(file)
+	fclose0(file);
+
+    if(childPid >= 0) {
+	printfv(3, "    waiting for sound reader to stop.\n");
+
+	if(waitpid(childPid, NULL, WNOHANG) == -1) {
+	    sleep(1);
+	    if(waitpid(childPid, NULL, WNOHANG) == -1) {
+		printfv(3,"    stopping sound reader\n");
+		
+		kill(SIGKILL, childPid);
+		waitpid(childPid, NULL, 0);
+	    }
+	}
+
+	unlink(fifo);
+
+	childPid = -1;
+    }
+
+    return 0;
+}
+
+SoundDeviceFile::~SoundDeviceFile() {
+    delete dsp; dsp = NULL;
+    delete buffer; buffer = NULL;
+
+    close();
+}
+
+
+
+
+
+
+

@@ -1,0 +1,42 @@
+#
+# Example INI-Settings for Cthugha
+#
+# by Harald Deischinger (deischi@geocities.com)
+#
+# the format of the entries is
+# cthugha.OPTION: value                   to set general options
+# cthugha.FEATURE.BNR: value              to set options per buffer
+# cthugha.FEATURE.BNR.NAME: value         to turn on/off some options
+#
+# OPTIONS is any of the long options accepted by Cthugha
+#	  use 'cthugha --help', or take a look in the documentation
+#	  to get a list
+# FEATURE is one of: wave, flame, display, palette, pcx, translate
+# BNR	  is a buffer number
+# NAME	  is the name of one of the features
+#
+# You can use a ? as a wildcard.
+# Upper of lower case is not important.
+#
+
+#
+# Save some of the current settings by pressing 'a' while Cthugha is running
+# The settings are saved to '~/.cthugha.auto'
+#
+
+cthugha.sound-method    : 4                     # directly use DMA for sound
+
+cthugha.disp-mode	: 2			# this is 800x600
+cthugha.buff-size	: 2
+cthugha.line		: 80			# use line-in as input
+cthugha.rate		: 22000			# by default this is 44000
+cthugha.verbose		: 2			# print some messages
+
+cthugha.flashlight.?	: locked:off		# I don't like this, so I turn it off
+						#  for all buffers
+
+cthugha.font            : -adobe-courier-bold-r-*-*-24-*-*-*-*-*-*-*
+
+
+
+

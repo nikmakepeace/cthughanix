@@ -1,0 +1,207 @@
+#keymap default
+q setInterface(main)
+		    
+o   setInterface(CoreOptions)
+O   setInterface(Options)
+?   setInterface(Help)
+ß   setInterface(Help)
+F1  setInterface(Help)
+F2  setInterface(CoreOptions)
+F3  setInterface(Options)
+F4  setInterface(CD)
+F5  setInterface(sound)
+F6  setInterface(mixer)
+F7  setInterface(server)
+F8  setInterface(playList)
+		  
+F9   setInterface(display)
+F10  setInterface(flame)
+F11  setInterface(border)
+F12  setInterface(translate)
+F13  setInterface(wave)
+F14  setInterface(soundProcessing)
+F15  setInterface(table)
+F16  setInterface(waveScaling)
+F17  setInterface(object)
+F18  setInterface(palette)
+F19  setInterface(pcx)
+F20  setInterface(flashlight)
+F21  setInterface(light)
+F22  setInterface(background)
+F23  setInterface(fly)
+
+Left  prevInterface()
+Right nextInterface()
+		  
+Up   up(1)
+Down down(1)
+home home()
+end  end()
+
+.    toggleStatus()
+,    toggleStatus()
+
+
+
+#keymap main
+q credits()
+Q quit()
+    
+d screenChg(+1)
+D screenChg(-1)
+z zoomChg(+1)
+Z zoomChg(-1)
+< bufferChg(-1)
+> bufferChg(+1)
+f flameChg(+1)
+F flameChg(-1)
+g flameGeneral()
+w waveChg(+1)
+W waveScaleChg(+1)
+j objectChg(+1)
+J objectChg(-1)
+t translateChg(+1)
+T translateChg(-1)
+m soundProcessChg(+1)
+M soundProcessChg(-1)
+s flashlightChg(+1)
+S flashlightChg(-1)
+p paletteChg(+1)
+P paletteChg(-1)
+b tableChg(+1)
+B tableChg(-1)
+x pcxChg(+1)
+X pcxChg(-1)
+l lockChg()
+L lockChg()
+y lightChg(+1)
+Y lightChg(-1)
+i backgroundChg(+1)
+I backgroundChg(-1)
+c flyChg(+1)
+C flyChg(-1)
+
+r randomPalette()
+R newRandomPalette()
+
+a writeIni()
+A writeIni()
+n soundReset()
+N soundReset()
+# printScreen() 
+print printScreen()
+
+backSpace restore()
+h toggleSave()
+0 saveOrRestore(0)
+1 saveOrRestore(1)
+2 saveOrRestore(2)
+3 saveOrRestore(3)
+4 saveOrRestore(4)
+5 saveOrRestore(5)
+6 saveOrRestore(6)
+7 saveOrRestore(7)
+8 saveOrRestore(8)
+9 saveOrRestore(9)
+
+\\  changeAll()
+return changeOne()
+
+S-0 save(0)
+S-1 save(1)
+S-2 save(2)
+S-3 save(3)
+S-4 save(4)
+S-5 save(5)
+S-6 save(6)
+S-7 save(7)
+S-8 save(8)
+S-9 save(9)
+
+
+#keymap help
+up   scrollUp()
+down scrollDown()
+\\   toggleScrolling()
+?    setInterface(main)
+ß    setInterface(main)
+F1   setInterface(main)
+
+
+#keymap CD
+F4 setInterface(main)
+7 CDnext(-1)
+9 CDnext(+1)
+4 CDfast(-15)
+6 CDfast(+15)
+8 CDpause()
+5 CDstop()
+2 CDcloseEject()
+
+
+#keymap Sound
+F5 setInterface(main)
+
+#keymap Server
+F6 setInterface(main)
+
+
+#keymap Server
+F6 setInterface(main)
+
+#keymap Options
+Q setInterface(main)
+O setInterface(main)
+
+
+#keymap CoreOptions
+o setInterface(main)
+O setInterface(options)
+
+#keymap OptionElement
+Right chgValue1(+1)
+Left  chgValue1(-1)
++     chgValue2(+1)
+-     chgValue2(-1)
+*     chgValue3(+1)
+/     chgValue3(-1)
+0     setValue(0)
+1     setValue(1)
+2     setValue(2)
+3     setValue(3)
+4     setValue(4)
+5     setValue(5)
+6     setValue(6)
+7     setValue(7)
+8     setValue(8)
+9     setValue(9)
+
+#keymap CoreOptionElement
+l   lockElement()
+
+
+
+#keymap ListOption
+Right  toggleUse()
+Left   toggleUse()
++      toggleUse()
+-      toggleUse()
+/      toggleUse()
+*      toggleUse()
+Return setInterface(main) activate()
+\\     activate()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

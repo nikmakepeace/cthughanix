@@ -1,0 +1,203 @@
+
+                          #######   #        #
+                             ##   ##       ##
+                            ##   ##       ##
+                           ##   ##   #   ##
+                          ###  ###  #   ######
+                         ###  #######  ###
+                         ###  ###   #  ###
+                         ###  ###   #  #######
+
+              #       #    #        #        #        #        #
+            ##      ##   ###      ###      ###      ##       ###
+           ##      ##   ## #     ## #     ## #     ##       ## #
+          ##      ##   ##  #    ##  #    ##  #    ##       ##  #
+         ###  #  ##   ######   ######   ######   ######   ######
+        ###  ## ###  ###   #  ####     ###      ###      ####
+        ### ### ###  ###   #  ### ##   ###      ###      ### ##
+        #####  ####  ###   #  ###   #  ###      #######  ###   #
+
+
+
+
+
+                  (c)Copyright 1992 by Noah Spurrier
+
+---------------------------
+ Description of The Warper
+---------------------------
+The Warper is a simple device for enhancing the pleasure that you get from
+running your Acid Warp program. The Warper is a single lens projector that
+attaches to your computer monitor and allows you to enlarge and project the
+Acid Warp images onto a wall, movie screen, white bed-sheet, etc. The
+device should cost you less than $20.00.
+
+I will give only a general schematic for building The Warper. The design is
+quite simple and it will be easy for you to fit the design to your supplies
+and equipment size. The only special item that you will need is one large
+Fresnel lens. A Fresnel lens is usually encountered as a thin, floppy sheet
+of plastic that has the same optical properties as a glass lens many inches
+thicker. You may use a true glass lens. For our purposes we need a lens about
+6 inches or more in diameter. A glass lens this size would be very heavy and
+expensive, but if you have one on hand then try to use it because it should
+give a better image. The following instructions assume that you will be using
+a Fresnel lens.
+
+You will need a lens about 6" x 6". You can make The Warper with a smaller
+lens, but it will be less effective. You can certainly use a larger lens.
+I will give sources of cheap Fresnel lenses at the end of this text. Don't
+worry about focal length. For surplus and hobby grade equipment, you must
+take what you can get. A focal length of about 5 inches is fine. Often you
+won't even be told what the focal length is. Only the focus will have to be
+adjusted to compensate for the focal length of your lens.
+
+When you get your Fresnel lens, take it and your computer into a dark room.
+Activate the computer and execute the Acid Warp program. Now Aim the
+computer monitor at a white wall, movie screen, white sheet, etc. The
+plane of the monitor screen should be roughly parallel to the plane of the
+projection surface. Now hold your lens in front of the computer monitor.
+The lens should also be roughly parallel to the projection surface and the
+computer monitor. As you vary the distance between the lens and the monitor
+you will be able to focus an upside-down image from the monitor onto the
+projection surface. The exact distance between the screen and the lens will
+vary on how far your monitor is from the projection surface and the focal
+length of your lens. For my setup, a wall is about 12 feet away and the
+lens is held about a foot from the screen. The image covers most of the
+wall. You may never be able to get the focus good enough to read 80 column
+text, but you should be able to easily read the Acid Warp title screen.
+
+Besides the wobbly image and arm strain this method is flawed for one
+technical reason. A very large amount of light leaks off to the sides of
+the lens and fills the room with stray light. This badly washes out the
+image. All that is necessary to fix this is to enclose the monitor is a
+black box with the lens as the only opening for light to escape.
+
+-------------------------
+ How to Build The Warper
+-------------------------
+Here is the simple method that you can scale to your supplies and skill. You
+only need two cardboard boxes to make the black, light-tight box. Use wood,
+metal, or plastic if you want a fancy box. You will have to work out the
+details for those materials by yourself. For my first prototype I used wine
+boxes that I got from a bar where I work. Wine boxes are very sturdy. For your
+boxes one should fit inside the other. You may need to rip the side panel
+seam on one box and reglue it so that it is slightly smaller or larger. Fit
+is not critical, as long as the boxes are snug, yet slide easily. This
+telescope action will allow you to focus.
+
+Spray paint the insides with FLAT BLACK paint. If you don't paint the inside
+then the results will not be as good.
+
+Cut a hole for the lens in one end of the larger box and attach the lens
+over this opening. Remove the flaps from the other end of the box or fold.
+them in. If you fold them in then the bigger box will fit more snuggly around.
+the smaller box.
+
+One end of the smaller box should have its flaps pulled open, but not cut
+off. These flaps fit over and around the monitor. Remove the flaps from the
+other end of the box.
+
+When complete, the flaps of the smaller box should be taped to the sides and
+top of the monitor. It does not matter if the fit is rough. The important
+thing is to make sure that very litle light escapes and that The Warper is
+held straight and steady on the front of the monitor.
+
+The larger box will fit over the smaller box and slide toward or away from
+the monitor screen. This will allow you to adjust the focus. You may need
+to put some blocks under the front (lens end) of The Warper to prevent it
+from sagging. I had no trouble with wine boxes.
+
+If you cannot move the lens close enough to the screen to get proper focus
+then simply trim a few inches off the edges of the open ends of the boxes
+where the smaller box meets to slide into the larger box.
+
+                                          /  FLAP
+                                        /'
+          |--------------------       /'.-----------        BACK OF
+          |       -------------------|  \   TOP    |`\      MONITOR
+         :|                          |   #         |  `\--, <------
+         : HOLE                      |   #         |   |  |
+         :                           |   #         |   |  |
+         :                           |   #  SIDE   |   |  | CABLE
+         :                           |   #         |   |  |-------()
+    LENS :|                          |   #         |   /--'
+          |       -------------------|  /   BOTTOM | /\     AC PLUG
+          |--------------------      `\ `-----------'  \_________,--
+               < ------- >             `\                        `--
+                  MOVE                   `\  FLAP
+                  FOR
+                  FOCUS
+                                                 CROSS-SECTION DIAGRAM
+
+Your Warper is now ready for use!
+
+For best results: use a white projection surface; make the room very dark;
+turn up the brightness of your monitor. You may also need to adjust color.
+
+-------------------------------
+ Sources for Your Fresnel Lens
+-------------------------------
+American Science and Surplus Co.
+(Formerly Jerry Co.)
+601 Linden Place
+Evanston, IL 60202
+Orders 708-475-8440
+
+AS&S sells a hodge podge of surplus items. Some of it is good,
+some of it is junk. When you get their catalog, look for the "Optics"
+section. They should still have a large supply of 11" x 11" fresnel lenses
+for $1.95. They also sell an 11" x 11" Twin Layer lens for $3.25. These
+lenses have minor scratches. A friend informed me that for our purposes
+they work well. If they are sold out of these particular lenses then they
+will probably have others that will work. Minimum Order is $10.00.
+
+
+
+Edmund Scientific Co.
+101 East Gloucester Pike
+Barrington, NJ 08007-1380
+Orders 609-573-6250
+       609-547-3488
+FAX    609-573-6295
+
+Edmund Scientific Co. sells quality optics as well as hobby materials. When
+you get their catalog, do not want to start looking in the Optics section
+(unless you want to pay $30.00 for a 6" x 7" lens.) Look in the index under
+"Fresnel" or "Lenses". There should be some lenses referenced in the hobby
+section of their catalog. There, find a listing for an 8.5" x 11" lens for
+about $7.95. They also sell a 7" x 10" lens for about $5.95. This is the
+size I originally used.
+
+
+
+Herbach and Rademan Co.
+18 Canal Street
+P.O. 122
+Bristol PA, 19007-0122
+Orders 800-848-8001
+FAX    215-788-9577
+Office 215-788-5583
+
+H&R Co. sells new and surplus equipment for science and industry. They have
+a small selection of inexpensive multilens units and rear projection screens
+for TV projection systems. Most of the projection lenses are designed for a
+specific size of TV tube and may not necessarily be ideal for a different
+sized monitor, but the prices are low and these lenses are worthy of
+experimentation. H&R also sells single multipurpose glass and fresnel lenses
+in large sizes.
+
+
+
+Macrocoma Co.
+Dept. m
+15 North Main St.
+Washington Crossing, PA 18977
+Orders 215-736-2880
+
+Macrocoma is a weird company. They sell TV-Projector conversion kits. They
+also sell a booklet on how to make Fresnel lenses. I don't recommend it.
+They sell a Fresnel lens for about $15.00. I think the quality is supposed
+to be quite good. Ask for "The Master Lens" (Special made, Triple
+inspected, the best of the best.)
+
+The Warper (c)Copyright 1992 by Noah Spurrier

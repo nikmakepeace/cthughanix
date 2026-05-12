@@ -1,0 +1,424 @@
+dnl -*- m4 -*-
+
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(CthughaNix, 1.5)
+AC_CANONICAL_SYSTEM
+AM_INIT_AUTOMAKE(@PACKAGE_NAME@, @PACKAGE_VERSION@)
+
+#AM_CONFIG_HEADER(config.h)
+AC_CONFIG_SRCDIR([config.h.in])
+AC_CONFIG_HEADER([config.h])
+
+dnl
+dnl enable and disable options
+dnl
+
+dnl SVGA version
+AC_ARG_ENABLE(svga,
+[  --disable-svga          do not produce cthugha for Linux console],
+[case "${enableval}" in
+ yes) svga=1 ;;
+  no) svga=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --disable-svga) ;;
+esac],
+[svga=1])
+
+dnl XWIN version
+AC_ARG_ENABLE(xwin,
+[  --disable-xwin          do not produce cthugha for X11],
+[case "${enableval}" in
+ yes) xwin=1 ;;
+  no) xwin=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --disable-xwin) ;;
+esac],
+[xwin=1])
+
+dnl sound server
+AC_ARG_ENABLE(serv,
+[  --disable-serv          do not produce cthugha sound server],
+[case "${enableval}" in
+ yes) serv=1 ;;
+  no) serv=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --disable-serv) ;;
+esac],
+[serv=1])
+
+dnl OpenGL support
+AC_ARG_ENABLE(gl,
+[  --disable-gl            do not produce cthugha for OpenGL],
+[case "${enableval}" in
+ yes) gl=1 ;;
+  no) gl=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --disable-gl) ;;
+esac],
+[gl=1])
+
+dnl tabheader tools
+AC_ARG_ENABLE(tabtools,
+[  --disable-tabtools      do not produce tabheder, tabinfo],
+[case "${enableval}" in
+ yes) tabtools=1 ;;
+  no) tabtools=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --disable-tabtools) ;;
+esac],
+[tabtools=1])
+
+
+dnl /dev/dsp
+AC_ARG_WITH(dsp,
+[  --with-dsp=DEV          set the DSP device to DEV (yes=/dev/dsp)
+  --without-dsp           do not use the DSP device (same as --with-dsp=no)],
+[case "${withval}" in
+ yes) with_dsp=1 ;;
+  no) with_dsp=0 ;;
+   *) with_dsp=1 dev_dsp=${withval} ;;
+esac],
+[with_dsp=1 dev_dsp="/dev/dsp"])
+
+
+dnl /dev/cdrom
+AC_ARG_WITH(cdrom,
+[  --with-cdrom=DEV        set the CDROM device to DEV (yes=/dev/cdrom)
+  --without-cdrom         do not use the CDROM device (same as --with-cdrom=no)],
+[case "${withval}" in
+ yes) with_cdrom=1 ;;
+  no) with_cdrom=0 ;;
+   *) with_cdrom=1 dev_cdrom=${withval} ;;
+esac],
+[with_cdrom=1 dev_cdrom="/dev/cdrom"])
+
+dnl /dev/mixer
+AC_ARG_WITH(mixer,
+[  --with-mixer=DEV        set the Mixer device to DEV (yes=/dev/mixer)
+  --without-mixer         do not use the Mixer device (same as --with-mixer=no)],
+[case "${withval}" in
+ yes) with_mixer=1 ;;
+  no) with_mixer=0 ;;
+   *) with_mixer=1 dev_mixer=${withval} ;;
+esac],
+[with_mixer=1 dev_mixer="/dev/mixer"])
+
+dnl all network support
+AC_ARG_WITH(network,
+[  --without-network       disable all network code],
+[case "${withval}" in
+ yes) with_network=1 ;;
+  no) with_network=0 serv=0;;
+   *) AC_MSG_ERROR(bad value ${withvalval} for --without-network) ;;
+esac],
+[with_network=1])
+
+dnl which MP3 player to use
+AC_ARG_WITH(mpg123,
+[  --without-mpg123        do not use 'mpg123' - use 'l3dec' instead],
+[case "${withval}" in
+ yes) with_mpg123=1 ;;
+  no) with_mpg123=0 ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --without-mpg123) ;;
+esac],
+[with_mpg123=1])
+
+
+dnl enable special architecture optimization
+AC_ARG_WITH(arch,
+[  --with-arch=ARCH        set special architecture for compiler (-march=ARCH for pgcc)],
+[case "${withval}" in
+ yes) arch=test ;;
+  no) arch= ;;
+ 486) arch=-m486 ;;
+ 386) arch=-m386 ;;
+   *) arch=-march=${withval} ;;
+esac],
+[arch=test])
+
+
+dnl
+dnl
+dnl
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+
+AC_LANG_CPLUSPLUS
+
+dnl Special compiler options
+AC_MSG_CHECKING(special compiler flags)
+case "${target_os}" in
+linux*) 
+	dnl -DOS_linux and -DNO_BYTE_SWAPPING is needed for amp
+	CXXFLAGS="-O2 -fomit-frame-pointer -ffast-math "
+	if test x$arch = xtest; then
+		case "${target_cpu}" in
+		i386) CXXFLAGS="-m386 ${CXXFLAGS}" ;;
+		i486) CXXFLAGS="-m486 ${CXXFLAGS}" ;;
+		i586) dnl try, if pentium optimization is available
+			CXXFLAGS_SAVE=${CXXFLAGS}
+			CXXFLAGS="-march=pentium -pipe ${CXXFLAGS}" 
+			AC_TRY_LINK(, , , CXXFLAGS="-m486 -pipe ${CXXFLAGS_SAVE}" )
+		;;
+		i686) dnl try, if pentium pro optimization is available
+			CXXFLAGS_SAVE=${CXXFLAGS}
+			CXXFLAGS="-march=pentiumpro -pipe ${CXXFLAGS}" 
+			AC_TRY_LINK(, , , CXXFLAGS="-m486 -pipe ${CXXFLAGS_SAVE}" )
+		;;
+		esac
+	else
+		CXXFLAGS="${arch} ${CXXFLAGS}";
+	fi
+	dnl all the warnings only for C++ programs
+	CFLAGS=${CXXFLAGS}
+	CXXFLAGS="${CXXFLAGS} -Wall" ;;
+*)  AC_MSG_WARN(Unknown system ${target_os}.) ;;
+esac
+
+dnl pass the pkglibdir to the program
+CXX_EXTRA='-DCTH_LIBDIR="\"${pkglibdir}\""'
+CXXFLAGS="${CXXFLAGS} ${CXX_EXTRA}"
+AC_MSG_RESULT(${CXXFLAGS})
+
+
+
+AC_PATH_XTRA
+AC_HEADER_DIRENT
+
+dnl The sys/wait.h test fails when using C++.
+dnl But it works when using C
+AC_LANG_C
+AC_HEADER_SYS_WAIT
+AC_LANG_CPLUSPLUS
+
+AC_CHECK_HEADERS(endian.h)
+dnl the following test gives a warning, ignore it
+AC_C_BIGENDIAN
+
+AC_CHECK_HEADERS(fcntl.h sys/ioctl.h unistd.h)
+AC_CHECK_HEADERS(linux/cdrom.h sys/cdrom.h linux/soundcard.h sys/soundcard.h)
+dnl try to find at least one (n)curses.h
+AC_CHECK_HEADERS(ncurses.h curses.h ncurses/ncurses.h ncurses/curses.h)
+AC_CHECK_HEADERS(linux/joystick.h)
+
+AC_HEADER_STDC
+AC_CHECK_FUNCS(strchr memcpy)
+
+#Is this needed??
+#dnl Check for getopt_long
+#AC_CHECK_HEADERS(getopt.h)
+#AC_REPLACE_FUNCS(getopt_long)
+#AC_SUBST(LIBOBJS)
+
+dnl
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
+dnl Checks for library functions.
+AC_PROG_GCC_TRADITIONAL
+AC_FUNC_MMAP
+AC_TYPE_SIGNAL
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(gethostname gettimeofday mkfifo select strerror strstr strtol)
+
+dnl Check if -lsocket and -lnsl
+#if test x$with_network = x1; then
+#	AC_CHECK_FUNC(socket, ,
+#		LIBS="${LIBS} -lsocket -lnsl" AC_CHECK_FUNC(socket,,with_network=0))
+#fi
+
+dnl Checks for svgalib and turn of svgalib version if libraries not found
+if test x$svga = x1; then
+	S_LIBS=
+	AC_SUBST(S_LIBS)
+	LIBS_tmp=${LIBS}
+	AC_CHECK_LIB(vga, vga_init,		,svga=0)
+	AC_CHECK_LIB(vgagl, gl_setcontextvga,	,svga=0) 
+	S_LIBS=${LIBS}
+	LIBS=${LIBS_tmp}
+fi
+
+dnl Checks for ncurses
+ncurs=1
+N_LIBS=
+AC_SUBST(N_LIBS)
+LIBS_tmp=${LIBS}
+LIBS=
+AC_CHECK_LIB(ncurses, initscr,,
+	AC_CHECK_LIB(curses, initscr,		,[svga=0 serv=0 ncurs=0]) )
+N_LIBS=${LIBS}
+LIBS=${LIBS_tmp}
+AC_DEFINE_UNQUOTED([HAVE_NCURSES], [${ncurs}], [have ncurses])
+
+dnl X11 libs
+X_LIBS="${X_PRE_LIBS} -lX11 ${X_EXTRA_LIBS} ${X_LIBS} -lXext -lXt -lXaw -lXmu ${LIBS}"
+if test x$xwin = x1; then
+	use_xpm=1
+	AC_CHECK_HEADERS(xpm.h X11/xpm.h)
+	AC_CHECK_LIB(Xpm, XpmWriteFileFromPixmap, X_LIBS="-lXpm ${X_LIBS}", use_xpm=0,${X_LIBS})
+	AC_DEFINE_UNQUOTED([USE_XPM], [${use_xpm}], [use xpm])
+fi
+
+dnl Check for xnet
+AC_CHECK_LIB(xnet, recv, N_LIBS="${N_LIBS} -lxnet",[],[])
+
+dnl
+dnl Check for OpenGL/MesaGL
+dnl
+if test x$gl = x1; then
+
+	dnl Check for header files
+	AC_CHECK_HEADER(GL/gl.h, have_gl=yes, have_gl=no)
+	if test $have_gl = yes ; then
+ 		AC_CHECK_HEADER(GL/glx.h, have_gl=yes, have_gl=no)
+	fi
+	if test $have_gl = yes ; then
+ 		AC_CHECK_HEADER(GL/glut.h, have_gl=yes, have_gl=no)
+	fi
+
+	if test $have_gl = yes ; then
+		AC_CHECK_HEADERS(GL/xmesa.h)
+	fi
+
+	dnl
+	dnl Check for library
+	dnl
+	GL_LIBS="-lXi"
+	if test $have_gl = yes ; then
+		AC_CHECK_LIB(GL, glLoadIdentity, GL_LIBS="-lGL ${GL_LIBS}", 
+			AC_CHECK_LIB(MesaGL, glLoadIdentity, GL_LIBS="-lMesaGL ${GL_LIBS}", 
+					have_gl=no, ${X_LIBS} ${GL_LIBS}), 
+			${X_LIBS} ${GL_LIBS})
+	fi
+	if test $have_gl = yes ; then
+		AC_CHECK_LIB(GLU, gluLookAt, GL_LIBS="${GL_LIBS} -lGLU", 
+			AC_CHECK_LIB(MesaGLU, gluLookAt, GL_LIBS="${GL_LIBS} -lMesaGLU", 
+					have_gl=no, ${X_LIBS} ${GL_LIBS}), 
+			${X_LIBS} ${GL_LIBS})
+	fi
+	if test $have_gl = yes ; then
+		AC_CHECK_LIB(glut, glutInit, GL_LIBS="${GL_LIBS} -lglut", have_gl=no,
+				${GL_LIBS} ${X_LIBS} -lXi)
+	fi
+	
+	if test $have_gl = no ; then
+		gl=0
+	fi
+	AC_SUBST(GL_LIBS)
+fi
+
+
+#
+# check of players
+#
+if test x${with_mpg123} = x1; then
+	AC_PATH_PROG(MP3_mpg123, mpg123)
+fi
+if test x${MP3_mpg123} != x; then
+	AC_DEFINE_UNQUOTED([MP3_PLAYER], [1], [mp3 player])
+	AC_DEFINE_UNQUOTED([MP3_PATH],   ["${MP3_mpg123}"], [mp3 path])
+else
+	AC_PATH_PROG(MP3_l3dec, l3dec)
+	if test x${MP3_l3dec} != x; then
+		AC_DEFINE_UNQUOTED([MP3_PLAYER], [2], [mps player])
+		AC_DEFINE_UNQUOTED([MP3_PATH],   ["${MP3_l3dec}"], [mp3 path])
+	fi
+fi
+
+AC_PATH_PROG(MOD_xmp, xmp)
+if test x${MOD_xmp} != x; then
+	AC_DEFINE_UNQUOTED([MOD_PLAYER], [1], [mod player])
+	AC_DEFINE_UNQUOTED([MOD_PATH],   ["${MOD_xmp}"], [mod path])
+fi
+
+if test x$with_network = x0; then
+	serv=0;
+fi
+
+
+dnl set which targets to produce
+TARGETS=
+TARGETS_SUID=
+AC_SUBST(TARGETS)
+AC_SUBST(TARGETS_SUID)
+if test x$svga = x1; then
+	TARGETS_SUID="${TARGETS_SUID} cthugha"
+fi
+if test x$xwin = x1; then
+	TARGETS="${TARGETS} xcthugha"
+fi
+if test x$serv = x1; then
+	TARGETS="${TARGETS} cthugha-server"
+fi
+if test x$gl = x1; then
+	TARGETS="${TARGETS} glcthugha"
+fi
+if test x$tabtools = x1; then
+	TARGETS="${TARGETS} tabheader tabinfo"
+fi
+
+
+
+
+
+AC_DEFINE_UNQUOTED([WITH_DSP], 	 [${with_dsp}], [with DPS device])
+AC_DEFINE_UNQUOTED([DEV_DSP],	 ["${dev_dsp}"],[DPS device])
+AC_DEFINE_UNQUOTED([WITH_CDROM],	 [${with_cdrom}], [cdrom])
+AC_DEFINE_UNQUOTED([DEV_CDROM],	["${dev_cdrom}"], [dev-cdrom])
+AC_DEFINE_UNQUOTED([WITH_MIXER],	 [${with_mixer}], [with mixer])
+AC_DEFINE_UNQUOTED([DEV_MIXER], 	["${dev_mixer}"], [dev mixer])
+AC_DEFINE_UNQUOTED([WITH_NETWORK], [${with_network}], [with network])
+
+AC_OUTPUT(Makefile src/Makefile doc/Makefile tab/Makefile)
+
+
+echo 
+echo "Summary"
+echo "-------"
+echo
+echo "Programs (suid):" ${TARGETS_SUID} 
+echo "Programs       :" ${TARGETS} 
+echo
+if test x$ncurs = x1; then
+	echo "ncurses        : enabled (${N_LIBS})"
+else
+	echo "ncurses        : disabled"
+fi
+if test x$gl = x1; then
+	echo "OpenGL/MesaGL  : enabled (${GL_LIBS})"
+else
+	echo "OpenGL/MesaGL  : disabled"
+fi
+echo
+if test x$with_dsp = x1; then
+	echo "DSP device     : ${dev_dsp}"
+else
+	echo "DSP device     : disabled"
+fi
+if test x$with_cdrom = x1; then
+	echo "CDROM device   : ${dev_cdrom}"
+else
+	echo "CDROM device   : disabled"
+fi
+if test x$with_mixer = x1; then
+	echo "Mixer device   : ${dev_mixer}"
+else
+	echo "Mixer device   : disabled"
+fi
+
+if test x${MP3_mpg123} != x; then
+	echo "MP3 player     : mpg123"
+elif test x${MP3_l3dec} != x; then
+	echo "MP3 player     : l3dec"
+else
+	echo "MP3 player     : none"
+fi
+
+if test x${MOD_xmp} != x; then
+	echo "MOD player     : xmp"
+else
+	echo "MOD player     : none"
+fi
+

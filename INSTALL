@@ -1,0 +1,67 @@
+INSTALL
+-------
+
+   *) To install the precompiled binaries into `/usr/local' run
+      `make install-pre'
+
+      To change the place where CthughaNix will be installed to you have to 
+      edit the `Makefile'.
+
+      The precompiled binaries are optimized for i486.
+      
+
+   *) To compile your own version of CthughaNix:
+      
+      1) run `./configure'
+	 For a list of possible options use './configure --help'. See Note 1.
+	 
+      2) run `make'
+	 This will produce all the necessary files. Depending on what compiler
+	 you use, you might get some warnings, which you can ignore.
+
+      3) run `make install'
+	 to install CthughaNix on your system. 
+
+
+Note 1:  The only option of 'configure' that is not self explaining 
+     is the --with-arch=ARCH option. This option is mainly to distinguish
+     between pentiumpro and amdk6.
+     Possible value for ARCH are 386, 486, pentium, pentiumpro, amdk6
+     With --without-cpu you disable any processor specifiy optimization.
+
+
+
+
+Problems
+--------
+   * A problem (I have it sometimes) with shared libraries is, that you
+     don't have the "library without version number".  For example if
+     you have `libXaw.so.6' and *no* `libXaw.so' you should add a link
+     with
+                    ln -s libXaw.so.6 libXaw.so
+
+     You should add such links for all your shared libraries.
+
+   * If you have problems with the sound reading you should try the option 
+     `--snd-method'. Using a value of 1 or 2 might solve your problem.
+     Please tell me if you continue to have problems (or even know how to fix
+     it)
+
+   * Please take a look at the `TODO' file for known bugs and problems. 
+
+
+
+Non-Linux-Machines
+------------------
+   * This release of CthughaNix that should also work on some machines
+     not running Linux. You may not have any sound, but you can try
+     something like `--play /dev/audio --silent'. 
+
+   * Please tell me if you run this version on a different operating
+     system. And please tell me also what you had to change to make it 
+     running.
+
+   * The network code might not even compile on non-Linux machines.
+     Use the configure option `--without-network' to disable all network
+     stuff.
+

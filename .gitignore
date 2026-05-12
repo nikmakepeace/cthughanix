@@ -1,0 +1,119 @@
+# Local editor and OS clutter
+.DS_Store
+*~
+*.swp
+*.swo
+
+# Ad-hoc build logs
+/build_errors.txt
+
+# C/C++ build products
+*.o
+*.lo
+*.la
+*.lai
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.gcda
+*.gcno
+*.gcov
+*.dSYM/
+core
+core.*
+
+# Autotools bootstrap/configure output
+/aclocal.m4
+/autom4te.cache/
+/autoscan.log
+/compile
+/config.cache
+/config.guess
+/config.h
+/config.h.in
+/config.log
+/config.status
+/config.sub
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/libtool
+/missing
+/mkinstalldirs
+/stamp-h
+/stamp-h1
+
+# Generated Makefiles
+/Makefile
+/Makefile.in
+/doc/Makefile
+/doc/Makefile.in
+/src/Makefile
+/src/Makefile.in
+/tab/Makefile
+/tab/Makefile.in
+
+# Automake dependency/libtool directories
+.deps/
+.libs/
+
+# Project binaries built by make
+/src/cthugha
+/src/xcthugha
+/src/glcthugha
+/src/cthugha-server
+/src/tabheader
+/src/tabinfo
+/tab/cmdRead
+/tab/cmd_bighalfwheel
+/tab/cmd_downspiral
+/tab/cmd_gentable
+/tab/cmd_huricn
+/tab/cmd_randswirls
+/tab/cmd_smoke
+/tab/cmd_space
+
+# Generated project files
+/src/default.keymap.str
+/doc/cthugha.info
+/doc/cthugha.info-*
+/doc/cthugha.ps
+/doc/stamp-vti
+/doc/version.texi
+
+# Texinfo/TeX build products
+/doc/*.aux
+/doc/*.cp
+/doc/*.cps
+/doc/*.dvi
+/doc/*.fn
+/doc/*.fns
+/doc/*.html
+/doc/*.ky
+/doc/*.log
+/doc/*.pdf
+/doc/*.pg
+/doc/*.toc
+/doc/*.tp
+/doc/*.vr
+
+# Distribution archives/directories
+/*.tar
+/*.tar.gz
+/*.tgz
+/*.tar.bz2
+/*.tbz2
+/*.tar.xz
+/*.txz
+/CthughaNix-*/
+
+# Legacy bundled binaries from the old source distribution
+/precompiled/
+
+# Legacy CVS metadata from the imported tree
+CVS/

@@ -1,0 +1,40 @@
+#include "cthugha.h"
+#include "options.h"
+#include "display.h"
+#include "CthughaBuffer.h"
+#include "CthughaDisplay.h"
+
+OptionOnOff options_save("save", 0);	// save options (and buffer) when leaving cthugha
+
+
+OptionDummy optionDummy;
+
+
+
+void OptionOnOff::change(const char * to) {
+
+    if ( ! strncasecmp("yes", to, 3) )
+	value = 1;
+    else if ( ! strncasecmp("on", to, 2) )
+	value = 1;
+    else if ( ! strncasecmp("1", to, 1) )
+	value = 1;
+    else if ( ! strncasecmp("no", to, 2) )
+	value = 0;
+    else if ( ! strncasecmp("off", to, 3) )
+	value = 0;
+    else if ( ! strncasecmp("0", to, 1) )
+	value = 0;
+    else {
+	printfe("Illegal yes/no-value `%s'.\n", to);
+    }
+}
+
+    
+
+
+
+
+
+
+
