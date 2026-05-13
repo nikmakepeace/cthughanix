@@ -3,6 +3,7 @@
 *~
 *.swp
 *.swo
+.vscode
 
 # Ad-hoc build logs
 /build_errors.txt
