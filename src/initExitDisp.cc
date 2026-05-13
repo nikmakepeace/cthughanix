@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "information.h"			/* title, credits, ... */
 #include "display.h"
-#include "sound.h"
+#include "Sound.h"
 #include "translate.h"
 #include "options.h"
 #include "keys.h"
@@ -15,7 +15,7 @@
 #include "CthughaDisplay.h"
 #include "CDPlayer.h"
 #include "DisplayDevice.h"
-#include "interface.h"
+#include "Interface.h"
 #include "keymap.h"
 
 #include <unistd.h>

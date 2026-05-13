@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "information.h"
-#include "sound.h"
+#include "Sound.h"
 #include "DisplayDevice.h"
 #include "CDPlayer.h"
 #include "AutoChanger.h"

@@ -5,10 +5,10 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "xcthugha.h"
-#include "sound.h"
+#include "Sound.h"
 #include "keys.h"
 #include "CthughaBuffer.h"
-#include "interface.h"
+#include "Interface.h"
 #include "cth_buffer.h"
 #include "CthughaDisplay.h"
 

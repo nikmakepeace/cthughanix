@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "display.h"
-#include "interface.h"
+#include "Interface.h"
 #include "disp-sys.h"
 #include "imath.h"
 #include "CthughaDisplay.h"

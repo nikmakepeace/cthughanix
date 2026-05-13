@@ -3,7 +3,7 @@
 #ifndef __SOUND_ANALYZE_H
 #define __SOUND_ANALYZE_H
 
-#include "sound.h"
+#include "Sound.h"
 
 #include "CoreOption.h"
 

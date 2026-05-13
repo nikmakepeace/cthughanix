@@ -5,7 +5,7 @@
 #include "CthughaBuffer.h"
 #include "disp-sys.h"
 #include "cth_buffer.h"
-#include "interface.h"
+#include "Interface.h"
 #include "CthughaDisplay.h"
 #include "SoundAnalyze.h"
 #include "imath.h"

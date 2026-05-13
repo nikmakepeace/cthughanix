@@ -3,7 +3,7 @@
 #include "keys.h"
 #include "display.h"
 #include "translate.h"
-#include "interface.h"
+#include "Interface.h"
 #include "CthughaBuffer.h"
 #include "disp-sys.h"
 #include "cth_buffer.h"

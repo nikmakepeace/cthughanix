@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "interface.h"
+#include "Interface.h"
 #include "CthughaBuffer.h"
 #include "flames.h"
 

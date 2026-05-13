@@ -34,6 +34,8 @@ public:
     virtual operator int() const { 
 	return value; 
     }
+
+    virtual ~Option() = 0;
 };
 
 

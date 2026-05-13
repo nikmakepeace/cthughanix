@@ -3,7 +3,7 @@
 #include "SoundProcess.h"
 #include "imath.h"
 #include "DisplayDevice.h"
-#include "interface.h"
+#include "Interface.h"
 #include "glcthugha.h"
 
 #include <GL/glut.h>

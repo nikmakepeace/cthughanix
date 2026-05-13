@@ -4,7 +4,7 @@
 #include "AutoChanger.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
-#include "interface.h"
+#include "Interface.h"
 #include "keys.h"
 #include "SoundServer.h"
 #include "CDPlayer.h"

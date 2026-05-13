@@ -2,7 +2,7 @@
 #include "imath.h"
 #include "AutoChanger.h"
 #include "SoundAnalyze.h"
-#include "interface.h"
+#include "Interface.h"
 #include "display.h"
 #include "options.h"
 #include "CthughaBuffer.h"

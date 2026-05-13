@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "display.h"
 #include "options.h"
-#include "sound.h"
+#include "Sound.h"
 #include "SoundAnalyze.h"
 #include "translate.h"
 #include "disp-sys.h"
@@ -521,5 +521,4 @@ int screen_zick() {
 
     return 0;
 }
-
 

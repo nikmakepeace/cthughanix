@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "Interface.h"
 #include "keys.h"
-#include "sound.h"
+#include "Sound.h"
 #include "imath.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
@@ -28,17 +28,19 @@ Interface * Interface::head = NULL;
 // class Interface
 //
 Interface::Interface(const char * n, 
-		     const char * ti, const char * te) : 
-    name(n), title(ti), text(te), elements(NULL), nElements(0), sel(-1) {
+			     const char * ti, const char * te) : 
+    name(n), title(ti), text(te), elements(NULL), nElements(0), sel(-1),
+    silenceMsg(NULL), silenceLine(0) {
 
     next = head;			// add into list of interfaces
     head = this;
 }
 
 Interface::Interface(const char * n, 
-		     const char * ti, const char * te,
-		     InterfaceElement * el[], int nEl) : 
-    name(n), title(ti), text(te), elements(el), nElements(nEl), sel(-1) {
+			     const char * ti, const char * te,
+			     InterfaceElement * el[], int nEl) : 
+    name(n), title(ti), text(te), elements(el), nElements(nEl), sel(-1),
+    silenceMsg(NULL), silenceLine(0) {
 
     next = head;			// add into list of interfaces
     head = this;
@@ -495,6 +497,5 @@ int nElementsOption = sizeof(elementsOption)/sizeof(InterfaceElement*);
 
 Interface interfaceOption("Options", "Options", NULL,
 			  elementsOption, nElementsOption);
-
 
 

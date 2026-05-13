@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 
 #include <sys/stat.h>
 #include <fcntl.h>

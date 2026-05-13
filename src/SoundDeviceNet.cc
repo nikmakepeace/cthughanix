@@ -3,7 +3,7 @@
  */
 
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 #include "network.h"
 #include "cth_buffer.h"
 

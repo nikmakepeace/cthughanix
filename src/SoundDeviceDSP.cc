@@ -1,7 +1,7 @@
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 #include "imath.h"
-#include "interface.h"
+#include "Interface.h"
 
 #if WITH_DSP == 1
 

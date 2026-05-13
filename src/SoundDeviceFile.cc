@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 #include "imath.h"
 
 #include <unistd.h>

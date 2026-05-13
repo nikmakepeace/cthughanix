@@ -5,11 +5,13 @@
 #include "cth_buffer.h"
 #include "disp-sys.h"
 #include "imath.h"
-#include "interface.h"
+#include "Interface.h"
 
 #include <unistd.h>
 
 CthughaDisplay * cthughaDisplay = NULL;
+
+CthughaDisplay::~CthughaDisplay() {}
 
 OptionInt maxFramesPerSecond("maxFPS", 25);
 

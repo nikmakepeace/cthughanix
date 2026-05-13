@@ -2,7 +2,7 @@
 #include "keymap.h"
 #include "Interface.h"
 #include "keys.h"
-#include "sound.h"
+#include "Sound.h"
 #include "display.h"
 #include "disp-sys.h"
 #include "options.h"

@@ -1,6 +1,6 @@
 #include "cthugha.h"
-#include "sound.h"
-#include "interface.h"
+#include "Sound.h"
+#include "Interface.h"
 #include "SoundServer.h"
 #include "CDPlayer.h"
 #include "options.h"

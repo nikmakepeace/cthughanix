@@ -12,7 +12,7 @@
 
 #include "keys.h"
 #include "display.h"
-#include "sound.h"
+#include "Sound.h"
 #include "imath.h"
 #include "DisplayDevice.h"
 

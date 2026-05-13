@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "interface.h"
+#include "Interface.h"
 #include "display.h"
 #include "cth_buffer.h"
 #include "imath.h"

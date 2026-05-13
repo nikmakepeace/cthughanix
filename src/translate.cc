@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "translate.h"
 #include "display.h"
-#include "interface.h"
+#include "Interface.h"
 #include "tab_header.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"

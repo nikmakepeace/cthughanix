@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 #include "Interface.h"
 
 #if WITH_MIXER == 1

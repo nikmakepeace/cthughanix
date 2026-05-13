@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "sound.h"
+#include "Sound.h"
 
 
 SoundDeviceRandom::SoundDeviceRandom() : SoundDevice() {

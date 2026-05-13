@@ -9,7 +9,7 @@ OptionOnOff options_save("save", 0);	// save options (and buffer) when leaving c
 
 OptionDummy optionDummy;
 
-
+Option::~Option() {}
 
 void OptionOnOff::change(const char * to) {
 

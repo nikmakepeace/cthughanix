@@ -49,6 +49,8 @@ public:
     const char * status();
 
     friend int save_display();
+
+    virtual ~CthughaDisplay() = 0;
 };
 
 
