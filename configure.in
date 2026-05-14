@@ -3,7 +3,7 @@ dnl -*- m4 -*-
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(CthughaNix, 1.5)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(@PACKAGE_NAME@, @PACKAGE_VERSION@)
+AM_INIT_AUTOMAKE([foreign])
 
 #AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([config.h.in])
@@ -160,10 +160,14 @@ linux*)
 			CXXFLAGS="-march=pentium -pipe ${CXXFLAGS}" 
 			AC_TRY_LINK(, , , CXXFLAGS="-m486 -pipe ${CXXFLAGS_SAVE}" )
 		;;
-		i686) dnl try, if pentium pro optimization is available
+		i686) dnl try, if pentium 4 / sse2 optimization is available
 			CXXFLAGS_SAVE=${CXXFLAGS}
-			CXXFLAGS="-march=pentiumpro -pipe ${CXXFLAGS}" 
-			AC_TRY_LINK(, , , CXXFLAGS="-m486 -pipe ${CXXFLAGS_SAVE}" )
+			dnl -msse2 is explicit, -march=pentium4 includes sse2
+			CXXFLAGS="-march=pentium4 -msse2 -pipe ${CXXFLAGS}"
+			AC_TRY_LINK(, , , 
+				dnl Fallback to Pentium Pro if P4 flags fail
+				CXXFLAGS="-march=pentiumpro -pipe ${CXXFLAGS_SAVE}" 
+			)
 		;;
 		esac
 	else
