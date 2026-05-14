@@ -15,62 +15,59 @@
  * if no parameter is given, stdin is used for input.
  */
 
-int main(int argc, char *argv[]) {
-    FILE * file;
+int main(int argc, char* argv[]) {
+    FILE* file;
     tab_header header;
     char c[5000];
     int i;
 
-    if ( argc < 2) {			/* no file-name given, use stdinput */
-	file = stdin;
-    } else 
-	/* open tab-file */
-	if( (file = fopen(argv[1], "r")) == NULL) {
-	    fprintf(stderr, "Can not open %s\n", argv[1]);
-	    return 1;
-	}
-    
+    if (argc < 2) { /* no file-name given, use stdinput */
+        file = stdin;
+    } else
+        /* open tab-file */
+        if ((file = fopen(argv[1], "r")) == NULL) {
+            fprintf(stderr, "Can not open %s\n", argv[1]);
+            return 1;
+        }
+
     /* check if already new-style */
-    if ( fread( &header, sizeof(tab_header), 1, file) != 1) {
-	fprintf(stderr, "Can't read header.\n");
-	fclose(file);
-	return 1;
+    if (fread(&header, sizeof(tab_header), 1, file) != 1) {
+        fprintf(stderr, "Can't read header.\n");
+        fclose(file);
+        return 1;
     }
-    if ( header.id == *((long*)"HDKB")) {
-	fprintf(stderr, "This file contains a tab-id. Replacing old.\n");
+    if (header.id == *((long*)"HDKB")) {
+        fprintf(stderr, "This file contains a tab-id. Replacing old.\n");
     } else {
-	rewind(file);
+        rewind(file);
     }
-    
+
     /* write new header */
     header.id = *((long*)"HDKB");
     header.size_x = BUFF_WIDTH;
     header.size_y = BUFF_HEIGHT;
-    header.description[0] = '\0';	/* init descr. */
-    if ( argc >= 4) {		/* size-information present */
-	header.size_x = atoi(argv[2]);
-	header.size_y = atoi(argv[3]);
-	if ( argc >= 5) {	/* and description present */
-	    strncpy(header.description, argv[4], 40);
-	}
+    header.description[0] = '\0'; /* init descr. */
+    if (argc >= 4) { /* size-information present */
+        header.size_x = atoi(argv[2]);
+        header.size_y = atoi(argv[3]);
+        if (argc >= 5) { /* and description present */
+            strncpy(header.description, argv[4], 40);
+        }
     }
-    if ( argc == 3) {		/* only description */
-	strncpy(header.description, argv[2], 40);
+    if (argc == 3) { /* only description */
+        strncpy(header.description, argv[2], 40);
     }
 
     fwrite(&header, sizeof(header), 1, stdout);
 
     /* copy data */
-    while(!feof(file)) {
-	i = fread(c, 1, 5000, file);
-	fwrite(c, 1, i, stdout);
+    while (!feof(file)) {
+        i = fread(c, 1, 5000, file);
+        fwrite(c, 1, i, stdout);
     }
 
     /* close (if not stdin) and exit */
-    if ( argc > 1)
-	fclose(file);
+    if (argc > 1)
+        fclose(file);
     return 0;
 }
-	
-    
-    

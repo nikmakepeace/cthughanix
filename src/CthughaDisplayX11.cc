@@ -8,268 +8,318 @@
 #include "imath.h"
 #include "Interface.h"
 
-void newCthughaDisplay() {
-    cthughaDisplay = new CthughaDisplayX11();
-}
+void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }
 
-
-CthughaDisplayX11::CthughaDisplayX11() : CthughaDisplay() {
-    expandedBuffer0 = (bypp == 1) ? buffer0 : new unsigned char[4*BUFF_SIZE * bypp];
+CthughaDisplayX11::CthughaDisplayX11()
+    : CthughaDisplay() {
+    expandedBuffer0 = (bypp == 1) ? buffer0 : new unsigned char[4 * BUFF_SIZE * bypp];
 }
 
 /*
  * expand the palette
  */
 void CthughaDisplayX11::expandPalette(int narrow) {
-    int height = narrow ? BUFF_HEIGHT : 2*BUFF_HEIGHT;
-    unsigned char * dst = expandedBuffer;
-    
-    switch(draw_mode) {	
-    case DM_mapped1: case DM_tmp_mapped:
-	for(int i=height; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff ++;
-		unsigned long a;
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b & 0xff]; b >>= 8;
-		a |= bitmap_colors2[b & 0xff]; b >>= 8;
-		a |= bitmap_colors3[b];
-		*scrn = a;
-		scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
-    case DM_mapped2:
-	for(int i=height; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff++;
-		unsigned long a; 
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b & 0xff]; b >>= 8;
-		*scrn = a;
-		scrn ++;
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b];
-		*scrn = a;
-		scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
-    case DM_mapped3:
-	for(int i=height; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long a, b;
-		unsigned long c = *buff; buff ++;
-		a = bitmap_colors0[c & 0xff]; c >>= 8;
-		b = bitmap_colors0[c & 0xff]; c >>= 8;
-		*scrn = a | ((b & 0xff) << 24); scrn ++;
-		a = b >> 8;
-		
-		b = bitmap_colors0[c & 0xff]; c >>= 8;
-		*scrn = a | ((b & 0xffff) << 16); scrn ++;
-		a = b >> 16;
+    int height = narrow ? BUFF_HEIGHT : 2 * BUFF_HEIGHT;
+    unsigned char* dst = expandedBuffer;
 
-		b = bitmap_colors0[c];
-		*scrn = a | (b << 8); scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
+    switch (draw_mode) {
+    case DM_mapped1:
+    case DM_tmp_mapped:
+        for (int i = height; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                unsigned long a;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors2[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors3[b];
+                *scrn = a;
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
+    case DM_mapped2:
+        for (int i = height; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                unsigned long a;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b & 0xff];
+                b >>= 8;
+                *scrn = a;
+                scrn++;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b];
+                *scrn = a;
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
+    case DM_mapped3:
+        for (int i = height; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long a, b;
+                unsigned long c = *buff;
+                buff++;
+                a = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                b = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                *scrn = a | ((b & 0xff) << 24);
+                scrn++;
+                a = b >> 8;
+
+                b = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                *scrn = a | ((b & 0xffff) << 16);
+                scrn++;
+                a = b >> 16;
+
+                b = bitmap_colors0[c];
+                *scrn = a | (b << 8);
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
     case DM_mapped4:
-	for(int i=height; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff ++;
-		*scrn = bitmap_colors0[b & 0xff]; b >>= 8; scrn ++; 
-		*scrn = bitmap_colors0[b & 0xff]; b >>= 8; scrn ++; 
-		*scrn = bitmap_colors0[b & 0xff]; b >>= 8; scrn ++; 
-		*scrn = bitmap_colors0[b]; scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
-    case DM_direct:
-	;
+        for (int i = height; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                *scrn = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                scrn++;
+                *scrn = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                scrn++;
+                *scrn = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                scrn++;
+                *scrn = bitmap_colors0[b];
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
+    case DM_direct:;
     }
 }
-
-
 
 /*
  * expand the palette
  */
 void CthughaDisplayX11::expandPaletteMirrorHV() {
-    unsigned char * dst = expandedBuffer;
-    
-    switch(draw_mode) {	
-    case DM_mapped1: case DM_tmp_mapped:
-	for(int i=BUFF_HEIGHT; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
+    unsigned char* dst = expandedBuffer;
 
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff ++;
-		unsigned long a;
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b & 0xff]; b >>= 8;
-		a |= bitmap_colors2[b & 0xff]; b >>= 8;
-		a |= bitmap_colors3[b];
+    switch (draw_mode) {
+    case DM_mapped1:
+    case DM_tmp_mapped:
+        for (int i = BUFF_HEIGHT; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
 
-		*scrn = a;
-		scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                unsigned long a;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors2[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors3[b];
+
+                *scrn = a;
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
     case DM_mapped2:
-	for(int i=BUFF_HEIGHT; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff++;
-		unsigned long a; 
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b & 0xff]; b >>= 8;
-		*scrn = a;
-		scrn ++;
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b];
-		*scrn = a;
-		scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
+        for (int i = BUFF_HEIGHT; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                unsigned long a;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b & 0xff];
+                b >>= 8;
+                *scrn = a;
+                scrn++;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b];
+                *scrn = a;
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
     case DM_mapped3:
-	for(int i=BUFF_HEIGHT; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long a, b;
-		unsigned long c = *buff; buff ++;
-		a = bitmap_colors0[c & 0xff]; c >>= 8;
-		b = bitmap_colors0[c & 0xff]; c >>= 8;
-		*scrn = a | ((b & 0xff) << 24); scrn ++;
-		a = b >> 8;
-		
-		b = bitmap_colors0[c & 0xff]; c >>= 8;
-		*scrn = a | ((b & 0xffff) << 16); scrn ++;
-		a = b >> 16;
+        for (int i = BUFF_HEIGHT; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long a, b;
+                unsigned long c = *buff;
+                buff++;
+                a = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                b = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                *scrn = a | ((b & 0xff) << 24);
+                scrn++;
+                a = b >> 8;
 
-		b = bitmap_colors0[c];
-		*scrn = a | (b << 8); scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
-	break;
+                b = bitmap_colors0[c & 0xff];
+                c >>= 8;
+                *scrn = a | ((b & 0xffff) << 16);
+                scrn++;
+                a = b >> 16;
+
+                b = bitmap_colors0[c];
+                *scrn = a | (b << 8);
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
+        break;
     case DM_mapped4: {
-	for(int i=0; i < BUFF_HEIGHT; i ++) {
-	    unsigned long * scrn1 = (unsigned long*)(expandedBuffer + i * expandedBufferWidth);
-	    unsigned long * scrn2 = scrn1 + 2 * BUFF_WIDTH - 1;
-	    unsigned long * scrn3 = (unsigned long*)(expandedBuffer + 
-						     (2*BUFF_HEIGHT - i) * expandedBufferWidth);
+        for (int i = 0; i < BUFF_HEIGHT; i++) {
+            unsigned long* scrn1 = (unsigned long*)(expandedBuffer + i * expandedBufferWidth);
+            unsigned long* scrn2 = scrn1 + 2 * BUFF_WIDTH - 1;
+            unsigned long* scrn3
+                = (unsigned long*)(expandedBuffer + (2 * BUFF_HEIGHT - i) * expandedBufferWidth);
 
-	    unsigned long * scrn4 = scrn3 + 2 * BUFF_WIDTH - 1;
+            unsigned long* scrn4 = scrn3 + 2 * BUFF_WIDTH - 1;
 
-	    unsigned long * buff = (unsigned long*)(buffer + i * 2 * BUFF_WIDTH);
+            unsigned long* buff = (unsigned long*)(buffer + i * 2 * BUFF_WIDTH);
 
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff ++;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
 
-		unsigned long a = bitmap_colors0[b & 0xff]; b >>= 8;
-		*scrn1 = a; scrn1 ++;
-		*scrn2 = a; scrn2 --;
-		*scrn3 = a; scrn3 ++;
-		*scrn4 = a; scrn4 --;
+                unsigned long a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                *scrn1 = a;
+                scrn1++;
+                *scrn2 = a;
+                scrn2--;
+                *scrn3 = a;
+                scrn3++;
+                *scrn4 = a;
+                scrn4--;
 
-		a = bitmap_colors0[b & 0xff]; b >>= 8;
-		*scrn1 = a; scrn1 ++;
-		*scrn2 = a; scrn2 --;
-		*scrn3 = a; scrn3 ++;
-		*scrn4 = a; scrn4 --;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                *scrn1 = a;
+                scrn1++;
+                *scrn2 = a;
+                scrn2--;
+                *scrn3 = a;
+                scrn3++;
+                *scrn4 = a;
+                scrn4--;
 
-		a = bitmap_colors0[b & 0xff]; b >>= 8;
-		*scrn1 = a; scrn1 ++;
-		*scrn2 = a; scrn2 --;
-		*scrn3 = a; scrn3 ++;
-		*scrn4 = a; scrn4 --;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                *scrn1 = a;
+                scrn1++;
+                *scrn2 = a;
+                scrn2--;
+                *scrn3 = a;
+                scrn3++;
+                *scrn4 = a;
+                scrn4--;
 
-		a = bitmap_colors0[b];
-		*scrn1 = a; scrn1 ++;
-		*scrn2 = a; scrn2 --;
-		*scrn3 = a; scrn3 ++;
-		*scrn4 = a; scrn4 --;
-	    }
-	}
-    }
-	break;
-    case DM_direct:
-	;
+                a = bitmap_colors0[b];
+                *scrn1 = a;
+                scrn1++;
+                *scrn2 = a;
+                scrn2--;
+                *scrn3 = a;
+                scrn3++;
+                *scrn4 = a;
+                scrn4--;
+            }
+        }
+    } break;
+    case DM_direct:;
     }
 }
-
-
-
-
 
 void CthughaDisplayX11::operator()() {
 
     /*
      * prepare the display device
      */
-    unsigned char * display_base = displayDevice->preDraw();
-    
+    unsigned char* display_base = displayDevice->preDraw();
+
     /*
      * use right expandedBuffer
      */
-    if(draw_mode == DM_direct) {
-	buffer = display_base;
-	bufferWidth = bytes_per_line;
+    if (draw_mode == DM_direct) {
+        buffer = display_base;
+        bufferWidth = bytes_per_line;
     } else {
-	buffer = buffer0;
-	bufferWidth = 2*BUFF_WIDTH;
+        buffer = buffer0;
+        bufferWidth = 2 * BUFF_WIDTH;
     }
 
-    if(bypp == 1) {
-	expandedBuffer = buffer;
-	expandedBufferWidth = bufferWidth;
+    if (bypp == 1) {
+        expandedBuffer = buffer;
+        expandedBufferWidth = bufferWidth;
     } else {
-	expandedBuffer = expandedBuffer0;
-	expandedBufferWidth = 2*BUFF_WIDTH * bypp;
+        expandedBuffer = expandedBuffer0;
+        expandedBufferWidth = 2 * BUFF_WIDTH * bypp;
     }
 
     checkZoom();
 
     /*
      * bring Cthugha-Buffer(s) to Display-Buffer
-     * - some screen() functions may fail because ratio of width to height 
+     * - some screen() functions may fail because ratio of width to height
      *   is too strange
      */
-    while( screen() );				/* draw the buffer */
+    while (screen())
+        ; /* draw the buffer */
 
-    const xy & s = ((ScreenEntry*)screen.current())->size;
+    const xy& s = ((ScreenEntry*)screen.current())->size;
 
     /*
      * do horizontal mirroring, if necessary
      */
-    if(s.x == 1) 
-	mirrorHorizontally();
+    if (s.x == 1)
+        mirrorHorizontally();
 
     /*
      * expand the palette (right now only the palette of buffer 0,
@@ -280,8 +330,8 @@ void CthughaDisplayX11::operator()() {
     /*
      * do veritical mirroring, if necessary
      */
-    if(s.y == 1) 
-	mirrorVertically();
+    if (s.y == 1)
+        mirrorVertically();
 
 #if 0
     expandPaletteMirrorHV();
@@ -301,13 +351,12 @@ void CthughaDisplayX11::operator()() {
      * bring text to screen
      */
     displayDevice->prePrint();
-    Interface::current->display();		// print the text of the current interface
-    errors.display();				// and the error messages
+    Interface::current->display(); // print the text of the current interface
+    errors.display(); // and the error messages
     displayDevice->postPrint();
 
     /*
      * make sure everything is really copied to the screen
      */
     displayDevice->postDraw();
-
 }

@@ -7,6 +7,4 @@
 
 extern CoreOptionEntryList soundProcessEntries;
 
-
 #endif
-

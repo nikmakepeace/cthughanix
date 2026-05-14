@@ -23,7 +23,7 @@
 /**    TORTIOUS ACTION, ARISING OUT OF OR IN  CONNECTION  WITH  THE  USE    **/
 /**    OR PERFORMANCE OF THIS SOFTWARE.                                     **/
 /*****************************************************************************/
-/* 
+/*
  * vroot.h -- Virtual Root Window handling header file
  *
  * This header file redefines the X11 macros RootWindow and DefaultRootWindow,
@@ -33,7 +33,7 @@
  * window managers.
  * The function implementing the virtual root lookup remembers the result of
  * its last invocation to avoid overhead in the case of repeated calls
- * on the same display and screen arguments. 
+ * on the same display and screen arguments.
  * The lookup code itself is taken from Tom LaStrange's ssetroot program.
  *
  * Most simple root window changing X programs can be converted to using
@@ -57,7 +57,7 @@
 #ifndef _VROOT_H_
 #define _VROOT_H_
 
-#if !defined( lint ) && !defined( SABER )
+#if !defined(lint) && !defined(SABER)
 static const char vroot_rcsid[] = "$Id: vroot.h,v 1.2 2007/07/28 02:25:08 jondice Exp $";
 
 #endif
@@ -66,55 +66,51 @@ static const char vroot_rcsid[] = "$Id: vroot.h,v 1.2 2007/07/28 02:25:08 jondic
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 
-static      Window
-VirtualRootWindowOfScreen(Screen * screen)
-{
-	static Screen *save_screen = (Screen *) 0;
-	static Window root = (Window) 0;
+static Window VirtualRootWindowOfScreen(Screen* screen) {
+    static Screen* save_screen = (Screen*)0;
+    static Window root = (Window)0;
 
-	if (screen != save_screen) {
-		Display    *dpy = DisplayOfScreen(screen);
-		Atom        __SWM_VROOT = None;
-		int         i;
-		Window      rootReturn, parentReturn, *children;
-		unsigned int numChildren;
+    if (screen != save_screen) {
+        Display* dpy = DisplayOfScreen(screen);
+        Atom __SWM_VROOT = None;
+        int i;
+        Window rootReturn, parentReturn, *children;
+        unsigned int numChildren;
 
-		root = RootWindowOfScreen(screen);
+        root = RootWindowOfScreen(screen);
 
-		/* go look for a virtual root */
-		__SWM_VROOT = XInternAtom(dpy, "__SWM_VROOT", False);
-		if (XQueryTree(dpy, root, &rootReturn, &parentReturn,
-			       &children, &numChildren)) {
-			for (i = 0; i < (int) numChildren; i++) {
-				Atom        actual_type;
-				int         actual_format;
-				unsigned long nitems, bytesafter;
-				unsigned char *prop_return = NULL;
+        /* go look for a virtual root */
+        __SWM_VROOT = XInternAtom(dpy, "__SWM_VROOT", False);
+        if (XQueryTree(dpy, root, &rootReturn, &parentReturn, &children, &numChildren)) {
+            for (i = 0; i < (int)numChildren; i++) {
+                Atom actual_type;
+                int actual_format;
+                unsigned long nitems, bytesafter;
+                unsigned char* prop_return = NULL;
 
-				if (XGetWindowProperty(dpy, children[i],
-					 __SWM_VROOT, 0, 1, False, XA_WINDOW,
-						&actual_type, &actual_format,
-						       &nitems, &bytesafter,
-						       &prop_return) == Success && prop_return) {
-					Window newRoot = *(Window *)prop_return;
-					root = newRoot;
-					XFree(prop_return);
-					break;
-				}
-			}
-			if (children)
-				XFree((char *) children);
-		}
-		save_screen = screen;
-	}
-	return root;
+                if (XGetWindowProperty(dpy, children[i], __SWM_VROOT, 0, 1, False, XA_WINDOW,
+                        &actual_type, &actual_format, &nitems, &bytesafter, &prop_return)
+                        == Success
+                    && prop_return) {
+                    Window newRoot = *(Window*)prop_return;
+                    root = newRoot;
+                    XFree(prop_return);
+                    break;
+                }
+            }
+            if (children)
+                XFree((char*)children);
+        }
+        save_screen = screen;
+    }
+    return root;
 }
 
 #undef RootWindowOfScreen
 #define RootWindowOfScreen(s) VirtualRootWindowOfScreen(s)
 
 #undef RootWindow
-#define RootWindow(dpy,screen) VirtualRootWindowOfScreen(ScreenOfDisplay(dpy,screen))
+#define RootWindow(dpy, screen) VirtualRootWindowOfScreen(ScreenOfDisplay(dpy, screen))
 
 #undef DefaultRootWindow
 #define DefaultRootWindow(dpy) VirtualRootWindowOfScreen(DefaultScreenOfDisplay(dpy))

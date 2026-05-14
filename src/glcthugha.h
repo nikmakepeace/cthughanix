@@ -12,30 +12,23 @@ class ScreenEntryGL : public CoreOptionEntry {
 public:
     int (*screen)();
     int nBuffers;
-    enum Type {
-	object,
-	plane
-    } type;
+    enum Type { object, plane } type;
 
-    ScreenEntryGL(int (*f)(), 
-		  const char * name, 
-		  const char * desc, 
-		  Type t,
-		  int nB=1) :
-	CoreOptionEntry(name, desc), screen(f), nBuffers(nB), type(t) {
-    }
+    ScreenEntryGL(int (*f)(), const char* name, const char* desc, Type t, int nB = 1)
+        : CoreOptionEntry(name, desc)
+        , screen(f)
+        , nBuffers(nB)
+        , type(t) { }
 
     int operator()() {
-	CthughaBuffer::nBuffers = nBuffers;
-	return (*screen)();
+        CthughaBuffer::nBuffers = nBuffers;
+        return (*screen)();
     }
 };
 
-
-
 #include <GL/glut.h>
 
-extern GLuint * pcxTextures;
+extern GLuint* pcxTextures;
 void setPcxTexture(int P);
 
 //
@@ -46,10 +39,7 @@ void setPcxTexture(int P);
 // after the background ("blended images")
 // added an extra argument to the background method would be more work.
 //
-enum DisplayPhase {
-    beforeScreen = 0,
-    afterScreen = 1
-};
+enum DisplayPhase { beforeScreen = 0, afterScreen = 1 };
 
 extern DisplayPhase displayPhase;
 

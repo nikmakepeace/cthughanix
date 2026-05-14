@@ -3,18 +3,19 @@
 
 #include "CoreOption.h"
 
-extern CoreOptionEntry * _flames[];	
+extern CoreOptionEntry* _flames[];
 extern int _nFlames;
 
 int init_flames();
 
-extern CoreOptionEntryList generalFlameEntries;	
+extern CoreOptionEntryList generalFlameEntries;
 
 class OptionGeneralFlame : public CoreOption {
 public:
-    OptionGeneralFlame(int buffer) : CoreOption(buffer, "flame-general", generalFlameEntries) {}
+    OptionGeneralFlame(int buffer)
+        : CoreOption(buffer, "flame-general", generalFlameEntries) { }
 
-    const char * text() const;
+    const char* text() const;
 };
 
 #endif

@@ -13,45 +13,43 @@
 void title() {
 
     printfv(0,
-	    "--------------------------------------------------------------------------------\n"
-	    "C T H U G H A - L  " VERSION "\n"
-	    "An oscilloscope on acid\n" 
-	    "by Harald Deischinger\n"
-	    "--------------------------------------------------------------------------------\n"
-	    "email: deischi@geocities.com\n"
-	    "www:   http://www.geocities.com/CapeCanaveral/Lab/6386\n"
-	    "mail:  Harald Deischinger\n"
-	    "       Am Edhuegel 45\n"
-	    "       4115  Kleinzell\n"
-	    "       AUSTRIA\n"
-	    "--------------------------------------------------------------------------------\n"
-	    "Original Program (CTHUGHA V5.1 and V5.3)\n"
-	    "  Coded by - Torps Productions: The Digital Aasvogel Group - 1995\n" 
-	    "  Original Idea & Code:          Kevin Burfitt (zaph@torps.apana.org.au)\n" 
-	    "--------------------------------------------------------------------------------\n"
-	    "Cthugha WWW-Page:            http://www.afn.org/~cthugha\n"
-	    "Cthugha newsgroup:           alt.graphics.cthugha\n"
-	    "--------------------------------------------------------------------------------\n",
-	    "\n");
+        "--------------------------------------------------------------------------------\n"
+        "C T H U G H A - L  " VERSION "\n"
+        "An oscilloscope on acid\n"
+        "by Harald Deischinger\n"
+        "--------------------------------------------------------------------------------\n"
+        "email: deischi@geocities.com\n"
+        "www:   http://www.geocities.com/CapeCanaveral/Lab/6386\n"
+        "mail:  Harald Deischinger\n"
+        "       Am Edhuegel 45\n"
+        "       4115  Kleinzell\n"
+        "       AUSTRIA\n"
+        "--------------------------------------------------------------------------------\n"
+        "Original Program (CTHUGHA V5.1 and V5.3)\n"
+        "  Coded by - Torps Productions: The Digital Aasvogel Group - 1995\n"
+        "  Original Idea & Code:          Kevin Burfitt (zaph@torps.apana.org.au)\n"
+        "--------------------------------------------------------------------------------\n"
+        "Cthugha WWW-Page:            http://www.afn.org/~cthugha\n"
+        "Cthugha newsgroup:           alt.graphics.cthugha\n"
+        "--------------------------------------------------------------------------------\n",
+        "\n");
 }
 
-
-
-static const char * defValue(const char * v) {
+static const char* defValue(const char* v) {
     static char str[512];
 
-    while(isspace(*v))
-	v++;
+    while (isspace(*v))
+        v++;
 
     str[0] = '<';
-    strncpy(str+1, v, 510);
+    strncpy(str + 1, v, 510);
     strcat(str, ">");
 
     return str;
 }
 
-static void PH(const char * txt, const char * def = "") {
-    const char * d =  (def[0] != '\0')  ? (char *)defValue(def) : (char *)"";
+static void PH(const char* txt, const char* def = "") {
+    const char* d = (def[0] != '\0') ? (char*)defValue(def) : (char*)"";
 
     int dl = 79 - strlen(txt);
 
@@ -61,9 +59,7 @@ static void PH(const char * txt, const char * def = "") {
     printfv(0, fmt, txt, d);
 }
 
-static void PH(const char * txt, const Option & Opt) {
-    PH(txt, Opt.text());
-}
+static void PH(const char* txt, const Option& Opt) { PH(txt, Opt.text()); }
 
 void usage() {
     PH("Cthugha command line options:");
@@ -78,7 +74,7 @@ void usage() {
     PH("");
     PH("General sound device options:");
     PH(" -v, --rate N        Set sample rate to N", soundSampleRate.text());
-    PH(" -1, -2, --mono, --stereo     set number of sound channels",  soundChannels.text());
+    PH(" -1, -2, --mono, --stereo     set number of sound channels", soundChannels.text());
     PH(" --snd-format FMT    Set sound format to FMT", soundFormat.text());
     PH("");
 
@@ -89,8 +85,7 @@ void usage() {
     PH(" --snd-fragments     Set number of sound fragments", soundDSPFragments.text());
     PH(" --dev-dsp DEV       Set the DSP device to DEV", SoundDeviceDSP::dev_dsp);
 #endif
-    PH(" --snd-buffer B      Set sound buffer size to B kB, when using --play",
-	     soundBuffer.text());
+    PH(" --snd-buffer B      Set sound buffer size to B kB, when using --play", soundBuffer.text());
 
     PH("");
 
@@ -107,7 +102,7 @@ void usage() {
 
 #if WITH_MIXER == 1
     PH("Mixer options:");
-    PH(" --dev-mixer DEV     Set the mixer device to DEV", dev_mixer );
+    PH(" --dev-mixer DEV     Set the mixer device to DEV", dev_mixer);
     PH(" --mixer DEV:VOL     Set mixer device DEV to volume VOL");
     PH(" -L, --line VOL      Use Line In as input with volume VOL");
     PH(" -M, --mic VOL       Use Mic as input with volume VOL");
@@ -116,32 +111,32 @@ void usage() {
 #endif
 
     PH("Automatic Changer options:");
-    PH(" -l, --lock          Start in Locked mode", lock.text()); 
+    PH(" -l, --lock          Start in Locked mode", lock.text());
     PH(" --little            Only change one option at a time", change_little.text());
     PH(" -T, --min-time N    Minimum time before changing", changeWaitMin.text());
-    PH(" -R, --random-time N Extra random time before changing", changeWaitRandom.text()); 
+    PH(" -R, --random-time N Extra random time before changing", changeWaitRandom.text());
     PH(" -Q, --quiet-time N  Change after short silence", changeQuiet.text());
-    PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text()); 
-    PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE"); 
+    PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text());
+    PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE");
     PH(" --min-noise N       Set level for quiet sound", sound_minnoise.text());
-    PH(" --fire-level N      Set firelevel for change to N", changeFireLevel.text()); 
+    PH(" --fire-level N      Set firelevel for change to N", changeFireLevel.text());
     PH("");
-
 
     PH("General CoreOptions (\"Buffer\" options):");
     PH(" -S, --buff-size SIZE    Set buffer size. Perdefined sizes:");
-    for(int i=0; i < nBufferSizes; i++) {
-	printfv(0,"                   ");
-	for(int j=0; (j < 4) && (i < nBufferSizes); i++, j++)
-	    printfv(0, "  %d: %dx%d", i, bufferSizes[i].x, bufferSizes[i].y);
-	printfv(0,"\n");
+    for (int i = 0; i < nBufferSizes; i++) {
+        printfv(0, "                   ");
+        for (int j = 0; (j < 4) && (i < nBufferSizes); i++, j++)
+            printfv(0, "  %d: %dx%d", i, bufferSizes[i].x, bufferSizes[i].y);
+        printfv(0, "\n");
     }
     PH("                     or a special size in the form: WIDTHxHEIGHT.");
     PH(" --no-trans          Disable translation tables");
     PH(" --stretch           Allow stretching of translation tables to fit", trans_stretch.text());
     PH(" --load-on-demand    Load translation tables only when needed", transLoadOnDemand.text());
-    PH(" --load-late         Load translation tables when Cthugha is running", transLoadLate.text());
-    PH(" -X, --no-use-pcx    Disable PCX image files"); 
+    PH(" --load-late         Load translation tables when Cthugha is running",
+        transLoadLate.text());
+    PH(" -X, --no-use-pcx    Disable PCX image files");
     PH(" -i, --no-ipal       Disable inbuilt palettes");
     PH(" -e, --no-epal       Do not load external palettes");
     PH(" --no-object         Disable 3-D objects");
@@ -150,13 +145,13 @@ void usage() {
 
     PH("Initial Values for CoreOptions:");
     PH(" -d, --display N     Start with display N (how buffer is mapped to screen)");
-    PH(" -f, --flame N       Start with flame N"); 
-    PH(" -w, --wave N        Start with wave N (how sound is drawn)"); 
+    PH(" -f, --flame N       Start with flame N");
+    PH(" -w, --wave N        Start with wave N (how sound is drawn)");
     PH(" --wave-scale N      Start with wave scale value N");
     PH(" -o, --object N      Start with 3D object N (used by some waves)");
     PH(" -t, --translation N Start with translation N");
     PH(" --border N          Start with buffer border N");
-    PH(" -p, --palette N     Start with palette N"); 
+    PH(" -p, --palette N     Start with palette N");
     PH(" -m, --sound-process N  Start with sound processing N");
     PH(" -a, --table N       Start with table N (how palette is used in wave)");
     PH(" -P, --pcx N         Start with PCX N");
@@ -167,18 +162,18 @@ void usage() {
 
     PH("Display options:");
     PH(" -D, --disp-mode MODE    Set graphics mode (window size)");
-    for(int i=0; i < nScreenSizes; i++) {
-	printfv(0,"                   ");
-	for(int j=0; (j < 4) && (i < nScreenSizes); i++, j++)
-	    printfv(0, "  %d: %dx%d", i, screenSizes[i].x, screenSizes[i].y);
-	printfv(0, "\n");
+    for (int i = 0; i < nScreenSizes; i++) {
+        printfv(0, "                   ");
+        for (int j = 0; (j < 4) && (i < nScreenSizes); i++, j++)
+            printfv(0, "  %d: %dx%d", i, screenSizes[i].x, screenSizes[i].y);
+        printfv(0, "\n");
     }
     PH("                     or a special resolution in the form: WIDTHxHEIGHT.");
     PH(" --zoom N            Set Zoom factor to N (0 = fit window/screen)");
     PH(" --max-fps N         Set maximal frames per seond to N (0 = no limit)");
     PH("");
     PH("SVGA options:");
-    PH(" -r, --sync          Enable Video synch refresh waiting"); 
+    PH(" -r, --sync          Enable Video synch refresh waiting");
     PH(" --disp-direct       Draw directly to screen (only in 320x200)");
     PH("");
     PH("X11 options:");
@@ -220,9 +215,3 @@ void usage() {
     PH("");
     PH("Most switches can be used in a no-form to disable the feature.");
 }
-
-
-
-
-
-

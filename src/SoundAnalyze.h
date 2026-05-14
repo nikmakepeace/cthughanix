@@ -7,24 +7,24 @@
 
 #include "CoreOption.h"
 
-extern OptionInt sound_minnoise;		/* quiet is below this */
+extern OptionInt sound_minnoise; /* quiet is below this */
 
 class SoundAnalyze {
-   
+
 public:
     SoundAnalyze();
 
-    void operator()();		// does noiselvel checking, massage, fft, ...
-    
-    int amplitude;		// sound amplitude (variance)
+    void operator()(); // does noiselvel checking, massage, fft, ...
+
+    int amplitude; // sound amplitude (variance)
     int amplitudeLeft;
     int amplitudeRight;
-    int noisy;			// there is some sound
-    int attackLevel;		// attack level
-    int fire;			// fired now
-    int fireLevel;		// accumulated fire (for change)
+    int noisy; // there is some sound
+    int attackLevel; // attack level
+    int fire; // fired now
+    int fireLevel; // accumulated fire (for change)
 
-    double intensity;		// smoothed and normalized amplitude
+    double intensity; // smoothed and normalized amplitude
 
     double speed;
 };
@@ -32,4 +32,3 @@ public:
 extern SoundAnalyze soundAnalyze;
 
 #endif
-

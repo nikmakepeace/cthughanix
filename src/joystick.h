@@ -3,17 +3,17 @@
 
 #include "cthugha.h"
 
-// test, if joystick header files are available, and if 
+// test, if joystick header files are available, and if
 // event handling is supported.
 #if HAVE_LINUX_JOYSTICK_H
-#  include <linux/joystick.h>
-#  ifdef JS_EVENT_BUTTON
-#    define HAVE_JOYSTICK 1
-#  else
-#    undef HAVE_JOYSTICK
-#  endif
-#  include <unistd.h>
-#  include <sys/ioctl.h>
+#include <linux/joystick.h>
+#ifdef JS_EVENT_BUTTON
+#define HAVE_JOYSTICK 1
+#else
+#undef HAVE_JOYSTICK
+#endif
+#include <unistd.h>
+#include <sys/ioctl.h>
 #endif
 
 class Joystick {
@@ -21,6 +21,7 @@ class Joystick {
     static int init;
 
     static int active;
+
 public:
     static int useJoystick;
 

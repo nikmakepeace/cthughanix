@@ -10,57 +10,57 @@ extern xy draw_size;
 extern OptionInt zoom;
 extern OptionInt maxFramesPerSecond;
 
-extern double now;				// position in time for this frame
-extern double deltaT;				// duration of last frame
+extern double now; // position in time for this frame
+extern double deltaT; // duration of last frame
 
 class CthughaDisplay {
 protected:
-    unsigned char * buffer0;
-    
+    unsigned char* buffer0;
+
     double displayStart;
     int frames;
 
     void mirrorHorizontally();
     void mirrorVertically();
     int clearBorder();
-    void zoom2Screen(unsigned char *, int);
-    virtual void expandPalette(int) {}
+    void zoom2Screen(unsigned char*, int);
+    virtual void expandPalette(int) { }
     void checkFPS();
     void checkZoom();
 
 public:
-    unsigned char * buffer;
+    unsigned char* buffer;
     int bufferWidth;
 
-    unsigned char * expandedBuffer;
+    unsigned char* expandedBuffer;
     int expandedBufferWidth;
 
-    int needsClear;				// border must be cleard
+    int needsClear; // border must be cleard
 
     CthughaDisplay();
 
-    void nextFrame();				// start the next frame
-    virtual void operator()() {}
+    void nextFrame(); // start the next frame
+    virtual void operator()() { }
 
     void resetFPS();
 
     double fps;
 
-    const char * status();
+    const char* status();
 
     friend int save_display();
 
     virtual ~CthughaDisplay() = 0;
 };
 
-
 //
 // a special CthughaDisplay for X11
 //
 class CthughaDisplayX11 : public CthughaDisplay {
-    unsigned char * expandedBuffer0;
+    unsigned char* expandedBuffer0;
     virtual void expandPalette(int);
     virtual void expandPaletteMirrorHV();
+
 public:
     CthughaDisplayX11();
     virtual void operator()();
@@ -71,6 +71,7 @@ public:
 //
 class CthughaDisplaySVGA : public CthughaDisplay {
     void expandPalette(int);
+
 public:
     CthughaDisplaySVGA();
     virtual void operator()();
@@ -84,23 +85,20 @@ public:
     virtual void operator()();
 };
 
-
-class ScreenEntry : public  CoreOptionEntry {
+class ScreenEntry : public CoreOptionEntry {
 public:
     int (*screen)();
     xy size;
 
-    ScreenEntry(int (*f)(), const char * name, const char * desc, xy s, int inUse=1) :
-	CoreOptionEntry(name, desc, inUse), screen(f), size(s) {
-    }
-    
-    int operator()() {
-	return (*screen)();
-    }
+    ScreenEntry(int (*f)(), const char* name, const char* desc, xy s, int inUse = 1)
+        : CoreOptionEntry(name, desc, inUse)
+        , screen(f)
+        , size(s) { }
+
+    int operator()() { return (*screen)(); }
 };
 
-
-extern CthughaDisplay * cthughaDisplay;
+extern CthughaDisplay* cthughaDisplay;
 
 void newCthughaDisplay();
 

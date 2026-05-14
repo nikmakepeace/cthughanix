@@ -10,58 +10,58 @@
 
 #include <unistd.h>
 
-void newCthughaDisplay() {
-    cthughaDisplay = new CthughaDisplaySVGA();
-}
+void newCthughaDisplay() { cthughaDisplay = new CthughaDisplaySVGA(); }
 
-
-CthughaDisplaySVGA::CthughaDisplaySVGA() : CthughaDisplay() {
-}
+CthughaDisplaySVGA::CthughaDisplaySVGA()
+    : CthughaDisplay() { }
 
 /*
  * expand the palette
  */
 void CthughaDisplaySVGA::expandPalette(int narrow) {
-    int height = narrow ? BUFF_HEIGHT : 2*BUFF_HEIGHT;
-    unsigned char * dst = expandedBuffer;
+    int height = narrow ? BUFF_HEIGHT : 2 * BUFF_HEIGHT;
+    unsigned char* dst = expandedBuffer;
 
-    if(draw_mode != DM_direct) {
-	for(int i=height; i != 0; i--) {
-	    unsigned long * scrn = (unsigned long*)dst;
-	    unsigned long * buff = (unsigned long*)buffer;
-	    for(int j=2*BUFF_WIDTH/4; j != 0; j--) {
-		unsigned long b = *buff; buff ++;
-		unsigned long a;
-		a  = bitmap_colors0[b & 0xff]; b >>= 8;
-		a |= bitmap_colors1[b & 0xff]; b >>= 8;
-		a |= bitmap_colors2[b & 0xff]; b >>= 8;
-		a |= bitmap_colors3[b];
-		*scrn = a;
-		scrn ++;
-	    }
-	    dst += expandedBufferWidth;
-	    buffer += 2*BUFF_WIDTH;
-	}
+    if (draw_mode != DM_direct) {
+        for (int i = height; i != 0; i--) {
+            unsigned long* scrn = (unsigned long*)dst;
+            unsigned long* buff = (unsigned long*)buffer;
+            for (int j = 2 * BUFF_WIDTH / 4; j != 0; j--) {
+                unsigned long b = *buff;
+                buff++;
+                unsigned long a;
+                a = bitmap_colors0[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors1[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors2[b & 0xff];
+                b >>= 8;
+                a |= bitmap_colors3[b];
+                *scrn = a;
+                scrn++;
+            }
+            dst += expandedBufferWidth;
+            buffer += 2 * BUFF_WIDTH;
+        }
     }
 }
-
 
 void CthughaDisplaySVGA::operator()() {
 
     /*
      * prepare the display device
      */
-    unsigned char * display_base = displayDevice->preDraw();
-    
+    unsigned char* display_base = displayDevice->preDraw();
+
     /*
      * use right expandedBuffer
      */
-    if(draw_mode == DM_direct) {
-	buffer = display_base;
-	bufferWidth = bytes_per_line;
+    if (draw_mode == DM_direct) {
+        buffer = display_base;
+        bufferWidth = bytes_per_line;
     } else {
-	buffer = buffer0;
-	bufferWidth = 2*BUFF_WIDTH;
+        buffer = buffer0;
+        bufferWidth = 2 * BUFF_WIDTH;
     }
 
     expandedBuffer = buffer;
@@ -71,18 +71,19 @@ void CthughaDisplaySVGA::operator()() {
 
     /*
      * bring Cthugha-Buffer(s) to Display-Buffer
-     * - some screen() functions may fail because ratio of width to height 
+     * - some screen() functions may fail because ratio of width to height
      *   is too strange
      */
-    while( screen() );				/* draw the buffer */
+    while (screen())
+        ; /* draw the buffer */
 
-    const xy & s = ((ScreenEntry*)screen.current())->size;
+    const xy& s = ((ScreenEntry*)screen.current())->size;
 
     /*
      * do horizontal mirroring, if necessary
      */
-    if(s.x == 1) 
-	mirrorHorizontally();
+    if (s.x == 1)
+        mirrorHorizontally();
 
     /*
      * expand the palette (right now only the palette of buffer 0,
@@ -93,8 +94,8 @@ void CthughaDisplaySVGA::operator()() {
     /*
      * do veritical mirroring, if necessary
      */
-    if(s.y == 1) 
-	mirrorVertically();
+    if (s.y == 1)
+        mirrorVertically();
 
     /*
      * clear the border around the image
@@ -110,13 +111,12 @@ void CthughaDisplaySVGA::operator()() {
      * bring text to screen
      */
     displayDevice->prePrint();
-    Interface::current->display();		// print the text of the current interface
-    errors.display();				// and the error messages
+    Interface::current->display(); // print the text of the current interface
+    errors.display(); // and the error messages
     displayDevice->postPrint();
 
     /*
      * make sure everything is really copied to the screen
      */
     displayDevice->postDraw();
-
 }

@@ -7,11 +7,11 @@
 #include <X11/extensions/XShm.h>
 #include "SoundDevice.h"
 
-extern Display * xcth_display;
+extern Display* xcth_display;
 
-extern int display_mit_shm;			/* use MIT-SHM if possible */
-extern int display_on_root;			/* display on root window */
-extern int display_override_redirect;		/* set override-redirect (no decoration) */
+extern int display_mit_shm; /* use MIT-SHM if possible */
+extern int display_on_root; /* display on root window */
+extern int display_override_redirect; /* set override-redirect (no decoration) */
 extern int private_cmap;
 extern int xcth_panel;
 extern xy window_pos;
@@ -21,16 +21,15 @@ extern char xcth_font[];
 
 #include "DisplayDevice.h"
 
-class DisplayDeviceX11 : public DisplayDevice  {
+class DisplayDeviceX11 : public DisplayDevice {
 protected:
-    Visual * visual;
+    Visual* visual;
     int screen;
     int planes;
     GC gc;
     Window window;
-   
 
-// palette stuff
+    // palette stuff
 protected:
     Colormap colormap;
     int rev_byte_order;
@@ -44,76 +43,69 @@ protected:
     Palette textPalette;
 
     void initPalette();
-    int  setGlobalPalette();
+    int setGlobalPalette();
     void freePalette();
 
 public:
     void setPalette(const Palette pal);
 
-
-// image alloc/free
+    // image alloc/free
     virtual void allocImage();
     virtual void freeImage();
 
-// font stuff
-    XFontStruct * font;
+    // font stuff
+    XFontStruct* font;
     void loadFont();
     void freeFont();
 
     void resizeDisplay(int new_width, int new_height);
 
-// display operations
-    virtual unsigned char * preDraw();
-    virtual void copyBox(int,int, int,int, int,int);
-    virtual void clearBox(int,int, int,int);
+    // display operations
+    virtual unsigned char* preDraw();
+    virtual void copyBox(int, int, int, int, int, int);
+    virtual void clearBox(int, int, int, int);
     virtual void postDraw();
 
-// print screen
+    // print screen
     virtual int printScreen();
 
-
-// text output stuff
+    // text output stuff
     virtual void prePrint();
-    void writeCharacter(int x,int y, int text, int color);
-    void printString(int x, int y, const char * text, int color, int len, int noDarken);
+    void writeCharacter(int x, int y, int text, int color);
+    void printString(int x, int y, const char* text, int color, int len, int noDarken);
 
     Widget panelTextWidget;
     Pixmap textPixmap;
 
-    enum {
-	shmNone,
-	shmImage,
-	shmPixmap
-    } shmLevel;
+    enum { shmNone, shmImage, shmPixmap } shmLevel;
     XShmSegmentInfo shminfo;
     Pixmap pixmap;
-    XImage * image;
+    XImage* image;
     int copyText;
-
 
 protected:
     static Widget xcth_toplevel;
     Window xcth_root;
 
-// window creation stuff
+    // window creation stuff
     int getAttributes();
-    void CreateWindow(char * name, int full_screen);    
+    void CreateWindow(char* name, int full_screen);
     Cursor xcth_cursor();
     void checkDisplaySize();
 
-    static void quit(int /*dummy*/ ) {
-	cthugha_close++;
-	exit(0);
+    static void quit(int /*dummy*/) {
+        cthugha_close++;
+        exit(0);
     }
 
-// control panel stuff
+    // control panel stuff
     typedef struct {
-	CoreOption * opt;
-	int pos;
+        CoreOption* opt;
+        int pos;
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
     static void menuCB(Widget item, XtPointer data, XtPointer data2);
-    Widget add_menu(char * name, CoreOption * what, Widget parent, Widget under, Widget right);
+    Widget add_menu(char* name, CoreOption* what, Widget parent, Widget under, Widget right);
     void xcth_create_panel();
 
 public:
@@ -122,9 +114,7 @@ public:
 
     void mainLoop();
 
-    friend int cth_init(int * argc, char * argv[]);
+    friend int cth_init(int* argc, char* argv[]);
 };
-
-
 
 #endif

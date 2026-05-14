@@ -13,28 +13,25 @@
 
 #include <sys/types.h>
 #if HAVE_SYS_WAIT_H
-# include <sys/wait.h>
+#include <sys/wait.h>
 #endif
 #ifndef WEXITSTATUS
-# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
 #ifndef WIFEXITED
-# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+#define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
-
 
 #if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
+#include <sys/time.h>
+#include <time.h>
 #else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#else
+#include <time.h>
 #endif
-
-
+#endif
 
 class sound_Communicator {
 public:
@@ -49,10 +46,9 @@ public:
     int done_update;
     int stop;
 };
-sound_Communicator * sound_communicator = NULL;
+sound_Communicator* sound_communicator = NULL;
 
-
-void sig_tty_parent(int ) {
+void sig_tty_parent(int) {
     printfv(0, "Stopping in child...\n");
 
     kill(getppid(), SIGTSTP);
@@ -60,38 +56,36 @@ void sig_tty_parent(int ) {
     sound_communicator->stop = 1;
 }
 
-
-
 int sound_comm_read();
 int sound_communicate(int to_child) {
-    if(sound_communicator == NULL)
-	return 0;
+    if (sound_communicator == NULL)
+        return 0;
 
-    sound_communicator->sample_rate   = int(soundSampleRate);
-    sound_communicator->channels      = int(soundChannels);
-    sound_communicator->format	      = int(soundFormat);
-    sound_communicator->method        = int(soundDSPMethod);
-    sound_communicator->fragments     = int(soundDSPFragments);
+    sound_communicator->sample_rate = int(soundSampleRate);
+    sound_communicator->channels = int(soundChannels);
+    sound_communicator->format = int(soundFormat);
+    sound_communicator->method = int(soundDSPMethod);
+    sound_communicator->fragments = int(soundDSPFragments);
     sound_communicator->fragment_size = int(soundDSPFragmentSize);
-    if(to_child) {
-	sound_communicator->update = 1;
-	sound_communicator->done_update = 0;
+    if (to_child) {
+        sound_communicator->update = 1;
+        sound_communicator->done_update = 0;
     } else {
-	sound_communicator->update = 0;
-	sound_communicator->done_update = 1;
+        sound_communicator->update = 0;
+        sound_communicator->done_update = 1;
     }
     return 0;
 }
 int sound_comm_read() {
-    if(sound_communicator == NULL)
-	return 0;
+    if (sound_communicator == NULL)
+        return 0;
 
-    soundSampleRate.setValue( sound_communicator->sample_rate);
-    soundChannels.setValue( sound_communicator->channels);
-    soundFormat.setValue( sound_communicator->format);
-    soundDSPMethod.setValue( sound_communicator->method);
-    soundDSPFragments.setValue( sound_communicator->fragments);
-    soundDSPFragmentSize.setValue( sound_communicator->fragment_size);
+    soundSampleRate.setValue(sound_communicator->sample_rate);
+    soundChannels.setValue(sound_communicator->channels);
+    soundFormat.setValue(sound_communicator->format);
+    soundDSPMethod.setValue(sound_communicator->method);
+    soundDSPFragments.setValue(sound_communicator->fragments);
+    soundDSPFragmentSize.setValue(sound_communicator->fragment_size);
 
     return 0;
 }
@@ -100,17 +94,18 @@ int sound_comm_read() {
  * fork the sound reading process
  */
 SoundDeviceFork::SoundDeviceFork() {
-    printfv(3,"    starting sound reading process...\n");
-    if( (sound_shm_key = shmget(IPC_PRIVATE, rawSize + sizeof(sound_Communicator), 
-				IPC_CREAT | 0777) ) == -1) {
-	printfee("Can not create shared memory segment.");
-	error = 1;
-	return;
+    printfv(3, "    starting sound reading process...\n");
+    if ((sound_shm_key
+            = shmget(IPC_PRIVATE, rawSize + sizeof(sound_Communicator), IPC_CREAT | 0777))
+        == -1) {
+        printfee("Can not create shared memory segment.");
+        error = 1;
+        return;
     }
-    if( (sound_shared=shmat(sound_shm_key, 0, 0)) == (void*)-1) {
-	printfee("Can not attach shared memory segment.");
-	error = 1;
-	return;
+    if ((sound_shared = shmat(sound_shm_key, 0, 0)) == (void*)-1) {
+        printfee("Can not attach shared memory segment.");
+        error = 1;
+        return;
     }
 
     sound_communicator = (sound_Communicator*)sound_shared;
@@ -120,67 +115,63 @@ SoundDeviceFork::SoundDeviceFork() {
     // a little bit complicated to avoid waring
     sound_shared = (char*)(sound_shared) + sizeof(sound_Communicator);
 
-    switch( sound_child = fork() ) {
-    case -1:		/* error */
-	printfee("Can not fork sound child.");
-	shmdt((char*)sound_shared);
+    switch (sound_child = fork()) {
+    case -1: /* error */
+        printfee("Can not fork sound child.");
+        shmdt((char*)sound_shared);
 
-	error = 1;
-	return;
+        error = 1;
+        return;
 
-    case 0:		/* child */
-	SoundDevice::newSD();
-	
-	sound_communicate(0);		// and send the new values back
+    case 0: /* child */
+        SoundDevice::newSD();
 
-	signal(SIGTSTP, sig_tty_parent);	/* react to ^Z */
+        sound_communicate(0); // and send the new values back
 
-	do {
-	    soundDevice->borrowTmpData((char*)sound_shared);
-	    (*soundDevice)();
-	    if(sound_communicator->update) {
-		sound_comm_read();		// this only sets the values
-		soundDevice->update();		// really update device
-		sound_communicate(0);		// and send the new value back
-	    }
-	} while( !sound_communicator->stop);
-	printfv(3, "    closing sound reading child.\n");
-	delete soundDevice;
+        signal(SIGTSTP, sig_tty_parent); /* react to ^Z */
 
-	abort();
+        do {
+            soundDevice->borrowTmpData((char*)sound_shared);
+            (*soundDevice)();
+            if (sound_communicator->update) {
+                sound_comm_read(); // this only sets the values
+                soundDevice->update(); // really update device
+                sound_communicate(0); // and send the new value back
+            }
+        } while (!sound_communicator->stop);
+        printfv(3, "    closing sound reading child.\n");
+        delete soundDevice;
 
-    default: 
-	sleep(1);	// to make the text output nicer
+        abort();
 
-	// wait, until child is ready
-	while(sound_communicator->done_update == 0) {
-	    sleep(1);
-	}
+    default:
+        sleep(1); // to make the text output nicer
 
-	// get the values from the child
-	sound_comm_read();
-	sound_communicator->done_update = 0;
-	
-	nice(10);	// be nice, so that the sound reading proc gets more priority
+        // wait, until child is ready
+        while (sound_communicator->done_update == 0) {
+            sleep(1);
+        }
+
+        // get the values from the child
+        sound_comm_read();
+        sound_communicator->done_update = 0;
+
+        nice(10); // be nice, so that the sound reading proc gets more priority
     }
 }
 
 int SoundDeviceFork::read() {
 
     // get sound data
-    memcpy(tmpData, sound_shared, rawSize );
-    if(sound_communicator->done_update) {
-	sound_comm_read();
-	sound_communicator->done_update = 0;
+    memcpy(tmpData, sound_shared, rawSize);
+    if (sound_communicator->done_update) {
+        sound_comm_read();
+        sound_communicator->done_update = 0;
     }
     return rawSize / bytesPerSample;
 }
 
-void SoundDeviceFork::update() {
-    sound_communicate(1);
-}
-
-
+void SoundDeviceFork::update() { sound_communicate(1); }
 
 /*
  * kill the sound reading process
@@ -188,18 +179,18 @@ void SoundDeviceFork::update() {
 SoundDeviceFork::~SoundDeviceFork() {
     sound_communicator->stop = 1;
 
-    if(sound_child >= 0) {
-	printfv(3,"    waiting for sound reading process to stop.\n");
-	if( waitpid(sound_child, NULL, WNOHANG) == -1) {
-	    // first wait failed, wait a short time
-	    sleep(2);
-	    printfv(3,"    stopping sound reading process.\n");
-	    if( waitpid(sound_child, NULL, WNOHANG) == -1) {
-		// second wait failed, now be brutal
-		kill(SIGKILL, sound_child);
-		waitpid(sound_child, NULL, 0);
-	    }
-	}
+    if (sound_child >= 0) {
+        printfv(3, "    waiting for sound reading process to stop.\n");
+        if (waitpid(sound_child, NULL, WNOHANG) == -1) {
+            // first wait failed, wait a short time
+            sleep(2);
+            printfv(3, "    stopping sound reading process.\n");
+            if (waitpid(sound_child, NULL, WNOHANG) == -1) {
+                // second wait failed, now be brutal
+                kill(SIGKILL, sound_child);
+                waitpid(sound_child, NULL, 0);
+            }
+        }
     }
 
     shmdt((char*)sound_shared);
