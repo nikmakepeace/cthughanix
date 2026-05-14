@@ -34,6 +34,7 @@
 
 char SoundDeviceFile::name[PATH_MAX] = "";
 char SoundDeviceFile::fifo[PATH_MAX] = "/tmp/cthugha.com";
+char SoundDeviceFile::fifoDir[PATH_MAX] = "";
 
 int soundPlayLoop = 1;			// play file(s) over and over again
 
@@ -68,9 +69,14 @@ SoundDeviceFile::SoundDeviceFile() :
     SoundDevice(), 
     file(NULL), dsp(NULL), bufferPid(-1), childPid(-1) {
 
-    char * tmp = tmpnam(NULL);		// generate a temporary file name for communication
-    if(tmp != NULL)
-	strncpy(fifo, tmp, PATH_MAX);
+    strncpy(fifoDir, "/tmp/cthugha.XXXXXX", PATH_MAX);
+    fifoDir[PATH_MAX - 1] = '\0';
+    if(mkdtemp(fifoDir) == NULL) {
+	printfee("Can not create temporary directory.");
+	error = 1;
+    } else {
+	snprintf(fifo, PATH_MAX, "%s/sound", fifoDir);
+    }
 
     if(! soundSilent)
 	dsp = ::new SoundDeviceDSPOut;
@@ -516,12 +522,14 @@ int SoundDeviceFile::close() {
 
 SoundDeviceFile::~SoundDeviceFile() {
     delete dsp; dsp = NULL;
-    delete buffer; buffer = NULL;
+    delete[] buffer; buffer = NULL;
 
     close();
+    if(fifo[0] != '\0')
+	unlink(fifo);
+    if(fifoDir[0] != '\0')
+	rmdir(fifoDir);
 }
-
-
 
 
 
