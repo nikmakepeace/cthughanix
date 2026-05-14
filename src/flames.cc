@@ -29,7 +29,7 @@ void flame_down();
 
 
 const char * OptionGeneralFlame::text() const {
-    char str[512];
+    static char str[32];
 
     if(lock)
 	sprintf(str, "locked:%d", value);

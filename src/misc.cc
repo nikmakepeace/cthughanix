@@ -171,7 +171,7 @@ int systemf(const char * fmt, ...) {
 
 
 
-extern int cthugha_close = 0;				// closing right now
+int cthugha_close = 0;				// closing right now
 int cthugha_pause = 0;				// going to pause (^Z)
 
 
