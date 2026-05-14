@@ -19,7 +19,7 @@ To compile your own version of CthughaNix:
 1. Run:
 
    ```sh
-   ./configure
+   ./autogen.sh && ./configure
    ```
 
    For a list of possible options, run:
