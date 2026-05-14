@@ -19,5 +19,6 @@ install-data-local: ${noinst_PROGRAMS} ${noinst_DATA}
 	-cp map/* ${pkglibdir}/map
 
 
+AUTOMAKE_OPTIONS = foreign
 
 
