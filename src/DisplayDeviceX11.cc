@@ -350,7 +350,6 @@ void DisplayDeviceX11::mainLoop() {
     while(cthugha_close == 0) {
 	while( XtAppPending(xcth_app_con) ) {
 	    XEvent event;
-            XEvent wevent;
 	    XtAppNextEvent(xcth_app_con, &event);
 	    if( event.type == KeyRelease) { 		/* handle keyboard input */
 		char key_buff[256];
