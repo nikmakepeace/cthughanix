@@ -1,8 +1,10 @@
 #ifndef __GLCTHUGHA_H
 #define __GLCTHUGHA_H
 
-#include "Option.h"
+#include "cthugha.h"
 #include "CoreOption.h"
+
+#include <GL/glut.h>
 
 #include "CthughaBuffer.h"
 
@@ -25,8 +27,6 @@ public:
         return (*screen)();
     }
 };
-
-#include <GL/glut.h>
 
 extern GLuint* pcxTextures;
 void setPcxTexture(int P);

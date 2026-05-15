@@ -3,6 +3,8 @@
 #ifndef __KEYMAP_H
 #define __KEYMAP_H
 
+#include "cthugha.h"
+
 class Action {
     const char* name;
     int nameLen;

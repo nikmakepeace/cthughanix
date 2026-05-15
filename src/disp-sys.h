@@ -1,6 +1,8 @@
 #ifndef __DISP_SYS_H
 #define __DISP_SYS_H
 
+#include "display.h"
+
 int init_display_sys();
 unsigned char* pre_draw_sys();
 int update_draw_size();

@@ -3,7 +3,9 @@
 #ifndef __PCX_H
 #define __PCX_H
 
+#include "cthugha.h"
 #include "CoreOption.h"
+#include "display.h"
 
 class PCXEntry : public CoreOptionEntry {
 

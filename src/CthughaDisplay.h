@@ -2,6 +2,7 @@
 #ifndef __CTHUGHA_DISPLAY_H
 #define __CTHUGHA_DISPLAY_H
 
+#include "cthugha.h"
 #include "CoreOption.h"
 
 // must be initialized AFTER displayDevice

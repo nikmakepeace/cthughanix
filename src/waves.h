@@ -4,6 +4,9 @@
 #ifndef __WAVES_H
 #define __WAVES_H
 
+#include "cthugha.h"
+#include "Option.h"
+
 int init_tables();
 int init_wave();
 

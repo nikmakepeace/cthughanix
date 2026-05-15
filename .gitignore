@@ -8,6 +8,8 @@
 
 # Ad-hoc build logs
 /build_errors.txt
+/tests/headers/build/
+/tests/headers/header-errors
 
 # C/C++ build products
 *.o

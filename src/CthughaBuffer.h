@@ -3,6 +3,7 @@
 #ifndef __CTHUGHA_BUFFER_H
 #define __CTHUGHA_BUFFER_H
 
+#include "cthugha.h"
 #include "CoreOption.h"
 
 #include "flames.h"

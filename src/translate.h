@@ -6,6 +6,7 @@
 #ifndef __TRANSLATE_H__
 #define __TRANSLATE_H__
 
+#include "cthugha.h"
 #include "CoreOption.h"
 
 class TranslateEntry : public CoreOptionEntry {

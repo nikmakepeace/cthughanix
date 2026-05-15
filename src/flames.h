@@ -1,6 +1,7 @@
 #ifndef __FLAMES_H
 #define __FLAMES_H
 
+#include "cthugha.h"
 #include "CoreOption.h"
 
 extern CoreOptionEntry* _flames[];

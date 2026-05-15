@@ -3,6 +3,7 @@
 #ifndef __XCTHUGHA_H
 #define __XCTHUGHA_H
 
+#include "cthugha.h"
 #include <X11/Intrinsic.h>
 #include <X11/extensions/XShm.h>
 #include "SoundDevice.h"

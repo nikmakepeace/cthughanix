@@ -2,6 +2,7 @@
 #ifndef __COREOPTION_H
 #define __COREOPTION_H
 
+#include "cthugha.h"
 #include "Option.h"
 
 //
