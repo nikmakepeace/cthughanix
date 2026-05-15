@@ -42,7 +42,7 @@ void SoundDeviceDSP::setFragment() {
     soundDSPFragmentSize.setValue(soundDSPFragment & 0x7fff);
 
     if ((1 << soundDSPFragmentSize) * 2 * int(soundChannels) < size) {
-        printfv(1, "  sound fragment size is not set big enough.\n");
+        CTH_WARN("  sound fragment size is not set big enough.\n");
     }
 }
 

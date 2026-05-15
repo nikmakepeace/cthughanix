@@ -49,10 +49,10 @@ CDPlayer::CDPlayer()
     // autostart CD
     if (int(cd_first_track) > 0)
         if (int(cd_randomplay)) {
-            printfv(1, "  Starting random play of CD\n");
+            CTH_INFO("  Starting random play of CD\n");
             play(0);
         } else {
-            printfv(1, "  Starting CD at track: %d.\n", int(cd_first_track));
+            CTH_INFO("  Starting CD at track: %d.\n", int(cd_first_track));
             play(int(cd_first_track));
         }
 }

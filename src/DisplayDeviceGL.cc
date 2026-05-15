@@ -313,7 +313,7 @@ protected:
 public:
     DisplayDeviceGL()
         : Window(0) {
-        printfv(1, "Initializing OpenGL display...\n");
+        CTH_INFO("Initializing OpenGL display...\n");
 
         //
         // set up display size

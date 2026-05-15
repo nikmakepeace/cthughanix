@@ -69,20 +69,20 @@ int main(int argc, char* argv[]) {
     init_ncurses();
     atexit(exit_ncurses);
 
-    printfv(1, "Initializing the sound device...\n");
+    CTH_INFO("Initializing the sound device...\n");
     SoundDevice::newSD();
 
-    printfv(1, "Initializing the sound server...\n");
+    CTH_INFO("Initializing the sound server...\n");
     soundServer = new SoundServer;
 
-    printfv(1, "Initializing CD player...\n");
+    CTH_INFO("Initializing CD player...\n");
     cdPlayer = new CDPlayer;
 
-    printfv(1, "Initializing Mixer device...\n");
+    CTH_INFO("Initializing Mixer device...\n");
     if (init_mixer())
         exit(0);
 
-    printfv(1, "Initializing keymaps...\n");
+    CTH_INFO("Initializing keymaps...\n");
     Keymap::init();
 
     Interface::set("server");
@@ -94,6 +94,7 @@ int main(int argc, char* argv[]) {
 
         displayDevice->prePrint();
 
+        CTH_INFO("Displaying current interface...\n");
         Interface::current->display(); // print the text of the current interface
 
         errors.display(); // and the error messages

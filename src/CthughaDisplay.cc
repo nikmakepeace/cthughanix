@@ -110,7 +110,7 @@ void CthughaDisplay::zoom2Screen(unsigned char* scrn, int bytesPerLine) {
     int bpl4 = bytesPerLine / 4;
 
     if ((zoom != 1) && (disp_size.x == 2 * BUFF_WIDTH) && (disp_size.y == 2 * BUFF_HEIGHT)) {
-        printfv(1, "Display size matches buffer size. setting zooom to 1\n");
+        CTH_INFO("Display size matches buffer size. setting zoom to 1\n");
         zoom.setValue(1);
     }
 

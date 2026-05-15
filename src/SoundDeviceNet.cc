@@ -27,7 +27,7 @@ char SoundDeviceNet::sound_hostname[256] = "";
  */
 SoundDeviceNet::SoundDeviceNet()
     : SoundDevice() {
-    printfv(1, "Initializing net-sound...\n");
+    CTH_INFO("Initializing net-sound...\n");
 
     // sound data is transmitted as 8bit unsigned, stereo
     soundFormat.setValue(SF_u8);
@@ -73,7 +73,7 @@ void SoundDeviceNet::net_request(int request) {
         error = 1;
         return;
     }
-    printfv(1, "  Requesting: `%s'.\n", req);
+    CTH_INFO("  Requesting: `%s'.\n", req);
 
     /* create socket for request */
     if ((request_socket = make_socket(SOCK_STREAM, CLT_PORT2)) < 0)
@@ -99,7 +99,7 @@ void SoundDeviceNet::net_request(int request) {
     }
 
     /* sending request */
-    printfv(1, "  Sending request `%s'\n", req);
+    CTH_INFO("  Sending request `%s'\n", req);
     strcat(req, "\n");
     if (send(request_socket, req, 64, 0) <= 0) {
         printfee("Can not send request.");
