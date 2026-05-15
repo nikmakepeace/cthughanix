@@ -79,7 +79,7 @@ void SoundAnalyze::operator()() {
 	if(sound_bpm > 0) {
 	    sound_bpm = 16*60000/sound_bpm;
 	}
-	printfv(5, "bpm: %d\n", sound_bpm);
+	cth_log(CTH_LOG_DEBUG, "bpm: %d\n", sound_bpm);
 
 	bn = (bn+1)%16;
     }

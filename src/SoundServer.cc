@@ -93,13 +93,13 @@ void SoundServer::operator()() {
 
         if (my_s_addr.sa_family == AF_INET) {
             struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-            printfv(10, "accept from %x:%d. addr size: %d\n", ntohl(ai->sin_addr.s_addr),
+            cth_log(CTH_LOG_TRACE, "accept from %x:%d. addr size: %d\n", ntohl(ai->sin_addr.s_addr),
                 ntohs(ai->sin_port), size);
 
             char data[512];
             int nr_read = recv(acc_socket, data, 64, 0);
 
-            printfv(10, "received %d bytes: %s\n", nr_read, data);
+            cth_log(CTH_LOG_TRACE, "received %d bytes: %s\n", nr_read, data);
 
             int port;
             if (sscanf(data, "connect %d", &port) > 0) {
@@ -129,7 +129,7 @@ int SoundServer::add_client(struct sockaddr my_s_addr, int size) {
 
     if (my_s_addr.sa_family == AF_INET) {
         struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-        printfv(10, "adding %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
+        cth_log(CTH_LOG_TRACE, "adding %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
     }
 
     remove_client(my_s_addr, size); // remove old entry
@@ -156,13 +156,13 @@ int SoundServer::remove_client(struct sockaddr my_s_addr, int /*size*/) {
 
     if (my_s_addr.sa_family == AF_INET) {
         struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-        printfv(10, "removing %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
+        cth_log(CTH_LOG_TRACE, "removing %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
 
         for (int i = 0; i < nClients; i++) {
             struct sockaddr_in* ci = (sockaddr_in*)&(clientAddrs[i]);
             if ((ai->sin_addr.s_addr == ci->sin_addr.s_addr) && (ai->sin_port == ci->sin_port)) {
 
-                printfv(10, "Removing entry %d\n", i);
+                cth_log(CTH_LOG_TRACE, "Removing entry %d\n", i);
                 memcpy(&(clientAddrs[i]), &(clientAddrs[i + 1]),
                     sizeof(struct sockaddr) * (nClients - i));
                 memcpy(&(clientSizes[i]), &(clientSizes[i + 1]), sizeof(int) * (nClients - i));

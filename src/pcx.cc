@@ -47,7 +47,7 @@ int init_pcx() {
 
     if (display_use_pcx) {
 
-        printfv(2, "  loading PCX-files...\n");
+        cth_log(CTH_LOG_INFO, "  loading PCX-files...\n");
 
         tempscrn = new unsigned char[BUFF_SIZE];
 
@@ -55,7 +55,7 @@ int init_pcx() {
 
         delete[] tempscrn;
 
-        printfv(2, "  number of loaded PCX-files: %d\n", CthughaBuffer::current->pcx.getNEntries());
+        cth_log(CTH_LOG_INFO, "  number of loaded PCX-files: %d\n", CthughaBuffer::current->pcx.getNEntries());
     }
 
     return 0;
@@ -209,7 +209,7 @@ CoreOptionEntry* read_pcx(
         return NULL;
     }
 
-    printfv(10, "\n    version:%d, compr:%d, ncolpl.:%2d, greysc.:%d, X:%d-%d, Y:%d-%d",
+    cth_log(CTH_LOG_TRACE, "\n    version:%d, compr:%d, ncolpl.:%2d, greysc.:%d, X:%d-%d, Y:%d-%d",
         header.version, header.compr, header.ncolplanes, header.greyscale, header.xmin, header.xmax,
         header.ymin, header.ymax);
 
@@ -271,7 +271,7 @@ CoreOptionEntry* read_pcx(
 
         zcompr = 0; /* palette is not compressed */
         if (getnextbyte() != 12) /* should be 12 */
-            printfv(2, "\n    Palette marker not found. Trying anyway.");
+            cth_log(CTH_LOG_WARN, "\n    Palette marker not found. Trying anyway.");
 
         for (y = 0; y < 768; y++)
             pal[y] = getnextbyte();
@@ -280,8 +280,7 @@ CoreOptionEntry* read_pcx(
 
         new_pcx->pal = CthughaBuffer::buffers[0].palette.getNEntries() - 1;
 
-        printfv(
-            3, "\n    loaded palette %d from PCX", CthughaBuffer::buffers[0].palette.getNEntries());
+        cth_log(CTH_LOG_DEBUG, "\n    loaded palette %d from PCX", CthughaBuffer::buffers[0].palette.getNEntries());
     }
 
     return new_pcx;

@@ -26,14 +26,14 @@
  */
 void sig_tty_cont(int);
 void sig_tty_stop(int) {
-    printfv(0, "Stopping...\n");
+    cth_log(CTH_LOG_INFO, "Stopping...\n");
 
     signal(SIGCONT, sig_tty_cont); /* set, how to continue */
 
     cthugha_pause = 1; /* in interface we will really stop */
 }
 void sig_tty_cont(int) {
-    printfv(0, "Continuing...\n");
+    cth_log(CTH_LOG_INFO, "Continuing...\n");
 
     init_sound(); /* and sound */
 
@@ -81,43 +81,43 @@ int main(int argc, char* argv[]) {
         atexit(exit_ncurses);
     }
 
-    printfv(1, "Initializing the sound device...\n");
+    cth_log(CTH_LOG_INFO, "Initializing the sound device...\n");
     SoundDevice::newSD();
 
-    printfv(1, "Initializing the sound server...\n");
+    cth_log(CTH_LOG_INFO, "Initializing the sound server...\n");
     soundServer = new SoundServer;
 
-    printfv(1, "Initializing CD player...\n");
+    cth_log(CTH_LOG_INFO, "Initializing CD player...\n");
     cdPlayer = new CDPlayer;
 
-    printfv(1, "Initializing Mixer device...\n");
+    cth_log(CTH_LOG_INFO, "Initializing Mixer device...\n");
     if (init_mixer())
         exit(0);
 
-    printfv(1, "Initializing cthugha Buffer...\n");
+    cth_log(CTH_LOG_INFO, "Initializing cthugha Buffer...\n");
     CthughaBuffer::initAll();
 
-    printfv(1, "Initializing display...\n");
+    cth_log(CTH_LOG_INFO, "Initializing display...\n");
     newDisplayDevice();
     newCthughaDisplay();
 
-    printfv(1, "Setting initial core options...\n");
+    cth_log(CTH_LOG_INFO, "Setting initial core options...\n");
     CoreOption::changeToInitial();
 
-    printfv(1, "Initializing interface...\n");
+    cth_log(CTH_LOG_INFO, "Initializing interface...\n");
     Interface::set("main");
 
-    printfv(1, "Initializing keymaps...\n");
+    cth_log(CTH_LOG_INFO, "Initializing keymaps...\n");
     Keymap::init();
 
-    printfv(1, "Initializing the automatic changing...\n");
+    cth_log(CTH_LOG_INFO, "Initializing the automatic changing...\n");
     autoChanger = new AutoChanger;
 
     signal(SIGTSTP, sig_tty_stop); /* react to ^Z */
 
     displayDevice->mainLoop();
 
-    printfv(1, "Exiting cthugha...\n");
+    cth_log(CTH_LOG_INFO, "Exiting cthugha...\n");
 
     return 0;
 }

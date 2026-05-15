@@ -31,9 +31,9 @@ void Joystick::run() {
 
         char n;
         ioctl(js, JSIOCGAXES, &n);
-        printfv(5, "   joystick: %d axes.\n", n);
+        cth_log(CTH_LOG_DEBUG, "   joystick: %d axes.\n", n);
         ioctl(js, JSIOCGBUTTONS, &n);
-        printfv(5, "   joystick: %d buttons.\n", n);
+        cth_log(CTH_LOG_DEBUG, "   joystick: %d buttons.\n", n);
 
         // TODO: Test if joystick driver is new enough.
 

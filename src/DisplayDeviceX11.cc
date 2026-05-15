@@ -92,8 +92,8 @@ int DisplayDeviceX11::getAttributes() {
     planes = wa.depth;
     colormap = wa.colormap;
 
-    printfv(4, "    display size       : %dx%d\n", disp_size.x, disp_size.y);
-    printfv(4, "    color planes       : %d\n", planes);
+    cth_log(CTH_LOG_DEBUG, "    display size       : %dx%d\n", disp_size.x, disp_size.y);
+    cth_log(CTH_LOG_DEBUG, "    color planes       : %d\n", planes);
 
     return (wa.map_state == IsViewable);
 }
@@ -424,7 +424,7 @@ void DisplayDeviceX11::allocImage() {
 
     switch (shmLevel) {
     case shmPixmap:
-        printfv(4, "    using shared pixmap\n");
+        cth_log(CTH_LOG_DEBUG, "    using shared pixmap\n");
 
         // create image to get bytes/line
         if ((image = XShmCreateImage(
@@ -462,7 +462,7 @@ void DisplayDeviceX11::allocImage() {
         break;
 
     case shmImage:
-        printfv(4, "    using shared image\n");
+        cth_log(CTH_LOG_DEBUG, "    using shared image\n");
 
         if ((image = XShmCreateImage(xcth_display, visual, planes, ZPixmap, /* format */
                  NULL, /* data */
@@ -494,7 +494,7 @@ void DisplayDeviceX11::allocImage() {
         }
 
     case shmNone:
-        printfv(4, "    using no shared image/pixmap.\n");
+        cth_log(CTH_LOG_DEBUG, "    using no shared image/pixmap.\n");
 
         if ((image = XCreateImage(xcth_display, visual, planes, ZPixmap, 0, NULL, disp_size.x,
                  disp_size.y, XBitmapPad(xcth_display), 0 /*bytes_per_line will be computed */))
@@ -518,8 +518,8 @@ void DisplayDeviceX11::allocImage() {
         text_size.y = disp_size.y / fontSize.y;
     }
 
-    printfv(4, "    bytes/pixel        : %d\n", bypp);
-    printfv(4, "    bytes/line         : %d\n", bytes_per_line);
+    cth_log(CTH_LOG_DEBUG, "    bytes/pixel        : %d\n", bypp);
+    cth_log(CTH_LOG_DEBUG, "    bytes/line         : %d\n", bytes_per_line);
 }
 
 void DisplayDeviceX11::freeImage() {
@@ -677,9 +677,9 @@ void DisplayDeviceX11::initPalette() {
         blue_mask = visual->blue_mask;
         blue_shift = ffs(blue_mask & ~(blue_mask >> 1)) - 8;
 
-        printfv(10, "    red   mask/shift   : 0x%4x/%d\n", red_mask, red_shift);
-        printfv(10, "    green mask/shift   : 0x%4x/%d\n", green_mask, green_shift);
-        printfv(10, "    blue  mask/shift   : 0x%4x/%d\n", blue_mask, blue_shift);
+        cth_log(CTH_LOG_TRACE, "    red   mask/shift   : 0x%4x/%d\n", red_mask, red_shift);
+        cth_log(CTH_LOG_TRACE, "    green mask/shift   : 0x%4x/%d\n", green_mask, green_shift);
+        cth_log(CTH_LOG_TRACE, "    blue  mask/shift   : 0x%4x/%d\n", blue_mask, blue_shift);
 
         switch (bypp) {
         case 1:
@@ -744,7 +744,7 @@ void DisplayDeviceX11::initPalette() {
             if (XAllocColorCells(xcth_display, colormap, 1, NULL, 0, // color planes
                     pixels, 255)
                 != 0) {
-                printfv(0, "Could allocate 255 color cells.\n");
+                cth_log(CTH_LOG_INFO, "Could allocate 255 color cells.\n");
 
                 //
                 // Because we are so lucky, we can use the faster drawing mode

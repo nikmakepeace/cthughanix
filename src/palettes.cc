@@ -40,7 +40,7 @@ int load_palettes() {
         PaletteEntry* new_pal;
         Palette* pal;
 
-        printfv(2, "  preparing internal palettes...\n");
+        cth_log(CTH_LOG_INFO, "  preparing internal palettes...\n");
 
         for (i = 0; (unsigned int)i < sizeof(initial_palettes) / sizeof(Palette); i++) {
             sprintf(str, "Internal_%d", i);
@@ -75,10 +75,9 @@ int load_palettes() {
 
     /* read palettes from file */
     if (display_external_pal) {
-        printfv(2, "  loading external palettes...\n");
+        cth_log(CTH_LOG_INFO, "  loading external palettes...\n");
         CthughaBuffer::current->palette.load(palette_path, "/map/", ".map", read_palette);
-        printfv(
-            2, "  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
+        cth_log(CTH_LOG_INFO, "  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
     }
 
     /* brighten up palettes, that are a bit dark */
@@ -92,7 +91,7 @@ int load_palettes() {
         }
         if ((m > 0) && (m < 3 * 255)) {
             P = double(3 * 255) / double(m);
-            printfv(10, "    brightening palette %d (%s). Faktor: %0.3f\n", i,
+            cth_log(CTH_LOG_TRACE, "    brightening palette %d (%s). Faktor: %0.3f\n", i,
                 CthughaBuffer::current->palette[i]->Name(), P);
 
             for (l = 0; l < 256; l++) {
@@ -120,13 +119,13 @@ CoreOptionEntry* read_palette(
 
     for (i = 0; i < 256; i++) {
         if (fscanf(file, "%d %d %d", &r, &g, &b) < 3) {
-            printfv(3, "\n    Can't read at line: %d (%s)", i, name);
+            cth_log(CTH_LOG_WARN, "\n    Can't read at line: %d (%s)", i, name);
             if (i == 0) { /* nothing read */
-                printfv(3, " ... skipping file");
+                cth_log(CTH_LOG_WARN, " ... skipping file");
                 delete new_pal;
                 return NULL;
             }
-            printfv(3, " ... filling with black");
+            cth_log(CTH_LOG_WARN, " ... filling with black");
             for (; i < 256; i++) /* fill with black */
                 for (j = 0; j < 3; j++)
                     (*pal)[i][j] = 0;
@@ -185,7 +184,7 @@ void PaletteEntry::random() {
     char fname[PATH_MAX];
     sprintf(fname, "%s.map", name);
 
-    printfv(4, "  saving '%s'.\n", fname);
+    cth_log(CTH_LOG_DEBUG, "  saving '%s'.\n", fname);
 
     if ((f = fopen(fname, "w")) == NULL) {
         printfee("Can not open '%s' for random palette.", fname);
