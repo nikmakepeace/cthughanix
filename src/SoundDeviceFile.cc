@@ -103,7 +103,7 @@ int SoundDeviceFile::playNext() {
     static int rep = 0;
 
     if ((rep > 0) && !soundPlayLoop) { // stop playing
-        cth_log(CTH_LOG_INFO, "Stopping...\n");
+        CTH_INFO("Stopping...\n");
         if (soundSilent) {
             exit(0);
         } else {
@@ -113,7 +113,7 @@ int SoundDeviceFile::playNext() {
     }
 
     rep++;
-    cth_log(CTH_LOG_INFO, "Playing file '%s'.\n", name);
+    CTH_INFO("Playing file '%s'.\n", name);
 
     if (open()) { // open file / start program
         error = 1;
@@ -146,7 +146,7 @@ int SoundDeviceFile::open() {
         //
         // play a .wav file
         //
-        cth_log(CTH_LOG_DEBUG, "    Playing .wav file.\n");
+        CTH_DEBUG("    Playing .wav file.\n");
 
         if (openFile())
             return 1;
@@ -164,7 +164,7 @@ int SoundDeviceFile::open() {
         //
         // play using the 'xmp' player
         //
-        cth_log(CTH_LOG_DEBUG, "    Playing MOD file using 'xmp'.\n");
+        CTH_DEBUG("    Playing MOD file using 'xmp'.\n");
 
         soundFormat.setValue(SF_s16_le);
         soundChannels.setValue(2);
@@ -204,9 +204,9 @@ int SoundDeviceFile::open() {
         //
         // It would be nice if mpg123 would write a .wav header.
         //
-        cth_log(CTH_LOG_DEBUG, "    Playing MP3 file using 'mpg123'.\n");
+        CTH_DEBUG("    Playing MP3 file using 'mpg123'.\n");
 
-        cth_log(CTH_LOG_DEBUG, "    decoding first frame to get sound header...\n");
+        CTH_DEBUG("    decoding first frame to get sound header...\n");
 
         systemf("%s -s -n 1 \"%s\" 2> %s > /dev/null", MP3_PATH, name, fifo);
 
@@ -239,7 +239,7 @@ int SoundDeviceFile::open() {
         fclose0(file);
         unlink(fifo);
 
-        cth_log(CTH_LOG_DEBUG, "Starting 'mpg123' for decoding...\n");
+        CTH_DEBUG("Starting 'mpg123' for decoding...\n");
         sprintf(prog, "%s -s \"%s\" > %s", MP3_PATH, name, fifo);
         if (openProg(prog))
             return 1;
@@ -251,9 +251,9 @@ int SoundDeviceFile::open() {
         //
         // method simmilar to mpg123, but use the .wav header
         //
-        cth_log(CTH_LOG_DEBUG, "    Playing MP3 file using 'l3dec'.\n");
+        CTH_DEBUG("    Playing MP3 file using 'l3dec'.\n");
 
-        cth_log(CTH_LOG_DEBUG, "    decoding first frame to get sound header...\n");
+        CTH_DEBUG("    decoding first frame to get sound header...\n");
 
         systemf("echo \"n\" | %s -wav -fn 0 \"%s\" %s 2> /dev/null", MP3_PATH, name, fifo);
         if ((file = fopen(fifo, "r")) == NULL) {
@@ -282,7 +282,7 @@ int SoundDeviceFile::open() {
 #endif
 
     } else {
-        cth_log(CTH_LOG_DEBUG, "    Playing raw sound data..\n");
+        CTH_DEBUG("    Playing raw sound data..\n");
 
         if (openFile())
             return 1;
@@ -313,7 +313,7 @@ int SoundDeviceFile::openProg(char* prog) {
         if (dsp)
             delete dsp;
 
-        cth_log(CTH_LOG_DEBUG, "    starting sound reader `%s'.\n", prog);
+        CTH_DEBUG("    starting sound reader `%s'.\n", prog);
 
         char* argv[4];
         argv[0] = "sh";
@@ -328,7 +328,7 @@ int SoundDeviceFile::openProg(char* prog) {
         break;
     default:
         // now open this pipe for reading
-        cth_log(CTH_LOG_DEBUG, "    opening '%s'\n", fifo);
+        CTH_DEBUG("    opening '%s'\n", fifo);
         if ((file = fopen(fifo, "r")) == NULL) {
             printfee("Can not open communication pipe `%s'.\n", fifo);
             return 1;
@@ -360,7 +360,7 @@ int SoundDeviceFile::wavHeader() {
         }
         soundSampleRate.setValue(header.sample_fq);
     } else {
-        cth_log(CTH_LOG_WARN, "  Error in .wav header\n");
+        CTH_WARN("  Error in .wav header\n");
     }
     return 0;
 }
@@ -483,12 +483,12 @@ int SoundDeviceFile::close() {
         fclose0(file);
 
     if (childPid >= 0) {
-        cth_log(CTH_LOG_DEBUG, "    waiting for sound reader to stop.\n");
+        CTH_DEBUG("    waiting for sound reader to stop.\n");
 
         if (waitpid(childPid, NULL, WNOHANG) == -1) {
             sleep(1);
             if (waitpid(childPid, NULL, WNOHANG) == -1) {
-                cth_log(CTH_LOG_DEBUG, "    stopping sound reader\n");
+                CTH_DEBUG("    stopping sound reader\n");
 
                 kill(SIGKILL, childPid);
                 waitpid(childPid, NULL, 0);

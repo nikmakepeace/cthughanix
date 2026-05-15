@@ -131,6 +131,10 @@ int printfv(int lvl, const char* fmt, ...) {
 //
 // print a named-level log message
 //
+int cth_log_enabled(int lvl) {
+    return (lvl <= CTH_LOG_ERROR) || (lvl <= int(cthugha_verbose));
+}
+
 int cth_log(int lvl, const char* fmt, ...) {
 #ifdef HAVE_VPRINTF
     va_list ap;

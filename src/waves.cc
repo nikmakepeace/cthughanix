@@ -191,9 +191,9 @@ int init_wave() {
     /* load objects from File  */
     if (int(use_objects)) {
 
-        cth_log(CTH_LOG_INFO, "  loading 3-D objects...");
+        CTH_INFO("  loading 3-D objects...");
         CthughaBuffer::current->object.load(object_path, "/obj/", ".obj", read_object);
-        cth_log(CTH_LOG_INFO, "\n  number of 3-D objects: %d\n", CthughaBuffer::current->object.getNEntries());
+        CTH_INFO("\n  number of 3-D objects: %d\n", CthughaBuffer::current->object.getNEntries());
     }
 
     return 0;
@@ -229,9 +229,9 @@ CoreOptionEntry* read_object(
         if (dummy[0] != 0 && dummy[0] != '#') /* if this looks like a legit line */
 
             if (sscanf(dummy, "%d,%d,%d - %d,%d,%d", &x1, &y1, &z1, &x2, &y2, &z2) < 6) {
-                cth_log(CTH_LOG_WARN, "\n    Can't read at line: %d (%s)", i, name);
+                CTH_WARN("\n    Can't read at line: %d (%s)", i, name);
                 if (i == 1) { /*  nothing read  */
-                    cth_log(CTH_LOG_WARN, " ... skipping file");
+                    CTH_WARN(" ... skipping file");
                     delete new_obj;
                     return NULL;
                 }

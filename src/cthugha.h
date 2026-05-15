@@ -93,9 +93,21 @@ enum CthughaLogLevel {
 int printfv(int lvl, const char* fmt, ...); // print verbose message
 int printfee(const char* fmt, ...); // print error msg with errno
 int printfe(const char* fmt, ...); // print error msg (no errno)
+int cth_log_enabled(int lvl); // true if named-level log message would be printed
 int cth_log(int lvl, const char* fmt, ...); // print named-level log message
 int cth_log_error(const char* fmt, ...); // print error log message
 int cth_log_errno(const char* fmt, ...); // print error log message with errno
+
+#define CTH_LOG_ENABLED(lvl) (cth_log_enabled(lvl))
+#define CTH_LOG(lvl, args...) \
+    do { \
+        if (CTH_LOG_ENABLED(lvl)) \
+            cth_log(lvl, args); \
+    } while (0)
+#define CTH_WARN(args...) CTH_LOG(CTH_LOG_WARN, args)
+#define CTH_INFO(args...) CTH_LOG(CTH_LOG_INFO, args)
+#define CTH_DEBUG(args...) CTH_LOG(CTH_LOG_DEBUG, args)
+#define CTH_TRACE(args...) CTH_LOG(CTH_LOG_TRACE, args)
 
 int systemf(const char* fmt, ...); // combined sprintf and system
 

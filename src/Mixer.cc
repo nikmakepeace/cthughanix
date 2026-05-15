@@ -157,7 +157,7 @@ int init_mixer() {
 
     // check if there is any initial value
     if (mixer_initials == 0) {
-        cth_log(CTH_LOG_DEBUG, "  no initial volumes specified.\n");
+        CTH_DEBUG("  no initial volumes specified.\n");
 
         // init initial volumes in that case
         for (int i = 0; i < SOUND_MIXER_NRDEVICES; i++)
@@ -191,7 +191,7 @@ int init_mixer() {
         if ((dev_mask & (1 << i)) == 0) {
 
             if (mixer_initial[i] != -1) {
-                cth_log(CTH_LOG_WARN, "  unavailable mixer device `%s'.\n", mixer_names[i]);
+                CTH_WARN("  unavailable mixer device `%s'.\n", mixer_names[i]);
             }
 
         } else {
@@ -205,9 +205,9 @@ int init_mixer() {
                 if (mixer_initial[i] == 0) {
                     // disable device
                     mixer_mask &= ~(1 << i);
-                    cth_log(CTH_LOG_DEBUG, "    disabling `%s' for input.\n", mixer_names[i]);
+                    CTH_DEBUG("    disabling `%s' for input.\n", mixer_names[i]);
                 } else {
-                    cth_log(CTH_LOG_DEBUG, "    setting `%s' to volume %d.\n", mixer_names[i],
+                    CTH_DEBUG("    setting `%s' to volume %d.\n", mixer_names[i],
                         mixer_initial[i] & 255);
                     mixer_mask |= 1 << i;
                 }
@@ -240,7 +240,7 @@ int init_mixer() {
 
     close(mixer_des);
 
-    cth_log(CTH_LOG_TRACE, "  available mixer devices: %d.\n", nVolumes);
+    CTH_TRACE("  available mixer devices: %d.\n", nVolumes);
 
     return 0;
 }
@@ -257,7 +257,7 @@ char dev_mixer[PATH_MAX] = "";
 int init_mixer() { return 0; }
 
 int mixer_initial_volume(char* /*name*/, int /*volume*/) {
-    cth_log(CTH_LOG_WARN, "mixer was disabled at compile time.\n");
+    CTH_WARN("mixer was disabled at compile time.\n");
     return 0;
 }
 

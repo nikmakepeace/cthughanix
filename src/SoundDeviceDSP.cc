@@ -90,7 +90,7 @@ void SoundDeviceDSP::setFormat() {
         sound_format = AFMT_U8;
     }
 
-    cth_log(CTH_LOG_TRACE, "setting sound format: %d   ", sound_format);
+    CTH_TRACE("setting sound format: %d   ", sound_format);
 
     if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
         printfee("ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
@@ -101,7 +101,7 @@ void SoundDeviceDSP::setFormat() {
         }
     }
 
-    cth_log(CTH_LOG_TRACE, "returned: %d\n", sound_format);
+    CTH_TRACE("returned: %d\n", sound_format);
 
     switch (sound_format) {
     case AFMT_U8:
@@ -129,7 +129,7 @@ void SoundDeviceDSP::setFormat() {
 }
 
 void SoundDeviceDSP::init(int mode) {
-    cth_log(CTH_LOG_DEBUG, "  setting %s for %s...\n", dev_dsp,
+    CTH_DEBUG("  setting %s for %s...\n", dev_dsp,
         (mode == O_RDONLY)       ? "reading"
             : (mode == O_WRONLY) ? "writing"
                                  : "");
@@ -149,7 +149,7 @@ void SoundDeviceDSP::init(int mode) {
     switch (int(soundDSPMethod)) {
 
     case 0: { // set sound fragment size and number of fragments
-        cth_log(CTH_LOG_INFO, "   Using sound method 0 - optimal fragment size\n");
+        CTH_INFO("   Using sound method 0 - optimal fragment size\n");
 
         soundDSPFragmentSize.setValue(ilog2(size) - 1);
 
@@ -164,7 +164,7 @@ void SoundDeviceDSP::init(int mode) {
         break;
     }
     case 1: { // fragment size of 16 bytes (2^4), two fragments (2)
-        cth_log(CTH_LOG_INFO, "   Using sound method 1 - small fragment size\n");
+        CTH_INFO("   Using sound method 1 - small fragment size\n");
 
         soundDSPFragments.setValue(2);
         soundDSPFragmentSize.setValue(4);
@@ -180,7 +180,7 @@ void SoundDeviceDSP::init(int mode) {
         break;
     }
     case 2: { // from version 0.3
-        cth_log(CTH_LOG_INFO, "   Using sound method 2 - old version\n");
+        CTH_INFO("   Using sound method 2 - old version\n");
 
         /* create a DMA-Buffer as small as possible.
            1. create the buffer for lowerest possible sample rate (4000) and
@@ -215,7 +215,7 @@ void SoundDeviceDSP::init(int mode) {
         break;
     }
     case 3: { // primitiv. only set format, channels and speed
-        cth_log(CTH_LOG_INFO, "   Using sound method 3 - primitiv version\n");
+        CTH_INFO("   Using sound method 3 - primitiv version\n");
 
         setFormat();
         setChannels();
@@ -229,7 +229,7 @@ void SoundDeviceDSP::init(int mode) {
             error = 1;
             break;
         }
-        cth_log(CTH_LOG_INFO, "   Using sound method 4 - directly using DMA buffer\n");
+        CTH_INFO("   Using sound method 4 - directly using DMA buffer\n");
 
         setFormat();
         setChannels();

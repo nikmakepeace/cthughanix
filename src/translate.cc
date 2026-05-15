@@ -31,7 +31,7 @@ int init_translate() {
 
     if (use_translates) {
 
-        cth_log(CTH_LOG_INFO, "  loading translation tables...\n");
+        CTH_INFO("  loading translation tables...\n");
 
         if (transLoadLate)
             transLoadOnDemand.setValue(1);
@@ -43,7 +43,7 @@ int init_translate() {
         CthughaBuffer::current->translate.load(
             translate_path, "/tab/", ".tab", TranslateEntry::loaderTab);
 
-        cth_log(CTH_LOG_INFO, "  number of loaded translates: %d\n",
+        CTH_INFO("  number of loaded translates: %d\n",
             CthughaBuffer::current->translate.getNEntries());
     }
 
@@ -118,7 +118,7 @@ static int* stretch_trans(const int* src, const tab_header& header) {
     int x, y, tp, ox, oy, dx, dy;
     int i, j;
 
-    cth_log(CTH_LOG_DEBUG, " ... stretching");
+    CTH_DEBUG(" ... stretching");
 
     int* dst = new int[BUFF_HEIGHT * BUFF_WIDTH];
 
@@ -164,7 +164,7 @@ CoreOptionEntry* TranslateEntry::loaderTab(
 
     /* check header ID */
     if (header.id != *((long*)"HDKB")) {
-        cth_log(CTH_LOG_WARN, "\n  Header ID-mismatch. Trying without header.");
+        CTH_WARN("\n  Header ID-mismatch. Trying without header.");
 
         rewind(file); // back to start of file
 
@@ -176,7 +176,7 @@ CoreOptionEntry* TranslateEntry::loaderTab(
     } else {
         /* ID OK - now test size */
         if ((header.size_x != BUFF_WIDTH) || (header.size_y != BUFF_HEIGHT)) {
-            cth_log(CTH_LOG_WARN, "\n    Size mismatch (%dx%d instead of %dx%d)", header.size_x, header.size_y,
+            CTH_WARN("\n    Size mismatch (%dx%d instead of %dx%d)", header.size_x, header.size_y,
                 BUFF_WIDTH, BUFF_HEIGHT);
             if (int(trans_stretch)) { /* allow stretching */
                 stretch = 1;
@@ -274,7 +274,7 @@ CoreOptionEntry* TranslateEntry::loaderCmd(
     if (strcmp(name, "cmdRead") == 0) {
         strncpy(TranslateEntry::cmdRead, command, PATH_MAX);
         delete new_trans;
-        cth_log(CTH_LOG_DEBUG, " (auxiliary program)\n");
+        CTH_DEBUG(" (auxiliary program)\n");
         return NULL;
     }
 
@@ -283,7 +283,7 @@ CoreOptionEntry* TranslateEntry::loaderCmd(
         new_trans->trans = NULL;
     } else {
         /* start the command */
-        cth_log(CTH_LOG_DEBUG, "\n    starting: %s", command);
+        CTH_DEBUG("\n    starting: %s", command);
         if ((cmd_file = popen(command, "r")) == NULL) {
             printfee("  Can't run command '%s'.\n", command);
             return NULL;
@@ -470,7 +470,7 @@ int TranslateOption::operator()() {
 
         // start a new command
         if (current->command[0] != '\0') {
-            cth_log(CTH_LOG_DEBUG, "    starting: %s\n", current->command);
+            CTH_DEBUG("    starting: %s\n", current->command);
             if (openPipe(current->command)) {
                 printfee("  Can't run command '%s'.\n", current->command);
                 return 1;
@@ -508,7 +508,7 @@ int TranslateOption::operator()() {
         } else {
             pclose(lodPipe);
             lodPipe = NULL;
-            cth_log(CTH_LOG_DEBUG, "    finished loading.\n");
+            CTH_DEBUG("    finished loading.\n");
 
             if (transLoadLate) {
                 // keep a copy of this translation table

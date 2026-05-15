@@ -195,13 +195,13 @@ void SoundDevice::newSD() {
         exit(0);
     }
 
-    cth_log(CTH_LOG_DEBUG, "    channels           : %s\n", soundChannels.text());
-    cth_log(CTH_LOG_DEBUG, "    sound format       : %s\n", soundFormat.text());
-    cth_log(CTH_LOG_DEBUG, "    sample rate        : %d Hz\n", int(soundSampleRate));
-    cth_log(CTH_LOG_DEBUG, "    DSP method         : %d\n", int(soundDSPMethod));
-    cth_log(CTH_LOG_DEBUG, "    DSP fragments      : %d\n", int(soundDSPFragments));
-    cth_log(CTH_LOG_DEBUG, "    DSP fragment size  : %d\n", int(soundDSPFragmentSize));
-    cth_log(CTH_LOG_DEBUG, "    DSP sync.          : %d\n", int(soundDSPSync));
+    CTH_DEBUG("    channels           : %s\n", soundChannels.text());
+    CTH_DEBUG("    sound format       : %s\n", soundFormat.text());
+    CTH_DEBUG("    sample rate        : %d Hz\n", int(soundSampleRate));
+    CTH_DEBUG("    DSP method         : %d\n", int(soundDSPMethod));
+    CTH_DEBUG("    DSP fragments      : %d\n", int(soundDSPFragments));
+    CTH_DEBUG("    DSP fragment size  : %d\n", int(soundDSPFragmentSize));
+    CTH_DEBUG("    DSP sync.          : %d\n", int(soundDSPSync));
 
     // check for errors
     if ((soundDevice == NULL) || (soundDevice->error != 0)) {

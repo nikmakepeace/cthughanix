@@ -44,7 +44,7 @@ void Keymap::readFile(const char* fileName) {
         return;
     }
 
-    cth_log(CTH_LOG_DEBUG, "   starting reading keymap file '%s'.\n", fileName);
+    CTH_DEBUG("   starting reading keymap file '%s'.\n", fileName);
 
     int lineNr = 0;
     char line[4096];
@@ -69,13 +69,13 @@ void Keymap::readFile(const char* fileName) {
             skipSpace(lineP);
             keymap = find(lineP, 1);
 
-            cth_log(CTH_LOG_DEBUG, "      defining keymap '%s'.\n", keymap->name);
+            CTH_DEBUG("      defining keymap '%s'.\n", keymap->name);
         } else {
             keymap->add(line);
         }
     }
 
-    cth_log(CTH_LOG_DEBUG, "   finished reading keymap file '%s'.\n", fileName);
+    CTH_DEBUG("   finished reading keymap file '%s'.\n", fileName);
     fclose(file);
 }
 
@@ -95,7 +95,7 @@ void Keymap::addList(int dummy, ...) {
             skipSpace(lineP);
             keymap = find(lineP);
 
-            cth_log(CTH_LOG_DEBUG, "      defining keymap '%s'.\n", keymap->name);
+            CTH_DEBUG("      defining keymap '%s'.\n", keymap->name);
         } else {
             keymap->add(line);
         }
@@ -114,7 +114,7 @@ Keymap* Keymap::find(const char* name, int create) {
     }
 
     if (create) {
-        cth_log(CTH_LOG_DEBUG, "      adding new keymap '%s'.\n", name);
+        CTH_DEBUG("      adding new keymap '%s'.\n", name);
         char* n = new char[strlen(name) + 1];
         strcpy(n, name);
         return new Keymap(n);
@@ -228,7 +228,7 @@ Keymap::Binding Keymap::parseBinding(const char* line) {
         }
         skipSpace(line);
     }
-    cth_log(CTH_LOG_TRACE, "   parsed new keymap entry line '%s'\n", fullLine);
+    CTH_TRACE("   parsed new keymap entry line '%s'\n", fullLine);
     return b;
 }
 

@@ -148,7 +148,7 @@ void AutoChanger::loadSilenceStrings(const char* fname) {
 
     /* check if file was empty */
     if (nSilenceStrings == 0) {
-        cth_log(CTH_LOG_WARN, "silence strings file `%s' was empty.\n", fname);
+        CTH_WARN("silence strings file `%s' was empty.\n", fname);
         nSilenceStrings = 1;
         strcpy(silenceStrings[0], "Where is the music?");
     }

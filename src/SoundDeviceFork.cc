@@ -49,7 +49,7 @@ public:
 sound_Communicator* sound_communicator = NULL;
 
 void sig_tty_parent(int) {
-    cth_log(CTH_LOG_INFO, "Stopping in child...\n");
+    CTH_INFO("Stopping in child...\n");
 
     kill(getppid(), SIGTSTP);
 
@@ -94,7 +94,7 @@ int sound_comm_read() {
  * fork the sound reading process
  */
 SoundDeviceFork::SoundDeviceFork() {
-    cth_log(CTH_LOG_DEBUG, "    starting sound reading process...\n");
+    CTH_DEBUG("    starting sound reading process...\n");
     if ((sound_shm_key
             = shmget(IPC_PRIVATE, rawSize + sizeof(sound_Communicator), IPC_CREAT | 0777))
         == -1) {
@@ -139,7 +139,7 @@ SoundDeviceFork::SoundDeviceFork() {
                 sound_communicate(0); // and send the new value back
             }
         } while (!sound_communicator->stop);
-        cth_log(CTH_LOG_DEBUG, "    closing sound reading child.\n");
+        CTH_DEBUG("    closing sound reading child.\n");
         delete soundDevice;
 
         abort();
@@ -180,11 +180,11 @@ SoundDeviceFork::~SoundDeviceFork() {
     sound_communicator->stop = 1;
 
     if (sound_child >= 0) {
-        cth_log(CTH_LOG_DEBUG, "    waiting for sound reading process to stop.\n");
+        CTH_DEBUG("    waiting for sound reading process to stop.\n");
         if (waitpid(sound_child, NULL, WNOHANG) == -1) {
             // first wait failed, wait a short time
             sleep(2);
-            cth_log(CTH_LOG_DEBUG, "    stopping sound reading process.\n");
+            CTH_DEBUG("    stopping sound reading process.\n");
             if (waitpid(sound_child, NULL, WNOHANG) == -1) {
                 // second wait failed, now be brutal
                 kill(SIGKILL, sound_child);

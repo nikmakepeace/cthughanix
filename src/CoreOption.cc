@@ -111,7 +111,7 @@ void CoreOption::change(int by, int doSave) {
                 value = mod(value + 1, getNEntries());
     }
 
-    cth_log(CTH_LOG_TRACE, "changed option `%s' to `%s'\n", name(), entries[value]->name);
+    CTH_TRACE("changed option `%s' to `%s'\n", name(), entries[value]->name);
 
     if (cthughaDisplay)
         cthughaDisplay->resetFPS();
@@ -134,13 +134,13 @@ void CoreOption::change(const char* to, int doSave) {
 
     /* if empty, set to a random value */
     if ((to == NULL) || (to[0] == '\0')) {
-        cth_log(CTH_LOG_TRACE, "    changing option `%s' to a random value.\n", name(), to);
+        CTH_TRACE("    changing option `%s' to a random value.\n", name(), to);
         value = Random(getNEntries());
         change(0, 0);
         return;
     }
 
-    cth_log(CTH_LOG_TRACE, "    changing option `%s' to `%s'.\n", name(), to);
+    CTH_TRACE("    changing option `%s' to `%s'.\n", name(), to);
 
     if (doSave)
         save();
@@ -182,7 +182,7 @@ void CoreOption::change(const char* to, int doSave) {
 
     if (pos == to) { // not a number
         /* found no entry, use a random value */
-        cth_log(CTH_LOG_WARN, "Unknown entry `%s' for option `%s'\n", to, name());
+        CTH_WARN("Unknown entry `%s' for option `%s'\n", to, name());
         value = mod(rand(), getNEntries());
     } else { // it is a number
         value = mod(value, getNEntries());
@@ -467,7 +467,7 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
         /* open with 'gzip' - through pipe */
         char cmd[PATH_MAX];
 
-        cth_log(CTH_LOG_DEBUG, "uncompressing and ");
+        CTH_DEBUG("uncompressing and ");
 
         sprintf(cmd, "gzip -cd \"%s\"", total_name);
 
@@ -478,7 +478,7 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
         file = fopen(total_name, "r");
     }
 
-    cth_log(CTH_LOG_DEBUG, "loading: %s", total_name);
+    CTH_DEBUG("loading: %s", total_name);
 
     /* now do the loading */
     if (file != NULL) {
@@ -486,7 +486,7 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
 
         /* file was openen successfully  - now read it */
         if ((entry = (*loader)(file, name, dir, total_name)) != NULL) {
-            cth_log(CTH_LOG_DEBUG, " ... OK\n");
+            CTH_DEBUG(" ... OK\n");
         }
 
         if (compressed)
@@ -497,7 +497,7 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
         return entry;
 
     } else { /* file/pipe could not be opened */
-        cth_log(CTH_LOG_DEBUG, " ... x\n");
+        CTH_DEBUG(" ... x\n");
         return NULL;
     }
 }
@@ -519,14 +519,14 @@ void CoreOption::loadDir(const char* dir, const char* extension,
             strncpy(total_name, dir, 255);
             strncat(total_name, entry->d_name, 255);
 
-            cth_log(CTH_LOG_DEBUG, "    ");
+            CTH_DEBUG("    ");
 
             /* feature name only goes till first occurence of extension */
             strncpy(feat_name, entry->d_name, 255);
             *strstr(feat_name, extension) = '\0';
 
             if (!int(double_load) && defined(feat_name)) {
-                cth_log(CTH_LOG_DEBUG, "already loaded: %s\n", total_name);
+                CTH_DEBUG("already loaded: %s\n", total_name);
             } else if ((fe = load(feat_name, total_name, dir, loader)) != NULL)
                 add(fe);
         }

@@ -545,7 +545,7 @@ int do_param(int c, int value, char* str) {
     case opt_position:
         sscanf(str, "%d%d", &window_pos.x, &window_pos.y);
         window_do_pos = 1;
-        cth_log(CTH_LOG_TRACE, "window pos: %d %d\n", window_pos.x, window_pos.y);
+        CTH_TRACE("window pos: %d %d\n", window_pos.x, window_pos.y);
         break;
 
     case opt_font:
