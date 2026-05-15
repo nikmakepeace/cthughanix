@@ -439,11 +439,11 @@ void DisplayDeviceX11::allocImage() {
         /* create and attach Shared Memory */
         if ((shminfo.shmid = shmget(IPC_PRIVATE, bytes_per_line * disp_size.y, IPC_CREAT | 0777))
             == -1) {
-            printfee("Can not create shared memory segment");
+            CTH_ERRNO(errno, "Can not create shared memory segment");
             exit(0);
         }
         if ((shminfo.shmaddr = image->data = (char*)shmat(shminfo.shmid, 0, 0)) == (void*)-1) {
-            printfee("Can not attach shared memory segment");
+            CTH_ERRNO(errno, "Can not attach shared memory segment");
             exit(0);
         }
         shminfo.readOnly = False;
@@ -477,11 +477,11 @@ void DisplayDeviceX11::allocImage() {
         /* create and attach Shared Memory */
         if ((shminfo.shmid = shmget(IPC_PRIVATE, bytes_per_line * disp_size.y, IPC_CREAT | 0777))
             == -1) {
-            printfee("Can not create shared memory segment");
+            CTH_ERRNO(errno, "Can not create shared memory segment");
             exit(0);
         }
         if ((shminfo.shmaddr = image->data = (char*)shmat(shminfo.shmid, 0, 0)) == (void*)-1) {
-            printfee("Can not attach shared memory segment");
+            CTH_ERRNO(errno, "Can not attach shared memory segment");
             exit(0);
         }
         shminfo.readOnly = False;

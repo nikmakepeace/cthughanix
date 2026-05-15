@@ -86,7 +86,7 @@ static int vprintfe(const char* fmt, va_list ap) {
     return 0;
 }
 
-static int vprintfee(const char* fmt, va_list ap) {
+static int vprintfee(int errnum, const char* fmt, va_list ap) {
     printf("\n\r");
     fflush(stdout);
 
@@ -102,9 +102,9 @@ static int vprintfee(const char* fmt, va_list ap) {
 #endif
 
 #ifdef HAVE_STRERROR
-    fprintf(stderr, " (%d - %s)\n\r", errno, strerror(errno));
+    fprintf(stderr, " (%d - %s)\n\r", errnum, strerror(errnum));
 #else
-    fprintf(stderr, " (%d)\n\r", errno);
+    fprintf(stderr, " (%d)\n\r", errnum);
 #endif
 
     fflush(stderr);
@@ -157,15 +157,34 @@ int cth_log(int lvl, const char* fmt, ...) {
 // print an error message and the error number
 //
 int printfee(const char* fmt, ...) {
+    int errnum = errno;
 
 #ifdef HAVE_VPRINTF
     va_list ap;
     va_start(ap, fmt);
-    vprintfee(fmt, ap);
+    vprintfee(errnum, fmt, ap);
     va_end(ap);
 #else
     fprintf(stderr, fmt);
-    fprintf(stderr, " (%d)\n\r", errno);
+    fprintf(stderr, " (%d)\n\r", errnum);
+#endif
+
+    return 0;
+}
+
+//
+// print a named-level error message and a given error number
+//
+int cth_log_errno_value(int errnum, const char* fmt, ...) {
+
+#ifdef HAVE_VPRINTF
+    va_list ap;
+    va_start(ap, fmt);
+    vprintfee(errnum, fmt, ap);
+    va_end(ap);
+#else
+    fprintf(stderr, fmt);
+    fprintf(stderr, " (%d)\n\r", errnum);
 #endif
 
     return 0;
@@ -175,15 +194,16 @@ int printfee(const char* fmt, ...) {
 // print a named-level error message and the error number
 //
 int cth_log_errno(const char* fmt, ...) {
+    int errnum = errno;
 
 #ifdef HAVE_VPRINTF
     va_list ap;
     va_start(ap, fmt);
-    vprintfee(fmt, ap);
+    vprintfee(errnum, fmt, ap);
     va_end(ap);
 #else
     fprintf(stderr, fmt);
-    fprintf(stderr, " (%d)\n\r", errno);
+    fprintf(stderr, " (%d)\n\r", errnum);
 #endif
 
     return 0;

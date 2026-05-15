@@ -133,7 +133,7 @@ void AutoChanger::loadSilenceStrings(const char* fname) {
         return;
 
     if ((file = fopen(fname, "r")) == NULL) {
-        printfee("Can't open quiet strings file `%s'.", fname);
+        CTH_ERRNO(errno, "Can't open quiet strings file `%s'.", fname);
         return;
     }
 

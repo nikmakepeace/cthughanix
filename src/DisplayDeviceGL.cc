@@ -459,7 +459,7 @@ public:
 
         FILE* file;
         if ((file = fopen(prtFileName("tga"), "w")) == NULL) {
-            printfee("Can not open print screen file.\n");
+            CTH_ERRNO(errno, "Can not open print screen file.\n");
             delete pixels;
             return 1;
         }

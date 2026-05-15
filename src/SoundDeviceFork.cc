@@ -98,12 +98,12 @@ SoundDeviceFork::SoundDeviceFork() {
     if ((sound_shm_key
             = shmget(IPC_PRIVATE, rawSize + sizeof(sound_Communicator), IPC_CREAT | 0777))
         == -1) {
-        printfee("Can not create shared memory segment.");
+        CTH_ERRNO(errno, "Can not create shared memory segment.");
         error = 1;
         return;
     }
     if ((sound_shared = shmat(sound_shm_key, 0, 0)) == (void*)-1) {
-        printfee("Can not attach shared memory segment.");
+        CTH_ERRNO(errno, "Can not attach shared memory segment.");
         error = 1;
         return;
     }
@@ -117,7 +117,7 @@ SoundDeviceFork::SoundDeviceFork() {
 
     switch (sound_child = fork()) {
     case -1: /* error */
-        printfee("Can not fork sound child.");
+        CTH_ERRNO(errno, "Can not fork sound child.");
         shmdt((char*)sound_shared);
 
         error = 1;

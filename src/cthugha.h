@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 /* this is suggested by autoconf */
 #if STDC_HEADERS
@@ -96,6 +97,7 @@ int printfe(const char* fmt, ...); // print error msg (no errno)
 int cth_log_enabled(int lvl); // true if named-level log message would be printed
 int cth_log(int lvl, const char* fmt, ...); // print named-level log message
 int cth_log_error(const char* fmt, ...); // print error log message
+int cth_log_errno_value(int errnum, const char* fmt, ...); // print error log message with given errno
 int cth_log_errno(const char* fmt, ...); // print error log message with errno
 
 #define CTH_LOG_ENABLED(lvl) (cth_log_enabled(lvl))
@@ -105,6 +107,7 @@ int cth_log_errno(const char* fmt, ...); // print error log message with errno
             cth_log(lvl, args); \
     } while (0)
 #define CTH_ERROR(args...) cth_log_error(args)
+#define CTH_ERRNO(errnum, args...) cth_log_errno_value(errnum, args)
 #define CTH_WARN(args...) CTH_LOG(CTH_LOG_WARN, args)
 #define CTH_INFO(args...) CTH_LOG(CTH_LOG_INFO, args)
 #define CTH_DEBUG(args...) CTH_LOG(CTH_LOG_DEBUG, args)

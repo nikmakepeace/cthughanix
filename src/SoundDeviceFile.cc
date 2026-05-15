@@ -70,7 +70,7 @@ SoundDeviceFile::SoundDeviceFile()
     strncpy(fifoDir, "/tmp/cthugha.XXXXXX", PATH_MAX);
     fifoDir[PATH_MAX - 1] = '\0';
     if (mkdtemp(fifoDir) == NULL) {
-        printfee("Can not create temporary directory.");
+        CTH_ERRNO(errno, "Can not create temporary directory.");
         error = 1;
     } else {
         snprintf(fifo, PATH_MAX, "%s/sound", fifoDir);
@@ -211,7 +211,7 @@ int SoundDeviceFile::open() {
         systemf("%s -s -n 1 \"%s\" 2> %s > /dev/null", MP3_PATH, name, fifo);
 
         if ((file = fopen(fifo, "r")) == NULL) {
-            printfee("Can not open the temporary file '%s'.\n", fifo);
+            CTH_ERRNO(errno, "Can not open the temporary file '%s'.\n", fifo);
             return 1;
         }
 
@@ -293,7 +293,7 @@ int SoundDeviceFile::open() {
 
 int SoundDeviceFile::openFile() {
     if ((file = fopen(name, "r")) == NULL) {
-        printfee("Can not open sound file `%s' for reading.", name);
+        CTH_ERRNO(errno, "Can not open sound file `%s' for reading.", name);
         return 1;
     }
 
@@ -306,7 +306,7 @@ int SoundDeviceFile::openProg(char* prog) {
 
     switch (childPid = fork()) {
     case -1:
-        printfee("Can not fork for sound reading program.\n");
+        CTH_ERRNO(errno, "Can not fork for sound reading program.\n");
         error = 1;
         return 1;
     case 0:
@@ -322,7 +322,7 @@ int SoundDeviceFile::openProg(char* prog) {
         argv[3] = 0;
         execv("/bin/sh", argv); // should not return
 
-        printfee("execve failed.");
+        CTH_ERRNO(errno, "execve failed.");
 
         abort();
         break;
@@ -330,7 +330,7 @@ int SoundDeviceFile::openProg(char* prog) {
         // now open this pipe for reading
         CTH_DEBUG("    opening '%s'\n", fifo);
         if ((file = fopen(fifo, "r")) == NULL) {
-            printfee("Can not open communication pipe `%s'.\n", fifo);
+            CTH_ERRNO(errno, "Can not open communication pipe `%s'.\n", fifo);
             return 1;
         }
     }
@@ -344,7 +344,7 @@ int SoundDeviceFile::wavHeader() {
         if (feof(file))
             CTH_ERROR("Can not read header (end of file).\n");
         else
-            printfee("Can not read header.");
+            CTH_ERRNO(errno, "Can not read header.");
     }
 
     /* is it a .wav file */
@@ -444,7 +444,7 @@ int SoundDeviceFile::read() {
 
             switch (select(FD_SETSIZE, &rfds, &wfds, NULL, NULL)) {
             case -1:
-                printfee("Error in select.");
+                CTH_ERRNO(errno, "Error in select.");
                 break;
             case 0:
                 break;

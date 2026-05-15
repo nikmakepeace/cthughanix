@@ -100,7 +100,7 @@ int CDPlayer::openCD() {
 
     // open device
     if ((handle = open(dev_cd, O_RDONLY)) == -1) {
-        printfee("can not open `%s'.", dev_cd);
+        CTH_ERRNO(errno, "can not open `%s'.", dev_cd);
         return 1;
     }
 
@@ -123,7 +123,7 @@ int CDPlayer::readTOC() {
     struct cdrom_msf msf;
 
     if (ioctl(handle, CDROMREADTOCHDR, &tocHdr)) {
-        printfee("Can't read Table of Contents");
+        CTH_ERRNO(errno, "Can't read Table of Contents");
         return 1;
     }
 
@@ -139,7 +139,7 @@ int CDPlayer::readTOC() {
     entry.cdte_track = CDROM_LEADOUT;
     entry.cdte_format = CDROM_MSF;
     if (ioctl(handle, CDROMREADTOCENTRY, &entry)) {
-        printfee("Can't read TOC entry");
+        CTH_ERRNO(errno, "Can't read TOC entry");
         return 1;
     }
     msf.cdmsf_min1 = entry.cdte_addr.msf.minute;
@@ -197,7 +197,7 @@ void CDPlayer::getInfo() {
     // get CDROM status
     subchnl.cdsc_format = CDROM_MSF;
     if (ioctl(handle, CDROMSUBCHNL, &subchnl)) {
-        printfee("Can't get subchanel status from CD.");
+        CTH_ERRNO(errno, "Can't get subchanel status from CD.");
         return;
     }
 
@@ -240,7 +240,7 @@ int CDPlayer::eject() {
         if (openCD())
             return 1;
         if (ioctl(handle, CDROMEJECT)) {
-            printfee("Can not eject CD.");
+            CTH_ERRNO(errno, "Can not eject CD.");
             return 1;
         }
         status = Ejected;
@@ -280,7 +280,7 @@ int CDPlayer::stop() {
         return 1;
 
     if (ioctl(handle, CDROMSTOP)) {
-        printfee("Can not stop CD.");
+        CTH_ERRNO(errno, "Can not stop CD.");
         return 1;
     }
 
@@ -323,7 +323,7 @@ int CDPlayer::play(int track) {
     entry.cdte_track = playStart;
     entry.cdte_format = CDROM_MSF;
     if (ioctl(handle, CDROMREADTOCENTRY, &entry)) {
-        printfee("Can't read TOC Entry for track %d", track);
+        CTH_ERRNO(errno, "Can't read TOC Entry for track %d", track);
         return 1;
     }
 
@@ -336,7 +336,7 @@ int CDPlayer::play(int track) {
     entry.cdte_track = ((playStop + 1) > last) ? CDROM_LEADOUT : playStop + 1;
     entry.cdte_format = CDROM_MSF;
     if (ioctl(handle, CDROMREADTOCENTRY, &entry)) {
-        printfee("Can't read TOC Entry");
+        CTH_ERRNO(errno, "Can't read TOC Entry");
         return 1;
     }
     msf.cdmsf_min1 = entry.cdte_addr.msf.minute;
@@ -344,11 +344,11 @@ int CDPlayer::play(int track) {
     msf.cdmsf_frame1 = entry.cdte_addr.msf.frame;
 
     if (ioctl(handle, CDROMSTART)) {
-        printfee("Can't start CD");
+        CTH_ERRNO(errno, "Can't start CD");
         return 1;
     }
     if (ioctl(handle, CDROMPLAYMSF, &msf)) {
-        printfee("Can't play CD.");
+        CTH_ERRNO(errno, "Can't play CD.");
         return 1;
     }
 
@@ -396,7 +396,7 @@ int CDPlayer::fast(int skip) {
     entry.cdte_track = ((playStop + 1) > last) ? CDROM_LEADOUT : playStop + 1;
     entry.cdte_format = CDROM_MSF;
     if (ioctl(handle, CDROMREADTOCENTRY, &entry)) {
-        printfee("Can't read TOC Entry");
+        CTH_ERRNO(errno, "Can't read TOC Entry");
         return 1;
     }
     msf.cdmsf_min1 = entry.cdte_addr.msf.minute;
@@ -405,11 +405,11 @@ int CDPlayer::fast(int skip) {
 
     /* Play it */
     if (ioctl(handle, CDROMSTART)) {
-        printfee("Can't start CD");
+        CTH_ERRNO(errno, "Can't start CD");
         return 1;
     }
     if (ioctl(handle, CDROMPLAYMSF, &msf)) {
-        printfee("Drive error or invalid address\n");
+        CTH_ERRNO(errno, "Drive error or invalid address\n");
     }
 
     return 0;

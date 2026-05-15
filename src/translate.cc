@@ -285,7 +285,7 @@ CoreOptionEntry* TranslateEntry::loaderCmd(
         /* start the command */
         CTH_DEBUG("\n    starting: %s", command);
         if ((cmd_file = popen(command, "r")) == NULL) {
-            printfee("  Can't run command '%s'.\n", command);
+            CTH_ERRNO(errno, "  Can't run command '%s'.\n", command);
             return NULL;
         }
 
@@ -311,7 +311,7 @@ int TranslateEntry::loadLine(FILE* in, int n) {
     // load line into temporary buffer
     long line[BUFF_WIDTH];
     if (fread(line, sizeof(long), BUFF_WIDTH, in) != (size_t)BUFF_WIDTH) {
-        printfee("  reading translation table %s. failed at line %d.", name, n);
+        CTH_ERRNO(errno, "  reading translation table %s. failed at line %d.", name, n);
         return 1;
     }
 
@@ -394,13 +394,13 @@ int TranslateOption::openPipe(const char* command) {
 
     int pipeDes[2];
     if (pipe(pipeDes)) {
-        printfee("Can not create pipe.");
+        CTH_ERRNO(errno, "Can not create pipe.");
         return 1;
     }
 
     switch (lodPID = fork()) {
     case -1:
-        printfee("Can not fork for translation reading program.");
+        CTH_ERRNO(errno, "Can not fork for translation reading program.");
         return 1;
     case 0:
         close(pipeDes[0]); // close writing side of pipe
@@ -422,14 +422,14 @@ int TranslateOption::openPipe(const char* command) {
         argv[3] = 0;
         execv("/bin/sh", argv);
 
-        printfee("Could not execute translation table program.");
+        CTH_ERRNO(errno, "Could not execute translation table program.");
         close(pipeDes[0]);
         abort();
 
     default:
         close(pipeDes[1]); // close reading side of pipe
         if ((lodPipe = fdopen(pipeDes[0], "r")) == NULL) {
-            printfee("Can not associate FILE to pipe.");
+            CTH_ERRNO(errno, "Can not associate FILE to pipe.");
             return 1;
         }
     }
@@ -472,7 +472,7 @@ int TranslateOption::operator()() {
         if (current->command[0] != '\0') {
             CTH_DEBUG("    starting: %s\n", current->command);
             if (openPipe(current->command)) {
-                printfee("  Can't run command '%s'.\n", current->command);
+                CTH_ERRNO(errno, "  Can't run command '%s'.\n", current->command);
                 return 1;
             }
 

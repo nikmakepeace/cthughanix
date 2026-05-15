@@ -18,7 +18,7 @@ int make_socket(int type, short port) {
 
     /* create socket for request */
     if ((sock = socket(PF_INET, type, 0)) < 0) {
-        printfee("Can not create socket.");
+        CTH_ERRNO(errno, "Can not create socket.");
         return -1;
     }
 
@@ -27,7 +27,7 @@ int make_socket(int type, short port) {
     my_s_addr.sin_port = htons(port);
     my_s_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     if (bind(sock, (struct sockaddr*)&my_s_addr, sizeof(my_s_addr)) < 0) {
-        printfee("Can not bind socket");
+        CTH_ERRNO(errno, "Can not bind socket");
         close(sock);
         return -1;
     }

@@ -83,13 +83,13 @@ void OptionVolume::change(int by) {
 
     int mixer_des;
     if ((mixer_des = open(dev_mixer, O_RDWR)) < 0) {
-        printfee("Can not open `%s'.", dev_mixer);
+        CTH_ERRNO(errno, "Can not open `%s'.", dev_mixer);
     }
 
     // get, which recording devices are active for recording
     int mixer_mask = 0;
     if (ioctl(mixer_des, MIXER_READ(SOUND_MIXER_RECSRC), &mixer_mask) < 0) {
-        printfee("Can not get recording source mask.");
+        CTH_ERRNO(errno, "Can not get recording source mask.");
     }
 
     // update mixer mask
@@ -102,18 +102,18 @@ void OptionVolume::change(int by) {
 
     // set device mask
     if (ioctl(mixer_des, MIXER_WRITE(SOUND_MIXER_RECSRC), &mixer_mask) < 0) {
-        printfee("Can not set recording source mask");
+        CTH_ERRNO(errno, "Can not set recording source mask");
     }
     // and read it again
     if (ioctl(mixer_des, MIXER_READ(SOUND_MIXER_RECSRC), &mixer_mask) < 0) {
-        printfee("Can not get recording source mask.");
+        CTH_ERRNO(errno, "Can not get recording source mask.");
     }
     // to set the active mark
     active = mixer_mask & (1 << devNr);
 
     // set volume
     if (ioctl(mixer_des, MIXER_WRITE(devNr), &value) < 0) {
-        printfee("Can not set mixer value for `%s'.", name);
+        CTH_ERRNO(errno, "Can not set mixer value for `%s'.", name);
     }
 
     close(mixer_des);
@@ -167,20 +167,20 @@ int init_mixer() {
     nVolumes = 0;
 
     if ((mixer_des = open(dev_mixer, O_RDONLY)) < 0) {
-        printfee("Can not open `%s'.", dev_mixer);
+        CTH_ERRNO(errno, "Can not open `%s'.", dev_mixer);
         return 0;
     }
 
     /* get, which features are actually available */
     int dev_mask = 0;
     if (ioctl(mixer_des, SOUND_MIXER_READ_DEVMASK, &dev_mask) < 0) {
-        printfee("Can not get mixer device mask.");
+        CTH_ERRNO(errno, "Can not get mixer device mask.");
     }
 
     // get, which recording devices are active for recording
     int mixer_mask = 0;
     if (ioctl(mixer_des, MIXER_READ(SOUND_MIXER_RECSRC), &mixer_mask) < 0) {
-        printfee("Can not get recording source mask.");
+        CTH_ERRNO(errno, "Can not get recording source mask.");
     }
 
     interfaceMixer.elements = new InterfaceElement*[SOUND_MIXER_NRDEVICES];
@@ -199,7 +199,7 @@ int init_mixer() {
             if (mixer_initial[i] == -1) {
                 // get initial volume, if not set
                 if (ioctl(mixer_des, MIXER_READ(i), &(mixer_initial[i])) < 0) {
-                    printfee("Can not get mixer value for `%s'.", mixer_names[i]);
+                    CTH_ERRNO(errno, "Can not get mixer value for `%s'.", mixer_names[i]);
                 }
             } else {
                 if (mixer_initial[i] == 0) {
@@ -214,7 +214,7 @@ int init_mixer() {
 
                 // set device volume
                 if (ioctl(mixer_des, MIXER_WRITE(i), &(mixer_initial[i])) < 0) {
-                    printfee("Can not set mixer value for `%s'.", mixer_names[i]);
+                    CTH_ERRNO(errno, "Can not set mixer value for `%s'.", mixer_names[i]);
                 }
             }
             // keep everything in the option
@@ -235,7 +235,7 @@ int init_mixer() {
 
     // set device mask
     if (ioctl(mixer_des, MIXER_WRITE(SOUND_MIXER_RECSRC), &mixer_mask) < 0) {
-        printfee("Can not set recording source");
+        CTH_ERRNO(errno, "Can not set recording source");
     }
 
     close(mixer_des);

@@ -36,7 +36,7 @@ void SoundDeviceDSP::setFragment() {
 
     int soundDSPFragment = (int(soundDSPFragments) << 16) | int(soundDSPFragmentSize);
     if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
-        printfee("ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
 
     soundDSPFragments.setValue(soundDSPFragment >> 16);
     soundDSPFragmentSize.setValue(soundDSPFragment & 0x7fff);
@@ -50,7 +50,7 @@ void SoundDeviceDSP::setChannels() {
     /* set stereo or mono */
     int channels = int(soundChannels) - 1;
     if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
-        printfee("ioctl: SNDCTL_DSP_STEREO failed");
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
     soundChannels.setValue(channels + 1);
 }
 
@@ -58,7 +58,7 @@ void SoundDeviceDSP::setSampleRate() {
 
     /* set sample rate */
     if (ioctl(handle, SNDCTL_DSP_SPEED, &(soundSampleRate.value)) < 0)
-        printfee("ioctl: SNDCTL_DSP_SPEED failed");
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
 }
 
 void SoundDeviceDSP::setFormat() {
@@ -93,11 +93,11 @@ void SoundDeviceDSP::setFormat() {
     CTH_TRACE("setting sound format: %d   ", sound_format);
 
     if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
-        printfee("ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
 
         sound_format = AFMT_U8;
         if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
-            printfee("ioctl: SNDCTL_DSP_SETFMT failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed.");
         }
     }
 
@@ -138,7 +138,7 @@ void SoundDeviceDSP::init(int mode) {
 
     /* Get sound-device */
     if ((handle = open(dev_dsp, mode)) < 0) {
-        printfee("Can't open `%s' for %s.", dev_dsp,
+        CTH_ERRNO(errno, "Can't open `%s' for %s.", dev_dsp,
             (mode == O_RDONLY)       ? "reading"
                 : (mode == O_WRONLY) ? "writing"
                                      : "");
@@ -192,26 +192,26 @@ void SoundDeviceDSP::init(int mode) {
         */
         int sound_div = 4; /* blocks as small as possible */
         if (ioctl(handle, SNDCTL_DSP_SUBDIVIDE, &sound_div) < 0)
-            printfee("ioctl: SNDCTL_DSP_SUBDIVIDE failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SUBDIVIDE failed.");
 
         int dummy = 0;
         if (ioctl(handle, SNDCTL_DSP_STEREO, &dummy) < 0)
-            printfee("ioctl: SNDCTL_DSP_STEREO failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed.");
 
         dummy = 0;
         if (ioctl(handle, SNDCTL_DSP_SPEED, &dummy) < 0)
-            printfee("ioctl: SNDCTL_DSP_SPEED failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed.");
 
         int sound_blkSize;
         if (ioctl(handle, SNDCTL_DSP_GETBLKSIZE, &sound_blkSize) < 0)
-            printfee("ioctl: SNDCTL_DSP_GETBLKSIZE failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE failed.");
 
         setChannels();
         setSampleRate();
         setFormat();
 
         if (ioctl(handle, SNDCTL_DSP_GETBLKSIZE, &sound_blkSize) < 0)
-            printfee("ioctl: SNDCTL_DSP_GETBLKSIZE");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE");
         break;
     }
     case 3: { // primitiv. only set format, channels and speed
@@ -302,7 +302,7 @@ int SoundDeviceDSPIn::read() {
 
         // get number of available fragments (-> bi.framents)
         if (ioctl(handle, SNDCTL_DSP_GETISPACE, &bi) < 0) {
-            printfee("ioctl: SNDCTL_DSP_GETISPACE failed.");
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETISPACE failed.");
         }
 
         // if there is more data available than needed: read any extra sound data
@@ -318,7 +318,7 @@ int SoundDeviceDSPIn::read() {
 
         /* read the sound data, that will be display */
         if (::read(handle, tmpData, r) < 0) {
-            printfee("reading sound failed.");
+            CTH_ERRNO(errno, "reading sound failed.");
         }
 
         break;
@@ -330,10 +330,10 @@ int SoundDeviceDSPIn::read() {
            how to do this correctly */
         for (nr_read = 0, sbuff = (unsigned char*)tmpData; nr_read < rawSize; nr_read += 32) {
             if (::read(handle, sbuff, 16) < 0)
-                printfee("sound_read < 0");
+                CTH_ERRNO(errno, "sound_read < 0");
             sbuff += 16;
             if (::read(handle, sbuff, 16) < 0)
-                printfee("sound_read < 0");
+                CTH_ERRNO(errno, "sound_read < 0");
             sbuff += 16;
         }
 
@@ -346,7 +346,7 @@ int SoundDeviceDSPIn::read() {
         r = ::read(handle, tmpData, rawSize);
 
         if (r < 0) {
-            printfee("get_sound: read < 0.");
+            CTH_ERRNO(errno, "get_sound: read < 0.");
         }
 
         break;

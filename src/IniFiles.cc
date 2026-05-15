@@ -284,12 +284,12 @@ static int move(char* src, char* dst) {
     unlink(dst);
 
     if (link(src, dst)) {
-        printfee("Can not make backup of %s", src);
+        CTH_ERRNO(errno, "Can not make backup of %s", src);
         return 1;
     }
 
     if (unlink(src)) {
-        printfee("Can not remove original %s", src);
+        CTH_ERRNO(errno, "Can not remove original %s", src);
         return 1;
     }
     return 0;

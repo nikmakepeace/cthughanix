@@ -40,7 +40,7 @@ Keymap::Keymap(const char* n)
 void Keymap::readFile(const char* fileName) {
     FILE* file = fopen(fileName, "r");
     if (file == NULL) {
-        printfee("Can not open keymap file '%s'.", fileName);
+        CTH_ERRNO(errno, "Can not open keymap file '%s'.", fileName);
         return;
     }
 
@@ -59,7 +59,7 @@ void Keymap::readFile(const char* fileName) {
             *N = '\0';
         lineNr++;
         if (ferror(file)) {
-            printfee("Error while reading keymap file '%s' at line %d.", fileName, lineNr);
+            CTH_ERRNO(errno, "Error while reading keymap file '%s' at line %d.", fileName, lineNr);
             fclose(file);
             return;
         }

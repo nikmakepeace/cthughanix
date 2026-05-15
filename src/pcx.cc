@@ -295,7 +295,7 @@ int save_pcx(unsigned char* buffer, int width, int height, Palette pal) {
 
     /* open file */
     if ((file = fopen(file_name, "w")) == NULL) {
-        printfee("Can't open file for writing.");
+        CTH_ERRNO(errno, "Can't open file for writing.");
         return 1;
     }
 
@@ -321,7 +321,7 @@ int save_pcx(unsigned char* buffer, int width, int height, Palette pal) {
 
     /* write header */
     if (fwrite(&header, sizeof(header), 1, file) != 1) {
-        printfee("Can not write header.");
+        CTH_ERRNO(errno, "Can not write header.");
         fclose(file);
         return 1;
     }
@@ -335,21 +335,21 @@ int save_pcx(unsigned char* buffer, int width, int height, Palette pal) {
                     j++, cnt++, buffer++;
                 cnt += 192 + 1;
                 if (fputc(cnt, file) == EOF) { /* write count */
-                    printfee("Can not write picture.");
+                    CTH_ERRNO(errno, "Can not write picture.");
                     fclose(file);
                     return 1;
                 }
             } else { /* maybe repeat once */
                 if (*buffer >= 192) {
                     if (fputc(193, file) == EOF) { /* repeat once */
-                        printfee("Can not write picture.");
+                        CTH_ERRNO(errno, "Can not write picture.");
                         fclose(file);
                         return 1;
                     }
                 }
             }
             if (fputc(*buffer, file) == EOF) { /* write data */
-                printfee("Can not write picture.");
+                CTH_ERRNO(errno, "Can not write picture.");
                 fclose(file);
                 return 1;
             }
@@ -364,13 +364,13 @@ int save_pcx(unsigned char* buffer, int width, int height, Palette pal) {
 
     /* write palette marker */
     if (fputc(12, file) == EOF) {
-        printfee("Can not write palette.");
+        CTH_ERRNO(errno, "Can not write palette.");
         fclose(file);
         return 1;
     }
     /* write palette */
     if (fwrite(tmp_pal, 3 * 256, 1, file) != 1) {
-        printfee("Can not write palette.");
+        CTH_ERRNO(errno, "Can not write palette.");
         fclose(file);
         return 1;
     }

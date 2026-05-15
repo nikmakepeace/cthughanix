@@ -77,14 +77,14 @@ void SoundDeviceNet::net_request(int request) {
 
     /* create socket for request */
     if ((request_socket = make_socket(SOCK_STREAM, CLT_PORT2)) < 0)
-        printfee("Can not create request socket.");
+        CTH_ERRNO(errno, "Can not create request socket.");
 
     /* create address of server */
     my_s_addr.sin_family = AF_INET;
     my_s_addr.sin_port = htons(SRV_PORT);
     hostinfo = gethostbyname(sound_hostname);
     if (hostinfo == NULL) {
-        printfee("Could not find host `%s'.", sound_hostname);
+        CTH_ERRNO(errno, "Could not find host `%s'.", sound_hostname);
         close(request_socket);
         error = 1;
         return;
@@ -93,7 +93,7 @@ void SoundDeviceNet::net_request(int request) {
 
     /* connect to server */
     if (connect(request_socket, (struct sockaddr*)&my_s_addr, sizeof(struct sockaddr_in)) < 0) {
-        printfee("Can not connect to server `%s'.", sound_hostname);
+        CTH_ERRNO(errno, "Can not connect to server `%s'.", sound_hostname);
         close(request_socket);
         return;
     }
@@ -102,17 +102,17 @@ void SoundDeviceNet::net_request(int request) {
     CTH_INFO("  Sending request `%s'\n", req);
     strcat(req, "\n");
     if (send(request_socket, req, 64, 0) <= 0) {
-        printfee("Can not send request.");
+        CTH_ERRNO(errno, "Can not send request.");
     }
 
     sleep(1);
 
     /* closing socket */
     if (shutdown(request_socket, 2))
-        printfee("Can not shutdown request-socket.");
+        CTH_ERRNO(errno, "Can not shutdown request-socket.");
 
     if (close(request_socket))
-        printfee("Can not close request-socket.");
+        CTH_ERRNO(errno, "Can not close request-socket.");
 }
 
 /*

@@ -207,7 +207,7 @@ void PaletteEntry::random() {
     CTH_DEBUG("  saving '%s'.\n", fname);
 
     if ((f = fopen(fname, "w")) == NULL) {
-        printfee("Can not open '%s' for random palette.", fname);
+        CTH_ERRNO(errno, "Can not open '%s' for random palette.", fname);
         return;
     }
     fprintf(f, "%d %d %d  Random Palette from Cthugha\n", pal[0][0], pal[0][1], pal[0][2]);

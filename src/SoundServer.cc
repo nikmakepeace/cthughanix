@@ -29,14 +29,14 @@ SoundServer::SoundServer()
 
     // create socket for broadcast
     if ((bcast_socket = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-        printfee("Can not open socket");
+        CTH_ERRNO(errno, "Can not open socket");
         exit(0);
     }
     fcntl(bcast_socket, F_SETFL, O_NONBLOCK);
 
     /* create request-socket */
     if ((request_socket = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-        printfee("Can not open request socket");
+        CTH_ERRNO(errno, "Can not open request socket");
         exit(0);
     }
     /* bind */
@@ -44,7 +44,7 @@ SoundServer::SoundServer()
     my_s_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     my_s_addr.sin_port = htons(REQ_PORT);
     if (bind(request_socket, (struct sockaddr*)&my_s_addr, sizeof(my_s_addr)) < 0) {
-        printfee("Can not bind to request socket.");
+        CTH_ERRNO(errno, "Can not bind to request socket.");
         exit(0);
     }
     /* change to non-blocking */
@@ -52,7 +52,7 @@ SoundServer::SoundServer()
 
     /* listen */
     if (listen(request_socket, 1) < 0) {
-        printfee("Can not listen.\n");
+        CTH_ERRNO(errno, "Can not listen.\n");
         exit(0);
     }
 }
@@ -77,7 +77,7 @@ void SoundServer::operator()() {
                 clientSizes[i])
             == -1) {
             if (errno != 111)
-                printfee("Can not write to client.");
+                CTH_ERRNO(errno, "Can not write to client.");
             else
                 fprintf(stderr, "x");
         }
@@ -119,7 +119,7 @@ void SoundServer::operator()() {
 
         close(acc_socket);
     } else if (errno != EWOULDBLOCK)
-        printfee("Can not accept clients.");
+        CTH_ERRNO(errno, "Can not accept clients.");
 }
 
 /*
