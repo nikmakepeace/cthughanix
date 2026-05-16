@@ -1,5 +1,9 @@
+// Program entry point, shutdown handling, and one-frame runtime dispatcher.
+// Most subsystems own their detailed setup; this file defines their startup
+// order and the per-frame call sequence used by the display main loop.
+
 #include "cthugha.h"
-#include "information.h" /* title, credits, ... */
+#include "information.h"
 #include "display.h"
 #include "Sound.h"
 #include "translate.h"
@@ -21,56 +25,49 @@
 #include <unistd.h>
 #include <signal.h>
 
-/*
- * handle ^Z and continue
- */
 void sig_tty_cont(int);
 void sig_tty_stop(int) {
     CTH_INFO("Stopping...\n");
 
-    signal(SIGCONT, sig_tty_cont); /* set, how to continue */
+    signal(SIGCONT, sig_tty_cont);
 
-    cthugha_pause = 1; /* in interface we will really stop */
+    // Defer suspension until run() reaches a point outside graphics work.
+    cthugha_pause = 1;
 }
 void sig_tty_cont(int) {
     CTH_INFO("Continuing...\n");
 
-    init_sound(); /* and sound */
+    init_sound();
 
-    signal(SIGTSTP, sig_tty_stop); /* set, how to stop again */
+    signal(SIGTSTP, sig_tty_stop);
 
-    raise(SIGCONT); /* default action */
+    raise(SIGCONT);
 }
 
-//
-// deleter of global objects
-//
 void deleter() {
-    delete autoChanger; // this also saves options
+    // autoChanger owns final option persistence, so destroy it first.
+    delete autoChanger;
     delete cthughaDisplay;
     delete soundServer;
     delete soundDevice;
     delete cdPlayer;
 }
 
-/*
- *
- */
 int main(int argc, char* argv[]) {
 
-    srand(time(0)); /* initialize random generator */
+    srand(time(0));
     seteuid(getuid()); // give up root privileges
 
-    if (get_pre_params(argc, argv)) // handle some special arguments (verbose, ...)
+    if (get_pre_params(argc, argv))
         return 1;
 
-    if (cth_init(&argc, argv)) /* special initialization */
+    if (cth_init(&argc, argv))
         return 1;
 
-    if (get_params(argc, argv)) /* parse cmd-line and read ini-files*/
+    if (get_params(argc, argv))
         return 1;
 
-    title(); /* Display titlemessage */
+    title();
 
     init_imath();
 
@@ -113,7 +110,7 @@ int main(int argc, char* argv[]) {
     CTH_INFO("Initializing the automatic changing...\n");
     autoChanger = new AutoChanger;
 
-    signal(SIGTSTP, sig_tty_stop); /* react to ^Z */
+    signal(SIGTSTP, sig_tty_stop);
 
     displayDevice->mainLoop();
 
@@ -122,61 +119,67 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-// Ad hoc profiling of the main loop. 
+// Ad hoc profiling of the main loop.
 // This is not very exact, but it gives a good impression of where the time is spent.
 // To enable it, define PROF in the Makefile and recompile.
-// 
+//
 // The timing is accumulated and output is printed every 25 frames
-// It shows the time spent in each module (sound reading, sound analyzing, display, ...) 
+// It shows the time spent in each module (sound reading, sound analyzing, display, ...)
 // and the total time for 25 frames.
 
 
-//#define PROF
 #undef PROF
+//#define PROF // uncomment to enable ad hoc profiling of the main loop
+
 
 #ifdef PROF
-#define P(a) a
+#define PROFILING() T[profilingIndex++] = getTime()
 #else
-#define P(a)
+#define PROFILING()
 #endif
 
 void run(int doDisplay) {
 #ifdef PROF
     double T[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int profilingIndex = 0;
 #endif
 
-    P(T[0] = getTime();)
+    PROFILING();
     cthughaDisplay->nextFrame();
 
-    P(T[1] = getTime();) (*soundDevice)();
+    PROFILING();
+    (*soundDevice)();
 
-    P(T[2] = getTime();)
+    PROFILING();
     soundAnalyze();
 
-    P(T[3] = getTime();) (*autoChanger)();
+    PROFILING();
+    (*autoChanger)();
 
-    P(T[4] = getTime();) (*soundServer)();
+    PROFILING();
+    (*soundServer)();
 
-    P(T[5] = getTime();)
+    PROFILING();
     CthughaBuffer::run();
 
-    P(T[6] = getTime();)
+    PROFILING();
     if (doDisplay)
         (*cthughaDisplay)();
 
-    P(T[7] = getTime();) (*cdPlayer)();
+    PROFILING();
+    (*cdPlayer)();
 
-    P(T[8] = getTime();)
-    // this is here to be sure not to interrupt a graphics operation.
+    PROFILING();
+    // Suspend only between frame stages, after graphics operations are done.
     if (cthugha_pause) {
         cthugha_pause = 0;
 
-        exit_sound(); /* and sound */
+        exit_sound();
 
-        raise(SIGTSTP); /* default action */
+        raise(SIGTSTP);
     }
 
-    P(T[9] = getTime();)
+    PROFILING();
 
 #ifdef PROF
     static double Ts[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
