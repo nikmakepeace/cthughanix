@@ -308,7 +308,7 @@ static float P[4][3] = { { -1, -1, 0 }, { 1, -1, 0 }, { 1, 1, 0 }, { 0, 0, 1 } }
 static double scaleFactor = 0.8;
 static double scaleFactorPhase = 0.0;
 static double scaleFactorSpeed = 0.03; /* cycles per second */
-static double intensityFactor = 20.0; /* how much the sound intensity affects the scale factor */
+static double intensityFactor = 10.0; /* how much the sound intensity affects the scale factor */
 static const double minScaleFactor = 0.8;
 static const double maxScaleFactor = 2.0;
 
