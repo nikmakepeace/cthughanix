@@ -10,7 +10,7 @@
    - ~~Make these selectable through the existing option system rather than as one-off
      debug hacks.~~
 
-2. Fix stale frame regions in display transitions.
+2. ~~Fix stale frame regions in display transitions.
    - Reproduce and fix the partial frame left behind when transitioning to `zick`,
      `bent`, `plate`, and `hfield`.
    - First suspects:
@@ -18,7 +18,7 @@
        though `hfield`, `bent`, and `plate` are `xy(2, 2)` displays.
      - `screen_zick()` writes only the base-width region and has suspicious clearing
        around shifted rows.
-   - Preserve visual behavior except for the obvious stale-region bug.
+   - Preserve visual behavior except for the obvious stale-region bug.~~
 
 3. Reinforce the visual-engine/display seam.
    - Make buffer dimensions and ownership clearer: base visual buffer versus full display
