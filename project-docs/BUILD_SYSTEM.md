@@ -466,8 +466,8 @@ Add debug output with:
 #include "cthugha.h"
 
 printfv(1, "Debug message\n");        // Verbose level
-printfe("Error message\n");            // Error (with errno)
-printfee("Error with errno\n");        // Error (detailed)
+CTH_ERROR("Error message\n");          // Error
+CTH_ERRNO(errno, "Open failed");        // Error with errno
 ```
 
 ---
@@ -679,4 +679,3 @@ Config file format (`.cthugha.ini`):
    - SDL2 for display
    - Minimal native code
    - Web version (WebGL, WebAudio API)
-

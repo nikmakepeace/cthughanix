@@ -21,6 +21,8 @@ SoundServer* soundServer = NULL;
 #include <unistd.h>
 #include <errno.h>
 
+static int soundServerWarnedConnectionRefused = 0;
+
 SoundServer::SoundServer()
     : nClients(0)
     , bcast_socket(-1)
@@ -76,10 +78,15 @@ void SoundServer::operator()() {
         if (sendto(bcast_socket, soundDevice->data, soundDevice->rawSize, 0, &(clientAddrs[i]),
                 clientSizes[i])
             == -1) {
-            if (errno != 111)
+            if (errno != ECONNREFUSED)
                 CTH_ERRNO(errno, "Can not write to client.");
-            else
-                fprintf(stderr, "x");
+            else {
+                if (!soundServerWarnedConnectionRefused) {
+                    CTH_WARN("Connection refused while writing to sound client.\n");
+                    soundServerWarnedConnectionRefused = 1;
+                }
+                CTH_TRACE("Connection refused\n");
+            }
         }
     }
 

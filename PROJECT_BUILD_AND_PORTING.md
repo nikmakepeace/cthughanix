@@ -151,7 +151,7 @@ That log appears to come from a different environment and should be treated as e
 
 The graphical main loop has a built-in timing profiler in `src/initExitDisp.cc`. It is guarded by `PROF`; changing the local `#undef PROF` to `#define PROF` makes `run()` accumulate and print timing buckets for frame setup, sound read, sound analysis, auto-change, sound server, buffer rendering, display, and CD update.
 
-Runtime verbosity is controlled with `--verbose` / `-v`. Existing code uses `printfv(...)`, `printfe(...)`, and `printfee(...)` for diagnostics, so adding temporary instrumentation usually means following those helpers rather than introducing a new logging path.
+Runtime verbosity is controlled with `--verbose` / `-v`. Existing code uses `printfv(...)`, `CTH_ERROR(...)`, and `CTH_ERRNO(errno, ...)` for diagnostics, so adding temporary instrumentation usually means following those helpers rather than introducing a new logging path.
 
 ## Porting Strategy
 
