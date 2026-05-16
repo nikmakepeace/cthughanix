@@ -10,12 +10,9 @@ Please see the `TODO` file for more information.
 
 For details on the new licence, see the `COPYING` file.
 
-The application's web site is
-[http://cthughanix.sourceforge.net/](http://cthughanix.sourceforge.net/).
-
 ## How to Install
 
-See `INSTALL`.
+See `INSTALL.md`.
 
 ## Some Tips
 
@@ -36,27 +33,8 @@ See `INSTALL`.
 
 ## Bugs
 
-See the `TODO` file. Known bugs and problems are usually listed there.
+See the `TODO.md` file. Known bugs and problems are usually listed there.
 
-Information on new bugs, and sometimes even how to fix some old ones, can be
-found on the SourceForge bug tracker:
-
-[https://sourceforge.net/tracker/?group_id=201465&atid=977671](https://sourceforge.net/tracker/?group_id=201465&atid=977671)
-
-If you find a new bug or problem, please submit a bug report on the SourceForge
-bug tracker.
 
 If you have problems with sound, such as sound reading errors, use the
 `--snd-method` option. Setting a value of `3` should work.
-
-## Contact
-
-- E-mail: <brandon.barker@gmail.com>
-- WWW: [http://brandonbarker.blogspot.com](http://brandonbarker.blogspot.com)
-- Official bug page:
-  [https://sourceforge.net/tracker/?group_id=201465&atid=977671](https://sourceforge.net/tracker/?group_id=201465&atid=977671)
-- Official WWW page:
-  [http://cthughanix.sourceforge.net/](http://cthughanix.sourceforge.net/)
-- Official newsgroup: `alt.graphics.cthugha`
-
-If you have any questions left, feel free to send me an email.

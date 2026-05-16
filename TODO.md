@@ -3,12 +3,12 @@
 ## Near-Term Plan
 
 1. Add diagnostic visuals.
-   - Add controlled display modes, waves, flames, and translations that make visual bugs
+   - Add controlled ~~display modes~~, ~~waves~~, flames, and translations that make visual bugs
      easy to see.
-   - Useful diagnostics: checkerboard, border frame, horizontal and vertical ramps,
-     quadrant markers, fixed/no-op flame, fixed wave, and hard wipe translation.
-   - Make these selectable through the existing option system rather than as one-off
-     debug hacks.
+   - Useful diagnostics: ~~checkerboard, border frame~~, horizontal and vertical ramps,
+     ~~quadrant markers~~, ~~fixed/no-op flame~~, ~~fixed wave~~, and hard wipe translation.
+   - ~~Make these selectable through the existing option system rather than as one-off
+     debug hacks.~~
 
 2. Fix stale frame regions in display transitions.
    - Reproduce and fix the partial frame left behind when transitioning to `zick`,
