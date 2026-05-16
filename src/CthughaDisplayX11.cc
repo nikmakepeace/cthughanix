@@ -12,6 +12,8 @@ void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }
 
 CthughaDisplayX11::CthughaDisplayX11()
     : CthughaDisplay() {
+    // 8-bit X visuals can draw straight from the indexed buffer.  Higher
+    // depths need a separate native-pixel buffer for palette expansion.
     expandedBuffer0 = (bypp == 1) ? buffer0 : new unsigned char[4 * BUFF_SIZE * bypp];
 }
 
@@ -285,7 +287,9 @@ void CthughaDisplayX11::operator()() {
     unsigned char* display_base = displayDevice->preDraw();
 
     /*
-     * use right expandedBuffer
+     * Choose the buffer that screen() should draw into.  Direct mode draws
+     * straight to device memory; mapped modes render indexed pixels into a
+     * scratch buffer and expand them afterwards.
      */
     if (draw_mode == DM_direct) {
         buffer = display_base;
@@ -295,6 +299,11 @@ void CthughaDisplayX11::operator()() {
         bufferWidth = 2 * BUFF_WIDTH;
     }
 
+    /*
+     * Pick the buffer that post-processing reads from.  On 8-bit displays the
+     * indexed buffer is already display-ready; otherwise expandPalette()
+     * writes native pixels into expandedBuffer0.
+     */
     if (bypp == 1) {
         expandedBuffer = buffer;
         expandedBufferWidth = bufferWidth;
@@ -306,9 +315,9 @@ void CthughaDisplayX11::operator()() {
     checkZoom();
 
     /*
-     * bring Cthugha-Buffer(s) to Display-Buffer
-     * - some screen() functions may fail because ratio of width to height
-     *   is too strange
+     * Run the selected Cthugha screen function until it accepts the current
+     * geometry.  Some display functions ask to retry when the aspect ratio is
+     * too awkward for their mapping.
      */
     while (screen())
         ; /* draw the buffer */
@@ -316,7 +325,8 @@ void CthughaDisplayX11::operator()() {
     const xy& s = ((ScreenEntry*)screen.current())->size;
 
     /*
-     * do horizontal mirroring, if necessary
+     * If the selected screen function drew only half or a quadrant, mirror the
+     * missing pieces before the image is copied to the display device.
      */
     if (s.x == 1)
         mirrorHorizontally();

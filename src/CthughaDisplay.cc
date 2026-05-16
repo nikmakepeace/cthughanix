@@ -9,6 +9,8 @@
 
 #include <unistd.h>
 
+// The active display coordinator.  The selected frontend supplies
+// newCthughaDisplay(), so this points at an X11, SVGA, or OpenGL subclass.
 CthughaDisplay* cthughaDisplay = NULL;
 
 CthughaDisplay::~CthughaDisplay() { }
@@ -20,6 +22,8 @@ xy draw_size(0, 0); /* size of the drawn image (including zoom) */
 
 double displayStart;
 
+// Frame clock shared by animation, sound processing, and display effects.
+// nextFrame() updates these before the rest of the frame runs.
 double now = 0;
 double deltaT = 0;
 
@@ -30,6 +34,8 @@ CthughaDisplay::CthughaDisplay()
     frames = 0;
     displayStart = getTime();
 
+    // The logical Cthugha image can occupy four BUFF_SIZE quadrants after
+    // screen() output has been mirrored into a full 2x2 buffer.
     buffer0 = new unsigned char[4 * BUFF_SIZE];
 }
 
@@ -85,10 +91,12 @@ int CthughaDisplay::clearBorder() {
         /* lower border */
         displayDevice->clearBox(0, disp_size.y - bheight, disp_size.x, bheight);
 
-        /* if now text is on screen, we have to clean in the next iteration,
-           (maybe the text gets removed */
+        /* if text is on screen, we have to clean in the next iteration,
+           because the text may be removed then */
         needsClear = (displayDevice->textOnScreen) ? 1 : 0;
 
+        // Border clearing touches pixels outside the normal image rectangle,
+        // so partial-copy display devices must refresh the full frame.
         displayDevice->needsFullCopy = 1;
     }
     return 0;
@@ -242,6 +250,8 @@ void CthughaDisplay::checkZoom() {
         static int oldZoom = -1;
         if (zoom != oldZoom) {
             oldZoom = zoom;
+            // A changed fixed zoom can expose areas that were image pixels in
+            // the previous frame, so clear the border once before drawing.
             needsClear = 1;
         }
 
@@ -265,7 +275,8 @@ void CthughaDisplay::checkFPS() {
         fps = double(frames) / i;
     frames++;
 
-    // check for maximum frames/sec
+    // Enforce maxFPS after measuring deltaT so the rest of the program sees
+    // the true time between frame starts.
     if (maxFramesPerSecond) {
         double delta = (1.0 / maxFramesPerSecond) - deltaT;
         if (delta > 0) {
@@ -275,19 +286,14 @@ void CthughaDisplay::checkFPS() {
 }
 
 void CthughaDisplay::resetFPS() {
-    displayStart = getTime(); // now;
+    displayStart = getTime(); // restart the averaging window from this instant
     frames = 0;
 }
 
-//
-// start a new frame
-//
-// get time for 'now'
-// check for FPS limit
-//
+// Start a new frame by publishing a stable timestamp for all modules that run
+// during this frame, then update FPS accounting and throttling.
 void CthughaDisplay::nextFrame() {
 
-    // new position in time
     double nower = getTime();
     deltaT = nower - now;
     now = nower;

@@ -1,3 +1,7 @@
+// Sound option registry and lifecycle wrapper for the global sound device.
+// The current backend is chosen at runtime by SoundDevice::newSD(); option
+// changes notify the existing backend so it can reconfigure device buffers.
+
 #include "cthugha.h"
 #include "Sound.h"
 #include "display.h"
@@ -43,7 +47,8 @@ class OptionChannels : public OptionSound {
 protected:
 public:
     OptionChannels(const char* name, int iV)
-        : OptionSound(name, iV, 3, 1) { } //  1 or 2
+        // OptionInt's maximum is exclusive, so this accepts 1 or 2 channels.
+        : OptionSound(name, iV, 3, 1) { }
 
     const char* text() const {
         switch (value) {
@@ -72,7 +77,6 @@ public:
             if (strcasecmp(fmts[value], to) == 0)
                 return;
 
-        // faild to find it as name
         OptionInt::change(to);
     }
 
@@ -123,9 +127,6 @@ Option& soundDSPSync = soundDSPSyncImpl;
 Option& soundBuffer = soundBufferImpl;
 Option& soundSilent = soundSilentImpl;
 
-//
-// the interface
-//
 InterfaceElement* elementsSound[] = {
     new InterfaceElementOption("Sample rate       : %10s Hz", &soundSampleRate, 500, 1000, 5000),
     new InterfaceElementOption("Channels          : %10s", &soundChannels),
@@ -142,12 +143,8 @@ int nElementsSound = sizeof(elementsSound) / sizeof(InterfaceElement*);
 
 Interface interfaceSound("sound", "Sound Interface", NULL, elementsSound, nElementsSound);
 
-/*
- *  Initialize the Sound-Interface
- */
 int init_sound() {
 
-    /* check, if already allocated */
     if (soundDevice != NULL)
         return 0;
 
@@ -156,9 +153,6 @@ int init_sound() {
     return 0;
 }
 
-/*
- * Clean up the sound-interface
- */
 int exit_sound() {
     delete soundDevice;
     soundDevice = NULL;

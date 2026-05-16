@@ -1,3 +1,8 @@
+// X11 display backend.
+// Owns the X Toolkit event loop, window or root-window target, XImage/XPixmap
+// backing storage, optional MIT-SHM acceleration, text overlay rendering, and
+// palette translation for both true-color and indexed-color X visuals.
+
 #include "cthugha.h"
 #include "DisplayDevice.h"
 #include "cthugha.h"
@@ -38,13 +43,10 @@ xy bufferSizes[]
     = { xy(160, 100), xy(320, 240), xy(400, 300), xy(512, 384), xy(576, 450), xy(600, 512) };
 int nBufferSizes = sizeof(bufferSizes) / sizeof(xy);
 
-//
-// Options
-//
-int display_override_redirect = 0; // set override-redirect (no decoration)
-int private_cmap = 0; // use a private colormap
-int display_mit_shm = 1; /* use MIT-SHM if possible */
-int display_on_root = 0; /* display on root window */
+int display_override_redirect = 0; // bypass the window manager
+int private_cmap = 0; // allocate a window-private colormap
+int display_mit_shm = 1; // use MIT-SHM if possible
+int display_on_root = 0; // display on root window
 int full_screen = 0;
 int window_do_pos = 0;
 xy window_pos(0, 0);
@@ -53,15 +55,9 @@ char xcth_font[256] = "-adobe-courier-medium-r-normal--14-*-100-100-m-*-*-*";
 
 Display* xcth_display;
 
-//
-//
-//
 static XtAppContext xcth_app_con;
 Widget DisplayDeviceX11::xcth_toplevel;
 
-//
-// initialization for xcthugha
-//
 int cth_init(int* argc, char* argv[]) {
 #if HAVE_NCURSES == 1
     ncurses_use = DisplayDevice::text_on_term;
@@ -70,7 +66,8 @@ int cth_init(int* argc, char* argv[]) {
     DisplayDevice::text_on_term = 0;
 #endif
 
-    /* intialize application */
+    // Xt owns command-line option parsing for X resources and creates the
+    // application shell used by both the display window and optional panel.
     DisplayDeviceX11::xcth_toplevel
         = XtAppInitialize(&xcth_app_con, "Cthugha", NULL, 0, argc, argv, NULL, NULL, 0);
 
@@ -79,9 +76,6 @@ int cth_init(int* argc, char* argv[]) {
     return 0;
 }
 
-//
-// get the attributes of the XCthugha window
-//
 int DisplayDeviceX11::getAttributes() {
 
     XWindowAttributes wa;
@@ -98,9 +92,6 @@ int DisplayDeviceX11::getAttributes() {
     return (wa.map_state == IsViewable);
 }
 
-//
-// create a window
-//
 void DisplayDeviceX11::CreateWindow(char* name, int full_screen) {
     XSetWindowAttributes attr;
     unsigned long mask;
@@ -130,11 +121,13 @@ void DisplayDeviceX11::CreateWindow(char* name, int full_screen) {
         XStoreName(xcth_display, window, name);
 
     getAttributes();
-    allocImage(); // this gets the bypp and bits/pixel values
-    initPalette(); // initPalette must be before XMapWindow !!
+    allocImage(); // Sets bypp and bits-per-pixel from the server's image format.
+    initPalette(); // Must be done before XMapWindow when installing a colormap.
 
     if (full_screen) {
-        /* make sure our window get's placed automatically, and filles the whole screen */
+        // Older window managers may still decorate "fullscreen" windows.
+        // Request a screen-sized base geometry first, then correct the actual
+        // position after the manager has mapped and decorated the window.
         sh = XAllocSizeHints();
         sh->flags = USPosition | PPosition | PBaseSize;
         sh->x = sh->y = 0;
@@ -144,20 +137,16 @@ void DisplayDeviceX11::CreateWindow(char* name, int full_screen) {
 
         XMapRaised(xcth_display, window);
 
-        // now start fighting with the window manger
-        XSync(xcth_display, False); // wait till the window is really on screen
+        XSync(xcth_display, False);
 
-        // get window position (now shifted by the decoration done by the window manager)
-        // I don't think this is very reliable
         XWindowAttributes wa;
         XGetWindowAttributes(xcth_display, window, &wa);
         sleep(1);
         XGetWindowAttributes(xcth_display, window, &wa);
 
-        // move so, that the border is out of the screen
+        // Move the client window so any manager-added border sits off-screen.
         XMoveWindow(xcth_display, window, -wa.x, -wa.y);
 
-        // try to get the input focus
         XSetInputFocus(xcth_display, window, RevertToParent, CurrentTime);
     } else if (window_do_pos) {
         sh = XAllocSizeHints();
@@ -173,14 +162,13 @@ void DisplayDeviceX11::CreateWindow(char* name, int full_screen) {
         XMapWindow(xcth_display, window);
 }
 
-//
-// create an empty cursor
-//
 Cursor DisplayDeviceX11::xcth_cursor() {
     Pixmap blank_pix;
     XColor dummyColor;
     GC bit_1_gc, bit_0_gc;
 
+    // X cursors are pixmaps plus masks. A 1x1 all-zero pixmap produces the
+    // invisible cursor wanted for full-screen visual output.
     blank_pix = XCreatePixmap(xcth_display, xcth_root, 1, 1, 1);
     bit_0_gc = XCreateGC(xcth_display, blank_pix, 0, 0);
     XSetForeground(xcth_display, bit_0_gc, 0);
@@ -196,7 +184,6 @@ Cursor DisplayDeviceX11::xcth_cursor() {
 void DisplayDeviceX11::checkDisplaySize() {
 
     if (display_mode != -1) {
-        /* use one of the default resolutions */
         if ((display_mode >= nScreenSizes) || (display_mode < 0))
             display_mode = 0;
 
@@ -206,7 +193,6 @@ void DisplayDeviceX11::checkDisplaySize() {
 
 void DisplayDeviceX11::loadFont() {
     if (!text_on_term) {
-        // set the font for displaying text
         font = XLoadQueryFont(xcth_display, xcth_font);
         if (font == NULL) {
             CTH_ERROR("Can not load font `%s'. Trying font `fixed'.\n", xcth_font);
@@ -254,9 +240,7 @@ DisplayDeviceX11::DisplayDeviceX11()
 
     CTH_INFO("Initializing X11 display...\n");
 
-    //
-    // check illegal/useless combinations options
-    //
+    // The root window and the control panel both require the default colormap.
     if (display_on_root)
         private_cmap = 0;
 
@@ -268,11 +252,11 @@ DisplayDeviceX11::DisplayDeviceX11()
     if (*(char*)&byte_order_test == 4)
         rev_byte_order = !rev_byte_order;
 
-    checkDisplaySize(); // check predfined display sizes
+    checkDisplaySize();
 
     xcth_root = DefaultRootWindow(xcth_display);
 
-    if (display_on_root) { /* display on root window */
+    if (display_on_root) {
         window = xcth_root;
         getAttributes();
 
@@ -281,7 +265,7 @@ DisplayDeviceX11::DisplayDeviceX11()
 
         allocImage();
         initPalette();
-    } else { /* display in a window */
+    } else {
         CreateWindow("Cthugha", full_screen);
     }
 
@@ -289,11 +273,12 @@ DisplayDeviceX11::DisplayDeviceX11()
 
     loadFont();
 
-    if (xcth_panel) { /* create the control panel */
+    if (xcth_panel) {
         xcth_create_panel();
         XSelectInput(xcth_display, XtWindow(xcth_toplevel), KeyReleaseMask | StructureNotifyMask);
 
-        // draw text into the control panel
+        // Text for the panel is rendered off-screen, then copied into the
+        // widget window. This avoids redrawing the panel one string at a time.
         if ((textPixmap = XCreatePixmap(xcth_display, XtWindow(panelTextWidget),
                  text_size.x * fontSize.x, text_size.y * fontSize.y, planes))
             == 0) {
@@ -313,10 +298,13 @@ DisplayDeviceX11::~DisplayDeviceX11() {
 
 void DisplayDeviceX11::mainLoop() {
     while (cthugha_close == 0) {
+        // Xt queues X events for both the raw display window and the optional
+        // Athena-widget panel. Key releases are translated into Cthugha keys;
+        // everything else is dispatched back through Xt.
         while (XtAppPending(xcth_app_con)) {
             XEvent event;
             XtAppNextEvent(xcth_app_con, &event);
-            if (event.type == KeyRelease) { /* handle keyboard input */
+            if (event.type == KeyRelease) {
                 char key_buff[256];
                 int count;
                 KeySym ks;
@@ -348,13 +336,10 @@ void DisplayDeviceX11::mainLoop() {
 
 void DisplayDeviceX11::prePrint() {
 
-    //
-    // when text is on the screen and drawing is not done
-    // into a pixmap, then prepare the pixmap for text
-    // when drawing into an extra window (panelTextWidget)
-    // then clear that, else copy the image to the pixmap
-    //
-
+    // Text is composited through textPixmap when the frame buffer cannot be
+    // drawn to directly. For panel text, the pixmap starts empty; for overlay
+    // text, it starts as a copy of the current frame so strings can be drawn
+    // over it before one final XCopyArea to the window.
     if (copyText && textPixmap) {
         if (panelTextWidget) {
             XSetForeground(xcth_display, gc, 0);
@@ -398,18 +383,16 @@ void DisplayDeviceX11::printString(
     }
 }
 
-//
-// image alloc/free
-//
 void DisplayDeviceX11::allocImage() {
 
-    /* Check if MIT-SHM is available */
+    // MIT-SHM lets the client and X server share the frame buffer memory.
+    // A shared pixmap is fastest because XCopyArea can present it directly;
+    // a shared image still avoids copying data through the X socket.
     if (display_mit_shm) {
-        int d1, d2; // version number
+        int d1, d2;
         int pix;
         Status mit_shm = XShmQueryVersion(xcth_display, &d1, &d2, &pix);
 
-        // test, if pixmap format is the one I need
         if (pix && (XShmPixmapFormat(xcth_display) != ZPixmap))
             pix = 0;
 
@@ -426,7 +409,8 @@ void DisplayDeviceX11::allocImage() {
     case shmPixmap:
         CTH_DEBUG("    using shared pixmap\n");
 
-        // create image to get bytes/line
+        // Ask Xlib for the server's exact image layout before allocating the
+        // shared segment that will back both the XImage and the shared pixmap.
         if ((image = XShmCreateImage(
                  xcth_display, visual, planes, ZPixmap, NULL, &shminfo, disp_size.x, disp_size.y))
             == NULL) {
@@ -436,7 +420,6 @@ void DisplayDeviceX11::allocImage() {
         bypp = (image->bits_per_pixel + 7) / 8;
         bytes_per_line = image->bytes_per_line;
 
-        /* create and attach Shared Memory */
         if ((shminfo.shmid = shmget(IPC_PRIVATE, bytes_per_line * disp_size.y, IPC_CREAT | 0777))
             == -1) {
             CTH_ERRNO(errno, "Can not create shared memory segment");
@@ -464,8 +447,8 @@ void DisplayDeviceX11::allocImage() {
     case shmImage:
         CTH_DEBUG("    using shared image\n");
 
-        if ((image = XShmCreateImage(xcth_display, visual, planes, ZPixmap, /* format */
-                 NULL, /* data */
+        if ((image = XShmCreateImage(xcth_display, visual, planes, ZPixmap,
+                 NULL,
                  &shminfo, disp_size.x, disp_size.y))
             == NULL) {
             CTH_ERROR("Can not create XImage.\n");
@@ -474,7 +457,6 @@ void DisplayDeviceX11::allocImage() {
         bypp = (image->bits_per_pixel + 7) / 8;
         bytes_per_line = image->bytes_per_line;
 
-        /* create and attach Shared Memory */
         if ((shminfo.shmid = shmget(IPC_PRIVATE, bytes_per_line * disp_size.y, IPC_CREAT | 0777))
             == -1) {
             CTH_ERRNO(errno, "Can not create shared memory segment");
@@ -486,7 +468,6 @@ void DisplayDeviceX11::allocImage() {
         }
         shminfo.readOnly = False;
 
-        /* Attach X11 with Shared Memory */
         if (XShmAttach(xcth_display, &shminfo) == 0) {
             CTH_ERROR("Can not X-attach shared memory segment.\n");
             exit(0);
@@ -497,7 +478,7 @@ void DisplayDeviceX11::allocImage() {
         CTH_DEBUG("    using no shared image/pixmap.\n");
 
         if ((image = XCreateImage(xcth_display, visual, planes, ZPixmap, 0, NULL, disp_size.x,
-                 disp_size.y, XBitmapPad(xcth_display), 0 /*bytes_per_line will be computed */))
+                 disp_size.y, XBitmapPad(xcth_display), 0))
             == NULL) {
             CTH_ERROR("Can not create XImage.\n");
             exit(0);
@@ -511,7 +492,6 @@ void DisplayDeviceX11::allocImage() {
         }
     }
 
-    // create the pixmap for text display
     if ((shmLevel != shmPixmap) && !text_on_term && !xcth_panel) {
         textPixmap = XCreatePixmap(xcth_display, window, disp_size.x, disp_size.y, planes);
         text_size.x = disp_size.x / fontSize.x;
@@ -526,13 +506,11 @@ void DisplayDeviceX11::freeImage() {
 
     XSync(xcth_display, True);
 
-    // free the text pixmaop, if it for the window
     if (textPixmap && (shmLevel != shmPixmap) && !text_on_term && !xcth_panel) {
         XFreePixmap(xcth_display, textPixmap);
         textPixmap = 0;
     }
 
-    // free the image
     if (image) {
         switch (shmLevel) {
         case shmPixmap:
@@ -571,12 +549,11 @@ void DisplayDeviceX11::resizeDisplay(int new_width, int new_height) {
     freeImage();
     allocImage();
 
-    // after resizing the border around the image must be redrawn
+    // After resizing, the border around the image must be redrawn.
     cthughaDisplay->needsClear = 1;
 }
 
 unsigned char* DisplayDeviceX11::preDraw() {
-    /* make sure, the image is big enough */
     if ((disp_size.x < 2 * BUFF_WIDTH) || (disp_size.y < 2 * BUFF_HEIGHT)) {
         resizeDisplay(2 * BUFF_WIDTH, 2 * BUFF_HEIGHT);
     }
@@ -599,38 +576,38 @@ void DisplayDeviceX11::clearBox(int x, int y, int width, int height) {
 }
 void DisplayDeviceX11::postDraw() {
 
-    this->setGlobalPalette(); // update the global palette
+    this->setGlobalPalette();
 
     if (copyText) {
 
-        if (panelTextWidget) { // bring text to panel
+        if (panelTextWidget) {
             copyText--;
             XCopyArea(xcth_display, textPixmap, XtWindow(panelTextWidget), gc, 0, 0,
                 text_size.x * fontSize.x, text_size.y * fontSize.y, 0, 0);
         } else {
             switch (shmLevel) {
             case shmPixmap:
-                XCopyArea(xcth_display, pixmap, window, gc, 0, 0, // src offet
-                    disp_size.x, disp_size.y, // size
-                    0, 0); // dst offset
+                XCopyArea(xcth_display, pixmap, window, gc, 0, 0,
+                    disp_size.x, disp_size.y,
+                    0, 0);
 
                 break;
             case shmImage:
             case shmNone:
-                XCopyArea(xcth_display, textPixmap, window, gc, 0, 0, // src offet
-                    disp_size.x, disp_size.y, // size
-                    0, 0); // dst offset
+                XCopyArea(xcth_display, textPixmap, window, gc, 0, 0,
+                    disp_size.x, disp_size.y,
+                    0, 0);
             }
             return;
         }
     }
 
-    if (needsFullCopy) /* draw full screen */
+    if (needsFullCopy)
         switch (shmLevel) {
         case shmPixmap:
-            XCopyArea(xcth_display, pixmap, window, gc, 0, 0, // src offet
-                disp_size.x, disp_size.y, // size
-                0, 0); // dst offset
+            XCopyArea(xcth_display, pixmap, window, gc, 0, 0,
+                disp_size.x, disp_size.y,
+                0, 0);
 
             break;
         case shmImage:
@@ -639,13 +616,13 @@ void DisplayDeviceX11::postDraw() {
         case shmNone:
             XPutImage(xcth_display, window, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y);
         }
-    else /* or only a part */
+    else
         switch (shmLevel) {
         case shmPixmap:
             XCopyArea(xcth_display, pixmap, window, gc, SCREEN_OFFSET_X,
-                SCREEN_OFFSET_Y, // src offet
-                draw_size.x, draw_size.y, // size
-                SCREEN_OFFSET_X, // dst offset
+                SCREEN_OFFSET_Y,
+                draw_size.x, draw_size.y,
+                SCREEN_OFFSET_X,
                 SCREEN_OFFSET_Y);
             break;
         case shmImage:
@@ -659,9 +636,6 @@ void DisplayDeviceX11::postDraw() {
     needsFullCopy = 0;
 }
 
-//
-// initialize the colormap
-//
 void DisplayDeviceX11::initPalette() {
 
     switch (visual->c_class) {
@@ -699,9 +673,6 @@ void DisplayDeviceX11::initPalette() {
             exit(0);
         }
 
-        //
-        // prepare text Color
-        //
         for (int i = 0; i < textColors; i++) {
             textColor[i] = (red_mask & shift(textColorRGB[i][0], red_shift))
                 | (green_mask & shift(textColorRGB[i][1], green_shift))
@@ -721,15 +692,12 @@ void DisplayDeviceX11::initPalette() {
         red_mask = green_mask = blue_mask = 0xffff;
         red_shift = green_shift = blue_shift = 0;
 
-        //
-        // prepare text Colors
-        //
         for (int i = 0; i < textColors; i++) {
             textColor[i] = 0xffff;
         }
         break;
 
-    case PseudoColor: { /* 256 color mode with palette */
+    case PseudoColor: {
         if (planes != 8) {
             CTH_ERROR("xcthugha needs for PseudoColor 8 bits/pixel - you have %d.\n", planes);
         }
@@ -737,37 +705,24 @@ void DisplayDeviceX11::initPalette() {
         if (private_cmap == 0) {
             unsigned long pixels[256];
 
-            //
-            // Try to get 255 colors
-            // This might happen if we run as a screen saver
-            //
-            if (XAllocColorCells(xcth_display, colormap, 1, NULL, 0, // color planes
-                    pixels, 255)
+            // In PseudoColor, pixels are indexes into a server-side colormap.
+            // First try to reserve nearly the whole default colormap so the
+            // frame buffer bytes can be used directly as palette indexes.
+            if (XAllocColorCells(xcth_display, colormap, 1, NULL, 0, pixels, 255)
                 != 0) {
                 CTH_INFO("Could allocate 255 color cells.\n");
-
-                //
-                // Because we are so lucky, we can use the faster drawing mode
-                //
 
                 draw_mode = DM_direct;
                 colormapped = 1;
 
-                //
-                // set pixel values
-                //
                 for (int i = 0; i < 255; i++) {
-                    // this useless a is here, because otherwise a segment violation
-                    // comes at this position - can anybody explain it?????
+                    // Historical workaround: older builds reportedly crashed
+                    // when assigning pixels[i] directly.
                     int a = 0;
                     colors[i].pixel = pixels[i] + a;
                 }
-                // combine the last 2 pixels
                 colors[255].pixel = colors[254].pixel;
 
-                //
-                // prepare text Colors
-                //
                 for (int i = 0; i < textColors; i++) {
                     textColor[i] = 128 + i;
                     for (int j = 0; j < 3; j++) {
@@ -776,16 +731,12 @@ void DisplayDeviceX11::initPalette() {
                 }
 
             } else {
-                //
-                // could not get all 256 color, take only 128
-                //
-
+                // Shared default colormaps are often partly occupied by other
+                // clients. Fall back to 128 color cells and map pairs of
+                // Cthugha palette entries onto each allocated X pixel.
                 draw_mode = DM_mapped1;
                 colormapped = 2;
 
-                //
-                // alocate the colors for text first
-                //
                 for (int i = 0; i < textColors; i++) {
                     XColor col;
                     col.pixel = i;
@@ -794,7 +745,6 @@ void DisplayDeviceX11::initPalette() {
                     col.blue = textColorRGB[i][2] << 8;
                     col.flags = DoRed | DoGreen | DoBlue;
                     if (XAllocColor(xcth_display, colormap, &col) == 0) {
-                        /* can not allocate colorcell */
                         textColor[i] = 0;
 
                         CTH_ERROR("Could not allocate color for text.\n");
@@ -803,20 +753,13 @@ void DisplayDeviceX11::initPalette() {
                     }
                 }
 
-                //
-                // get color cells
-                //
-                if (XAllocColorCells(xcth_display, colormap, 0, NULL, 0, // color planes
-                        pixels, 128)
+                if (XAllocColorCells(xcth_display, colormap, 0, NULL, 0, pixels, 128)
                     == 0) {
                     CTH_ERROR("Could not allocate 128 color cells.\n"
                             "please make more colors available or start with '--install' option.");
                     exit(0);
                 }
 
-                //
-                // Remember, which pixel values can be used
-                //
                 for (int i = 0; i < 128; i++)
                     colors[i].pixel = pixels[i];
 
@@ -828,18 +771,14 @@ void DisplayDeviceX11::initPalette() {
                 }
             }
         } else {
-            //
-            // use a private colormap with 256 colors
-            //
-
+            // A private colormap gives this window all 256 palette entries,
+            // at the cost of color flashing when focus enters/leaves it on
+            // old indexed-color X displays.
             draw_mode = DM_direct;
             colormap = XCreateColormap(xcth_display, window, visual, AllocAll);
             XSetWindowColormap(xcth_display, window, colormap);
             colormapped = 1;
 
-            //
-            // prepare text Colors. Here the highest color values are used.
-            //
             for (int i = 0; i < 256; i++)
                 for (int j = 0; j < 3; j++)
                     textPalette[i][j] = 0;
@@ -847,16 +786,12 @@ void DisplayDeviceX11::initPalette() {
             for (int i = 0; i < textColors; i++) {
                 textColor[i] = 255 - i;
 
-                // !!! I tried a loop here, but then the assignment was not done
-                // !!! correctly - compiler error?
+                // Historical workaround: keep these assignments explicit.
                 textPalette[255 - i][0] = textColorRGB[i][0];
                 textPalette[255 - i][1] = textColorRGB[i][1];
                 textPalette[255 - i][2] = textColorRGB[i][2];
             }
 
-            //
-            // Remember, which pixel values can be used
-            //
             for (int i = 0; i < 256; i++) {
                 colors[i].pixel = i;
             }
@@ -869,24 +804,22 @@ void DisplayDeviceX11::freePalette() {
     if (colormapped)
         XFreeColormap(xcth_display, colormap);
 
-    // color cells in the default colormap are freed automatcally,
-    // at least on my system at home :-)
+    // Default-colormap cells are not owned through the colormap handle itself.
 }
 
 int DisplayDeviceX11::setGlobalPalette() {
 
-    if (DisplayDevice::setGlobalPalette() == 0) // nothing changed
+    if (DisplayDevice::setGlobalPalette() == 0)
         return 0;
 
-    if (textOnScreen) { // text mode
+    if (textOnScreen) {
         int i, j;
 
         switch (colormapped) {
-        case 1: // we have 256 colors
-            //
-            // use only first 128 colors for buffer
-            //
-
+        case 1:
+            // Reserve half of the palette for text colors while text overlays
+            // are visible. The image is remapped to 128 averaged entries so
+            // text can keep stable, readable colors.
             if (darkenPalette) {
                 for (i = 0; i < 128; i++)
                     for (j = 0; j < 3; j++)
@@ -916,8 +849,8 @@ int DisplayDeviceX11::setGlobalPalette() {
 
             setPalette(textPalette);
             break;
-        case 2: // we have 128 colors
-        default: // or no palette at all
+        case 2:
+        default:
 
             if (darkenPalette) {
                 for (i = 0; i < 256; i++)
@@ -953,7 +886,7 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
     int i;
 
     switch (colormapped) {
-    case 1: // full colormap (256 colors)
+    case 1:
         for (i = 0; i < 256; i++) {
             colors[i].red = pal[i][0] << 8;
             colors[i].green = pal[i][1] << 8;
@@ -964,7 +897,7 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
 
         break;
 
-    case 2: // only 128 colors for buffer, take average of 2 neighboring colors
+    case 2:
 
         for (i = 0; i < 128; i++) {
             colors[i].red = (pal[2 * i][0] + pal[2 * i + 1][0]) << 7;
@@ -976,7 +909,10 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
 
         break;
 
-    default: // no colormap at all
+    default:
+        // TrueColor/DirectColor visuals do not use writable palette entries.
+        // Precompute the native pixel value for each Cthugha palette color so
+        // the renderer can translate indexed pixels quickly while drawing.
         for (i = 0; i < 256; i++) {
             bitmap_colors0[i] = (red_mask & shift(pal[i][0], red_shift))
                 | (green_mask & shift(pal[i][1], green_shift))

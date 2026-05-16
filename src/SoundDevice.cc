@@ -1,3 +1,7 @@
+// Base sound-device implementation.
+// Concrete backends supply read(); this layer owns the per-frame conversion
+// from backend-specific raw samples into Cthugha's 1024-sample stereo buffer.
+
 #include "cthugha.h"
 
 #include "SoundDevice.h"
@@ -5,10 +9,6 @@
 #include "cth_buffer.h"
 
 int bytesPerSample = 0;
-
-//
-// SoundDevice
-//
 
 SoundDevice::SoundDevice() {
 
@@ -36,13 +36,16 @@ void SoundDevice::operator()() {
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
     rawSize = bytesPerSample * size;
 
-    int r = this->read(); // returns nr. of samples read
+    int r = this->read();
 
-    if (r >= 1024) // got more than enough data
+    // Keep a sliding 1024-sample window. If the backend returns more than one
+    // window, display the newest samples; if it returns less, preserve the
+    // older tail and append the new samples.
+    if (r >= 1024)
         convert(data, (char*)tmpData + (r - 1024) * bytesPerSample, 1024);
     else {
-        memcpy(data, data + r, sizeof(char2) * (1024 - r)); // keep old data
-        convert(data + 1024 - r, tmpData, r); // and convert new samples
+        memcpy(data, data + r, sizeof(char2) * (1024 - r));
+        convert(data + 1024 - r, tmpData, r);
     }
 }
 
@@ -55,6 +58,8 @@ void SoundDevice::change() {
 
     tmpSize = 0;
 
+    // Let the concrete backend apply the new option values before this layer
+    // resizes its raw input buffer.
     this->update();
 
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
@@ -114,8 +119,6 @@ void SoundDevice::convert(char2* dst, void* src, int n) {
     case SF_s16_be:
 #elif (__BYTE_ORDER == __LITTLE_ENDIAN)
     case SF_s16_le:
-// #elif
-// #error unknown endianess
 #endif
         for (int i = 0; i < n; i++) {
             dst[i][1] = int(*data_u16) >> 8;
@@ -172,7 +175,9 @@ void SoundDevice::convert(char2* dst, void* src, int n) {
 void SoundDevice::newSD() {
     static int forked = 0;
 
-    // create the right device
+    // soundDevice is the global strategy slot. File playback normally goes
+    // through SoundDeviceFork once so the child can keep blocking reads away
+    // from the visual frame loop; the child then creates SoundDeviceFile.
     switch (soundDeviceNr) {
     case SDN_DSPIn:
         soundDevice = ::new SoundDeviceDSPIn();
@@ -203,7 +208,6 @@ void SoundDevice::newSD() {
     CTH_DEBUG("    DSP fragment size  : %d\n", int(soundDSPFragmentSize));
     CTH_DEBUG("    DSP sync.          : %d\n", int(soundDSPSync));
 
-    // check for errors
     if ((soundDevice == NULL) || (soundDevice->error != 0)) {
         delete soundDevice;
 
@@ -211,5 +215,5 @@ void SoundDevice::newSD() {
         soundDevice = ::new SoundDeviceRandom;
     }
 
-    soundDevice->setTmpData(); // make sure the temporary array is big enough
+    soundDevice->setTmpData();
 }

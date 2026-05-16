@@ -1,3 +1,7 @@
+// OSS /dev/dsp sound backend.
+// This code configures legacy OSS devices with ioctl calls, then reads either
+// from normal device reads or, for method 4, a mapped DMA buffer.
+
 #include "cthugha.h"
 #include "Sound.h"
 #include "imath.h"
@@ -5,7 +9,6 @@
 
 #if WITH_DSP == 1
 
-// include the right soundcard.h
 #ifdef HAVE_LINUX_SOUNDCARD_H
 #include <linux/soundcard.h>
 #else
@@ -34,6 +37,8 @@ SoundDeviceDSP::SoundDeviceDSP(int mode)
 
 void SoundDeviceDSP::setFragment() {
 
+    // OSS packs fragment count in the high word and log2(fragment size) in
+    // the low word. The driver may adjust both values.
     int soundDSPFragment = (int(soundDSPFragments) << 16) | int(soundDSPFragmentSize);
     if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
@@ -47,7 +52,6 @@ void SoundDeviceDSP::setFragment() {
 }
 
 void SoundDeviceDSP::setChannels() {
-    /* set stereo or mono */
     int channels = int(soundChannels) - 1;
     if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
@@ -56,14 +60,12 @@ void SoundDeviceDSP::setChannels() {
 
 void SoundDeviceDSP::setSampleRate() {
 
-    /* set sample rate */
     if (ioctl(handle, SNDCTL_DSP_SPEED, &(soundSampleRate.value)) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
 }
 
 void SoundDeviceDSP::setFormat() {
 
-    /* set the sound format based on the sound_sampleSize */
     int sound_format;
 
     switch (soundFormat) {
@@ -103,6 +105,7 @@ void SoundDeviceDSP::setFormat() {
 
     CTH_TRACE("returned: %d\n", sound_format);
 
+    // Keep the public option value in sync with what the driver accepted.
     switch (sound_format) {
     case AFMT_U8:
         soundFormat.setValue(SF_u8);
@@ -136,7 +139,6 @@ void SoundDeviceDSP::init(int mode) {
 
     this->mode = mode;
 
-    /* Get sound-device */
     if ((handle = open(dev_dsp, mode)) < 0) {
         CTH_ERRNO(errno, "Can't open `%s' for %s.", dev_dsp,
             (mode == O_RDONLY)       ? "reading"
@@ -146,9 +148,11 @@ void SoundDeviceDSP::init(int mode) {
         return;
     }
 
+    // These methods are compatibility profiles for different OSS driver
+    // behaviors: tune fragment geometry, use conservative reads, or map DMA.
     switch (int(soundDSPMethod)) {
 
-    case 0: { // set sound fragment size and number of fragments
+    case 0: {
         CTH_INFO("   Using sound method 0 - optimal fragment size\n");
 
         soundDSPFragmentSize.setValue(ilog2(size) - 1);
@@ -163,7 +167,7 @@ void SoundDeviceDSP::init(int mode) {
 
         break;
     }
-    case 1: { // fragment size of 16 bytes (2^4), two fragments (2)
+    case 1: {
         CTH_INFO("   Using sound method 1 - small fragment size\n");
 
         soundDSPFragments.setValue(2);
@@ -179,18 +183,14 @@ void SoundDeviceDSP::init(int mode) {
 
         break;
     }
-    case 2: { // from version 0.3
+    case 2: {
         CTH_INFO("   Using sound method 2 - old version\n");
 
-        /* create a DMA-Buffer as small as possible.
-           1. create the buffer for lowerest possible sample rate (4000) and
-           mono, with maximul SUBDIVE (4). (The buffersize is calculated
-           from the sample rate and number of channels and is not changed
-           after it is set for the first time by a call to GETBLKSIZE)
-           On my machine I get a BLKSIZE of 1024 bytes
-           2. set the sample rate and nr. of channels as specified
-        */
-        int sound_div = 4; /* blocks as small as possible */
+        // Some OSS drivers lock buffer geometry on the first GETBLKSIZE call.
+        // This method first asks for a tiny mono/low-rate setup, then applies
+        // the desired channels/rate/format after the driver has committed to a
+        // small block size.
+        int sound_div = 4;
         if (ioctl(handle, SNDCTL_DSP_SUBDIVIDE, &sound_div) < 0)
             CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SUBDIVIDE failed.");
 
@@ -214,7 +214,7 @@ void SoundDeviceDSP::init(int mode) {
             CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE");
         break;
     }
-    case 3: { // primitiv. only set format, channels and speed
+    case 3: {
         CTH_INFO("   Using sound method 3 - primitiv version\n");
 
         setFormat();
@@ -222,7 +222,7 @@ void SoundDeviceDSP::init(int mode) {
         setSampleRate();
         break;
     }
-    case 4: { // use DMA
+    case 4: {
         if (mode == O_WRONLY) {
             CTH_ERROR("Sound method 4 is only available for reading sound data.\n"
                     "Please use a different sound method.\n");
@@ -235,8 +235,8 @@ void SoundDeviceDSP::init(int mode) {
         setChannels();
         setSampleRate();
 
-        soundDSPFragments.setValue(2); // 2 fragments
-        soundDSPFragmentSize.setValue(10); // 2^10 = 1024 bytes/fragment
+        soundDSPFragments.setValue(2);
+        soundDSPFragmentSize.setValue(10);
         setFragment();
 
         struct audio_buf_info info;
@@ -273,7 +273,7 @@ void SoundDeviceDSP::init(int mode) {
                 "   0: sophisticated 1 (optimal fragment size)\n"
                 "   1: sophisticated 2 (small fragments)\n"
                 "   2: simple (small DMA buffer)\n"
-                "   3: pimitiv\n"
+                "   3: primitiv\n"
                 "   4: directly use DMA buffer\n");
         error = 1;
         return;
@@ -285,27 +285,21 @@ void SoundDeviceDSP::update() {
     init(mode);
 }
 
-/*
- * Get sound from sound-card
- *
- * Jan Kujawa <kujawa@kallisti.montana.com>
- *   helped a lot to do this better.
- */
 int SoundDeviceDSPIn::read() {
 
-    int r = 0; // nr of bytes really read
+    int r = 0;
 
     switch (int(soundDSPMethod)) {
     case 0: {
         audio_buf_info bi;
         const int nr_read = int(soundChannels) * size / (1 << soundDSPFragmentSize);
 
-        // get number of available fragments (-> bi.framents)
         if (ioctl(handle, SNDCTL_DSP_GETISPACE, &bi) < 0) {
             CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETISPACE failed.");
         }
 
-        // if there is more data available than needed: read any extra sound data
+        // If the device has fallen behind, drain older fragments and keep the
+        // newest audio. The visuals should react to "now", not stale input.
         if (bi.fragments > nr_read) {
             for (int i = 0; i < bi.fragments - nr_read; i++)
                 ::read(handle, tmpData, (1 << soundDSPFragmentSize));
@@ -313,10 +307,9 @@ int SoundDeviceDSPIn::read() {
         } else
             r = (1 << soundDSPFragmentSize) * bi.fragments;
 
-        if (r == 0) // read at least one
+        if (r == 0)
             r = (1 << soundDSPFragmentSize);
 
-        /* read the sound data, that will be display */
         if (::read(handle, tmpData, r) < 0) {
             CTH_ERRNO(errno, "reading sound failed.");
         }
@@ -326,8 +319,8 @@ int SoundDeviceDSPIn::read() {
     case 1: {
         unsigned char* sbuff;
         int nr_read;
-        /* Important information from Jan Kujawa <kujawa@kallisti.montana.com>
-           how to do this correctly */
+        // Reads are split into small chunks because some OSS devices behave
+        // better when drained at fragment boundaries.
         for (nr_read = 0, sbuff = (unsigned char*)tmpData; nr_read < rawSize; nr_read += 32) {
             if (::read(handle, sbuff, 16) < 0)
                 CTH_ERRNO(errno, "sound_read < 0");
@@ -356,7 +349,6 @@ int SoundDeviceDSPIn::read() {
         r = 2048;
     }
 
-    /* this should no not be necessary - it only causes problems */
     if (int(soundDSPSync))
         ioctl(handle, SNDCTL_DSP_RESET);
 

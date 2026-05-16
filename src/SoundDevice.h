@@ -1,4 +1,8 @@
-// -*-c++-*-
+// Sound backend interface and concrete backend declarations.
+// The global soundDevice pointer is the current runtime strategy: startup and
+// resume create one concrete subclass, the main loop calls operator() each
+// frame, and shutdown/suspend deletes it.
+
 #ifndef __SOUND_DEVICE_H
 #define __SOUND_DEVICE_H
 
@@ -8,83 +12,69 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-//
-// the sound related options
-//
-extern Option& soundDeviceNr; // which sound device to use
+extern Option& soundDeviceNr;
 
 extern Option& soundFormat;
 extern Option& soundChannels;
 extern Option& soundSampleRate;
 
-extern Option& soundDSPMethod; // DSP Options
+extern Option& soundDSPMethod;
 extern Option& soundDSPFragments;
 extern Option& soundDSPFragmentSize;
 extern Option& soundDSPSync;
 
-extern Option& soundBuffer; // only for File
+extern Option& soundBuffer;
 extern Option& soundSilent;
 
-extern int soundPlayLoop; // play file(s) over and over again
+extern int soundPlayLoop;
 
+// Derived from soundFormat and soundChannels for the active backend.
 extern int bytesPerSample;
 
 enum soundFormat_t { SF_u8 = 0, SF_s8, SF_u16_le, SF_s16_le, SF_u16_be, SF_s16_be };
 
-//
-// class SoundDevice
-//
-// gets the sound from soundcard, file, random noise, ...
-// plays sound to soundcard if necessary
-// convets sound to cthugha format
-//
-
+// One stereo sample in Cthugha's internal signed 8-bit format.
 typedef char char2[2];
 
 class SoundDevice {
 protected:
     int error;
 
-    char* tmpData; // sound data in format read
-    int tmpDataOwned; // tmpData was allocated with new[]
-    int rawSize; // number of bytes to get
-    int tmpSize; // size of temorary buffer (>= rawSize)
+    char* tmpData; // Raw backend-format samples read by read().
+    int tmpDataOwned; // False when SoundDeviceFork lends shared memory.
+    int rawSize; // Bytes requested from the backend for one frame.
+    int tmpSize; // Allocated bytes in tmpData.
     void setTmpData();
     void borrowTmpData(char* data);
 
-    void convert(char2* dst, void* src, int n); // convert tmpData to stereo,signed,8bit
+    void convert(char2* dst, void* src, int n);
 public:
-    int size; // number of samples to read
-    char2* data; // sound data in stereo, signed, 8 bit
-    char2 dataProc[1024]; // sound data after processing
+    int size; // Samples requested from read().
+    char2* data; // Last 1024 converted stereo samples.
+    char2 dataProc[1024]; // Post-processing workspace used by waves.
 
     SoundDevice();
     virtual ~SoundDevice();
 
-    // NOTE: using operator new instead of this newSD is not possible,
-    // the virtual functions are not called correctly then.
-    // I don't know why that is so.
-    static void newSD(); // create a new sound device, create the
-                         // right device depending on the sound option
+    static void newSD();
 
+    // Per-frame tick: read backend data, then convert it into data.
     void operator()();
 
-    void change(); // update device after chaning one of the
-                   // sound device options (sample size, ...)
+    void change();
 
-    virtual int read(); // get sound data (device dependend)
-    virtual void update() { }; // update sound device after chainging
-                               // sample size, ...
+    virtual int read();
+    virtual void update() { };
 
     friend class SoundDeviceFork;
     friend class SoundServer;
 };
 
-extern SoundDevice* soundDevice; // current sound device
+extern SoundDevice* soundDevice;
 
 enum SoundDeviceNr { SDN_DSPIn, SDN_Net, SDN_Random, SDN_File, SDN_Max };
 
-// interface to /dev/dsp
+// OSS /dev/dsp backend shared by reader and writer devices.
 class SoundDeviceDSP : public SoundDevice {
 protected:
     int handle;
@@ -96,7 +86,7 @@ protected:
     void setSampleRate();
     void setFormat();
 
-    SoundDeviceDSP() { } // only use one of the subclasses
+    SoundDeviceDSP() { }
     void init(int mode);
 
 public:
@@ -108,7 +98,7 @@ public:
     virtual void update();
 };
 
-// /dev/dsp only for reading
+// Reader side of OSS /dev/dsp, used as the normal live input backend.
 class SoundDeviceDSPIn : public SoundDeviceDSP {
 public:
     SoundDeviceDSPIn()
@@ -116,7 +106,7 @@ public:
     virtual int read();
 };
 
-// /dev/dsp only for writing
+// Writer side of OSS /dev/dsp, used when file playback also feeds the soundcard.
 class SoundDeviceDSPOut : public SoundDeviceDSP {
 public:
     SoundDeviceDSPOut()
@@ -127,7 +117,7 @@ public:
     int getHandle() const { return handle; }
 };
 
-// sound via network
+// Receives sound samples from another Cthugha instance over the network.
 class SoundDeviceNet : public SoundDevice {
 protected:
     int handle;
@@ -143,7 +133,7 @@ public:
     virtual void update();
 };
 
-// only random noise
+// Synthesizes input when no real sound backend is available.
 class SoundDeviceRandom : public SoundDevice {
 public:
     SoundDeviceRandom();
@@ -151,7 +141,7 @@ public:
     virtual void update();
 };
 
-// get sound from a file
+// Reads sound from files or external decoder programs.
 class SoundDeviceFile : public SoundDevice {
 protected:
     FILE* file;
@@ -191,7 +181,8 @@ public:
     virtual void update();
 };
 
-// get sound data from child process
+// Parent-side proxy for forked file playback. The child owns the real file
+// backend and writes raw samples through shared memory.
 class SoundDeviceFork : public SoundDevice {
     int sound_child;
     int sound_shm_key;
