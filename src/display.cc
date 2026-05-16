@@ -27,6 +27,7 @@ int screen_roll();
 int screen_zick();
 int screen_bent();
 int screen_plate();
+int screen_scale2();
 
 static CoreOptionEntry* _screens[] = { new ScreenEntry(screen_up, "Up", "Up Display", xy(1, 1)),
     new ScreenEntry(screen_down, "Down", "Upside Down", xy(1, 1)),
@@ -40,7 +41,8 @@ static CoreOptionEntry* _screens[] = { new ScreenEntry(screen_up, "Up", "Up Disp
     new ScreenEntry(screen_roll, "roll", "Roll around x-axis", xy(1, 1)),
     new ScreenEntry(screen_zick, "zick", "Zick Zack", xy(1, 1), 0),
     new ScreenEntry(screen_bent, "bent", "A bending plane", xy(2, 2)),
-    new ScreenEntry(screen_plate, "plate", "A rotating plate", xy(2, 2)) };
+    new ScreenEntry(screen_plate, "plate", "A rotating plate", xy(2, 2)),
+    new ScreenEntry(screen_scale2, "scale2", "Scale 2x", xy(2, 2), 0) };
 static CoreOptionEntryList screenEntries(_screens, sizeof(_screens) / sizeof(CoreOption*));
 
 CoreOption screen(-1, "display", screenEntries);
@@ -266,6 +268,35 @@ int screen_4kal() {
     return 0;
 }
 
+int screen_scale2() {
+    unsigned char* src = passive_buffer;
+    unsigned char* dst = cthughaDisplay->buffer;
+
+    for (int y = BUFF_HEIGHT; y != 0; y--) {
+        unsigned char* dst1 = dst;
+        unsigned char* dst2 = dst + cthughaDisplay->bufferWidth;
+
+        for (int x = BUFF_WIDTH; x != 0; x--) {
+            unsigned char color = *src;
+            src++;
+
+            *dst1 = color;
+            dst1++;
+            *dst1 = color;
+            dst1++;
+
+            *dst2 = color;
+            dst2++;
+            *dst2 = color;
+            dst2++;
+        }
+
+        dst += 2 * cthughaDisplay->bufferWidth;
+    }
+
+    return 0;
+}
+
 /*
  * 3-D display functions
  */
@@ -274,6 +305,12 @@ static xy height_offset[256];
 static xy s1, s2, p;
 static float rot[3] = { 0, 0, 0 };
 static float P[4][3] = { { -1, -1, 0 }, { 1, -1, 0 }, { 1, 1, 0 }, { 0, 0, 1 } };
+static double scaleFactor = 0.8;
+static double scaleFactorPhase = 0.0;
+static double scaleFactorSpeed = 0.03; /* cycles per second */
+static double intensityFactor = 20.0; /* how much the sound intensity affects the scale factor */
+static const double minScaleFactor = 0.8;
+static const double maxScaleFactor = 2.0;
 
 /*
  * rotate vektor p around x/y/z axis (by rot[i])
@@ -298,6 +335,31 @@ void rotate(float p[3], float rot[3], float r[3]) {
 }
 inline float sqr(float a) { return a * a; }
 
+inline void put_3d_pixel(unsigned char* dst, int x, int y, unsigned char color) {
+    if ((x >= -BUFF_WIDTH) && (x < BUFF_WIDTH) && (y >= -BUFF_HEIGHT) && (y < BUFF_HEIGHT))
+        dst[y * cthughaDisplay->bufferWidth + x] = color;
+}
+
+void update_3d_scale_factor() {
+    double dt = deltaT;
+    double mid = (minScaleFactor + maxScaleFactor) / 2.0;
+    double amp = (maxScaleFactor - minScaleFactor) / 2.0;
+
+    if (dt < 0.0)
+        dt = 0.0;
+    if (dt > 0.25)
+        dt = 0.25;
+
+    scaleFactorPhase += 2.0 * M_PI * scaleFactorSpeed * dt;
+    if (scaleFactorPhase >= 2.0 * M_PI)
+        scaleFactorPhase = fmod(scaleFactorPhase, 2.0 * M_PI);
+
+    scaleFactor = mid - amp * cos(scaleFactorPhase) + (intensityFactor * soundAnalyze.intensity);
+    CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f\n", dt, scaleFactorPhase,
+        scaleFactor);
+    CTH_TRACE("intensity: %.3f\n", soundAnalyze.intensity);
+}
+
 /*
  * preparations for a 3D display
  */
@@ -313,8 +375,8 @@ int prepare_3d(int maxZ) {
     z = sqr((float)(BUFF_WIDTH) / 640.0 * (float)maxZ);
     l = sqrt(x + y + z);
 
-    /* make sure, the image always fits into the display region */
-    scale = (float)min(BUFF_WIDTH, BUFF_HEIGHT) / l;
+    update_3d_scale_factor();
+    scale = scaleFactor * (float)min(BUFF_WIDTH, BUFF_HEIGHT) / l;
 
     /* rotate a little bit */
     /* TODO: use fps, some value from the sound to set speed,
@@ -344,9 +406,7 @@ int prepare_3d(int maxZ) {
     /* clear screen */
     unsigned char* clr = cthughaDisplay->buffer;
     for (i = 2 * BUFF_HEIGHT; i != 0; i--) {
-        // #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
-        // bzero(clr, 2*BUFF_WIDTH);
-        memset(clr, '\0', BUFF_WIDTH);
+        memset(clr, '\0', 2 * BUFF_WIDTH);
         clr += cthughaDisplay->bufferWidth;
     }
 
@@ -367,9 +427,8 @@ int screen_hfield() {
     for (i = BUFF_HEIGHT; i != 0; i--) {
         xy t = p;
         for (j = BUFF_WIDTH; j != 0; j--) {
-            unsigned char* d = dst + ((p.y + height_offset[*src].y) >> 16) * 2 * BUFF_WIDTH
-                + ((p.x + height_offset[*src].x) >> 16);
-            *d = *src | 128;
+            put_3d_pixel(dst, (p.x + height_offset[*src].x) >> 16,
+                (p.y + height_offset[*src].y) >> 16, *src | 128);
             src++;
             p.x += s1.x;
             p.y += s1.y;
@@ -407,10 +466,8 @@ int screen_bent() {
     for (i = BUFF_HEIGHT; i != 0; i--) {
         xy t = p;
         for (j = BUFF_WIDTH; j != 0; j--) {
-            unsigned char* d = dst
-                + ((p.y + height_offset[height[j]].y) >> 16) * cthughaDisplay->bufferWidth
-                + ((p.x + height_offset[height[j]].x) >> 16);
-            *d = *src | 128;
+            put_3d_pixel(dst, (p.x + height_offset[height[j]].x) >> 16,
+                (p.y + height_offset[height[j]].y) >> 16, *src | 128);
             src++;
             p.x += s1.x;
             p.y += s1.y;
@@ -436,8 +493,7 @@ int screen_plate() {
     for (i = BUFF_HEIGHT; i != 0; i--) {
         xy t = p;
         for (j = BUFF_WIDTH; j != 0; j--) {
-            unsigned char* d = dst + (p.y >> 16) * cthughaDisplay->bufferWidth + (p.x >> 16);
-            *d = *src | 128;
+            put_3d_pixel(dst, p.x >> 16, p.y >> 16, *src | 128);
             src++;
             p.x += s1.x;
             p.y += s1.y;
