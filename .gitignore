@@ -121,3 +121,6 @@ core.*
 
 # Legacy CVS metadata from the imported tree
 CVS/
+
+# Test files
+*.mp3

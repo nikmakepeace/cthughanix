@@ -34,6 +34,10 @@ SoundDevice::~SoundDevice() {
 
 void SoundDevice::operator()() {
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
+
+    // rawSize is the amount of audio Cthugha wants for one visual update.  It is
+    // derived from the visual buffer geometry, not from the sound device's
+    // preferred playback/capture block size.
     rawSize = bytesPerSample * size;
 
     int r = this->read();

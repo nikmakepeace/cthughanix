@@ -28,24 +28,33 @@
      on mirroring, and which produce the full `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` surface.
    - Add debug assertions where they can catch invalid writes or bad assumptions.
 
-4. Stabilize PCX behavior.
+4. Improve sound diagnostics and file playback.
+   - Add better deterministic sound test fixtures than `-x` random noise, with controlled
+     intensity ramps and attack/fire events.
+   - Decouple file playback output from visual-analysis sampling: read/decode into a
+     buffer, write to `/dev/dsp` in backend-friendly chunks, and feed only the required
+     visual window into Cthugha.
+   - Document `--play FILE --silent` as the preferred fixture path for analysis-only
+     runs, and `--snd-method 3` as the current smoother OSS/QEMU playback workaround.
+
+5. Stabilize PCX behavior.
    - Verify loading from `pcx/`, `.pcx.gz`, clipping, centering, palette selection, and
      screenshot save behavior.
    - Keep PCX working as legacy content while preparing for a modern image path.
 
-5. Add a modern image loader.
+6. Add a modern image loader.
    - Add a small image-loader abstraction, with PNG as the first supported modern format.
    - Keep the internal indexed-buffer behavior intact initially.
    - Define transparency semantics deliberately: alpha mask, alpha blend into indexed
      output, or separate overlay layer.
 
-6. Modernize the build.
+7. Modernize the build.
    - Add a contemporary build path that can build `xcthugha` and future modern display
      targets.
    - Quarantine or optionally disable SVGAlib and old OpenGL/GLUT paths by default.
    - Keep old build files around until the replacement build proves itself.
 
-7. Add a modern display target.
+8. Add a modern display target.
    - Prefer SDL2 or SDL3 as the first modern frontend.
    - Preserve the core contract: the engine produces an indexed 8-bit buffer plus a
      palette; the frontend presents it.

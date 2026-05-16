@@ -422,6 +422,10 @@ int SoundDeviceFile::read() {
         //
         // read the sound, do buffering, and write to soundcard
         //
+        // The file buffer decouples decoder/file reads from the visual frame
+        // loop, but playback still writes rawSize bytes at a time. rawSize is
+        // one visual-analysis slice, so this is not necessarily the sound
+        // backend's preferred output chunk size.
         unsigned char* readPos = buffer + (bufferPos + bufferFill) % bufferSize;
         unsigned char* writePos = buffer + bufferPos;
 
@@ -431,8 +435,8 @@ int SoundDeviceFile::read() {
 
         } else if ((bufferFill + bufferChunkSize) >= bufferSize) { // buffer full
 
-            w = dsp->write(writePos, rawSize); // to soundcard
-            memcpy(tmpData, writePos, w); // to shared memory
+            w = dsp->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
+            memcpy(tmpData, writePos, w); // to shared memory for visual analysis
 
         } else {
             fd_set rfds, wfds;
@@ -452,8 +456,8 @@ int SoundDeviceFile::read() {
                 if (FD_ISSET(fileno(file), &rfds)) // reading possible
                     r = fread(readPos, 1, bufferChunkSize, file);
                 if (FD_ISSET(dsp->getHandle(), &wfds)) { // write possible
-                    w = dsp->write(writePos, rawSize); // to soundcard
-                    memcpy(tmpData, writePos, w); // to shared memory
+                    w = dsp->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
+                    memcpy(tmpData, writePos, w); // to shared memory for visual analysis
                 }
             }
         }
