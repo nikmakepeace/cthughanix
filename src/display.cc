@@ -28,6 +28,8 @@ int screen_zick();
 int screen_bent();
 int screen_plate();
 int screen_scale2();
+int screen_vscale_hmirror();
+int screen_hscale_vmirror();
 
 static CoreOptionEntry* _screens[] = { new ScreenEntry(screen_up, "Up", "Up Display", xy(1, 1)),
     new ScreenEntry(screen_down, "Down", "Upside Down", xy(1, 1)),
@@ -42,7 +44,9 @@ static CoreOptionEntry* _screens[] = { new ScreenEntry(screen_up, "Up", "Up Disp
     new ScreenEntry(screen_zick, "zick", "Zick Zack", xy(1, 1), 0),
     new ScreenEntry(screen_bent, "bent", "A bending plane", xy(2, 2)),
     new ScreenEntry(screen_plate, "plate", "A rotating plate", xy(2, 2)),
-    new ScreenEntry(screen_scale2, "scale2", "Scale 2x", xy(2, 2), 0) };
+    new ScreenEntry(screen_scale2, "scale2", "Scale 2x", xy(2, 2), 0),
+    new ScreenEntry(screen_vscale_hmirror, "vscale", "Scale vertical, mirror horizontal", xy(1, 2)),
+    new ScreenEntry(screen_hscale_vmirror, "hscale", "Scale horizontal, mirror vertical", xy(2, 1)) };
 static CoreOptionEntryList screenEntries(_screens, sizeof(_screens) / sizeof(CoreOption*));
 
 CoreOption screen(-1, "display", screenEntries);
@@ -292,6 +296,44 @@ int screen_scale2() {
         }
 
         dst += 2 * cthughaDisplay->bufferWidth;
+    }
+
+    return 0;
+}
+
+int screen_vscale_hmirror() {
+    unsigned char* src = passive_buffer;
+    unsigned char* dst = cthughaDisplay->buffer;
+
+    for (int y = BUFF_HEIGHT; y != 0; y--) {
+        memcpy(dst, src, BUFF_WIDTH);
+        memcpy(dst + cthughaDisplay->bufferWidth, src, BUFF_WIDTH);
+
+        src += BUFF_WIDTH;
+        dst += 2 * cthughaDisplay->bufferWidth;
+    }
+
+    return 0;
+}
+
+int screen_hscale_vmirror() {
+    unsigned char* src = passive_buffer;
+    unsigned char* dst = cthughaDisplay->buffer;
+
+    for (int y = BUFF_HEIGHT; y != 0; y--) {
+        unsigned char* d = dst;
+
+        for (int x = BUFF_WIDTH; x != 0; x--) {
+            unsigned char color = *src;
+            src++;
+
+            *d = color;
+            d++;
+            *d = color;
+            d++;
+        }
+
+        dst += cthughaDisplay->bufferWidth;
     }
 
     return 0;

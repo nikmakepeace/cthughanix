@@ -31,7 +31,7 @@ protected:
 
     // Complete the logical 2x2 Cthugha image when a screen() function only
     // produced the left half, top half, or top-left quadrant.
-    void mirrorHorizontally();
+    void mirrorHorizontally(int height);
     void mirrorVertically();
 
     // Keep stale text/old image data out of the letterboxed area.

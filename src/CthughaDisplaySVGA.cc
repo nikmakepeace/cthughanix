@@ -83,7 +83,7 @@ void CthughaDisplaySVGA::operator()() {
      * do horizontal mirroring, if necessary
      */
     if (s.x == 1)
-        mirrorHorizontally();
+        mirrorHorizontally(s.y * BUFF_HEIGHT);
 
     /*
      * expand the palette (right now only the palette of buffer 0,

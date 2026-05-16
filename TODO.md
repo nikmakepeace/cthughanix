@@ -26,6 +26,9 @@
    - Add shared helpers for clearing the full display surface and/or base display region.
    - Document which screen functions produce `BUFF_WIDTH x BUFF_HEIGHT` content and rely
      on mirroring, and which produce the full `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` surface.
+   - Leave the legacy `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` display-surface coupling intact
+     until the future target display architecture is chosen; then split engine buffer,
+     presentation surface, and window/output size deliberately.
    - Add debug assertions where they can catch invalid writes or bad assumptions.
 
 4. Improve sound diagnostics and file playback.
@@ -58,6 +61,8 @@
    - Prefer SDL2 or SDL3 as the first modern frontend.
    - Preserve the core contract: the engine produces an indexed 8-bit buffer plus a
      palette; the frontend presents it.
+   - Define the new frontend contract explicitly so buffer size, presentation-surface size,
+     and actual window size can vary independently where useful.
    - Use SDL to cover Wayland/X11/fullscreen/input for modern users before considering a
      native Wayland implementation.
 

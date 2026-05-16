@@ -43,11 +43,11 @@ CthughaDisplay::CthughaDisplay()
  * do the horizontal mirroring
  * this is done in the buffer
  */
-void CthughaDisplay::mirrorHorizontally() {
+void CthughaDisplay::mirrorHorizontally(int height) {
     unsigned char* src = buffer;
     unsigned char* dst = buffer + (2 * BUFF_WIDTH - 1);
 
-    for (int i = BUFF_HEIGHT; i != 0; i--) {
+    for (int i = height; i != 0; i--) {
         for (int j = BUFF_WIDTH; j != 0; j--) {
             *dst = *src;
             src++;

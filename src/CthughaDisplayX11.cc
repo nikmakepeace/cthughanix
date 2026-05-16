@@ -329,7 +329,7 @@ void CthughaDisplayX11::operator()() {
      * missing pieces before the image is copied to the display device.
      */
     if (s.x == 1)
-        mirrorHorizontally();
+        mirrorHorizontally(s.y * BUFF_HEIGHT);
 
     /*
      * expand the palette (right now only the palette of buffer 0,
