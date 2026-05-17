@@ -11,12 +11,9 @@ public:
         int i, j, l;
         static Palette Pal;
 
-        PaletteEntry* palE = (PaletteEntry*)CthughaBuffer::current->palette.current();
-        if (palE == NULL)
-            return 1;
-
-        // make a copy of the current palette
-        memcpy(Pal, palE->pal, sizeof(Palette));
+        // Brighten the palette currently being displayed. This preserves
+        // transient palette changes such as PCX image palettes.
+        memcpy(Pal, CthughaBuffer::current->currentPalette, sizeof(Palette));
 
         for (l = soundAnalyze.fire << 3, i = 0; (i < 256) && (l > 0); i++, l -= 8)
             for (j = 0; j < 3; j++)
