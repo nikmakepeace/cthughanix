@@ -41,13 +41,13 @@
      runs, and `--snd-method 3` as the current smoother OSS/QEMU playback workaround.
 
 5. Stabilize PCX behavior.
-   - Verify loading from `pcx/`, `.pcx.gz`, clipping, centering, palette selection, and
+   - ~~Verify loading from `pcx/`, `.pcx.gz`, clipping, centering, palette selection,~~ and
      screenshot save behavior.
    - Review init/load return-code behavior: several `init_*` functions currently always
      return `0`, while `CthughaBuffer::initAll()` still checks them and calls `exit(0)`.
      Decide whether those functions should be `void`, or whether startup should have real
      fatal error propagation.
-   - Keep PCX working as legacy content while preparing for a modern image path.
+   - ~~Keep PCX working as legacy content while preparing for a modern image path.~~
 
 6. Add a modern image loader.
    - Add a small image-loader abstraction, with PNG as the first supported modern format.

@@ -525,6 +525,12 @@ void CoreOption::loadDir(const char* dir, const char* extension,
             strncpy(feat_name, entry->d_name, 255);
             *strstr(feat_name, extension) = '\0';
 
+            /*
+             * Plain and compressed files share the same feature name:
+             * `foo.pcx' and `foo.pcx.gz' both become `foo'. Without
+             * --dbl-load, the first directory entry returned by readdir()
+             * wins and later duplicates are skipped.
+             */
             if (!int(double_load) && defined(feat_name)) {
                 CTH_DEBUG("already loaded: %s\n", total_name);
             } else if ((fe = load(feat_name, total_name, dir, loader)) != NULL)
