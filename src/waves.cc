@@ -1060,7 +1060,9 @@ void wave_lineHLdiff() {
 /* by Russ, changed by Harald */
 void wave_wire1() {
     static double theta = 0;
-    double st, ct, ex, ax, ay, az, x, y, z, scl, px, py, pz, sto, cto;
+    double st, ct, ax, ay, az, x, y, z, px, py, pz;
+    double objectHalf, screenScale;
+    const double cameraDistance = 3.0;
 
     ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
     if (objE == NULL) {
@@ -1075,7 +1077,6 @@ void wave_wire1() {
 
     int i, j, x1, y1, x2, y2;
     int mx, my, mz, m;
-    int ox, oy;
     int n;
 
     theta += M_PI / 45.0;
@@ -1096,61 +1097,57 @@ void wave_wire1() {
     m = (mx > my) ? mx : my;
     m = (m > mz) ? m : mz;
 
-    m++;
-
-    /* scaling factor */
-    scl = ((double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.90) / m;
-
-    ox = BUFF_WIDTH / 2 - mx / 2;
-    oy = BUFF_HEIGHT / 2 - my / 2;
+    if (m <= 0)
+        m = 1;
 
     px = (double)mx / 2;
     py = (double)my / 2;
     pz = (double)mz / 2;
+    objectHalf = (double)m / 2.0;
+    if (objectHalf < 1.0)
+        objectHalf = 1.0;
+    screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
 
     st = sin(theta);
     ct = cos(theta);
-    sto = sin(theta - M_PI / 2);
-    cto = cos(theta - M_PI / 2);
 
     for (i = 0; i < n; i++) {
         int s[2];
+        int sampleCount;
         double scale0, scale1;
 
         s[0] = s[1] = 0;
-        for (j = 0; j < (1024 / n); j++) {
-            s[0] += abs(soundDevice->dataProc[i * n + j][0]);
-            s[1] += abs(soundDevice->dataProc[i * n + j][1]);
+        sampleCount = max(1024 / n, 1);
+        for (j = 0; j < sampleCount; j++) {
+            int sample = min(i * sampleCount + j, 1023);
+            s[0] += abs(soundDevice->dataProc[sample][0]);
+            s[1] += abs(soundDevice->dataProc[sample][1]);
         }
 
-        scale0 = scl * ((double)s[0] / (double)(BUFF_WIDTH / n)) / 64.0;
-        scale1 = scl * ((double)s[1] / (double)(BUFF_WIDTH / n)) / 64.0;
+        scale0 = screenScale * (0.60 + 1.40 * ((double)s[0] / (double)(sampleCount * 128)));
+        scale1 = screenScale * (0.60 + 1.40 * ((double)s[1] / (double)(sampleCount * 128)));
 
-        x = theObj[i][0][0] - px;
-        y = theObj[i][0][1] - py;
-        z = theObj[i][0][2] - pz;
-
-        ax = x * ct + z * st;
-        ay = y;
-        az = z * ct - x * st;
-
-        ex = scl / (az + 2);
-
-        x1 = int((double)ax * scale0 / (az + m) + ox);
-        y1 = int((double)ay * scale0 / (az + m) + oy);
-
-        x = theObj[i][1][0] - px;
-        y = theObj[i][1][1] - py;
-        z = theObj[i][1][2] - pz;
+        x = (theObj[i][0][0] - px) / objectHalf;
+        y = (theObj[i][0][1] - py) / objectHalf;
+        z = (theObj[i][0][2] - pz) / objectHalf;
 
         ax = x * ct + z * st;
         ay = y;
         az = z * ct - x * st;
 
-        ex = scl / (az + 2);
+        x1 = int((double)ax * scale0 / (az + cameraDistance) + MID_X);
+        y1 = int((double)ay * scale0 / (az + cameraDistance) + MID_Y);
 
-        x2 = int((double)ax * scale1 / (az + m) + ox);
-        y2 = int((double)ay * scale1 / (az + m) + oy);
+        x = (theObj[i][1][0] - px) / objectHalf;
+        y = (theObj[i][1][1] - py) / objectHalf;
+        z = (theObj[i][1][2] - pz) / objectHalf;
+
+        ax = x * ct + z * st;
+        ay = y;
+        az = z * ct - x * st;
+
+        x2 = int((double)ax * scale1 / (az + cameraDistance) + MID_X);
+        y2 = int((double)ay * scale1 / (az + cameraDistance) + MID_Y);
 
         draw_line(x1, y1, x2, y2, tcolor(255));
     }
@@ -1190,7 +1187,7 @@ void wave_wire2() {
 
             loc[i][1] = rand() % (whirlyRadius * 2) - whirlyRadius;
             j = rand() % 320;
-            k = rand() % whirlyRadius;
+            k = 1 + rand() % (whirlyRadius - 1);
             loc[i][0] = int(isin(j) * k);
             loc[i][2] = int(icos(j) * k);
             /*
@@ -1199,10 +1196,10 @@ void wave_wire2() {
 
                         } else */
             {
-                rate[i] = rand() % 8;
+                rate[i] = 1 + rand() % 7;
                 if (rand() % 2)
                     rate[i] *= -1;
-                psi[i] = 0;
+                psi[i] = rand() % 320;
             }
             col[i] = abs(rand() % 256);
         }
