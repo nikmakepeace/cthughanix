@@ -453,16 +453,117 @@ static double vertex_sound_stretch(int x, int y, int z) {
     return 1.0 + amp * 0.35;
 }
 
+static int random_wire_color() {
+    return abs(rand() % 256);
+}
+
+struct WireObjectFrame {
+    WObject* obj;
+    int n;
+    int mx, my, mz, m;
+    double px, py, pz;
+    double objectHalf;
+    double screenScale;
+};
+
+/*
+ * Gather the common geometry facts needed by the single-object wire waves.
+ * Object loading has already shifted coordinates so the lower corner is at
+ * the origin; the upper corner therefore gives both the midpoint and the
+ * largest extent used for normalization.
+ */
+static int setup_wire_object(WireObjectFrame& frame) {
+    int j;
+
+    ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
+    if (objE == NULL) {
+        CthughaBuffer::current->wave.change(+1, 0);
+        return 0;
+    }
+
+    frame.obj = objE->obj;
+    if (frame.obj == NULL) {
+        CthughaBuffer::current->wave.change(+1, 0);
+        return 0;
+    }
+
+    frame.mx = frame.my = frame.mz = 0;
+
+    for (frame.n = 0; frame.obj[frame.n][0][0] != -1; frame.n++)
+        for (j = 0; j < 2; j++) {
+            if (frame.obj[frame.n][j][0] > frame.mx)
+                frame.mx = frame.obj[frame.n][j][0];
+
+            if (frame.obj[frame.n][j][1] > frame.my)
+                frame.my = frame.obj[frame.n][j][1];
+
+            if (frame.obj[frame.n][j][2] > frame.mz)
+                frame.mz = frame.obj[frame.n][j][2];
+        }
+
+    frame.m = (frame.mx > frame.my) ? frame.mx : frame.my;
+    frame.m = (frame.m > frame.mz) ? frame.m : frame.mz;
+    if (frame.m <= 0)
+        frame.m = 1;
+
+    frame.px = (double)frame.mx / 2;
+    frame.py = (double)frame.my / 2;
+    frame.pz = (double)frame.mz / 2;
+    frame.objectHalf = (double)frame.m / 2.0;
+    if (frame.objectHalf < 1.0)
+        frame.objectHalf = 1.0;
+
+    frame.screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
+
+    return 1;
+}
+
+static double wire_sound_scale(double screenScale) {
+    int i;
+    int sound = 0;
+
+    for (i = 0; i < 1024; i++) {
+        sound += abs(soundDevice->dataProc[i][0]);
+        sound += abs(soundDevice->dataProc[i][1]);
+    }
+
+    return screenScale * (0.60 + 1.40 * ((double)sound / (double)(1024 * 2 * 128)));
+}
+
+static void wire_point(
+    const WireObjectFrame& frame, int segment, int endpoint, double& x, double& y, double& z) {
+    x = (frame.obj[segment][endpoint][0] - frame.px) / frame.objectHalf;
+    y = (frame.obj[segment][endpoint][1] - frame.py) / frame.objectHalf;
+    z = (frame.obj[segment][endpoint][2] - frame.pz) / frame.objectHalf;
+}
+
+static void project_wire_point(
+    double ax, double ay, double az, double scale, double cameraDistance, int& sx, int& sy) {
+    sx = int((double)ax * scale / (az + cameraDistance) + MID_X);
+    sy = int((double)ay * scale / (az + cameraDistance) + MID_Y);
+}
+
+static void draw_axis_wire_model(
+    const WireObjectFrame& frame, const double axis[3], int theta, double scale, double cameraDistance, int col) {
+    int i, x1, y1, x2, y2;
+    double x, y, z, ax, ay, az;
+
+    for (i = 0; i < frame.n; i++) {
+        wire_point(frame, i, 0, x, y, z);
+        rotate_axis(x, y, z, axis, theta, ax, ay, az);
+        project_wire_point(ax, ay, az, scale, cameraDistance, x1, y1);
+
+        wire_point(frame, i, 1, x, y, z);
+        rotate_axis(x, y, z, axis, theta, ax, ay, az);
+        project_wire_point(ax, ay, az, scale, cameraDistance, x2, y2);
+
+        draw_line(x1, y1, x2, y2, tcolor(col));
+    }
+}
+
 // #define putat(x,y,val)	active_buffer[ addr( (x) , (y) ) ] = val
 void putat(int x, int y, int val) {
     int a = addr(x, y);
-
-#if 0
-    if( (a < 0) || (a >= BUFF_SIZE)) {
-	CTH_ERROR("Penguin alert! %d,%d", x,y);
-	exit(1);
-    }
-#endif
 
     active_buffer[a] = val;
     active_buffer[a - 1] = val;
@@ -1218,101 +1319,57 @@ void wave_lineHLdiff() {
  */
 void wave_wire1() {
     static double theta = 0;
-    double st, ct, ax, ay, az, x, y, z, px, py, pz;
-    double objectHalf, screenScale;
+    static int col = 255;
+    double st, ct, ax, ay, az, x, y, z;
     const double cameraDistance = 3.0;
+    WireObjectFrame frame;
 
-    ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
-    if (objE == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
+    if (!setup_wire_object(frame))
         return;
-    }
-    WObject* theObj = objE->obj;
-    if (theObj == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
-        return;
-    }
 
     int i, j, x1, y1, x2, y2;
-    int mx, my, mz, m;
-    int n;
+
+    if (object_wave_starting())
+        col = random_wire_color();
 
     theta += M_PI / 45.0;
-    mx = my = mz = 0;
-
-    /*
-     * Object files are shifted to positive coordinates when loaded, so the
-     * midpoint is half the largest observed coordinate on each axis.  The
-     * largest axis becomes the normalization divisor, keeping imported objects
-     * roughly comparable on screen.
-     */
-    for (n = 0; theObj[n][0][0] != -1; n++)
-        for (j = 0; j < 2; j++) {
-            if (theObj[n][j][0] > mx)
-                mx = theObj[n][j][0];
-
-            if (theObj[n][j][1] > my)
-                my = theObj[n][j][1];
-
-            if (theObj[n][j][2] > mz)
-                mz = theObj[n][j][2];
-        }
-    m = (mx > my) ? mx : my;
-    m = (m > mz) ? m : mz;
-
-    if (m <= 0)
-        m = 1;
-
-    px = (double)mx / 2;
-    py = (double)my / 2;
-    pz = (double)mz / 2;
-    objectHalf = (double)m / 2.0;
-    if (objectHalf < 1.0)
-        objectHalf = 1.0;
-    screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
 
     st = sin(theta);
     ct = cos(theta);
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < frame.n; i++) {
         int s[2];
         int sampleCount;
         double scale0, scale1;
 
         s[0] = s[1] = 0;
-        sampleCount = max(1024 / n, 1);
+        sampleCount = max(1024 / frame.n, 1);
         for (j = 0; j < sampleCount; j++) {
             int sample = min(i * sampleCount + j, 1023);
             s[0] += abs(soundDevice->dataProc[sample][0]);
             s[1] += abs(soundDevice->dataProc[sample][1]);
         }
 
-        scale0 = screenScale * (0.60 + 1.40 * ((double)s[0] / (double)(sampleCount * 128)));
-        scale1 = screenScale * (0.60 + 1.40 * ((double)s[1] / (double)(sampleCount * 128)));
+        scale0 = frame.screenScale * (0.60 + 1.40 * ((double)s[0] / (double)(sampleCount * 128)));
+        scale1 = frame.screenScale * (0.60 + 1.40 * ((double)s[1] / (double)(sampleCount * 128)));
 
-        x = (theObj[i][0][0] - px) / objectHalf;
-        y = (theObj[i][0][1] - py) / objectHalf;
-        z = (theObj[i][0][2] - pz) / objectHalf;
+        wire_point(frame, i, 0, x, y, z);
 
         ax = x * ct + z * st;
         ay = y;
         az = z * ct - x * st;
 
-        x1 = int((double)ax * scale0 / (az + cameraDistance) + MID_X);
-        y1 = int((double)ay * scale0 / (az + cameraDistance) + MID_Y);
+        project_wire_point(ax, ay, az, scale0, cameraDistance, x1, y1);
 
-        x = (theObj[i][1][0] - px) / objectHalf;
-        y = (theObj[i][1][1] - py) / objectHalf;
-        z = (theObj[i][1][2] - pz) / objectHalf;
+        wire_point(frame, i, 1, x, y, z);
 
         ax = x * ct + z * st;
         ay = y;
         az = z * ct - x * st;
 
-        x2 = int((double)ax * scale1 / (az + cameraDistance) + MID_X);
-        y2 = int((double)ay * scale1 / (az + cameraDistance) + MID_Y);
+        project_wire_point(ax, ay, az, scale1, cameraDistance, x2, y2);
 
-        draw_line(x1, y1, x2, y2, tcolor(255));
+        draw_line(x1, y1, x2, y2, tcolor(col));
     }
 }
 
@@ -1325,95 +1382,22 @@ void wave_wire1dot5() {
     static int theta = 0;
     static int col = 255;
     static double axis[3] = { 0.0, 1.0, 0.0 };
-    double ax, ay, az, x, y, z, px, py, pz;
-    double objectHalf, screenScale, scale;
+    double scale;
     const double cameraDistance = 3.0;
+    WireObjectFrame frame;
 
-    ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
-    if (objE == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
+    if (!setup_wire_object(frame))
         return;
-    }
-    WObject* theObj = objE->obj;
-    if (theObj == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
-        return;
-    }
-
-    int i, j, x1, y1, x2, y2;
-    int mx, my, mz, m;
-    int n;
-    int sound = 0;
 
     if (object_wave_starting()) {
         random_axis(axis);
-        col = abs(rand() % 256);
+        col = random_wire_color();
     }
 
     theta += 2;
-    mx = my = mz = 0;
+    scale = wire_sound_scale(frame.screenScale);
 
-    /*
-     * Find the bounding box upper corner.  The loader has already moved the
-     * object so the lower corner is at the origin.
-     */
-    for (n = 0; theObj[n][0][0] != -1; n++)
-        for (j = 0; j < 2; j++) {
-            if (theObj[n][j][0] > mx)
-                mx = theObj[n][j][0];
-
-            if (theObj[n][j][1] > my)
-                my = theObj[n][j][1];
-
-            if (theObj[n][j][2] > mz)
-                mz = theObj[n][j][2];
-        }
-    m = (mx > my) ? mx : my;
-    m = (m > mz) ? m : mz;
-
-    if (m <= 0)
-        m = 1;
-
-    for (i = 0; i < 1024; i++) {
-        sound += abs(soundDevice->dataProc[i][0]);
-        sound += abs(soundDevice->dataProc[i][1]);
-    }
-
-    px = (double)mx / 2;
-    py = (double)my / 2;
-    pz = (double)mz / 2;
-    objectHalf = (double)m / 2.0;
-    if (objectHalf < 1.0)
-        objectHalf = 1.0;
-
-    screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
-    scale = screenScale * (0.60 + 1.40 * ((double)sound / (double)(1024 * 2 * 128)));
-
-    for (i = 0; i < n; i++) {
-        /*
-         * Center and normalize each endpoint, rotate the result around the
-         * startup axis, then project it with a small fixed camera distance.
-         */
-        x = (theObj[i][0][0] - px) / objectHalf;
-        y = (theObj[i][0][1] - py) / objectHalf;
-        z = (theObj[i][0][2] - pz) / objectHalf;
-
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
-
-        x1 = int((double)ax * scale / (az + cameraDistance) + MID_X);
-        y1 = int((double)ay * scale / (az + cameraDistance) + MID_Y);
-
-        x = (theObj[i][1][0] - px) / objectHalf;
-        y = (theObj[i][1][1] - py) / objectHalf;
-        z = (theObj[i][1][2] - pz) / objectHalf;
-
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
-
-        x2 = int((double)ax * scale / (az + cameraDistance) + MID_X);
-        y2 = int((double)ay * scale / (az + cameraDistance) + MID_Y);
-
-        draw_line(x1, y1, x2, y2, tcolor(col));
-    }
+    draw_axis_wire_model(frame, axis, theta, scale, cameraDistance, col);
 }
 
 /*
@@ -1430,25 +1414,12 @@ void wave_wire1dot55() {
     static double precessionTime = PRECESSION_TIME_MIN;
     static double precessionStart = 0.0;
     double axis[3];
-    double ax, ay, az, x, y, z, px, py, pz;
-    double objectHalf, screenScale, scale;
+    double scale;
     const double cameraDistance = 3.0;
+    WireObjectFrame frame;
 
-    ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
-    if (objE == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
+    if (!setup_wire_object(frame))
         return;
-    }
-    WObject* theObj = objE->obj;
-    if (theObj == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
-        return;
-    }
-
-    int i, j, x1, y1, x2, y2;
-    int mx, my, mz, m;
-    int n;
-    int sound = 0;
 
     if (object_wave_starting()) {
         random_axis(baseAxis);
@@ -1456,67 +1427,15 @@ void wave_wire1dot55() {
         precessionTime = PRECESSION_TIME_MIN
             + random_unit() * (PRECESSION_TIME_MAX - PRECESSION_TIME_MIN);
         precessionStart = now;
-        col = abs(rand() % 256);
+        col = random_wire_color();
     }
 
     precess_axis(baseAxis, coneAngle, M_PI2 * (now - precessionStart) / precessionTime, axis);
 
     theta += 2;
-    mx = my = mz = 0;
+    scale = wire_sound_scale(frame.screenScale);
 
-    for (n = 0; theObj[n][0][0] != -1; n++)
-        for (j = 0; j < 2; j++) {
-            if (theObj[n][j][0] > mx)
-                mx = theObj[n][j][0];
-
-            if (theObj[n][j][1] > my)
-                my = theObj[n][j][1];
-
-            if (theObj[n][j][2] > mz)
-                mz = theObj[n][j][2];
-        }
-    m = (mx > my) ? mx : my;
-    m = (m > mz) ? m : mz;
-
-    if (m <= 0)
-        m = 1;
-
-    for (i = 0; i < 1024; i++) {
-        sound += abs(soundDevice->dataProc[i][0]);
-        sound += abs(soundDevice->dataProc[i][1]);
-    }
-
-    px = (double)mx / 2;
-    py = (double)my / 2;
-    pz = (double)mz / 2;
-    objectHalf = (double)m / 2.0;
-    if (objectHalf < 1.0)
-        objectHalf = 1.0;
-
-    screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
-    scale = screenScale * (0.60 + 1.40 * ((double)sound / (double)(1024 * 2 * 128)));
-
-    for (i = 0; i < n; i++) {
-        x = (theObj[i][0][0] - px) / objectHalf;
-        y = (theObj[i][0][1] - py) / objectHalf;
-        z = (theObj[i][0][2] - pz) / objectHalf;
-
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
-
-        x1 = int((double)ax * scale / (az + cameraDistance) + MID_X);
-        y1 = int((double)ay * scale / (az + cameraDistance) + MID_Y);
-
-        x = (theObj[i][1][0] - px) / objectHalf;
-        y = (theObj[i][1][1] - py) / objectHalf;
-        z = (theObj[i][1][2] - pz) / objectHalf;
-
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
-
-        x2 = int((double)ax * scale / (az + cameraDistance) + MID_X);
-        y2 = int((double)ay * scale / (az + cameraDistance) + MID_Y);
-
-        draw_line(x1, y1, x2, y2, tcolor(col));
-    }
+    draw_axis_wire_model(frame, axis, theta, scale, cameraDistance, col);
 }
 
 /*
@@ -1528,64 +1447,24 @@ void wave_wire1dot6() {
     static int theta = 0;
     static int col = 255;
     static double axis[3] = { 0.0, 1.0, 0.0 };
-    double ax, ay, az, x, y, z, px, py, pz;
-    double objectHalf, screenScale, stretch;
+    double ax, ay, az, x, y, z;
+    double stretch;
     const double cameraDistance = 4.0;
+    WireObjectFrame frame;
 
-    ObjectEntry* objE = (ObjectEntry*)CthughaBuffer::current->object.current();
-    if (objE == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
+    if (!setup_wire_object(frame))
         return;
-    }
-    WObject* theObj = objE->obj;
-    if (theObj == NULL) {
-        CthughaBuffer::current->wave.change(+1, 0);
-        return;
-    }
 
-    int i, j, x1, y1, x2, y2;
-    int mx, my, mz, m;
-    int n;
+    int i, x1, y1, x2, y2;
 
     if (object_wave_starting()) {
         random_axis(axis);
-        col = abs(rand() % 256);
+        col = random_wire_color();
     }
 
     theta += 2;
-    mx = my = mz = 0;
 
-    /*
-     * Same normalization scheme as Wire1dot5.  Keeping the base transform the
-     * same makes the elastic stretch the only intended visual difference.
-     */
-    for (n = 0; theObj[n][0][0] != -1; n++)
-        for (j = 0; j < 2; j++) {
-            if (theObj[n][j][0] > mx)
-                mx = theObj[n][j][0];
-
-            if (theObj[n][j][1] > my)
-                my = theObj[n][j][1];
-
-            if (theObj[n][j][2] > mz)
-                mz = theObj[n][j][2];
-        }
-    m = (mx > my) ? mx : my;
-    m = (m > mz) ? m : mz;
-
-    if (m <= 0)
-        m = 1;
-
-    px = (double)mx / 2;
-    py = (double)my / 2;
-    pz = (double)mz / 2;
-    objectHalf = (double)m / 2.0;
-    if (objectHalf < 1.0)
-        objectHalf = 1.0;
-
-    screenScale = (double)min(BUFF_HEIGHT, BUFF_WIDTH) * 0.75;
-
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < frame.n; i++) {
         /*
          * Stretch all three local axes by the same per-vertex amount.  This is
          * radial in object space, so it changes depth as well as silhouette.
@@ -1593,25 +1472,25 @@ void wave_wire1dot6() {
          * enough to show movement, but not so close that near-side vertices
          * explode as az approaches -cameraDistance.
          */
-        stretch = vertex_sound_stretch(theObj[i][0][0], theObj[i][0][1], theObj[i][0][2]);
-        x = ((theObj[i][0][0] - px) / objectHalf) * stretch;
-        y = ((theObj[i][0][1] - py) / objectHalf) * stretch;
-        z = ((theObj[i][0][2] - pz) / objectHalf) * stretch;
+        stretch = vertex_sound_stretch(frame.obj[i][0][0], frame.obj[i][0][1], frame.obj[i][0][2]);
+        wire_point(frame, i, 0, x, y, z);
+        x *= stretch;
+        y *= stretch;
+        z *= stretch;
 
         rotate_axis(x, y, z, axis, theta, ax, ay, az);
 
-        x1 = int((double)ax * screenScale / (az + cameraDistance) + MID_X);
-        y1 = int((double)ay * screenScale / (az + cameraDistance) + MID_Y);
+        project_wire_point(ax, ay, az, frame.screenScale, cameraDistance, x1, y1);
 
-        stretch = vertex_sound_stretch(theObj[i][1][0], theObj[i][1][1], theObj[i][1][2]);
-        x = ((theObj[i][1][0] - px) / objectHalf) * stretch;
-        y = ((theObj[i][1][1] - py) / objectHalf) * stretch;
-        z = ((theObj[i][1][2] - pz) / objectHalf) * stretch;
+        stretch = vertex_sound_stretch(frame.obj[i][1][0], frame.obj[i][1][1], frame.obj[i][1][2]);
+        wire_point(frame, i, 1, x, y, z);
+        x *= stretch;
+        y *= stretch;
+        z *= stretch;
 
         rotate_axis(x, y, z, axis, theta, ax, ay, az);
 
-        x2 = int((double)ax * screenScale / (az + cameraDistance) + MID_X);
-        y2 = int((double)ay * screenScale / (az + cameraDistance) + MID_Y);
+        project_wire_point(ax, ay, az, frame.screenScale, cameraDistance, x2, y2);
 
         draw_line(x1, y1, x2, y2, tcolor(col));
     }
@@ -1619,6 +1498,23 @@ void wave_wire1dot6() {
 
 #define nobj 10
 #define whirlyRadius 45
+
+static void init_wire2_copy(int loc[3], int& psi, int& rate, int& col) {
+    int j, k;
+
+    loc[1] = rand() % (whirlyRadius * 2) - whirlyRadius;
+    j = rand() % 320;
+    k = 1 + rand() % (whirlyRadius - 1);
+    loc[0] = int(isin(j) * k);
+    loc[2] = int(icos(j) * k);
+
+    rate = 1 + rand() % 7;
+    if (rand() % 2)
+        rate *= -1;
+    psi = rand() % 320;
+    col = random_wire_color();
+}
+
 /*
  * Wire2 draws a little swarm of copies of the selected object.  The object
  * itself is not reloaded or copied here; every frame reads the currently
@@ -1647,7 +1543,7 @@ void wave_wire2() {
     /* Sine/cosine for each object's local spin. */
     double sto, cto;
 
-    register int i, j, k, x1, y1, x2, y2;
+    register int i, j, x1, y1, x2, y2;
     register int mx, my, mz, m;
 
     /*
@@ -1684,18 +1580,7 @@ void wave_wire2() {
          * radius and zero spin so no model sits fixed in the center.
          */
         for (i = 0; i < nobj; i++) {
-
-            loc[i][1] = rand() % (whirlyRadius * 2) - whirlyRadius;
-            j = rand() % 320;
-            k = 1 + rand() % (whirlyRadius - 1);
-            loc[i][0] = int(isin(j) * k);
-            loc[i][2] = int(icos(j) * k);
-
-            rate[i] = 1 + rand() % 7;
-            if (rand() % 2)
-                rate[i] *= -1;
-            psi[i] = rand() % 320;
-            col[i] = abs(rand() % 256);
+            init_wire2_copy(loc[i], psi[i], rate[i], col[i]);
             CTH_DEBUG("model %d: rate %d, psi %d, col %d\n", i, rate[i], psi[i], col[i]);
 
         }
@@ -1828,7 +1713,7 @@ void wave_wire2dot1() {
     double lx, ly, lz;
     double scl;
 
-    register int i, j, k, x1, y1, x2, y2;
+    register int i, j, x1, y1, x2, y2;
     register int mx, my, mz, m;
     double omx, omy, omz, om;
     register int ox, oy;
@@ -1848,17 +1733,7 @@ void wave_wire2dot1() {
         random_axis(blobAxis);
 
         for (i = 0; i < nobj; i++) {
-            loc[i][1] = rand() % (whirlyRadius * 2) - whirlyRadius;
-            j = rand() % 320;
-            k = 1 + rand() % (whirlyRadius - 1);
-            loc[i][0] = int(isin(j) * k);
-            loc[i][2] = int(icos(j) * k);
-
-            rate[i] = 1 + rand() % 7;
-            if (rand() % 2)
-                rate[i] *= -1;
-            psi[i] = rand() % 320;
-            col[i] = abs(rand() % 256);
+            init_wire2_copy(loc[i], psi[i], rate[i], col[i]);
             CTH_DEBUG("model %d: rate %d, psi %d, col %d\n", i, rate[i], psi[i], col[i]);
 
             random_axis(modelAxis[i]);
