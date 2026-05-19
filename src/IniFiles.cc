@@ -16,9 +16,11 @@
 
 char extra_lib_path[PATH_MAX] = ""; /* extra path to search for
                                        pcx, tab, map and ini */
+char ini_file_override[PATH_MAX] = "";
 
 FILE* ini_file = NULL; /* the currently open ini-file */
 static int ini_nr = -1;
+static char ini_file_path[PATH_MAX] = "";
 
 /*
  * create the name of an ini file
@@ -70,6 +72,23 @@ int open_ini_start() {
 int open_ini_file() {
     char* fname;
 
+    ini_file_path[0] = '\0';
+
+    if (ini_file_override[0] != '\0') {
+        if (ini_nr == -1) {
+            ini_nr = 0;
+            ini_file = fopen(ini_file_override, "r");
+            if (ini_file) {
+                strncpy(ini_file_path, ini_file_override, PATH_MAX);
+                ini_file_path[PATH_MAX - 1] = '\0';
+                return 0;
+            }
+
+            CTH_ERRNO(errno, "Can not open ini file `%s'.", ini_file_override);
+        }
+        return 1;
+    }
+
     for (ini_nr++; ini_nr < 6; ini_nr++) {
         if (ini_nr == 5) {
             ini_file = NULL;
@@ -79,10 +98,101 @@ int open_ini_file() {
         fname = ini_file_name(ini_nr);
         if (fname)
             ini_file = fopen(fname, "r");
-        if (ini_file)
+        if (ini_file) {
+            strncpy(ini_file_path, fname, PATH_MAX);
+            ini_file_path[PATH_MAX - 1] = '\0';
             return 0;
+        }
     }
     return 1;
+}
+
+static int ini_entry_name(const char* line, char* entry, int entry_size, int* malformed) {
+    const char* linep = line;
+    const char* colon;
+    const char* end;
+    int len;
+
+    *malformed = 0;
+
+    while (isspace(*linep))
+        linep++;
+
+    switch (*linep) {
+    case '#':
+    case '!':
+    case '\0':
+        return 0;
+    }
+
+    if (strncasecmp(linep, "cthugha.", 8) != 0)
+        return 0;
+
+    linep += 8;
+    colon = strchr(linep, ':');
+    if (colon == NULL) {
+        *malformed = 1;
+        strncpy(entry, linep, entry_size);
+        entry[entry_size - 1] = '\0';
+        return 1;
+    }
+
+    end = colon;
+    while ((end > linep) && isspace(end[-1]))
+        end--;
+
+    len = end - linep;
+    if (len >= entry_size)
+        len = entry_size - 1;
+
+    strncpy(entry, linep, len);
+    entry[len] = '\0';
+
+    return 1;
+}
+
+static int is_long_option_ini_entry(const char* entry) {
+    struct option* opt;
+
+    for (opt = long_options; opt->name != NULL; opt++) {
+        if (strcasecmp(entry, opt->name) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+static void warn_unknown_ini_entries() {
+    int line_nr = 0;
+
+    if (ini_file == NULL)
+        return;
+
+    rewind(ini_file);
+
+    while (!feof(ini_file)) {
+        char line[256];
+        char entry[256];
+        int malformed;
+
+        line_nr++;
+        line[0] = '\0';
+        fgets(line, 256, ini_file);
+
+        if (!ini_entry_name(line, entry, sizeof(entry), &malformed))
+            continue;
+
+        if (malformed) {
+            CTH_WARN("Malformed ini directive `%s' in `%s' line %d.\n",
+                entry, ini_file_path, line_nr);
+            continue;
+        }
+
+        if (!is_long_option_ini_entry(entry) && !CoreOption::isIniEntry(entry)) {
+            CTH_WARN("Unknown ini directive `cthugha.%s' in `%s' line %d.\n",
+                entry, ini_file_path, line_nr);
+        }
+    }
 }
 
 //
@@ -242,6 +352,11 @@ int read_ini() {
             if ((opt->flag == 0) || // no variable, must pass it to do_param
                 (opt->has_arg != 0)) { // has argument, must pass it to do_param
                 if (getini(opt->name, str) == 0) { // there is an entry in the ini-file
+                    if ((strcasecmp(opt->name, "ini-file") == 0) && (ini_file != NULL)) {
+                        CTH_WARN("Ignoring `cthugha.ini-file' in `%s'; ini-file chaining is not supported. Use --ini-file on the command line.\n",
+                            ini_file_path);
+                        continue;
+                    }
                     do_param(opt->val, atoi(str), str);
                 }
             } else { // variable given, we must take care
@@ -250,6 +365,7 @@ int read_ini() {
         }
 
         CoreOption::getIniInitials();
+        warn_unknown_ini_entries();
 
         if (ini_file)
             fclose(ini_file);

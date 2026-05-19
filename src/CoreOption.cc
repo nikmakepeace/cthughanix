@@ -429,6 +429,43 @@ void CoreOption::getIniInitials() {
     }
 }
 
+int CoreOption::isIniEntry(const char* entry) {
+    char str[512];
+    int len;
+
+    if (strchr(entry, '?') != NULL)
+        return 1;
+
+    if (strncasecmp(entry, "hot.", 4) == 0)
+        return 1;
+
+    for (CoreOption* o = first; o != NULL; o = o->next) {
+        if (strcasecmp(entry, o->name()) == 0)
+            return 1;
+
+        len = strlen(o->name());
+        if ((strncasecmp(entry, o->name(), len) == 0) && (entry[len] == '.'))
+            return 1;
+
+        for (int i = 0; i < MAX_HOT; i++) {
+            sprintf(str, "hot.%d.", i);
+            strncat(str, o->name(), 512);
+            if (strcasecmp(entry, str) == 0)
+                return 1;
+        }
+
+        for (int i = 0; i < o->getNEntries(); i++) {
+            strncpy(str, o->name(), 512);
+            strncat(str, ".", 512);
+            strncat(str, o->entries[i]->name, 512);
+            if (strcasecmp(entry, str) == 0)
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 

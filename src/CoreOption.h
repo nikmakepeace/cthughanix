@@ -242,6 +242,7 @@ public:
 
     static void getIniUsages();
     static void putIniUsages();
+    static int isIniEntry(const char* entry);
 
     friend class InterfaceList;
     friend class activateAction;

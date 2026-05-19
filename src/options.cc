@@ -79,6 +79,7 @@ enum option_nr {
     opt_no_shade,
     opt_palette_smoothing,
     opt_no_palette_smoothing,
+    opt_ini_file,
 };
 
 struct option long_options[] = {
@@ -220,7 +221,7 @@ struct option long_options[] = {
 #endif
 
     // general options
-    { "path", 1, 0, 'E' }, { "keymap", 1, 0, opt_keymap },
+    { "path", 1, 0, 'E' }, { "ini-file", 1, 0, opt_ini_file }, { "keymap", 1, 0, opt_keymap },
 #ifndef CTH_SERV
     { "dbl-load", 0, &double_load.value, 1 }, { "no-dbl-load", 0, &double_load.value, 0 },
     { "save", 0, &options_save.value, 1 }, { "no-save", 0, &options_save.value, 0 },
@@ -476,6 +477,11 @@ int do_param(int c, int value, char* str) {
         strncat(extra_lib_path, "/", PATH_MAX);
         break;
 
+    case opt_ini_file:
+        strncpy(ini_file_override, str, PATH_MAX);
+        ini_file_override[PATH_MAX - 1] = '\0';
+        break;
+
     case opt_clt_port:
         CLT_PORT = value;
         break;
@@ -644,6 +650,7 @@ int get_pre_params(int argc, char* argv[]) {
     int option_index = 0;
 
     static struct option long_options_preini[] = { { "path", 1, 0, 'E' },
+        { "ini-file", 1, 0, opt_ini_file },
         { "verbose", 2, 0, opt_verbose }, { "no-verbose", 1, &cthugha_verbose.value, 0 },
 #ifdef CTH_XWIN
         { "text-on-term", 0, &DisplayDevice::text_on_term, 1 },
