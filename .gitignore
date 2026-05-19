@@ -131,3 +131,6 @@ CVS/
 
 # customised ini file
 /cthugha.ini
+
+# External dependencies
+/external

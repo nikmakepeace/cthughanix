@@ -40,7 +40,54 @@
    - Document `--play FILE --silent` as the preferred fixture path for analysis-only
      runs, and `--snd-method 3` as the current smoother OSS/QEMU playback workaround.
 
-5. Stabilize PCX behavior.
+5. ~~Revisit automatic option-change timing.
+   - Compare the feel of the three current/reference behaviors:
+     - DOS Cthugha 5.3 keeps a visual combination for `min_time + rand() % rand_time`
+       frames. Defaults are `200 + rand() % 750`, roughly 3-14 seconds at VGA 70 Hz
+       or 3-16 seconds at 60 Hz.
+     - CthughaNix defaults to a time-based `AutoChanger`: `min-time=500` and
+       `random-time=1000`, meaning 5-15 seconds before a full unlocked `CoreOption`
+       change, unless audio/silence triggers earlier. `--little` changes only one
+       option.
+     - `cthugha-js` currently rolls once per second and may change one category each
+       tick, so visible changes can happen much more often; any individual category
+       such as wave/table/flame changes about every 7 seconds on average.
+   - Decide whether JS should default closer to DOS/Nix pacing: slower dwell, less
+     per-second churn, and possibly a full-combination change after a randomized wait.
+   - Preserve useful controls: global lock, per-option locks, randomize-one,
+     randomize-all, and manual next/previous controls.~~
+
+6. Explore audio-driven option changes.
+   - Treat this as a musical attention model, not just a beat detector: change when the
+     audio suggests the current visual state has earned a turn.
+   - Compare DOS 5.3 `peaknoise` with CthughaNix `fire`:
+     - DOS checks whether the per-buffer min/max audio range exceeds `peaklevel`; after
+       `peakframes` such hits, it exits the current dwell early.
+     - Nix accumulates rising RMS amplitude into `attackLevel`, emits `fire` when the
+       amplitude starts to decline, accumulates `fireLevel`, then changes when that
+       crosses `fire-level`.
+   - Candidate triggers and policies:
+     - Onset/attack energy for kick, snare, sharp entrances, and drops.
+     - Sustained loudness for intense sections, normalized enough to avoid constant
+       triggering on compressed music.
+     - Spectral flux: compare FFT magnitudes frame-to-frame to catch cymbals, chord
+       changes, new instruments, and timbral shifts.
+     - Band-specific triggers: low band for flame/display warps, mid band for wave
+       changes, high band for palette/table/color cycling.
+     - Novelty/section detection using rolling audio summaries, with larger changes
+       for verse/chorus/drop transitions.
+     - Tempo-aware cooldowns so changes can land on rough 4/8/16-beat boundaries.
+     - Entropy/texture: sparse audio favors stable options; dense/noisy audio raises
+       change probability or selects more chaotic options.
+     - Silence and re-entry: freeze/message during silence, then trigger a scene change
+       when sound returns.
+     - Adaptive boredom: if audio is steady, fall back to slow timed changes; if audio is
+       active, let audio events advance options sooner.
+   - A promising hybrid: base dwell of 5-15 seconds, early audio-triggered changes only
+     after a short cooldown, small events change one option, strong section events change
+     everything, and per-option locks are always respected.
+
+7. Stabilize PCX behavior.
    - ~~Verify loading from `pcx/`, `.pcx.gz`, clipping, centering, palette selection,~~ and
      screenshot save behavior.
    - Review init/load return-code behavior: several `init_*` functions currently always
@@ -49,19 +96,19 @@
      fatal error propagation.
    - ~~Keep PCX working as legacy content while preparing for a modern image path.~~
 
-6. Add a modern image loader.
+8. Add a modern image loader.
    - Add a small image-loader abstraction, with PNG as the first supported modern format.
    - Keep the internal indexed-buffer behavior intact initially.
    - Define transparency semantics deliberately: alpha mask, alpha blend into indexed
      output, or separate overlay layer.
 
-7. Modernize the build.
+9. Modernize the build.
    - Add a contemporary build path that can build `xcthugha` and future modern display
      targets.
    - Quarantine or optionally disable SVGAlib and old OpenGL/GLUT paths by default.
    - Keep old build files around until the replacement build proves itself.
 
-8. Add a modern display target.
+10. Add a modern display target.
    - Prefer SDL2 or SDL3 as the first modern frontend.
    - Preserve the core contract: the engine produces an indexed 8-bit buffer plus a
      palette; the frontend presents it.
