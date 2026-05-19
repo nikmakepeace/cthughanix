@@ -285,6 +285,13 @@ int do_param(int c, int value, char* str) {
 
     case opt_palette_smoothing:
         paletteSmoothingChance = atof(str);
+        if (paletteSmoothingChance < 0.0) {
+            CTH_WARN("Palette smoothing chance below 0, clamping to 0.\n");
+            paletteSmoothingChance = 0.0;
+        } else if (paletteSmoothingChance > 1.0) {
+            CTH_WARN("Palette smoothing chance above 1, clamping to 1.\n");
+            paletteSmoothingChance = 1.0;
+        }
         break;
     case opt_no_palette_smoothing:
         paletteSmoothingChance = 0.0;

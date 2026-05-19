@@ -208,6 +208,7 @@ void CthughaBuffer::smoothPalette() {
     if (lastPalette != palette.currentN()) {
         lastPalette = palette.currentN();
         if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance) {
+            // skip smoothing, jump directly to the new palette (DOS behaviour)
             setPalette(*desiredPal);
             return;
         }

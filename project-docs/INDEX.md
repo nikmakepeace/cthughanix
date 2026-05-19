@@ -72,6 +72,25 @@ This documentation provides a comprehensive mapping of the CthughaNix project ar
      - Version management
      - Maintenance guidelines
 
+### 6. **CTHUGHA_JS_COMPARISON.md** - JS Port Comparison
+   - **Purpose:** Code-level comparison with `delaneyparker/cthugha-js`
+   - **Best For:** Understanding why the PIXI.js port may feel closer to DOS Cthugha
+   - **Key Sections:**
+     - Frame pipeline comparison
+     - Buffer model and resolution differences
+     - Flame, wave, palette, and translation observations
+     - Likely reasons for visual differences
+
+### 7. **CTHUGHA_JS_PORTING_PLAN.md** - Fidelity Experiments
+   - **Purpose:** Practical experiment plan based on the JS comparison
+   - **Best For:** Planning reversible changes toward more DOS-faithful visuals
+   - **Key Sections:**
+     - 320x200 buffer experiment
+     - Immediate palette / cycling mode
+     - Zero-crossing waveform mode
+     - Translation/display separation
+     - Wire overlay slot plan
+
 ---
 
 ## Reading Paths
@@ -466,4 +485,3 @@ This comprehensive documentation maps the entire CthughaNix architecture, provid
 - **Optimization Opportunities** - Where to focus effort
 
 Use this documentation as a reference guide, extension manual, and deep-dive resource for understanding this unique 1999-era music visualization program.
-

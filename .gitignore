@@ -127,3 +127,6 @@ CVS/
 
 # compiled object files
 /obj/*.obj
+
+# customised ini file
+/
