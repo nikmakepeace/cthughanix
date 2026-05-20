@@ -473,9 +473,10 @@ void DisplayDeviceX11::allocImage() {
             exit(0);
             ;
         }
+        break;
 
     case shmNone:
-        CTH_DEBUG("    using no shared image/pixmap.\n");
+        CTH_DEBUG("    using no shared image; staging through server pixmap.\n");
 
         if ((image = XCreateImage(xcth_display, visual, planes, ZPixmap, 0, NULL, disp_size.x,
                  disp_size.y, XBitmapPad(xcth_display), 0))
@@ -488,6 +489,12 @@ void DisplayDeviceX11::allocImage() {
 
         if ((image->data = (char*)malloc(disp_size.y * bytes_per_line)) == NULL) {
             CTH_ERROR("Can not allocate memory for bitmap.\n");
+            exit(0);
+        }
+
+        if ((pixmap = XCreatePixmap(xcth_display, window, disp_size.x, disp_size.y, planes))
+            == 0) {
+            CTH_ERROR("Can not create the staging XPixmap.\n");
             exit(0);
         }
     }
@@ -528,6 +535,10 @@ void DisplayDeviceX11::freeImage() {
             shmctl(shminfo.shmid, IPC_RMID, 0);
             break;
         case shmNone:
+            if (pixmap) {
+                XFreePixmap(xcth_display, pixmap);
+                pixmap = 0;
+            }
             XDestroyImage(image);
         }
     }
@@ -598,6 +609,7 @@ void DisplayDeviceX11::postDraw() {
                     disp_size.x, disp_size.y,
                     0, 0);
             }
+            XFlush(xcth_display);
             return;
         }
     }
@@ -614,7 +626,10 @@ void DisplayDeviceX11::postDraw() {
             XShmPutImage(xcth_display, window, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y, 0);
             break;
         case shmNone:
-            XPutImage(xcth_display, window, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y);
+            XPutImage(xcth_display, pixmap, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y);
+            XCopyArea(xcth_display, pixmap, window, gc, 0, 0,
+                disp_size.x, disp_size.y,
+                0, 0);
         }
     else
         switch (shmLevel) {
@@ -628,11 +643,16 @@ void DisplayDeviceX11::postDraw() {
         case shmImage:
             XShmPutImage(xcth_display, window, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
                 SCREEN_OFFSET_X, SCREEN_OFFSET_Y, draw_size.x, draw_size.y, 0);
+            break;
         case shmNone:
-            XPutImage(xcth_display, window, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
+            XPutImage(xcth_display, pixmap, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
                 SCREEN_OFFSET_X, SCREEN_OFFSET_Y, draw_size.x, draw_size.y);
+            XCopyArea(xcth_display, pixmap, window, gc, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
+                draw_size.x, draw_size.y,
+                SCREEN_OFFSET_X, SCREEN_OFFSET_Y);
         }
 
+    XFlush(xcth_display);
     needsFullCopy = 0;
 }
 
