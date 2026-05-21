@@ -69,7 +69,7 @@ noinst_HEADERS = 	\
 	Sound.h           display.h         options.h	      glcthugha.h	\
 	Interface.h	  keymap.h	    joystick.h				\
 										\
-	initial_palettes.cc                 keys.cc options.cc			\
+	keys.cc options.cc			\
 	default.keymap	  default.keymap.str
 
 

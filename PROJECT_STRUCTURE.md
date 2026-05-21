@@ -66,7 +66,7 @@ The source tree is organized by subsystem rather than by one namespace or librar
 - `src/translate.*`: translation-table loading and per-pixel remapping.
 - `src/Flashlight.cc`: optional buffer brightening effect.
 - `src/display.cc`: 2D screen mapping functions such as mirrored, split, heightfield, roll, bent, plate.
-- `src/palettes.cc`, `src/initial_palettes.cc`: internal and external palette handling.
+- `src/palettes.cc`: palette loading and palette handling.
 - `src/pcx.*`: PCX loading, display, and screenshot save.
 
 ### Display Frontends

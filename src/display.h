@@ -58,8 +58,6 @@ int load_palettes(); /* initializiation */
 int init_palettes();
 int exit_palettes();
 int update_palette();
-extern int display_internal_pal; /* disable internal pal. */
-extern int display_external_pal; /*  disable external pal. */
 void cth_setpalette(Palette pal, int immed);
 
 /*

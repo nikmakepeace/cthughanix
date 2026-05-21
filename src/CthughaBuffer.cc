@@ -131,14 +131,6 @@ void CthughaBuffer::initAll() {
     if (init_pcx())
         exit(0);
 
-    /* check if any palettes in use */
-    if (CthughaBuffer::current->palette.getNEntries() == 0) {
-        CTH_ERROR("No palettes specified. enabling inbuilt palettes\n");
-        display_internal_pal = 1;
-        if (load_palettes())
-            exit(0);
-    }
-
     // allocate memory for the buffers
     for (int i = 0; i < maxNBuffers; i++)
         buffers[i].init();

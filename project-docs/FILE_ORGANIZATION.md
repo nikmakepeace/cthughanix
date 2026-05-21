@@ -39,7 +39,6 @@ src/
 │   ├── translate.h / translate.cc
 │   ├── SoundProcess.h / SoundProcess.cc
 │   ├── Flashlight.cc            # Brightness effects
-│   └── initial_palettes.cc
 │
 ├── Display Backends
 │   ├── DisplayDevice.h / DisplayDevice.cc
@@ -536,4 +535,3 @@ signal(SIGCONT, sig_tty_cont);  // Set resume handler
 - `display.h` - Palette management
 - `interface.h` - Menu system
 - `Sound.h` - Audio interface
-

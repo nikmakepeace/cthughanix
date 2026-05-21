@@ -137,8 +137,6 @@ void usage() {
     PH(" --load-late         Load translation tables when Cthugha is running",
         transLoadLate.text());
     PH(" -X, --no-pcx        Disable PCX image files");
-    PH(" -i, --no-ipal       Disable inbuilt palettes");
-    PH(" -e, --no-epal       Do not load external palettes");
     PH(" --palette-smoothing F  Chance palette changes smooth, 0..1", "1");
     PH(" --no-palette-smoothing Disable palette smoothing");
     PH(" --no-object         Disable 3-D objects");

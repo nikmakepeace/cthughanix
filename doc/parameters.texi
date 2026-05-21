@@ -280,12 +280,6 @@ table is loaded only once. This can save a lot of time when starting Cthugha.
 @item -X, --no-pcx
 Disable usage of PCX image files. 
 
-@item -i, --no-ipal
-Disable the inbuilt palettes - there is no reason to do this. 
-
-@item -e, --no-epal
-Do not load external palettes.
-
 @item --no-object
 Do not load 3D objects (wire frames) used by some wave functions.
 There are no such files included with Cthugha.

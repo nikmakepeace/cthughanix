@@ -158,8 +158,6 @@ struct option long_options[] = {
     { "disp-mode", 1, 0, 'D' }, { "palette", 1, 0, 'p' }, { "display", 1, 0, 'd' },
     { "pcx", 1, 0, 'P' }, { "use-pcx", 0, &display_use_pcx, 1 },
     { "no-pcx", 0, &display_use_pcx, 0 },
-    { "ipal", 0, &display_internal_pal, 1 }, { "no-ipal", 0, &display_internal_pal, 0 },
-    { "epal", 0, &display_external_pal, 1 }, { "no-epal", 0, &display_external_pal, 0 },
     { "palette-smoothing", 1, 0, opt_palette_smoothing },
     { "no-palette-smoothing", 0, 0, opt_no_palette_smoothing },
     { "test", 0, 0, opt_test }, { "max-fps", 1, 0, opt_maxfps },
@@ -356,13 +354,6 @@ int do_param(int c, int value, char* str) {
         lock.setValue(1);
         break;
 
-    case 'i': /* no internal palettes */
-        display_internal_pal = 0;
-        break;
-    case 'e': /* no external palettes */
-        display_external_pal = 0;
-        break;
-
 #ifndef CTH_SERV
     case 'T':
         changeWaitMin.change(str);
@@ -489,7 +480,6 @@ int do_param(int c, int value, char* str) {
     case opt_test:
         use_translates.value = 0;
         display_use_pcx = 0;
-        display_external_pal = 0;
         break;
 
     case opt_zoom:
@@ -671,7 +661,7 @@ int get_params(int argc, char* argv[]) {
     while ((c = getopt_long(argc, argv,
                 "21v:L:M:C:c:xrP:E:?S:W:"
 #ifndef CTH_SERV
-                "f:w:d:p:t:o:q:T:R:N:D:a:m:XlieQ:s"
+                "f:w:d:p:t:o:q:T:R:N:D:a:m:XlQ:s"
 #endif
                 ,
                 long_options, &option_index))

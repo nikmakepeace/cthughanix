@@ -6,14 +6,9 @@
 #include "CthughaDisplay.h"
 #include "CthughaBuffer.h"
 
-#include "initial_palettes.cc"
-
 CoreOptionEntryList paletteEntries;
 
 int change_palette_imm(int);
-
-int display_internal_pal = 1; /* use internal pal. */
-int display_external_pal = 1; /* use external pal. */
 
 unsigned long bitmap_colors0[256]; /* "compiled" palette */
 unsigned long bitmap_colors1[256]; /* "compiled" palette */
@@ -33,52 +28,35 @@ int colormapped = 1; /* 0 .. True/Direct color
 
 int load_palettes() {
     int i, l;
+    PaletteEntry* new_pal;
+    Palette* pal;
 
-    /* Builtin palettes */
-    if (display_internal_pal) {
-        char str[128];
-        PaletteEntry* new_pal;
-        Palette* pal;
+    CTH_INFO("  loading palettes...\n");
+    CthughaBuffer::current->palette.load(palette_path, "/map/", ".map", read_palette);
 
-        CTH_INFO("  preparing internal palettes...\n");
+    /* create one general palette */
+    new_pal = new PaletteEntry("general", "");
+    pal = &(new_pal->pal);
+    for (i = 0; i < 64; i++) {
+        (*pal)[i][0] = i << 2;
+        (*pal)[i][1] = 0;
+        (*pal)[i][2] = 0;
 
-        for (i = 0; (unsigned int)i < sizeof(initial_palettes) / sizeof(Palette); i++) {
-            sprintf(str, "Internal_%d", i);
-            new_pal = new PaletteEntry(str, "");
-            memcpy(new_pal->pal, initial_palettes[i], sizeof(Palette));
-            CthughaBuffer::current->palette.add(new_pal);
-        }
+        (*pal)[i + 64][0] = 0;
+        (*pal)[i + 64][1] = i << 2;
+        (*pal)[i + 64][2] = 0;
 
-        /* create one general palette */
-        sprintf(str, "Internal_%d", CthughaBuffer::current->palette.getNEntries());
-        new_pal = new PaletteEntry(str, "");
-        pal = &(new_pal->pal);
-        for (i = 0; i < 64; i++) {
-            (*pal)[i][0] = i << 2;
-            (*pal)[i][1] = 0;
-            (*pal)[i][2] = 0;
+        (*pal)[i + 128][0] = 0;
+        (*pal)[i + 128][1] = 0;
+        (*pal)[i + 128][2] = i << 2;
 
-            (*pal)[i + 64][0] = 0;
-            (*pal)[i + 64][1] = i << 2;
-            (*pal)[i + 64][2] = 0;
-
-            (*pal)[i + 128][0] = 0;
-            (*pal)[i + 128][1] = 0;
-            (*pal)[i + 128][2] = i << 2;
-
-            (*pal)[i + 192][0] = i << 2;
-            (*pal)[i + 192][1] = i << 2;
-            (*pal)[i + 192][2] = i << 2;
-        }
-        CthughaBuffer::current->palette.add(new_pal);
+        (*pal)[i + 192][0] = i << 2;
+        (*pal)[i + 192][1] = i << 2;
+        (*pal)[i + 192][2] = i << 2;
     }
+    CthughaBuffer::current->palette.add(new_pal);
 
-    /* read palettes from file */
-    if (display_external_pal) {
-        CTH_INFO("  loading external palettes...\n");
-        CthughaBuffer::current->palette.load(palette_path, "/map/", ".map", read_palette);
-        CTH_INFO("  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
-    }
+    CTH_INFO("  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
 
     /* brighten up palettes, that are a bit dark */
     for (i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++) {

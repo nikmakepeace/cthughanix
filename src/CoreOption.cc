@@ -252,7 +252,8 @@ void CoreOption::changeAll() {
     save();
 
     for (CoreOption* o = first; o != NULL; o = o->next) {
-        o->changeRandom(0);
+        if ((o->buffer < 0) || (o->buffer < CthughaBuffer::nBuffers))
+            o->changeRandom(0);
     }
 }
 
