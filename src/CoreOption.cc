@@ -34,6 +34,14 @@ int CoreOption::nCoreOptions = 0;
 const int MAX_HISTORY = 128;
 const int MAX_HOT = 10;
 
+static int compareFeatureFileNames(const void* a, const void* b) {
+    const char* left = *(const char* const*)a;
+    const char* right = *(const char* const*)b;
+    int folded = strcasecmp(left, right);
+
+    return folded ? folded : strcmp(left, right);
+}
+
 CoreOption::CoreOption(int b, const char* n, CoreOptionEntryList& e)
     : Option(n)
     , buffer(b)
@@ -542,39 +550,64 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
 
 void CoreOption::loadDir(const char* dir, const char* extension,
     CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*)) {
-    char total_name[255];
-    char feat_name[255];
+    char total_name[PATH_MAX];
+    char feat_name[PATH_MAX];
     DIR* directory;
     struct dirent* entry;
     CoreOptionEntry* fe;
+    char** names = NULL;
+    int nNames = 0;
+    int maxNames = 0;
 
     if ((directory = opendir(dir)) != NULL) {
         while ((entry = readdir(directory)) != NULL) {
             if (!hasExtension(entry->d_name, extension))
                 continue;
 
+            if (nNames >= maxNames) {
+                int newMaxNames = maxNames ? maxNames * 2 : 32;
+                char** newNames = (char**)realloc(names, newMaxNames * sizeof(char*));
+                if (newNames == NULL) {
+                    CTH_ERRNO(errno, "Can not allocate feature filename list.");
+                    break;
+                }
+                names = newNames;
+                maxNames = newMaxNames;
+            }
+
+            names[nNames] = new char[strlen(entry->d_name) + 1];
+            strcpy(names[nNames], entry->d_name);
+            nNames++;
+        }
+        closedir(directory);
+
+        qsort(names, nNames, sizeof(char*), compareFeatureFileNames);
+
+        for (int i = 0; i < nNames; i++) {
             /* create real filename */
-            strncpy(total_name, dir, 255);
-            strncat(total_name, entry->d_name, 255);
+            snprintf(total_name, PATH_MAX, "%s%s", dir, names[i]);
 
             CTH_DEBUG("    ");
 
             /* feature name only goes till first occurence of extension */
-            strncpy(feat_name, entry->d_name, 255);
+            strncpy(feat_name, names[i], PATH_MAX);
+            feat_name[PATH_MAX - 1] = '\0';
             *strstr(feat_name, extension) = '\0';
 
             /*
              * Plain and compressed files share the same feature name:
              * `foo.pcx' and `foo.pcx.gz' both become `foo'. Without
-             * --dbl-load, the first directory entry returned by readdir()
-             * wins and later duplicates are skipped.
+             * --dbl-load, the alphabetically first filename wins and later
+             * duplicates are skipped.
              */
             if (!int(double_load) && defined(feat_name)) {
                 CTH_DEBUG("already loaded: %s\n", total_name);
             } else if ((fe = load(feat_name, total_name, dir, loader)) != NULL)
                 add(fe);
+
+            delete[] names[i];
         }
-        closedir(directory);
+        free(names);
     }
 }
 
