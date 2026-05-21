@@ -446,11 +446,12 @@ Widget DisplayDeviceX11::add_menu(
     /* create menu items */
     for (i = 0; i < what->getNEntries(); i++) {
         menu_data_t* md = new menu_data_t;
+        const char* label = (*what)[i]->Desc()[0] ? (*what)[i]->Desc() : (*what)[i]->Name();
 
         md->opt = what;
         md->pos = i;
 
-        XtSetArg(wargs[0], XtNlabel, (*what)[i]->Name());
+        XtSetArg(wargs[0], XtNlabel, label);
         item = XtCreateManagedWidget((*what)[i]->Name(), smeBSBObjectClass, menu, wargs, 1);
         XtAddCallback(item, XtNcallback, menuCB, md);
     }

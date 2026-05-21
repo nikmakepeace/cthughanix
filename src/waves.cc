@@ -118,7 +118,9 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * Wave behavior catalog
  *
  * Common fields:
- * - UI: short name shown in the Wave option, followed by the longer label.
+ * - Entry: CoreOption name followed by description.  The X11 panel menu shows
+ *   the description when present, falling back to Name(); ncurses/list-style
+ *   text displays both.
  * - Does: visible drawing behavior.
  * - Colours: how the wave turns its own values into palette indices.  tcolor()
  *   means the current table is applied first; "raw" means the byte written to
@@ -126,34 +128,34 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Sound: where the wave gets audio information.
  *
  * wave_dotHor
- * - UI: DotHor (Dots Horizontal)
+ * - Entry: DotHor (Dots Horizontal)
  * - Does: plots left/right channel dots across the width, with height driven by
  *   each resampled sample value.
  * - Colours: tcolor(sample), so sample value selects a table entry.
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_dotVert
- * - UI: DotVert (Dots Vertical)
+ * - Entry: DotVert (Dots Vertical)
  * - Does: plots left/right channel dots down the screen, displaced left/right
  *   from the center by sample value.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BOTTOM) from soundDevice->dataProc.
  *
  * wave_lineHor
- * - UI: LineHor (Lines Horizontal)
+ * - Entry: LineHor (Lines Horizontal)
  * - Does: draws connected horizontal-scan oscilloscope traces, split into left
  *   and right halves.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_lineVert
- * - UI: LineVert (Lines Vertical)
+ * - Entry: LineVert (Lines Vertical)
  * - Does: draws connected vertical traces, one channel to each side of center.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BOTTOM) from soundDevice->dataProc.
  *
  * wave_spike
- * - UI: Spike (Spikes)
+ * - Entry: Spike (Spikes)
  * - Does: draws filled vertical bars rising from the bottom, left and right
  *   channels split across the screen.
  * - Colours: tcolor(height), so colour follows distance up the spike rather
@@ -161,104 +163,104 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_spikeH
- * - UI: SpikeH (Spikes Hollow)
+ * - Entry: SpikeH (Spikes Hollow)
  * - Does: draws only the moving outline of spike heights.
  * - Colours: tcolor(scaled absolute amplitude).
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_buff9
- * - UI: Walking (Walking)
+ * - Entry: Walking (Walking)
  * - Does: draws two vertical traces around a horizontally walking center
  *   column.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BOTTOM) from soundDevice->dataProc.
  *
  * wave_buff10
- * - UI: Falling (Falling)
+ * - Entry: Falling (Falling)
  * - Does: writes channel sample dots into a row that advances downward.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(2 * MID_X) from soundDevice->dataProc.
  *
  * wave_buff11
- * - UI: Lissa (Lissa)
+ * - Entry: Lissa (Lissa)
  * - Does: draws a Lissajous-style point cloud, using right channel for x and
  *   left channel for y.
  * - Colours: tcolor(left sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_buff14
- * - UI: LineX (Line X)
+ * - Entry: LineX (Line X)
  * - Does: draws two horizontal traces with different center offsets.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BOTTOM) from soundDevice->dataProc.
  *
  * wave_buff15
- * - UI: Light1 (Lightning 1)
+ * - Entry: Light1 (Lightning 1)
  * - Does: draws jagged lightning paths for each channel.
  * - Colours: raw palette index 255 for every segment.
  * - Sound: prepareSoundData(BOTTOM, 0) from soundDevice->dataProc.
  *
  * wave_buff16
- * - UI: Light2 (Lightning 2)
+ * - Entry: Light2 (Lightning 2)
  * - Does: draws a second jagged lightning variant with gentler sample scaling.
  * - Colours: raw palette index 255 for every segment.
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_pete0
- * - UI: Pete0 (FireFlies)
+ * - Entry: Pete0 (FireFlies)
  * - Does: draws two drifting point clusters whose offsets wander with the
  *   first few samples.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_pete1
- * - UI: Pete1 (Pete)
+ * - Entry: Pete1 (Pete)
  * - Does: draws two sine-shaped rows scaled by average channel energy.
  * - Colours: tcolor(signed sample).
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_pete2
- * - UI: Pete2 (Dot VS sine)
+ * - Entry: Pete2 (Dot VS sine)
  * - Does: plots vertical dots displaced by sample, one channel on each side.
  * - Colours: tcolor(sine[sample]), so colour uses a sine lookup of the sample.
  * - Sound: prepareSoundData(BUFF_HEIGHT) from soundDevice->dataProc.
  *
  * wave_fract1
- * - UI: Fract1 (Zippy 1)
+ * - Entry: Fract1 (Zippy 1)
  * - Does: walks two persistent points around the buffer using half-sized
  *   differences between neighboring samples.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_fract2
- * - UI: Fract2 (Zippy 2)
+ * - Entry: Fract2 (Zippy 2)
  * - Does: like Fract1, but uses full sample differences for a sharper walk.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_test
- * - UI: Test (Test)
+ * - Entry: Test (Test)
  * - Does: draws sine-shaped rows scaled by average channel energy, similar to
  *   Pete1 but with unsigned colour lookup.
  * - Colours: tcolor(sample + 128).
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_aaron
- * - UI: Aaron (Rings of Fire)
+ * - Entry: Aaron (Rings of Fire)
  * - Does: draws two moving ring/rosette point sets when the buffer is large
  *   enough, otherwise advances to the next wave.
  * - Colours: tcolor(sample).
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc.
  *
  * wave_wire1
- * - UI: Wire1 (Wire frame 1)
+ * - Entry: Wire1 (Wire frame 1)
  * - Does: rotates the selected object; each edge endpoint can scale
  *   independently, giving a fractured audio-reactive wireframe.
  * - Colours: one startup-random value per wave lifetime, drawn as tcolor(col).
  * - Sound: directly averages slices of soundDevice->dataProc per object edge.
  *
  * wave_wire1dot5
- * - UI: Wire1dot5 (Wire frame 1.5)
+ * - Entry: Wire1dot5 (Wire frame 1.5)
  * - Does: rotates the selected object as a rigid model around a startup-random
  *   axis with one frame-wide audio scale.
  * - Colours: one startup-random value per wave lifetime, drawn as tcolor(col).
@@ -266,14 +268,14 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  *   soundDevice->dataProc.
  *
  * wave_wire1dot55
- * - UI: Wire1dot55 (Wire frame 1.55)
+ * - Entry: Wire1dot55 (Wire frame 1.55)
  * - Does: Wire1dot5 plus a precessing rotation axis.
  * - Colours: one startup-random value per wave lifetime, drawn as tcolor(col).
  * - Sound: wire_sound_scale() averages all 1024 samples from
  *   soundDevice->dataProc.
  *
  * wave_wire1dot6
- * - UI: Wire1dot6 (Wire frame 1.6)
+ * - Entry: Wire1dot6 (Wire frame 1.6)
  * - Does: rotates the selected object while stretching each vertex radially
  *   according to a stable audio slice.
  * - Colours: one startup-random value per wave lifetime, drawn as tcolor(col).
@@ -281,77 +283,78 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  *   slices of soundDevice->dataProc.
  *
  * wave_wire2
- * - UI: Wire2 (Wire frame 2)
+ * - Entry: Wire2 (Wire frame 2)
  * - Does: draws a swarm of selected-object copies, each with its own position
  *   and local spin.
  * - Colours: one startup-random value per copy, drawn as tcolor(col[j]).
  * - Sound: no audio source; motion is time/random-state driven.
  *
  * wave_wire2dot1
- * - UI: Wire2dot1 (Wire frame 2.1)
+ * - Entry: Wire2dot1 (Wire frame 2.1)
  * - Does: Wire2 with a different startup-random local rotation axis per copy.
  * - Colours: one startup-random value per copy, drawn as tcolor(col[j]).
  * - Sound: no audio source; motion is time/random-state driven.
  *
  * wave_lineHLdiff
- * - UI: LineHLDiff (Difference Hor.)
+ * - Entry: LineHLDiff (Difference Hor.)
  * - Does: draws one horizontal trace from the left-minus-right channel
  *   difference.
  * - Colours: tcolor(left - right + 128).
  * - Sound: prepareSoundData(BUFF_WIDTH, 0) from soundDevice->dataProc.
  *
  * wave_spiral
- * - UI: Spiral (Spirograph)
+ * - Entry: Spiral (Spirograph)
  * - Does: draws a changing spirograph from center using current amplitude.
  * - Colours: one cycling value per frame, drawn as tcolor(col).
- * - Sound: soundAnalyze.amplitude, amplitudeLeft, and amplitudeRight.
+ * - Sound: soundAnalyze.amplitude, amplitudeLeft, and amplitudeRight shape
+ *   the curve; soundAnalyze.fire counts down to the next random twist count.
  *
  * wave_pyro
- * - UI: Pyro (Fire works)
+ * - Entry: Pyro (Fire works)
  * - Does: launches and animates bouncing firework streaks on fire events.
  * - Colours: one random value per firework, drawn as tcolor(col).
  * - Sound: soundAnalyze.fire controls launch and vertical velocity.
  *
  * wave_warp
- * - UI: Warp (Space warp)
+ * - Entry: Warp (Space warp)
  * - Does: launches expanding rotating radial rings on fire events.
  * - Colours: one random value per ring, drawn as tcolor(col).
  * - Sound: soundAnalyze.fire controls ring speed, trail count, and rotation.
  *
  * wave_laser
- * - UI: Laser (Laser)
+ * - Entry: Laser (Laser)
  * - Does: draws beams from the center to moving endpoints driven by adjacent
  *   sample differences.
  * - Colours: fixed table-mapped value tcolor(255).
  * - Sound: prepareSoundData(BUFF_WIDTH / 10, 0) from soundDevice->dataProc.
  *
  * wave_corner
- * - UI: Corner (Corner)
+ * - Entry: Corner (Corner)
  * - Does: on fire events, draws a bright corner/axis shape from a moving point.
  * - Colours: raw fading palette indices 255 >> i.
  * - Sound: soundAnalyze.fire controls movement and thickness, then is cleared.
  *
  * wave_jump
- * - UI: Jump (Jumping points)
+ * - Entry: Jump (Jumping points)
  * - Does: per-column points jump away from the vertical center with inertia.
  * - Colours: raw palette index 255.
  * - Sound: prepareSoundData(BUFF_WIDTH) from soundDevice->dataProc; left and
  *   right samples are summed per column.
  *
  * wave_sticks
- * - UI: Sticks (Random sticks)
+ * - Entry: Sticks (Random sticks)
  * - Does: draws random line segments across the buffer on fire events.
  * - Colours: raw random palette index Random(256), bypassing the table.
  * - Sound: soundAnalyze.fire controls how many sticks are drawn.
  *
  * wave_grid
- * - UI: Grid (Diagnostic grid)
+ * - Entry: Grid (Diagnostic grid)
  * - Does: fills the buffer with diagnostic bands, diagonals, and corner marks.
  * - Colours: fixed raw palette indices.
  * - Sound: none.
  *
  * wave_none
- * - UI: None (No wave drawing)
+ * - Entry: None (No wave drawing)
  * - Does: draws nothing.
  * - Colours: none.
  * - Sound: none.
@@ -401,43 +404,6 @@ public:
     }
 };
 
-/* big K */
-WObject bigK[] = {
-    /* layer 1 */
-    { { 0, 0, 0 }, { 1, 0, 0 } }, { { 1, 0, 0 }, { 1, 3, 0 } }, { { 1, 3, 0 }, { 3, 0, 0 } },
-    { { 3, 0, 0 }, { 4, 0, 0 } }, { { 4, 0, 0 }, { 2, 3, 0 } }, { { 2, 3, 0 }, { 4, 7, 0 } },
-    { { 4, 7, 0 }, { 3, 7, 0 } }, { { 3, 7, 0 }, { 1, 4, 0 } }, { { 1, 4, 0 }, { 1, 7, 0 } },
-    { { 1, 7, 0 }, { 0, 7, 0 } }, { { 0, 7, 0 }, { 0, 0, 0 } },
-    /* layer 2 */
-    { { 0, 0, 1 }, { 1, 0, 1 } }, { { 1, 0, 1 }, { 1, 3, 1 } }, { { 1, 3, 1 }, { 3, 0, 1 } },
-    { { 3, 0, 1 }, { 4, 0, 1 } }, { { 4, 0, 1 }, { 2, 3, 1 } }, { { 2, 3, 1 }, { 4, 7, 1 } },
-    { { 4, 7, 1 }, { 3, 7, 1 } }, { { 3, 7, 1 }, { 1, 4, 1 } }, { { 1, 4, 1 }, { 1, 7, 1 } },
-    { { 1, 7, 1 }, { 0, 7, 1 } }, { { 0, 7, 1 }, { 0, 0, 1 } },
-    /* layer connecting edges */
-    { { 0, 0, 1 }, { 0, 0, 0 } }, { { 1, 0, 1 }, { 1, 0, 0 } }, { { 1, 3, 1 }, { 1, 3, 0 } },
-    { { 3, 0, 1 }, { 3, 0, 0 } }, { { 4, 0, 1 }, { 4, 0, 0 } }, { { 2, 3, 1 }, { 2, 3, 0 } },
-    { { 4, 7, 1 }, { 4, 7, 0 } }, { { 3, 7, 1 }, { 3, 7, 0 } }, { { 1, 4, 1 }, { 1, 4, 0 } },
-    { { 1, 7, 1 }, { 1, 7, 0 } }, { { 0, 7, 1 }, { 0, 7, 0 } },
-
-    { { -1, -1, -1 }, { -1, -1, -1 } }
-};
-/* cube */
-WObject cube4[] = {
-    { { 0, 0, 0 }, { 1, 0, 0 } },
-    { { 1, 0, 0 }, { 1, 1, 0 } },
-    { { 1, 1, 0 }, { 0, 1, 0 } },
-    { { 0, 1, 0 }, { 0, 0, 0 } },
-    { { 0, 0, 0 }, { 0, 0, 1 } },
-    { { 1, 0, 0 }, { 1, 0, 1 } },
-    { { 1, 1, 0 }, { 1, 1, 1 } },
-    { { 0, 1, 0 }, { 0, 1, 1 } },
-    { { 0, 0, 1 }, { 1, 0, 1 } },
-    { { 1, 0, 1 }, { 1, 1, 1 } },
-    { { 1, 1, 1 }, { 0, 1, 1 } },
-    { { 0, 1, 1 }, { 0, 0, 1 } },
-    { { -1, -1, -1 }, { -1, -1, -1 } },
-};
-
 /* another cube */
 WObject cube1[] = {
     { { 0, 0, 0 }, { 1, 0, 0 } },
@@ -455,8 +421,7 @@ WObject cube1[] = {
     { { -1, -1, -1 }, { -1, -1, -1 } },
 };
 
-CoreOptionEntry* _objects[] = { new ObjectEntry(bigK, "bigK", ""),
-    new ObjectEntry(cube1, "bigH", ""), new ObjectEntry(cube4, "Cube4", "") };
+CoreOptionEntry* _objects[] = { new ObjectEntry(cube1, "bigH", "Big H") };
 int _nObjects = sizeof(_objects) / sizeof(CoreOptionEntry*);
 
 /*
@@ -2132,11 +2097,13 @@ void wave_spiral(void) {
     ofs %= 320;
 
     if (loopcount <= 0) {
-        loopcount = abs(rand() % 1000);
+        loopcount = 1 + abs(rand() % 32);
         loops = 2 + abs(rand() % 8);
     }
 
-    loopcount--;
+    if (soundAnalyze.fire)
+        loopcount--;
+
 
     mx = min(BUFF_WIDTH, BUFF_HEIGHT);
     cx = BUFF_WIDTH / 2;
