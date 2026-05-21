@@ -130,7 +130,7 @@ CVS/
 /obj/*.obj
 
 # customised ini file
-/cthugha.ini
+/*.ini
 
 # External dependencies
 /external
