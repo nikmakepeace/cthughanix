@@ -123,6 +123,9 @@
   files.
 - Add AddressSanitizer and UBSan build options early.
 - Add a few deterministic test scenarios for display transitions.
+- Rationalize ini file naming: accept unprefixed keys like `lock: yes` in addition to
+  legacy `cthugha.lock: yes`, warn on likely misspellings such as `chuthga.*`, and decide
+  whether future auto-written ini files should keep the old prefix for compatibility.
 - Document `xcthugha` as the current reference target and SVGAlib as archival.
 - Revisit `glcthugha` later; it depends on old GLUT/OpenGL assumptions and likely should
   not block the SDL path.

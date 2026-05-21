@@ -16,9 +16,9 @@ install-data-local: ${noinst_PROGRAMS} ${noinst_DATA}
 	${INSTALL} -d ${pkglibdir}/pcx
 	${INSTALL} -d ${pkglibdir}/map
 	-cp pcx/* ${pkglibdir}/pcx
-	-cp map/* ${pkglibdir}/map
+	-cp map/*.map ${pkglibdir}/map
+	-if test -d map/png; then ${INSTALL} -d ${pkglibdir}/map/png; cp map/png/* ${pkglibdir}/map/png; fi
 
 
 AUTOMAKE_OPTIONS = foreign
-
 

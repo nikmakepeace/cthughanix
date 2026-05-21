@@ -89,7 +89,7 @@ int load_palettes() {
  * longer palettes are truncated.
  */
 CoreOptionEntry* read_palette(
-    FILE* file, const char* name, const char* /*dir*/, const char* /*total_name*/) {
+    FILE* file, const char* name, const char* /*dir*/, const char* total_name) {
     char line[256];
     int i, j, r, g, b;
     bool read_all_entries = true;
@@ -97,6 +97,8 @@ CoreOptionEntry* read_palette(
     PaletteEntry* new_pal = new PaletteEntry(name, "");
 
     pal = &(new_pal->pal);
+    strncpy(new_pal->sourcePath, total_name, PATH_MAX);
+    new_pal->sourcePath[PATH_MAX - 1] = '\0';
 
     for (i = 0; i < 256; i++) {
         if (fgets(line, sizeof(line), file) == NULL) {

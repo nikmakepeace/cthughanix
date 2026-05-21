@@ -357,7 +357,11 @@ DisplayDeviceX11::DisplayDeviceX11()
     ,
 
     panelTextWidget(NULL)
+    , palettePreviewWidget(NULL)
     , textPixmap(None)
+    , palettePreviewPixmap(None)
+    , palettePreviewPalette(-1)
+    , palettePreviewChangedAt(0.0)
     , pixmap(None)
     , image(NULL) {
 
@@ -415,6 +419,10 @@ DisplayDeviceX11::DisplayDeviceX11()
 }
 
 DisplayDeviceX11::~DisplayDeviceX11() {
+    if (palettePreviewPixmap != None) {
+        XFreePixmap(xcth_display, palettePreviewPixmap);
+        palettePreviewPixmap = None;
+    }
     freePalette();
     freeImage();
 }
@@ -712,6 +720,9 @@ void DisplayDeviceX11::postDraw() {
 
     this->setGlobalPalette();
     dump_x11_frame(image);
+
+    if (palettePreviewWidget)
+        updatePalettePreview();
 
     if (copyText) {
 

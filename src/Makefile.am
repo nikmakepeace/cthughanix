@@ -35,7 +35,7 @@ xcthugha_SOURCES = $(DISPSRC) xwin_keys.cc xwin_options.cc display.cc		\
 	DisplayDeviceX11-Panel.cc nonGL_stubs.cc
 # EXTRA_xcthugha_SOURCES = getopt_long.c
 xcthugha_INCLUDES = ${X_CFLAGS}
-xcthugha_LDADD = ${N_LIBS} ${X_LIBS}  ${LIBOBJS}
+xcthugha_LDADD = ${N_LIBS} ${X_LIBS} -lz ${LIBOBJS}
 
 glcthugha_SOURCES = ${DISPSRC} GL_keys.cc GL_display.cc		\
 	nonx_options.cc GL_options.cc DisplayDeviceGL.cc	\

@@ -39,9 +39,12 @@ class PaletteEntry : public CoreOptionEntry {
     void random(); // randomize this palette
 public:
     Palette pal;
+    char sourcePath[PATH_MAX];
 
     PaletteEntry(const char* name, const char* desc)
-        : CoreOptionEntry(name, desc) { }
+        : CoreOptionEntry(name, desc) {
+        sourcePath[0] = '\0';
+    }
     PaletteEntry(FILE* file, const char* name);
 
     static char randomName[PATH_MAX];
