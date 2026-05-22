@@ -270,7 +270,6 @@ static int palette_png_path(const char* map_path, const char* palette_name, char
     char dir[PATH_MAX];
     char stem[PATH_MAX];
     const char* slash;
-    const char* dot;
 
     if ((map_path == NULL) || (map_path[0] == '\0')) {
         snprintf(png_path, PATH_MAX, "map/png/%s.png", palette_name);
@@ -290,11 +289,19 @@ static int palette_png_path(const char* map_path, const char* palette_name, char
 
     strncpy(stem, slash, PATH_MAX);
     stem[PATH_MAX - 1] = '\0';
-    dot = strstr(stem, ".map");
-    if (dot != NULL)
-        stem[dot - stem] = '\0';
+    size_t stem_len = strlen(stem);
+    if ((stem_len >= 4) && (strcasecmp(stem + stem_len - 4, ".map") == 0))
+        stem[stem_len - 4] = '\0';
 
     snprintf(png_path, PATH_MAX, "%s/png/%s.png", dir, stem);
+    if (access(png_path, R_OK) == 0)
+        return 1;
+
+    snprintf(png_path, PATH_MAX, "map/png/%s.png", stem);
+    if (access(png_path, R_OK) == 0)
+        return 1;
+
+    snprintf(png_path, PATH_MAX, "map/png/%s.png", palette_name);
     return access(png_path, R_OK) == 0;
 }
 
@@ -335,10 +342,16 @@ void DisplayDeviceX11::updatePalettePreview() {
     int png_height = 0;
     std::vector<unsigned char> rgb;
 
-    if (!palette_png_path(palette->sourcePath, palette->Name(), png_path))
+    if (!palette_png_path(palette->sourcePath, palette->Name(), png_path)) {
+        CTH_WARN("Could not find PNG preview for palette `%s' loaded from `%s'.\n",
+            palette->Name(), palette->sourcePath);
         return;
-    if (!load_png_rgb(png_path, png_width, png_height, rgb))
+    }
+    if (!load_png_rgb(png_path, png_width, png_height, rgb)) {
+        CTH_WARN("Could not load PNG preview `%s' for palette `%s'.\n", png_path,
+            palette->Name());
         return;
+    }
 
     int preview_width = 512;
     int preview_height = 256;

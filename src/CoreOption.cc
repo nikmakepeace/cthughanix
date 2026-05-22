@@ -492,12 +492,25 @@ int CoreOption::isCompressed(const char* name) {
 }
 
 int CoreOption::hasExtension(const char* name, const char* extension) {
-    char* pos = strstr(name, extension);
+    const char* pos = NULL;
+    size_t name_len = strlen(name);
+    size_t extension_len = strlen(extension);
+
+    if (name_len < extension_len)
+        return 0;
+
+    for (size_t i = 0; i + extension_len <= name_len; i++) {
+        if (strncasecmp(name + i, extension, extension_len) == 0) {
+            pos = name + i;
+            break;
+        }
+    }
+
     if (pos == NULL)
         return 0;
 
     /* check if extension is at end of name, or is followed by a . */
-    if ((pos[strlen(extension)] == '\0') || (pos[strlen(extension)] == '.'))
+    if ((pos[extension_len] == '\0') || (pos[extension_len] == '.'))
         return 1;
 
     return 0;
@@ -592,7 +605,18 @@ void CoreOption::loadDir(const char* dir, const char* extension,
             /* feature name only goes till first occurence of extension */
             strncpy(feat_name, names[i], PATH_MAX);
             feat_name[PATH_MAX - 1] = '\0';
-            *strstr(feat_name, extension) = '\0';
+            for (char* pos = feat_name; *pos != '\0'; pos++) {
+                if (strncasecmp(pos, extension, strlen(extension)) == 0) {
+                    *pos = '\0';
+                    break;
+                }
+            }
+
+            if (feat_name[0] == '\0') {
+                CTH_DEBUG("skipping empty feature name: %s\n", total_name);
+                delete[] names[i];
+                continue;
+            }
 
             /*
              * Plain and compressed files share the same feature name:
