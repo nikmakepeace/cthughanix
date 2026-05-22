@@ -1,5 +1,4 @@
 #include "cthugha.h"
-#include "translate.h"
 #include "display.h"
 #include "Interface.h"
 #include "imath.h"
@@ -28,11 +27,9 @@ void flame_fade();
 void flame_general_subtle();
 void flame_general_slow();
 
-void flame_general_subtle_no_trans();
-void flame_general_subtle_trans();
+void flame_general_subtle_filter();
 
-void flame_general_slow_no_trans();
-void flame_general_slow_trans();
+void flame_general_slow_filter();
 
 void flame_down();
 
@@ -145,7 +142,12 @@ void general_offset() {
 }
 
 /*
- * The trivial flame function. Used for debugging wave-fuctions
+ * UI: Clear (Blank the buffer)
+ * Does: clears every visible buffer pixel to palette index 0 before translate
+ * and wave drawing.
+ * How: direct memset of active_buffer; it does not read passive_buffer or the
+ * border rows.
+ * Sound/border: ignores sound and border input.
  */
 void flame_clear() { memset(active_buffer, 0, BUFF_SIZE); }
 
@@ -159,6 +161,16 @@ void flame_clear() { memset(active_buffer, 0, BUFF_SIZE); }
     active_buffer = passive_buffer;                                                                \
     passive_buffer = ptr;
 
+/*
+ * UI: u-Sl (Up Slow)
+ * Does: diffuses the previous frame upward, making bright pixels drift toward
+ * the top with a slow, smooth trail.
+ * How: swaps active/passive buffers, then for each destination pixel averages
+ * three nearby horizontal samples plus the pixel below and applies divsub,
+ * which divides by four and subtracts one.
+ * Sound/border: reads from the hidden bottom border through the below-neighbor
+ * samples, so border modes can feed or damp the upward flame.
+ */
 void flame_upslow() {
     int i;
     unsigned int tmp;
@@ -177,20 +189,30 @@ void flame_upslow() {
     }
 }
 
+/*
+ * UI: u-Su (Up Subtle)
+ * Does: a subtler upward flame using the general four-sample filter.
+ * How: sets general offsets to lower-left, lower, lower-right, and two rows
+ * down, then runs the general subtle implementation.  Translation runs later
+ * as its own pipeline stage.
+ * Sound/border: bottom border rows affect the lower-neighbor samples.
+ */
 void flame_upsubtle() {
     flame_offset[0] = -1 + BUFF_WIDTH;
     flame_offset[1] = 0 + BUFF_WIDTH;
     flame_offset[2] = 1 + BUFF_WIDTH;
     flame_offset[3] = BUFF_WIDTH + BUFF_WIDTH;
 
-    if ((CthughaBuffer::current->translate.current() == NULL)
-        || (((TranslateEntry*)CthughaBuffer::current->translate.current())->trans == NULL))
-        flame_general_subtle_no_trans();
-    else
-        flame_general_subtle_trans();
+    flame_general_subtle_filter();
 }
 
-/* about 24 fps */
+/*
+ * UI: u-Fa (Up Fast)
+ * Does: a faster upward flame with a stronger upward smear.
+ * How: swaps active/passive buffers and scans backward, replacing each pixel
+ * from itself plus three lower neighbors, then applying divsub.
+ * Sound/border: bottom border rows can inject energy into the upward motion.
+ */
 void flame_upfast() {
     int i;
     int tmp;
@@ -209,7 +231,14 @@ void flame_upfast() {
  *  FLAME-LEFT
  *****************************************************************************/
 
-/* about 24 fps */
+/*
+ * UI: l-Sl (Left Slow)
+ * Does: diffuses the previous frame up and left, producing a slow leftward
+ * flame drift.
+ * How: swaps active/passive buffers and averages upper-right, current, right,
+ * and lower samples into the pixel one row above.
+ * Sound/border: vertical neighbor reads can pick up top/bottom border rows.
+ */
 void flame_leftslow() {
     int i;
     int tmp;
@@ -224,20 +253,30 @@ void flame_leftslow() {
     }
 }
 
+/*
+ * UI: l-Su (Left Subtle)
+ * Does: a subtler leftward/downwind flame using the general filter.
+ * How: sets general offsets to right, below, below-right, and two rows down,
+ * then runs the general subtle implementation.  Translation runs later as its
+ * own pipeline stage.
+ * Sound/border: bottom border rows influence the lower offsets.
+ */
 void flame_leftsubtle() {
     flame_offset[0] = +1;
     flame_offset[1] = +BUFF_WIDTH;
     flame_offset[2] = 1 + BUFF_WIDTH;
     flame_offset[3] = BUFF_WIDTH + BUFF_WIDTH;
 
-    if ((CthughaBuffer::current->translate.current() == NULL)
-        || (((TranslateEntry*)CthughaBuffer::current->translate.current())->trans == NULL))
-        flame_general_subtle_no_trans();
-    else
-        flame_general_subtle_trans();
+    flame_general_subtle_filter();
 }
 
-/* about 26 fps */
+/*
+ * UI: l-Fa (Left Fast)
+ * Does: a faster leftward flame/smear.
+ * How: swaps active/passive buffers, then averages current, lower-right twice,
+ * and lower into each destination pixel through divsub.
+ * Sound/border: bottom border rows influence the lower neighbor reads.
+ */
 void flame_leftfast() {
     int i;
     int tmp;
@@ -256,7 +295,14 @@ void flame_leftfast() {
  *  FLAME-RIGHT
  *****************************************************************************/
 
-/* about 23 fps */
+/*
+ * UI: r-Sl (Right Slow)
+ * Does: diffuses the previous frame up and right, producing a slow rightward
+ * flame drift.
+ * How: reads passive_buffer without swapping, averaging upper-left, current,
+ * left, and lower samples into active_buffer.
+ * Sound/border: vertical neighbor reads can pick up top/bottom border rows.
+ */
 void flame_rightslow() {
     int i;
     int tmp;
@@ -272,20 +318,30 @@ void flame_rightslow() {
     }
 }
 
+/*
+ * UI: r-Su (Right Subtle)
+ * Does: a subtler rightward/downwind flame using the general filter.
+ * How: sets general offsets to left, below-left, below, and two rows down,
+ * then runs the general subtle implementation.  Translation runs later as its
+ * own pipeline stage.
+ * Sound/border: bottom border rows influence the lower offsets.
+ */
 void flame_rightsubtle() {
     flame_offset[0] = -1;
     flame_offset[1] = BUFF_WIDTH - 1;
     flame_offset[2] = BUFF_WIDTH;
     flame_offset[3] = BUFF_WIDTH + BUFF_WIDTH;
 
-    if ((CthughaBuffer::current->translate.current() == NULL)
-        || (((TranslateEntry*)CthughaBuffer::current->translate.current())->trans == NULL))
-        flame_general_subtle_no_trans();
-    else
-        flame_general_subtle_trans();
+    flame_general_subtle_filter();
 }
 
-/* about 29 fps */
+/*
+ * UI: r-Fa (Right Fast)
+ * Does: a faster rightward flame/smear.
+ * How: swaps active/passive buffers, then averages current, lower-left twice,
+ * and lower into each destination pixel through divsub.
+ * Sound/border: bottom border rows influence the lower neighbor reads.
+ */
 void flame_rightfast() {
     int i;
     int tmp;
@@ -304,7 +360,15 @@ void flame_rightfast() {
  *  FLAME-WATER
  *****************************************************************************/
 
-/* about 23 fps */
+/*
+ * UI: Water (Water)
+ * Does: pulls the image in from both vertical directions, creating a meeting
+ * ripple/waterfall effect around the middle of the buffer.
+ * How: top half is filtered forward from left/current/right/lower samples;
+ * bottom half is filtered backward from upper/right/current samples.  Both
+ * halves use divsub for averaging and decay.
+ * Sound/border: both top and bottom border rows can affect the two halves.
+ */
 void flame_water() {
     int i;
     int tmp;
@@ -329,7 +393,13 @@ void flame_water() {
     }
 }
 
-/* about 29 fps */
+/*
+ * UI: Wa-s (Water Subtle)
+ * Does: a lower-precision/subtler water variant.
+ * How: same two-half neighbor pattern as Water, but uses signed char
+ * temporaries, preserving the old compact arithmetic behavior.
+ * Sound/border: both top and bottom border rows can affect the two halves.
+ */
 void flame_watersubtle() {
     int i;
     unsigned char tmp;
@@ -358,7 +428,13 @@ void flame_watersubtle() {
  *  FLAME-others
  *****************************************************************************/
 
-/* about 23 fps */
+/*
+ * UI: Skyline (Skyline)
+ * Does: smears each row from side neighbors and itself, giving a flatter,
+ * horizon-like diffusion rather than a directional flame.
+ * How: averages left, current, right, and current again through divsub.
+ * Sound/border: does not intentionally sample vertical border rows.
+ */
 void flame_skyline() {
     int i;
     int tmp;
@@ -373,7 +449,14 @@ void flame_skyline() {
     }
 }
 
-/* about 28 fps */
+/*
+ * UI: Weird (Weird)
+ * Does: creates a blockier, high-contrast propagation effect.
+ * How: ORs left, current, right, and lower neighbors, then passes that value
+ * through divsub.  The OR keeps bits alive differently from arithmetic
+ * averaging, which gives this flame its sharper texture.
+ * Sound/border: lower neighbor reads can pick up bottom border rows.
+ */
 void flame_weird() {
     int i;
     unsigned char tmp;
@@ -392,6 +475,13 @@ void flame_weird() {
  *  new from cthugha 5.3
  *****************************************************************************/
 
+/*
+ * UI: Zzz (Zzz)
+ * Does: a sparse upward drift/decay effect.
+ * How: swaps active/passive buffers, sums left and lower neighbors only, then
+ * uses divsub2, which divides by two and subtracts one.
+ * Sound/border: lower neighbor reads can pick up bottom border rows.
+ */
 void flame_zzz() {
     int i;
     unsigned char tmp;
@@ -405,6 +495,13 @@ void flame_zzz() {
     }
 }
 
+/*
+ * UI: Fade (Fade)
+ * Does: uniformly darkens the previous frame without moving it.
+ * How: swaps active/passive buffers and subtracts two from each byte, clamped
+ * at zero, four pixels at a time through divsub4.
+ * Sound/border: ignores sound and border input.
+ */
 void flame_fade() {
     int i;
     unsigned int tmp;
@@ -428,17 +525,29 @@ void flame_fade() {
 /*****************************************************************************
  * general subtle flame
  *****************************************************************************/
+/*
+ * UI: GenSubt (General Subtle)
+ * Does: configurable subtle four-neighbor flame.
+ * How: decodes flameGeneral into four neighbor offsets plus a shared shift,
+ * then runs the packed four-pixel filter.  Translation runs later as its own
+ * pipeline stage.
+ * Sound/border: depends on the selected offsets; any offset crossing top or
+ * bottom can use the hidden border rows.
+ */
 void flame_general_subtle() {
     general_offset();
 
-    if ((CthughaBuffer::current->translate.current() == NULL)
-        || (((TranslateEntry*)CthughaBuffer::current->translate.current())->trans == NULL))
-        flame_general_subtle_no_trans();
-    else
-        flame_general_subtle_trans();
+    flame_general_subtle_filter();
 }
 
-void flame_general_subtle_no_trans() {
+/*
+ * Helper for GenSubt.
+ * Does: applies the current four offsets directly from passive_buffer to
+ * active_buffer.
+ * How: processes four pixels per loop by packing divsub results into an
+ * unsigned int using endian-specific pre-shifted lookup tables.
+ */
+void flame_general_subtle_filter() {
     int i;
     unsigned char tmp;
     unsigned char* ptr = active_buffer;
@@ -474,28 +583,6 @@ void flame_general_subtle_no_trans() {
         ptr += 4;
     }
 }
-void flame_general_subtle_trans() {
-    int i;
-    unsigned char tmp;
-    unsigned char* ptr = active_buffer;
-    unsigned char *offset1, *offset2, *offset3, *offset4;
-    int* trans = ((TranslateEntry*)CthughaBuffer::current->translate.current())->trans;
-    CthughaBuffer::current->done_translate = 1;
-
-    offset1 = passive_buffer + flame_offset[0];
-    offset2 = passive_buffer + flame_offset[1];
-    offset3 = passive_buffer + flame_offset[2];
-    offset4 = passive_buffer + flame_offset[3];
-
-    for (i = BUFF_SIZE; i != 0; i--) {
-        tmp = (*(*trans + offset1)) + (*(*trans + offset2)) + (*(*trans + offset3))
-            + (*(*trans + offset4));
-        *ptr = divsub[tmp];
-
-        trans++;
-        ptr++;
-    }
-}
 
 /*****************************************************************************
  * general slow flame
@@ -503,17 +590,29 @@ void flame_general_subtle_trans() {
  * is a bit slower than traditional flame functions
  *****************************************************************************/
 
+/*
+ * UI: GenSlow (General Slow)
+ * Does: configurable four-neighbor flame, written as the simpler byte-by-byte
+ * reference path.
+ * How: decodes flameGeneral into offsets and runs the byte-by-byte filter.
+ * Translation runs later as its own pipeline stage.
+ * Sound/border: depends on the selected offsets; any offset crossing top or
+ * bottom can use the hidden border rows.
+ */
 void flame_general_slow() {
     general_offset();
 
-    if ((CthughaBuffer::current->translate.current() == NULL)
-        || (((TranslateEntry*)CthughaBuffer::current->translate.current())->trans == NULL))
-        flame_general_slow_no_trans();
-    else
-        flame_general_slow_trans();
+    flame_general_slow_filter();
 }
 
-void flame_general_slow_no_trans() {
+/*
+ * Helper for GenSlow.
+ * Does: applies the current four offsets directly from passive_buffer to
+ * active_buffer.
+ * How: byte-by-byte sum of four neighbors followed by divsub.  Easier to read
+ * than GenSubt's packed path, but slower.
+ */
+void flame_general_slow_filter() {
     int i;
     int tmp;
     unsigned char* ptr = active_buffer;
@@ -537,31 +636,14 @@ void flame_general_slow_no_trans() {
     }
 }
 
-void flame_general_slow_trans() {
-    int i;
-    int tmp;
-    unsigned char* ptr = active_buffer;
-    unsigned char *offset1, *offset2, *offset3, *offset4;
-    int* trans = ((TranslateEntry*)CthughaBuffer::current->translate.current())->trans;
-    CthughaBuffer::current->done_translate = 1;
-
-    offset1 = passive_buffer + flame_offset[0];
-    offset2 = passive_buffer + flame_offset[1];
-    offset3 = passive_buffer + flame_offset[2];
-    offset4 = passive_buffer + flame_offset[3];
-
-    for (i = BUFF_SIZE; i != 0; i--) {
-        tmp = (int)(*(*trans + offset1)) + (int)(*(*trans + offset2)) + (int)(*(*trans + offset3))
-            + (int)(*(*trans + offset4));
-        *ptr = divsub[tmp];
-        ptr++;
-        trans++;
-    }
-}
-
-/* by Deischi
-   Let the buffer fall down
-   */
+/*
+ * UI: Down (Falling Down)
+ * Does: shifts the previous frame downward by one row.
+ * How: copies rows from passive_buffer starting one row above the visible
+ * buffer into active_buffer.
+ * Sound/border: the top hidden border row becomes the new top visible row, so
+ * border mode has a direct visible effect here.
+ */
 void flame_down() {
     int i;
     unsigned char* src = passive_buffer - BUFF_WIDTH;
