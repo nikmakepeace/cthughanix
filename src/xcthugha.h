@@ -76,7 +76,18 @@ public:
     void printString(int x, int y, const char* text, int color, int len, int noDarken);
 
     Widget panelTextWidget;
+    Widget palettePreviewWidget;
+    Widget paletteNameTextWidget;
+    Widget paletteSetTextWidget;
+    Widget paletteEnergyTextWidget;
+    Widget paletteMetadataStatusWidget;
     Pixmap textPixmap;
+    Pixmap palettePreviewPixmap;
+    int palettePreviewPalette;
+    int palettePreviewWidth;
+    int palettePreviewHeight;
+    double palettePreviewChangedAt;
+    char palettePreviewMapPath[PATH_MAX];
 
     enum { shmNone, shmImage, shmPixmap } shmLevel;
     XShmSegmentInfo shminfo;
@@ -106,7 +117,19 @@ protected:
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
     static void menuCB(Widget item, XtPointer data, XtPointer data2);
+    static void deletePaletteCB(Widget item, XtPointer data, XtPointer data2);
+    static void savePaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
+    static void revertPaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
+    static void nextUntaggedPaletteCB(Widget item, XtPointer data, XtPointer data2);
+    static void palettePreviewExpose(Widget item, XtPointer data, XEvent* event, Boolean* cont);
     Widget add_menu(char* name, CoreOption* what, Widget parent, Widget under, Widget right);
+    unsigned long palettePreviewPixel(unsigned char r, unsigned char g, unsigned char b);
+    void updatePalettePreview();
+    void drawPalettePreview();
+    void updatePaletteMetadataEditor();
+    void setPaletteMetadataStatus(const char* status);
+    int savePaletteMetadata();
+    void nextUntaggedPalette();
     void xcth_create_panel();
 
 public:

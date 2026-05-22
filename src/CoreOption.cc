@@ -34,6 +34,14 @@ int CoreOption::nCoreOptions = 0;
 const int MAX_HISTORY = 128;
 const int MAX_HOT = 10;
 
+static int compareFeatureFileNames(const void* a, const void* b) {
+    const char* left = *(const char* const*)a;
+    const char* right = *(const char* const*)b;
+    int folded = strcasecmp(left, right);
+
+    return folded ? folded : strcmp(left, right);
+}
+
 CoreOption::CoreOption(int b, const char* n, CoreOptionEntryList& e)
     : Option(n)
     , buffer(b)
@@ -252,7 +260,8 @@ void CoreOption::changeAll() {
     save();
 
     for (CoreOption* o = first; o != NULL; o = o->next) {
-        o->changeRandom(0);
+        if ((o->buffer < 0) || (o->buffer < CthughaBuffer::nBuffers))
+            o->changeRandom(0);
     }
 }
 
@@ -429,6 +438,43 @@ void CoreOption::getIniInitials() {
     }
 }
 
+int CoreOption::isIniEntry(const char* entry) {
+    char str[512];
+    int len;
+
+    if (strchr(entry, '?') != NULL)
+        return 1;
+
+    if (strncasecmp(entry, "hot.", 4) == 0)
+        return 1;
+
+    for (CoreOption* o = first; o != NULL; o = o->next) {
+        if (strcasecmp(entry, o->name()) == 0)
+            return 1;
+
+        len = strlen(o->name());
+        if ((strncasecmp(entry, o->name(), len) == 0) && (entry[len] == '.'))
+            return 1;
+
+        for (int i = 0; i < MAX_HOT; i++) {
+            sprintf(str, "hot.%d.", i);
+            strncat(str, o->name(), 512);
+            if (strcasecmp(entry, str) == 0)
+                return 1;
+        }
+
+        for (int i = 0; i < o->getNEntries(); i++) {
+            strncpy(str, o->name(), 512);
+            strncat(str, ".", 512);
+            strncat(str, o->entries[i]->name, 512);
+            if (strcasecmp(entry, str) == 0)
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -446,12 +492,25 @@ int CoreOption::isCompressed(const char* name) {
 }
 
 int CoreOption::hasExtension(const char* name, const char* extension) {
-    char* pos = strstr(name, extension);
+    const char* pos = NULL;
+    size_t name_len = strlen(name);
+    size_t extension_len = strlen(extension);
+
+    if (name_len < extension_len)
+        return 0;
+
+    for (size_t i = 0; i + extension_len <= name_len; i++) {
+        if (strncasecmp(name + i, extension, extension_len) == 0) {
+            pos = name + i;
+            break;
+        }
+    }
+
     if (pos == NULL)
         return 0;
 
     /* check if extension is at end of name, or is followed by a . */
-    if ((pos[strlen(extension)] == '\0') || (pos[strlen(extension)] == '.'))
+    if ((pos[extension_len] == '\0') || (pos[extension_len] == '.'))
         return 1;
 
     return 0;
@@ -504,39 +563,75 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
 
 void CoreOption::loadDir(const char* dir, const char* extension,
     CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*)) {
-    char total_name[255];
-    char feat_name[255];
+    char total_name[PATH_MAX];
+    char feat_name[PATH_MAX];
     DIR* directory;
     struct dirent* entry;
     CoreOptionEntry* fe;
+    char** names = NULL;
+    int nNames = 0;
+    int maxNames = 0;
 
     if ((directory = opendir(dir)) != NULL) {
         while ((entry = readdir(directory)) != NULL) {
             if (!hasExtension(entry->d_name, extension))
                 continue;
 
+            if (nNames >= maxNames) {
+                int newMaxNames = maxNames ? maxNames * 2 : 32;
+                char** newNames = (char**)realloc(names, newMaxNames * sizeof(char*));
+                if (newNames == NULL) {
+                    CTH_ERRNO(errno, "Can not allocate feature filename list.");
+                    break;
+                }
+                names = newNames;
+                maxNames = newMaxNames;
+            }
+
+            names[nNames] = new char[strlen(entry->d_name) + 1];
+            strcpy(names[nNames], entry->d_name);
+            nNames++;
+        }
+        closedir(directory);
+
+        qsort(names, nNames, sizeof(char*), compareFeatureFileNames);
+
+        for (int i = 0; i < nNames; i++) {
             /* create real filename */
-            strncpy(total_name, dir, 255);
-            strncat(total_name, entry->d_name, 255);
+            snprintf(total_name, PATH_MAX, "%s%s", dir, names[i]);
 
             CTH_DEBUG("    ");
 
             /* feature name only goes till first occurence of extension */
-            strncpy(feat_name, entry->d_name, 255);
-            *strstr(feat_name, extension) = '\0';
+            strncpy(feat_name, names[i], PATH_MAX);
+            feat_name[PATH_MAX - 1] = '\0';
+            for (char* pos = feat_name; *pos != '\0'; pos++) {
+                if (strncasecmp(pos, extension, strlen(extension)) == 0) {
+                    *pos = '\0';
+                    break;
+                }
+            }
+
+            if (feat_name[0] == '\0') {
+                CTH_DEBUG("skipping empty feature name: %s\n", total_name);
+                delete[] names[i];
+                continue;
+            }
 
             /*
              * Plain and compressed files share the same feature name:
              * `foo.pcx' and `foo.pcx.gz' both become `foo'. Without
-             * --dbl-load, the first directory entry returned by readdir()
-             * wins and later duplicates are skipped.
+             * --dbl-load, the alphabetically first filename wins and later
+             * duplicates are skipped.
              */
             if (!int(double_load) && defined(feat_name)) {
                 CTH_DEBUG("already loaded: %s\n", total_name);
             } else if ((fe = load(feat_name, total_name, dir, loader)) != NULL)
                 add(fe);
+
+            delete[] names[i];
         }
-        closedir(directory);
+        free(names);
     }
 }
 

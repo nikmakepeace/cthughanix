@@ -124,9 +124,16 @@ CVS/
 
 # Test files
 *.mp3
+*.wav
 
 # compiled object files
 /obj/*.obj
 
-# personal ini
-/cthugha.ini
+# customised ini file
+/*.ini
+
+# External dependencies
+/external
+
+# build dumps
+/dumps

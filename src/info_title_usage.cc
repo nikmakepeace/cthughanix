@@ -69,12 +69,12 @@ void usage() {
     PH(" -N, --network HOST[:PORT]  Use cthugha-server running at HOST (using PORT)");
     PH(" --play FILE         Play FILE for sound input");
     PH(" --silent            Play silently", soundSilent.text());
-    PH(" --loop, --once      Play sound file over and over again or only once");
+    PH(" --loop, --no-loop   Play sound file over and over again or only once");
 
     PH("");
     PH("General sound device options:");
     PH(" -v, --rate N        Set sample rate to N", soundSampleRate.text());
-    PH(" -1, -2, --mono, --stereo     set number of sound channels", soundChannels.text());
+    PH(" -1, -2, --stereo, --no-stereo Set number of sound channels", soundChannels.text());
     PH(" --snd-format FMT    Set sound format to FMT", soundFormat.text());
     PH("");
 
@@ -136,9 +136,9 @@ void usage() {
     PH(" --load-on-demand    Load translation tables only when needed", transLoadOnDemand.text());
     PH(" --load-late         Load translation tables when Cthugha is running",
         transLoadLate.text());
-    PH(" -X, --no-use-pcx    Disable PCX image files");
-    PH(" -i, --no-ipal       Disable inbuilt palettes");
-    PH(" -e, --no-epal       Do not load external palettes");
+    PH(" -X, --no-pcx        Disable PCX image files");
+    PH(" --palette-smoothing F  Chance palette changes smooth, 0..1", "1");
+    PH(" --no-palette-smoothing Disable palette smoothing");
     PH(" --no-object         Disable 3-D objects");
     PH(" -s, --no-flashlight Diable usage of flashlights (changing palette on beats)");
     PH("");
@@ -152,6 +152,7 @@ void usage() {
     PH(" -t, --translation N Start with translation N");
     PH(" --border N          Start with buffer border N");
     PH(" -p, --palette N     Start with palette N");
+    PH(" --palette-set SETS  Enable palettes matching one of the named sets");
     PH(" -m, --sound-process N  Start with sound processing N");
     PH(" -a, --table N       Start with table N (how palette is used in wave)");
     PH(" -P, --pcx N         Start with PCX N");
@@ -192,11 +193,12 @@ void usage() {
     PH(" --texture-quality Q Quality of the texture (low, medium, high)", TextureQuality);
     PH(" --hints H           Set glHints to 'fast' or 'nice'", Hints);
     PH(" --dither            Turn on or off dithering", Dither);
-    PH(" --window, --full-screen  Run in a window or full screen (only with Mesa and 3dfx)");
+    PH(" --no-full-screen, --full-screen  Run in a window or full screen (only with Mesa and 3dfx)");
     PH("");
     PH("General options:");
     PH(" -E, --path LIBDIR   An extra searchpath for map, pcx and tab-files");
     PH("                     cthugha searches in LIBDIR/map, LIBDIR/pcx and LIBDIR/tab");
+    PH(" --ini-file FILE     Read settings from FILE instead of default ini files");
     PH(" --keymap KEYMAP     Load keyboard definitions from KEYMAP file");
     PH(" --dbl-load          Allow double loading of palettes, pcx, translations");
     PH(" --prt-file FILE     Filename used at print screen");

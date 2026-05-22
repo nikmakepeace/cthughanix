@@ -1,3 +1,6 @@
+name: Gamma One
+set: gradient abstract classic muted contrast cthughaL
+energy: medium
 0 0 0     Pseudo-gray sequence optimized for images encoded at a gamma near 1.0
 20 12 20  Modification of the Peterson/Vigneau Sequence by Lee Daniel Crocker
 24 20 28

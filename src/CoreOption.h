@@ -20,15 +20,17 @@ protected:
 public:
     CoreOptionEntry(const char* n, const char* d, int inUse = 1);
     virtual ~CoreOptionEntry() {
-        delete name;
+        delete[] name;
         name = NULL;
-        delete desc;
+        delete[] desc;
         desc = NULL;
     }
     virtual int operator()() { return 0; } // do nothing by default
 
     const char* Name() const { return name; }
     const char* Desc() const { return desc; }
+    void setUse(int inUse) { use.setValue(inUse); }
+    int inUse() const { return int(use); }
 
     virtual int sameName(const char* other);
 
@@ -242,6 +244,7 @@ public:
 
     static void getIniUsages();
     static void putIniUsages();
+    static int isIniEntry(const char* entry);
 
     friend class InterfaceList;
     friend class activateAction;

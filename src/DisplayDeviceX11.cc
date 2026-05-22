@@ -29,11 +29,15 @@
 #include <X11/Xaw/Cardinals.h>
 #include <X11/Xatom.h>
 #include <signal.h>
+#include <errno.h>
+#include <limits.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 
 #include "vroot.h"
 
+#include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
 
 xy screenSizes[]
@@ -57,6 +61,125 @@ Display* xcth_display;
 
 static XtAppContext xcth_app_con;
 Widget DisplayDeviceX11::xcth_toplevel;
+
+static int mask_shift(unsigned long mask) {
+    int shift = 0;
+
+    if (mask == 0)
+        return 0;
+
+    while ((mask & 1) == 0) {
+        mask >>= 1;
+        shift++;
+    }
+
+    return shift;
+}
+
+static int mask_bits(unsigned long mask) {
+    int bits = 0;
+
+    while (mask) {
+        if (mask & 1)
+            bits++;
+        mask >>= 1;
+    }
+
+    return bits;
+}
+
+static unsigned char scale_mask_value(unsigned long pixel, unsigned long mask) {
+    int shift;
+    int bits;
+    unsigned long value;
+    unsigned long maxValue;
+
+    if (mask == 0)
+        return 0;
+
+    shift = mask_shift(mask);
+    bits = mask_bits(mask >> shift);
+    value = (pixel & mask) >> shift;
+    maxValue = (1UL << bits) - 1;
+
+    return (unsigned char)((value * 255UL) / maxValue);
+}
+
+static void dump_x11_frame(XImage* image) {
+    static int initialized = 0;
+    static int enabled = 0;
+    static int frame = 0;
+    static int dumped = 0;
+    static int limit = 1;
+    static int every = 1;
+    static char directory[PATH_MAX];
+
+    const char* env;
+
+    if (!initialized) {
+        initialized = 1;
+        env = getenv("CTHUGHA_DUMP_X11_FRAMES");
+        if (env && env[0]) {
+            strncpy(directory, env, PATH_MAX - 1);
+            directory[PATH_MAX - 1] = '\0';
+            enabled = 1;
+
+            env = getenv("CTHUGHA_DUMP_X11_FRAME_LIMIT");
+            if (env && env[0])
+                limit = max(1, atoi(env));
+
+            env = getenv("CTHUGHA_DUMP_X11_FRAME_EVERY");
+            if (env && env[0])
+                every = max(1, atoi(env));
+
+            if ((mkdir(directory, 0777) != 0) && (errno != EEXIST)) {
+                CTH_ERRNO(errno, "Can not create X11 frame dump directory");
+                enabled = 0;
+            }
+        }
+    }
+
+    if (!enabled || (image == NULL))
+        return;
+
+    frame++;
+    if ((frame % every) != 0)
+        return;
+    if (dumped >= limit)
+        return;
+
+    char path[PATH_MAX];
+    snprintf(path, PATH_MAX, "%s/frame-%06d.ppm", directory, frame);
+
+    FILE* out = fopen(path, "wb");
+    if (out == NULL) {
+        CTH_ERRNO(errno, "Can not create X11 frame dump");
+        enabled = 0;
+        return;
+    }
+
+    fprintf(out, "P6\n%d %d\n255\n", image->width, image->height);
+
+    for (int y = 0; y < image->height; y++) {
+        for (int x = 0; x < image->width; x++) {
+            unsigned long pixel = XGetPixel(image, x, y);
+            unsigned char rgb[3];
+
+            if (image->red_mask || image->green_mask || image->blue_mask) {
+                rgb[0] = scale_mask_value(pixel, image->red_mask);
+                rgb[1] = scale_mask_value(pixel, image->green_mask);
+                rgb[2] = scale_mask_value(pixel, image->blue_mask);
+            } else {
+                rgb[0] = rgb[1] = rgb[2] = (unsigned char)pixel;
+            }
+
+            fwrite(rgb, 1, 3, out);
+        }
+    }
+
+    fclose(out);
+    dumped++;
+}
 
 int cth_init(int* argc, char* argv[]) {
 #if HAVE_NCURSES == 1
@@ -234,7 +357,17 @@ DisplayDeviceX11::DisplayDeviceX11()
     ,
 
     panelTextWidget(NULL)
+    , palettePreviewWidget(NULL)
+    , paletteNameTextWidget(NULL)
+    , paletteSetTextWidget(NULL)
+    , paletteEnergyTextWidget(NULL)
+    , paletteMetadataStatusWidget(NULL)
     , textPixmap(None)
+    , palettePreviewPixmap(None)
+    , palettePreviewPalette(-1)
+    , palettePreviewWidth(0)
+    , palettePreviewHeight(0)
+    , palettePreviewChangedAt(0.0)
     , pixmap(None)
     , image(NULL) {
 
@@ -292,6 +425,10 @@ DisplayDeviceX11::DisplayDeviceX11()
 }
 
 DisplayDeviceX11::~DisplayDeviceX11() {
+    if (palettePreviewPixmap != None) {
+        XFreePixmap(xcth_display, palettePreviewPixmap);
+        palettePreviewPixmap = None;
+    }
     freePalette();
     freeImage();
 }
@@ -473,9 +610,10 @@ void DisplayDeviceX11::allocImage() {
             exit(0);
             ;
         }
+        break;
 
     case shmNone:
-        CTH_DEBUG("    using no shared image/pixmap.\n");
+        CTH_DEBUG("    using no shared image; staging through server pixmap.\n");
 
         if ((image = XCreateImage(xcth_display, visual, planes, ZPixmap, 0, NULL, disp_size.x,
                  disp_size.y, XBitmapPad(xcth_display), 0))
@@ -488,6 +626,12 @@ void DisplayDeviceX11::allocImage() {
 
         if ((image->data = (char*)malloc(disp_size.y * bytes_per_line)) == NULL) {
             CTH_ERROR("Can not allocate memory for bitmap.\n");
+            exit(0);
+        }
+
+        if ((pixmap = XCreatePixmap(xcth_display, window, disp_size.x, disp_size.y, planes))
+            == 0) {
+            CTH_ERROR("Can not create the staging XPixmap.\n");
             exit(0);
         }
     }
@@ -528,6 +672,10 @@ void DisplayDeviceX11::freeImage() {
             shmctl(shminfo.shmid, IPC_RMID, 0);
             break;
         case shmNone:
+            if (pixmap) {
+                XFreePixmap(xcth_display, pixmap);
+                pixmap = 0;
+            }
             XDestroyImage(image);
         }
     }
@@ -577,6 +725,10 @@ void DisplayDeviceX11::clearBox(int x, int y, int width, int height) {
 void DisplayDeviceX11::postDraw() {
 
     this->setGlobalPalette();
+    dump_x11_frame(image);
+
+    if (palettePreviewWidget)
+        updatePalettePreview();
 
     if (copyText) {
 
@@ -598,6 +750,7 @@ void DisplayDeviceX11::postDraw() {
                     disp_size.x, disp_size.y,
                     0, 0);
             }
+            XFlush(xcth_display);
             return;
         }
     }
@@ -614,7 +767,10 @@ void DisplayDeviceX11::postDraw() {
             XShmPutImage(xcth_display, window, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y, 0);
             break;
         case shmNone:
-            XPutImage(xcth_display, window, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y);
+            XPutImage(xcth_display, pixmap, gc, image, 0, 0, 0, 0, disp_size.x, disp_size.y);
+            XCopyArea(xcth_display, pixmap, window, gc, 0, 0,
+                disp_size.x, disp_size.y,
+                0, 0);
         }
     else
         switch (shmLevel) {
@@ -628,11 +784,16 @@ void DisplayDeviceX11::postDraw() {
         case shmImage:
             XShmPutImage(xcth_display, window, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
                 SCREEN_OFFSET_X, SCREEN_OFFSET_Y, draw_size.x, draw_size.y, 0);
+            break;
         case shmNone:
-            XPutImage(xcth_display, window, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
+            XPutImage(xcth_display, pixmap, gc, image, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
                 SCREEN_OFFSET_X, SCREEN_OFFSET_Y, draw_size.x, draw_size.y);
+            XCopyArea(xcth_display, pixmap, window, gc, SCREEN_OFFSET_X, SCREEN_OFFSET_Y,
+                draw_size.x, draw_size.y,
+                SCREEN_OFFSET_X, SCREEN_OFFSET_Y);
         }
 
+    XFlush(xcth_display);
     needsFullCopy = 0;
 }
 

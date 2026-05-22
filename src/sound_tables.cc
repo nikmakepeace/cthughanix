@@ -20,7 +20,7 @@ int init_tables() {
         tables[3][i] = 255 - i;
         tables[4][i] = abs(128 - i) + 127;
         tables[5][i] = 255 - abs(128 - i) + 127;
-        tables[6][i] = rand() % 256;
+        tables[6][i] = abs(i - 128) + 127;
         tables[7][i] = (abs(128 - i) < 64) ? 255 : abs(128 - i) * 4;
         tables[8][i] = abs(128 - i);
         tables[9][i] = 255 - abs(128 - i);

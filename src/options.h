@@ -21,6 +21,7 @@
 #include "CoreOption.h"
 
 extern char extra_lib_path[]; /* extra path to search for pcx, tab, map and ini */
+extern char ini_file_override[];
 
 int get_params(int argc, char* argv[]);
 int get_pre_params(int argc, char* argv[]);

@@ -12,8 +12,10 @@ OptionTime changeQuiet("quiet-change", 150); /* change after quiet-pause (1.5 se
 OptionTime changeMsgTime("change-msg-time", 500); /* max. quiet interval (5 sec)
                                                      then text is displayed */
 
-OptionTime changeWaitMin("min-time", 500); /* min time between change (5 sec) */
-OptionTime changeWaitRandom("random-time", 1000); /* extra random wait-time (10 sec) */
+/* Default to roughly the DOS Cthugha 5.3 dwell: 200-949 frames at the old
+   320x200 VGA mode's ~70 Hz scan rate, or about 3-14 seconds. */
+OptionTime changeWaitMin("min-time", 300); /* min time between change (3 sec) */
+OptionTime changeWaitRandom("random-time", 1100); /* extra random wait-time (11 sec) */
 
 OptionInt changeFireLevel("fire-level", 1000);
 
@@ -75,6 +77,8 @@ void AutoChanger::operator()() {
     /* Check for enough fire to change */
     if (int(changeFireLevel))
         if (soundAnalyze.fireLevel > int(changeFireLevel)) {
+            CTH_DEBUG("autochange: fire threshold reached fireLevel=%d threshold=%d\n",
+                soundAnalyze.fireLevel, int(changeFireLevel));
             soundAnalyze.fireLevel = 0;
             change();
             return;

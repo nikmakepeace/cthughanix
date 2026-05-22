@@ -18,6 +18,7 @@ int BUFF_HEIGHT = 100;
 int CthughaBuffer::maxNBuffers = 1;
 int CthughaBuffer::nBuffers = 1;
 int CthughaBuffer::nInit = 0;
+double paletteSmoothingChance = 1.0;
 
 CthughaBuffer CthughaBuffer::buffers[MAX_BUFFERS];
 
@@ -130,14 +131,6 @@ void CthughaBuffer::initAll() {
     if (init_pcx())
         exit(0);
 
-    /* check if any palettes in use */
-    if (CthughaBuffer::current->palette.getNEntries() == 0) {
-        CTH_ERROR("No palettes specified. enabling inbuilt palettes\n");
-        display_internal_pal = 1;
-        if (load_palettes())
-            exit(0);
-    }
-
     // allocate memory for the buffers
     for (int i = 0; i < maxNBuffers; i++)
         buffers[i].init();
@@ -200,10 +193,18 @@ void CthughaBuffer::smoothPalette() {
 
     if ((lastPalette == palette.currentN()) && (palChanged == 0))
         return;
-    lastPalette = palette.currentN();
 
     // this is the palette that should be displayed
     Palette* desiredPal = &(((PaletteEntry*)palette.current())->pal);
+
+    if (lastPalette != palette.currentN()) {
+        lastPalette = palette.currentN();
+        if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance) {
+            // skip smoothing, jump directly to the new palette (DOS behaviour)
+            setPalette(*desiredPal);
+            return;
+        }
+    }
 
     const int PALETTE_CHANNEL_RANGE = 256;
     const int PALETTE_SMOOTH_SECONDS = 2;
