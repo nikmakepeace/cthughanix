@@ -6,6 +6,8 @@
 #include "CthughaDisplay.h"
 #include "CthughaBuffer.h"
 
+#include <ctype.h>
+
 CoreOptionEntryList paletteEntries;
 
 int change_palette_imm(int);
@@ -17,6 +19,269 @@ unsigned long bitmap_colors3[256]; /* "compiled" palette */
 
 CoreOptionEntry* read_palette(FILE* file, const char* name, const char* dir, const char*);
 static const char* palette_path[] = { "./", "./map/", CTH_LIBDIR "/map/", "" };
+
+static int palette_line_was_truncated(const char* line) {
+    size_t len = strlen(line);
+
+    return (len > 0) && (line[len - 1] != '\n');
+}
+
+static void discard_rest_of_line(FILE* file) {
+    int c;
+
+    do {
+        c = fgetc(file);
+    } while ((c != EOF) && (c != '\n'));
+}
+
+static int clamp_palette_component(long value) {
+    if (value < 0)
+        return 0;
+    if (value > 255)
+        return 255;
+    return (int)value;
+}
+
+static int parse_palette_data_line(const char* line, int* r, int* g, int* b) {
+    char* end;
+    long components[3];
+    const char* pos = line;
+
+    for (int i = 0; i < 3; i++) {
+        while ((*pos != '\0') && isspace((unsigned char)*pos))
+            pos++;
+
+        errno = 0;
+        components[i] = strtol(pos, &end, 10);
+        if (end == pos)
+            return 0;
+
+        pos = end;
+    }
+
+    *r = clamp_palette_component(components[0]);
+    *g = clamp_palette_component(components[1]);
+    *b = clamp_palette_component(components[2]);
+    return 1;
+}
+
+static char* trim_metadata_value(char* value) {
+    char* end;
+
+    while ((*value != '\0') && isspace((unsigned char)*value))
+        value++;
+
+    end = value + strlen(value);
+    while ((end > value) && isspace((unsigned char)*(end - 1)))
+        end--;
+    *end = '\0';
+
+    return value;
+}
+
+static int append_metadata_value(
+    char values[][PALETTE_METADATA_VALUE_SIZE], int* count, const char* value) {
+    if (*count >= (int)PALETTE_METADATA_MAX_VALUES)
+        return 0;
+    if (strlen(value) >= (size_t)PALETTE_METADATA_VALUE_SIZE)
+        return 0;
+
+    strcpy(values[*count], value);
+    (*count)++;
+    return 1;
+}
+
+static int append_metadata_display_value(char* display, size_t display_size, const char* value,
+    int quote_value) {
+    size_t used = strlen(display);
+    size_t value_len = strlen(value);
+    size_t needed = value_len + (quote_value ? 2 : 0) + (used ? 1 : 0);
+
+    if (used + needed >= display_size)
+        return 0;
+
+    if (used)
+        strcat(display, " ");
+    if (quote_value)
+        strcat(display, "\"");
+    strcat(display, value);
+    if (quote_value)
+        strcat(display, "\"");
+
+    return 1;
+}
+
+static int parse_metadata_values(const char* text,
+    char values[][PALETTE_METADATA_VALUE_SIZE], int* count, char* display, size_t display_size) {
+    const char* pos = text;
+
+    *count = 0;
+    display[0] = '\0';
+
+    while (1) {
+        char value[PALETTE_METADATA_VALUE_SIZE];
+        size_t value_len = 0;
+        int quoted = 0;
+
+        while ((*pos != '\0') && isspace((unsigned char)*pos))
+            pos++;
+        if (*pos == '\0')
+            break;
+
+        if ((*pos == '"') || (*pos == '\'')) {
+            char quote = *pos;
+
+            quoted = 1;
+            pos++;
+            while ((*pos != '\0') && (*pos != quote)) {
+                if (!isalpha((unsigned char)*pos) && !isspace((unsigned char)*pos))
+                    return 0;
+                if (value_len + 1 >= sizeof(value))
+                    return 0;
+                value[value_len++] = *pos;
+                pos++;
+            }
+            if (*pos != quote)
+                return 0;
+            pos++;
+            if ((*pos != '\0') && !isspace((unsigned char)*pos))
+                return 0;
+        } else {
+            while ((*pos != '\0') && !isspace((unsigned char)*pos)) {
+                if (!isalpha((unsigned char)*pos))
+                    return 0;
+                if (value_len + 1 >= sizeof(value))
+                    return 0;
+                value[value_len++] = *pos;
+                pos++;
+            }
+        }
+
+        while ((value_len > 0) && isspace((unsigned char)value[value_len - 1]))
+            value_len--;
+        value[value_len] = '\0';
+        if (value_len == 0)
+            return 0;
+
+        if (!append_metadata_value(values, count, value))
+            return 0;
+        if (!append_metadata_display_value(display, display_size, value, quoted))
+            return 0;
+    }
+
+    return *count > 0;
+}
+
+static int metadata_energy_allowed(const char* value) {
+    static const char* allowed[] = { "low", "medium", "high", "extreme" };
+
+    for (size_t i = 0; i < sizeof(allowed) / sizeof(allowed[0]); i++) {
+        if (strcasecmp(value, allowed[i]) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+int palette_set_metadata_energy(PaletteEntry* palette, const char* value) {
+    char parsed[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
+    char display[sizeof(palette->metadataEnergy)];
+    int count;
+
+    if (!parse_metadata_values(value, parsed, &count, display, sizeof(display)))
+        return 0;
+    if (count > (int)(sizeof(palette->metadataEnergies) / sizeof(palette->metadataEnergies[0])))
+        return 0;
+
+    for (int i = 0; i < count; i++) {
+        if (!metadata_energy_allowed(parsed[i]))
+            return 0;
+        if (strlen(parsed[i]) >= sizeof(palette->metadataEnergies[0]))
+            return 0;
+    }
+
+    palette->metadataEnergyCount = count;
+    for (int i = 0; i < count; i++)
+        strcpy(palette->metadataEnergies[i], parsed[i]);
+    strcpy(palette->metadataEnergy, display);
+
+    return 1;
+}
+
+int palette_set_metadata_set(PaletteEntry* palette, const char* value) {
+    char parsed[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
+    char display[sizeof(palette->metadataSet)];
+    int count;
+
+    if (!parse_metadata_values(value, parsed, &count, display, sizeof(display)))
+        return 0;
+
+    palette->metadataSetCount = count;
+    for (int i = 0; i < count; i++)
+        strcpy(palette->metadataSets[i], parsed[i]);
+    strcpy(palette->metadataSet, display);
+
+    return 1;
+}
+
+static int parse_palette_metadata_line(char* line, char* key, size_t key_size, char* value,
+    size_t value_size) {
+    char* pos = line;
+    char* colon;
+    char* value_start;
+    size_t key_len;
+    size_t value_len;
+
+    while ((*pos != '\0') && isspace((unsigned char)*pos))
+        pos++;
+    if (!isalpha((unsigned char)*pos))
+        return 0;
+
+    colon = strchr(pos, ':');
+    if (colon == NULL)
+        return 0;
+
+    char* key_end = colon;
+    while ((key_end > pos) && isspace((unsigned char)*(key_end - 1)))
+        key_end--;
+    for (char* p = pos; p < key_end; p++) {
+        if (!isalpha((unsigned char)*p))
+            return 0;
+    }
+
+    key_len = key_end - pos;
+    if ((key_len == 0) || (key_len >= key_size))
+        return 0;
+
+    value_start = trim_metadata_value(colon + 1);
+    for (char* p = value_start; *p != '\0'; p++) {
+        if (!isalpha((unsigned char)*p) && !isspace((unsigned char)*p) && (*p != '"')
+            && (*p != '\''))
+            return 0;
+    }
+
+    value_len = strlen(value_start);
+    if ((value_len == 0) || (value_len >= value_size))
+        return 0;
+
+    memcpy(key, pos, key_len);
+    key[key_len] = '\0';
+    strcpy(value, value_start);
+
+    return 1;
+}
+
+static void apply_palette_metadata(PaletteEntry* palette, const char* key, const char* value) {
+    if (strcasecmp(key, "name") == 0) {
+        palette->setMetadataName(value);
+    } else if (strcasecmp(key, "set") == 0) {
+        if (!palette_set_metadata_set(palette, value))
+            CTH_WARN("\n    Ignoring malformed palette set metadata for `%s'", palette->Name());
+    } else if (strcasecmp(key, "energy") == 0) {
+        if (!palette_set_metadata_energy(palette, value))
+            CTH_WARN("\n    Ignoring malformed palette energy metadata for `%s'", palette->Name());
+    }
+}
 
 int colormapped = 1; /* 0 .. True/Direct color
                         1 .. All 256 color cells
@@ -91,8 +356,11 @@ int load_palettes() {
 CoreOptionEntry* read_palette(
     FILE* file, const char* name, const char* /*dir*/, const char* total_name) {
     char line[256];
-    int i, j, r, g, b;
+    int i = 0;
+    int j, r, g, b;
+    int line_number = 0;
     bool read_all_entries = true;
+    bool in_metadata = true;
     Palette* pal;
     PaletteEntry* new_pal = new PaletteEntry(name, "");
 
@@ -100,7 +368,7 @@ CoreOptionEntry* read_palette(
     strncpy(new_pal->sourcePath, total_name, PATH_MAX);
     new_pal->sourcePath[PATH_MAX - 1] = '\0';
 
-    for (i = 0; i < 256; i++) {
+    while (i < 256) {
         if (fgets(line, sizeof(line), file) == NULL) {
             CTH_DEBUG("\n    Reached end of palette after %d entries (%s) ... filling with black", i,
                 name);
@@ -115,8 +383,33 @@ CoreOptionEntry* read_palette(
                     (*pal)[i][j] = 0;
             break;
         }
+        line_number++;
 
-        if (sscanf(line, "%d %d %d", &r, &g, &b) < 3) {
+        int line_truncated = palette_line_was_truncated(line);
+
+        if (parse_palette_data_line(line, &r, &g, &b)) {
+            if (line_truncated)
+                discard_rest_of_line(file);
+            in_metadata = false;
+        } else if (line_truncated) {
+            discard_rest_of_line(file);
+            CTH_WARN("\n    Overlong palette line: %d (%s) ... ignoring", line_number, name);
+            if (in_metadata)
+                continue;
+
+            r = g = b = 0;
+        } else if (in_metadata) {
+            char key[32];
+            char value[256];
+
+            if (parse_palette_metadata_line(line, key, sizeof(key), value, sizeof(value))) {
+                apply_palette_metadata(new_pal, key, value);
+            } else {
+                CTH_WARN("\n    Ignoring malformed palette metadata line: %d (%s)", line_number,
+                    name);
+            }
+            continue;
+        } else {
             CTH_WARN("\n    Malformed palette line: %d (%s) ... replacing with black", i + 1, name);
             r = g = b = 0;
         }
@@ -124,6 +417,7 @@ CoreOptionEntry* read_palette(
         (*pal)[i][0] = r;
         (*pal)[i][1] = g;
         (*pal)[i][2] = b;
+        i++;
     }
 
     if (read_all_entries) {

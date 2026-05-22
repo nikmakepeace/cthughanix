@@ -20,9 +20,9 @@ protected:
 public:
     CoreOptionEntry(const char* n, const char* d, int inUse = 1);
     virtual ~CoreOptionEntry() {
-        delete name;
+        delete[] name;
         name = NULL;
-        delete desc;
+        delete[] desc;
         desc = NULL;
     }
     virtual int operator()() { return 0; } // do nothing by default

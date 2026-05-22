@@ -5,16 +5,11 @@
 
 CoreOptionEntry::CoreOptionEntry(const char* n, const char* d, int inUse)
     : use("", inUse) {
-    if (n) {
-        name = new char[strlen(n) + 1];
-        strcpy(name, n);
-    } else
-        name = "none";
-    if (d) {
-        desc = new char[strlen(d) + 1];
-        strcpy(desc, d);
-    } else
-        desc = "";
+    name = new char[strlen(n ? n : "none") + 1];
+    strcpy(name, n ? n : "none");
+
+    desc = new char[strlen(d ? d : "") + 1];
+    strcpy(desc, d ? d : "");
 }
 
 // compare up to first SPACE in other

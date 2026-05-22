@@ -21,12 +21,16 @@
 #include <X11/Xaw/SmeBSB.h>
 #include <X11/Xaw/MenuButton.h>
 #include <X11/Xaw/Simple.h>
+#include <X11/Xaw/AsciiText.h>
+#include <X11/Xaw/Label.h>
 #include <X11/Xaw/Cardinals.h>
 #include <X11/Xatom.h>
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <string>
 #include <vector>
 #include <zlib.h>
 
@@ -305,25 +309,86 @@ static int palette_png_path(const char* map_path, const char* palette_name, char
     return access(png_path, R_OK) == 0;
 }
 
+static int panel_palette_data_line(const char* line) {
+    char* end;
+    const char* pos = line;
+
+    for (int i = 0; i < 3; i++) {
+        while ((*pos != '\0') && isspace((unsigned char)*pos))
+            pos++;
+        errno = 0;
+        strtol(pos, &end, 10);
+        if (end == pos)
+            return 0;
+        pos = end;
+    }
+
+    return 1;
+}
+
+static int panel_metadata_key_is(const char* line, const char* key) {
+    const char* pos = line;
+    const char* key_pos = key;
+
+    while ((*pos != '\0') && isspace((unsigned char)*pos))
+        pos++;
+
+    while ((*pos != '\0') && (*key_pos != '\0') && isalpha((unsigned char)*pos)) {
+        if (tolower((unsigned char)*pos) != tolower((unsigned char)*key_pos))
+            return 0;
+        pos++;
+        key_pos++;
+    }
+    if (*key_pos != '\0')
+        return 0;
+    while ((*pos != '\0') && isspace((unsigned char)*pos))
+        pos++;
+
+    return *pos == ':';
+}
+
+static int panel_known_metadata_key(const char* line) {
+    return panel_metadata_key_is(line, "name") || panel_metadata_key_is(line, "set")
+        || panel_metadata_key_is(line, "energy");
+}
+
+static int write_metadata_line(FILE* file, const char* key, const char* value) {
+    if ((value == NULL) || (value[0] == '\0'))
+        return 1;
+
+    return fprintf(file, "%s: %s\n", key, value) >= 0;
+}
+
 void DisplayDeviceX11::drawPalettePreview() {
     if ((palettePreviewWidget == NULL) || (palettePreviewPixmap == None))
         return;
 
-    XCopyArea(xcth_display, palettePreviewPixmap, XtWindow(palettePreviewWidget), gc, 0, 0, 512, 256,
-        0, 0);
+    XCopyArea(xcth_display, palettePreviewPixmap, XtWindow(palettePreviewWidget), gc, 0, 0,
+        palettePreviewWidth, palettePreviewHeight, 0, 0);
 }
 
 void DisplayDeviceX11::updatePalettePreview() {
     if ((palettePreviewWidget == NULL) || (CthughaBuffer::current == NULL))
         return;
 
+    XWindowAttributes attrs;
+    if (!XGetWindowAttributes(xcth_display, XtWindow(palettePreviewWidget), &attrs))
+        return;
+
     int current_palette = CthughaBuffer::current->palette.currentN();
-    if (current_palette == palettePreviewPalette)
+    int palette_changed = current_palette != palettePreviewPalette;
+    int size_changed = (attrs.width != palettePreviewWidth) || (attrs.height != palettePreviewHeight);
+    if (!palette_changed && !size_changed)
         return;
 
     palettePreviewPalette = current_palette;
-    palettePreviewChangedAt = getTime();
+    palettePreviewWidth = attrs.width;
+    palettePreviewHeight = attrs.height;
+    if (palette_changed)
+        palettePreviewChangedAt = getTime();
     palettePreviewMapPath[0] = '\0';
+    if (palette_changed)
+        updatePaletteMetadataEditor();
 
     if (palettePreviewPixmap != None) {
         XFreePixmap(xcth_display, palettePreviewPixmap);
@@ -353,8 +418,11 @@ void DisplayDeviceX11::updatePalettePreview() {
         return;
     }
 
-    int preview_width = 512;
-    int preview_height = 256;
+    int preview_width = palettePreviewWidth;
+    int preview_height = palettePreviewHeight;
+    if ((preview_width <= 0) || (preview_height <= 0))
+        return;
+
     XImage* preview = XCreateImage(xcth_display, visual, planes, ZPixmap, 0, NULL, preview_width,
         preview_height, XBitmapPad(xcth_display), 0);
     if (preview == NULL)
@@ -385,6 +453,163 @@ void DisplayDeviceX11::updatePalettePreview() {
     drawPalettePreview();
 }
 
+void DisplayDeviceX11::setPaletteMetadataStatus(const char* status) {
+    if (paletteMetadataStatusWidget == NULL)
+        return;
+
+    Arg wargs[1];
+    XtSetArg(wargs[0], XtNlabel, status ? status : "");
+    XtSetValues(paletteMetadataStatusWidget, wargs, 1);
+}
+
+void DisplayDeviceX11::updatePaletteMetadataEditor() {
+    if ((paletteNameTextWidget == NULL) || (paletteSetTextWidget == NULL)
+        || (paletteEnergyTextWidget == NULL) || (CthughaBuffer::current == NULL))
+        return;
+
+    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
+    if (palette == NULL)
+        return;
+
+    XtVaSetValues(paletteNameTextWidget, XtNstring, palette->metadataName, NULL);
+    XtVaSetValues(paletteSetTextWidget, XtNstring, palette->metadataSet, NULL);
+    XtVaSetValues(paletteEnergyTextWidget, XtNstring, palette->metadataEnergy, NULL);
+    setPaletteMetadataStatus(palette->sourcePath[0] ? palette->Name() : "read-only");
+}
+
+int DisplayDeviceX11::savePaletteMetadata() {
+    if ((paletteNameTextWidget == NULL) || (paletteSetTextWidget == NULL)
+        || (paletteEnergyTextWidget == NULL) || (CthughaBuffer::current == NULL))
+        return 0;
+
+    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
+    if ((palette == NULL) || (palette->sourcePath[0] == '\0')) {
+        setPaletteMetadataStatus("read-only");
+        return 0;
+    }
+
+    char* name = NULL;
+    char* set = NULL;
+    char* energy = NULL;
+    XtVaGetValues(paletteNameTextWidget, XtNstring, &name, NULL);
+    XtVaGetValues(paletteSetTextWidget, XtNstring, &set, NULL);
+    XtVaGetValues(paletteEnergyTextWidget, XtNstring, &energy, NULL);
+    if ((name == NULL) || (set == NULL) || (energy == NULL)) {
+        setPaletteMetadataStatus("could not read fields");
+        return 0;
+    }
+
+    PaletteEntry scratch(palette->Name(), "");
+    if (name[0])
+        scratch.setMetadataName(name);
+    if (set[0] && !palette_set_metadata_set(&scratch, set)) {
+        setPaletteMetadataStatus("bad set");
+        return 0;
+    }
+    if (energy[0] && !palette_set_metadata_energy(&scratch, energy)) {
+        setPaletteMetadataStatus("bad energy");
+        return 0;
+    }
+
+    FILE* in = fopen(palette->sourcePath, "rb");
+    if (in == NULL) {
+        setPaletteMetadataStatus("open failed");
+        return 0;
+    }
+
+    std::vector<std::string> prefix;
+    std::vector<std::string> body;
+    char line[1024];
+    int found_data = 0;
+    while (fgets(line, sizeof(line), in) != NULL) {
+        std::string current(line);
+        if (!found_data && panel_palette_data_line(line))
+            found_data = 1;
+        if (found_data)
+            body.push_back(current);
+        else if (!panel_known_metadata_key(line))
+            prefix.push_back(current);
+    }
+    int read_error = ferror(in);
+    fclose(in);
+    if (read_error || body.empty()) {
+        setPaletteMetadataStatus("read failed");
+        return 0;
+    }
+
+    char tmp_path[PATH_MAX];
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", palette->sourcePath);
+    FILE* out = fopen(tmp_path, "wb");
+    if (out == NULL) {
+        setPaletteMetadataStatus("write failed");
+        return 0;
+    }
+
+    int ok = write_metadata_line(out, "name", scratch.metadataName)
+        && write_metadata_line(out, "set", scratch.metadataSet)
+        && write_metadata_line(out, "energy", scratch.metadataEnergy);
+    for (size_t i = 0; ok && (i < prefix.size()); i++)
+        ok = fputs(prefix[i].c_str(), out) >= 0;
+    for (size_t i = 0; ok && (i < body.size()); i++)
+        ok = fputs(body[i].c_str(), out) >= 0;
+    if (fclose(out) != 0)
+        ok = 0;
+
+    if (!ok) {
+        unlink(tmp_path);
+        setPaletteMetadataStatus("write failed");
+        return 0;
+    }
+    if (rename(tmp_path, palette->sourcePath) != 0) {
+        unlink(tmp_path);
+        setPaletteMetadataStatus("save failed");
+        return 0;
+    }
+
+    palette->setMetadataName(scratch.metadataName);
+    if (scratch.metadataSet[0]) {
+        palette_set_metadata_set(palette, scratch.metadataSet);
+    } else {
+        palette->metadataSet[0] = '\0';
+        palette->metadataSetCount = 0;
+    }
+    if (scratch.metadataEnergy[0]) {
+        palette_set_metadata_energy(palette, scratch.metadataEnergy);
+    } else {
+        palette->metadataEnergy[0] = '\0';
+        palette->metadataEnergyCount = 0;
+    }
+    XtVaSetValues(paletteNameTextWidget, XtNstring, palette->metadataName, NULL);
+    XtVaSetValues(paletteSetTextWidget, XtNstring, palette->metadataSet, NULL);
+    XtVaSetValues(paletteEnergyTextWidget, XtNstring, palette->metadataEnergy, NULL);
+    setPaletteMetadataStatus("saved");
+    return 1;
+}
+
+void DisplayDeviceX11::nextUntaggedPalette() {
+    if (CthughaBuffer::current == NULL)
+        return;
+
+    int n = CthughaBuffer::current->palette.getNEntries();
+    int start = CthughaBuffer::current->palette.currentN();
+    for (int step = 1; step <= n; step++) {
+        int candidate = (start + step) % n;
+        PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette[candidate];
+        if ((palette != NULL)
+            && ((palette->metadataName[0] == '\0') || (palette->metadataSetCount == 0)
+                || (palette->metadataEnergyCount == 0))) {
+            CthughaBuffer::current->palette.setValue(candidate);
+            CthughaBuffer::current->palette.change(0, 0);
+            palettePreviewPalette = -1;
+            updatePalettePreview();
+            setPaletteMetadataStatus("next untagged");
+            return;
+        }
+    }
+
+    setPaletteMetadataStatus("all tagged");
+}
+
 void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
     DisplayDeviceX11* device = (DisplayDeviceX11*)data;
     if (device == NULL)
@@ -408,14 +633,40 @@ void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointe
     unlink(palette->sourcePath);
 }
 
-void DisplayDeviceX11::palettePreviewExpose(
-    Widget /*item*/, XtPointer data, XEvent* event, Boolean* /*cont*/) {
-    if (event->type != Expose)
-        return;
-
+void DisplayDeviceX11::savePaletteMetadataCB(
+    Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
     DisplayDeviceX11* device = (DisplayDeviceX11*)data;
     if (device != NULL)
+        device->savePaletteMetadata();
+}
+
+void DisplayDeviceX11::revertPaletteMetadataCB(
+    Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
+    DisplayDeviceX11* device = (DisplayDeviceX11*)data;
+    if (device != NULL) {
+        device->updatePaletteMetadataEditor();
+        device->setPaletteMetadataStatus("reverted");
+    }
+}
+
+void DisplayDeviceX11::nextUntaggedPaletteCB(
+    Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
+    DisplayDeviceX11* device = (DisplayDeviceX11*)data;
+    if (device != NULL)
+        device->nextUntaggedPalette();
+}
+
+void DisplayDeviceX11::palettePreviewExpose(
+    Widget /*item*/, XtPointer data, XEvent* event, Boolean* /*cont*/) {
+    DisplayDeviceX11* device = (DisplayDeviceX11*)data;
+    if (device == NULL)
+        return;
+
+    if (event->type == ConfigureNotify) {
+        device->updatePalettePreview();
+    } else if (event->type == Expose) {
         device->drawPalettePreview();
+    }
 }
 
 Widget DisplayDeviceX11::add_menu(
@@ -473,8 +724,10 @@ Widget DisplayDeviceX11::add_menu(
 void DisplayDeviceX11::xcth_create_panel() {
     Widget panel;
     Widget quit_button, change_button, delete_palette_button;
+    Widget name_label, set_label, energy_label;
+    Widget save_metadata_button, revert_metadata_button, next_untagged_button;
     Widget menu[8];
-    Arg wargs[3];
+    Arg wargs[8];
 
     /* create the panel formWidget */
     panel = XtCreateManagedWidget("panel", formWidgetClass, xcth_toplevel, NULL, 0);
@@ -509,18 +762,88 @@ void DisplayDeviceX11::xcth_create_panel() {
 
     // create the panelText Widget
     text_size.x = 80;
-    text_size.y = 25;
+    text_size.y = 40 / fontSize.y;
+    if (text_size.y < 1)
+        text_size.y = 1;
     XtSetArg(wargs[0], XtNfromVert, menu[0]);
     XtSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
-    XtSetArg(wargs[2], XtNheight, fontSize.y * text_size.y);
+    XtSetArg(wargs[2], XtNheight, 40);
     panelTextWidget = XtCreateManagedWidget("panelText", labelWidgetClass, panel, wargs, 3);
 
     XtSetArg(wargs[0], XtNfromVert, panelTextWidget);
-    XtSetArg(wargs[1], XtNwidth, 512);
+    XtSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
     XtSetArg(wargs[2], XtNheight, 256);
-    palettePreviewWidget = XtCreateManagedWidget("palettePreview", simpleWidgetClass, panel, wargs, 3);
-    XtAddEventHandler(palettePreviewWidget, ExposureMask, False, palettePreviewExpose, this);
+    XtSetArg(wargs[3], XtNright, XawChainRight);
+    palettePreviewWidget = XtCreateManagedWidget("palettePreview", simpleWidgetClass, panel, wargs, 4);
+    XtAddEventHandler(
+        palettePreviewWidget, ExposureMask | StructureNotifyMask, False, palettePreviewExpose, this);
+
+    XtSetArg(wargs[0], XtNlabel, "Name");
+    XtSetArg(wargs[1], XtNfromVert, palettePreviewWidget);
+    name_label = XtCreateManagedWidget("paletteNameLabel", labelWidgetClass, panel, wargs, 2);
+
+    XtSetArg(wargs[0], XtNfromVert, palettePreviewWidget);
+    XtSetArg(wargs[1], XtNfromHoriz, name_label);
+    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
+    XtSetArg(wargs[4], XtNstring, "");
+    paletteNameTextWidget
+        = XtCreateManagedWidget("paletteNameText", asciiTextWidgetClass, panel, wargs, 5);
+
+    XtSetArg(wargs[0], XtNlabel, "Set");
+    XtSetArg(wargs[1], XtNfromVert, name_label);
+    set_label = XtCreateManagedWidget("paletteSetLabel", labelWidgetClass, panel, wargs, 2);
+
+    XtSetArg(wargs[0], XtNfromVert, paletteNameTextWidget);
+    XtSetArg(wargs[1], XtNfromHoriz, set_label);
+    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
+    XtSetArg(wargs[4], XtNstring, "");
+    paletteSetTextWidget
+        = XtCreateManagedWidget("paletteSetText", asciiTextWidgetClass, panel, wargs, 5);
+
+    XtSetArg(wargs[0], XtNlabel, "Energy");
+    XtSetArg(wargs[1], XtNfromVert, set_label);
+    energy_label = XtCreateManagedWidget("paletteEnergyLabel", labelWidgetClass, panel, wargs, 2);
+
+    XtSetArg(wargs[0], XtNfromVert, paletteSetTextWidget);
+    XtSetArg(wargs[1], XtNfromHoriz, energy_label);
+    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
+    XtSetArg(wargs[4], XtNstring, "");
+    paletteEnergyTextWidget
+        = XtCreateManagedWidget("paletteEnergyText", asciiTextWidgetClass, panel, wargs, 5);
+
+    XtSetArg(wargs[0], XtNlabel, "Save Metadata");
+    XtSetArg(wargs[1], XtNfromVert, energy_label);
+    save_metadata_button
+        = XtCreateManagedWidget("savePaletteMetadata", commandWidgetClass, panel, wargs, 2);
+    XtAddCallback(save_metadata_button, XtNcallback, savePaletteMetadataCB, this);
+
+    XtSetArg(wargs[0], XtNlabel, "Revert");
+    XtSetArg(wargs[1], XtNfromVert, energy_label);
+    XtSetArg(wargs[2], XtNfromHoriz, save_metadata_button);
+    revert_metadata_button
+        = XtCreateManagedWidget("revertPaletteMetadata", commandWidgetClass, panel, wargs, 3);
+    XtAddCallback(revert_metadata_button, XtNcallback, revertPaletteMetadataCB, this);
+
+    XtSetArg(wargs[0], XtNlabel, "Next Untagged");
+    XtSetArg(wargs[1], XtNfromVert, energy_label);
+    XtSetArg(wargs[2], XtNfromHoriz, revert_metadata_button);
+    next_untagged_button
+        = XtCreateManagedWidget("nextUntaggedPalette", commandWidgetClass, panel, wargs, 3);
+    XtAddCallback(next_untagged_button, XtNcallback, nextUntaggedPaletteCB, this);
+
+    XtSetArg(wargs[0], XtNlabel, "");
+    XtSetArg(wargs[1], XtNfromVert, energy_label);
+    XtSetArg(wargs[2], XtNfromHoriz, next_untagged_button);
+    XtSetArg(wargs[3], XtNwidth, fontSize.x * 18);
+    XtSetArg(wargs[4], XtNborderWidth, 0);
+    XtSetArg(wargs[5], XtNjustify, XtJustifyLeft);
+    paletteMetadataStatusWidget
+        = XtCreateManagedWidget("paletteMetadataStatus", labelWidgetClass, panel, wargs, 6);
 
     /* realize window */
     XtRealizeWidget(xcth_toplevel);
+    updatePaletteMetadataEditor();
 }
