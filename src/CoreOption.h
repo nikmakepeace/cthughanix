@@ -29,6 +29,8 @@ public:
 
     const char* Name() const { return name; }
     const char* Desc() const { return desc; }
+    void setUse(int inUse) { use.setValue(inUse); }
+    int inUse() const { return int(use); }
 
     virtual int sameName(const char* other);
 

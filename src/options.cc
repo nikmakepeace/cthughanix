@@ -79,6 +79,7 @@ enum option_nr {
     opt_no_shade,
     opt_palette_smoothing,
     opt_no_palette_smoothing,
+    opt_palette_set,
     opt_ini_file,
 };
 
@@ -160,6 +161,7 @@ struct option long_options[] = {
     { "no-pcx", 0, &display_use_pcx, 0 },
     { "palette-smoothing", 1, 0, opt_palette_smoothing },
     { "no-palette-smoothing", 0, 0, opt_no_palette_smoothing },
+    { "palette-set", 1, 0, opt_palette_set },
     { "test", 0, 0, opt_test }, { "max-fps", 1, 0, opt_maxfps },
     { "zoom", 1, 0, opt_zoom },
 #endif
@@ -274,6 +276,10 @@ int do_param(int c, int value, char* str) {
         break;
     case opt_no_palette_smoothing:
         paletteSmoothingChance = 0.0;
+        break;
+    case opt_palette_set:
+        if (!palette_set_filter(str))
+            return 1;
         break;
 
     case 'd':

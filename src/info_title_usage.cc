@@ -152,6 +152,7 @@ void usage() {
     PH(" -t, --translation N Start with translation N");
     PH(" --border N          Start with buffer border N");
     PH(" -p, --palette N     Start with palette N");
+    PH(" --palette-set SETS  Enable palettes matching one of the named sets");
     PH(" -m, --sound-process N  Start with sound processing N");
     PH(" -a, --table N       Start with table N (how palette is used in wave)");
     PH(" -P, --pcx N         Start with PCX N");

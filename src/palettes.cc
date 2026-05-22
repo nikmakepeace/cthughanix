@@ -19,6 +19,9 @@ unsigned long bitmap_colors3[256]; /* "compiled" palette */
 
 CoreOptionEntry* read_palette(FILE* file, const char* name, const char* dir, const char*);
 static const char* palette_path[] = { "./", "./map/", CTH_LIBDIR "/map/", "" };
+static int paletteSetFilterCount = 0;
+static char paletteSetFilter[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
+static char paletteSetFilterText[256] = "";
 
 static int palette_line_was_truncated(const char* line) {
     size_t len = strlen(line);
@@ -134,7 +137,7 @@ static int parse_metadata_values(const char* text,
             quoted = 1;
             pos++;
             while ((*pos != '\0') && (*pos != quote)) {
-                if (!isalpha((unsigned char)*pos) && !isspace((unsigned char)*pos))
+                if (!isalnum((unsigned char)*pos) && !isspace((unsigned char)*pos))
                     return 0;
                 if (value_len + 1 >= sizeof(value))
                     return 0;
@@ -148,7 +151,7 @@ static int parse_metadata_values(const char* text,
                 return 0;
         } else {
             while ((*pos != '\0') && !isspace((unsigned char)*pos)) {
-                if (!isalpha((unsigned char)*pos))
+                if (!isalnum((unsigned char)*pos))
                     return 0;
                 if (value_len + 1 >= sizeof(value))
                     return 0;
@@ -224,6 +227,70 @@ int palette_set_metadata_set(PaletteEntry* palette, const char* value) {
     return 1;
 }
 
+int palette_set_filter(const char* value) {
+    char parsed[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
+    char display[sizeof(paletteSetFilterText)];
+    int count;
+
+    if ((value == NULL) || (value[0] == '\0')) {
+        paletteSetFilterCount = 0;
+        paletteSetFilterText[0] = '\0';
+        return 1;
+    }
+
+    if (!parse_metadata_values(value, parsed, &count, display, sizeof(display))) {
+        CTH_WARN("Ignoring malformed palette set filter `%s'.\n", value);
+        return 0;
+    }
+
+    paletteSetFilterCount = count;
+    for (int i = 0; i < count; i++)
+        strcpy(paletteSetFilter[i], parsed[i]);
+    strcpy(paletteSetFilterText, display);
+
+    return 1;
+}
+
+static int palette_matches_set_filter(PaletteEntry* palette) {
+    if (paletteSetFilterCount == 0)
+        return 1;
+
+    for (int i = 0; i < paletteSetFilterCount; i++) {
+        for (int j = 0; j < palette->metadataSetCount; j++) {
+            if (strcasecmp(paletteSetFilter[i], palette->metadataSets[j]) == 0)
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
+void apply_palette_set_filter() {
+    int usable = 0;
+
+    if ((CthughaBuffer::current == NULL) || (paletteSetFilterCount == 0))
+        return;
+
+    for (int i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++) {
+        PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette[i];
+        int matches = (palette != NULL) && palette_matches_set_filter(palette);
+
+        if (palette != NULL)
+            palette->setUse(matches);
+        if (matches)
+            usable++;
+    }
+
+    if (usable == 0) {
+        CTH_WARN("Palette set filter `%s' matched no palettes; leaving all palettes enabled.\n",
+            paletteSetFilterText);
+        for (int i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++)
+            CthughaBuffer::current->palette[i]->setUse(1);
+    } else {
+        CTH_INFO("  palette set filter `%s': %d palettes enabled\n", paletteSetFilterText, usable);
+    }
+}
+
 static int parse_palette_metadata_line(char* line, char* key, size_t key_size, char* value,
     size_t value_size) {
     char* pos = line;
@@ -255,7 +322,7 @@ static int parse_palette_metadata_line(char* line, char* key, size_t key_size, c
 
     value_start = trim_metadata_value(colon + 1);
     for (char* p = value_start; *p != '\0'; p++) {
-        if (!isalpha((unsigned char)*p) && !isspace((unsigned char)*p) && (*p != '"')
+        if (!isalnum((unsigned char)*p) && !isspace((unsigned char)*p) && (*p != '"')
             && (*p != '\''))
             return 0;
     }
@@ -322,6 +389,7 @@ int load_palettes() {
     CthughaBuffer::current->palette.add(new_pal);
 
     CTH_INFO("  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
+    apply_palette_set_filter();
 
     /* brighten up palettes, that are a bit dark */
     for (i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++) {

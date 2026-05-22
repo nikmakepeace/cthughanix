@@ -86,6 +86,8 @@ int init_palettes();
 int exit_palettes();
 int update_palette();
 void cth_setpalette(Palette pal, int immed);
+int palette_set_filter(const char* value);
+void apply_palette_set_filter();
 int palette_set_metadata_set(PaletteEntry* palette, const char* value);
 int palette_set_metadata_energy(PaletteEntry* palette, const char* value);
 
