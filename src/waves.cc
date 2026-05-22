@@ -325,8 +325,9 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Entry: Laser (Laser)
  * - Does: draws beams from the center to moving endpoints driven by adjacent
  *   sample differences.
- * - Colours: fixed table-mapped value tcolor(255).
- * - Sound: prepareSoundData(BUFF_WIDTH / 10, 0) from soundDevice->dataProc.
+ * - Colours: table-mapped channel intensity, so louder samples use higher
+ *   palette table entries.
+ * - Sound: prepareSoundData((BUFF_WIDTH / 10) + 1, 0) from soundDevice->dataProc.
  *
  * wave_corner
  * - Entry: Corner (Corner)
@@ -2297,22 +2298,29 @@ void wave_warp(void) {
 }
 
 /* by Deischi */
-/* Writes fixed table-mapped index tcolor(255). */
+static int laser_intensity_index(int sample) {
+    return min(abs(sample) << 1, 255);
+}
+
+/* Writes table-mapped channel intensity. */
 void wave_laser() {
     static int xl, xr;
     static int y = 0;
-    int x;
+    int x, samples;
 
-    prepareSoundData(BUFF_WIDTH / 10, 0);
+    samples = BUFF_WIDTH / 10;
+    prepareSoundData(samples + 1, 0);
 
-    /*    y = (y+2) % BUFF_HEIGHT;*/
-    y = BUFF_HEIGHT / 10;
+    y = (y + 2) % BUFF_HEIGHT;
+    //y = BUFF_HEIGHT / 10;
 
-    for (x = 0; x < BUFF_WIDTH / 10; x++) {
-        draw_line(BUFF_WIDTH / 2, BUFF_HEIGHT / 2, xl, y, tcolor(255));
+    for (x = 0; x < samples; x++) {
+        draw_line(BUFF_WIDTH / 2, BUFF_HEIGHT / 2, xl, y,
+            tcolor(laser_intensity_index(data[x][0])));
         xl = (xl + abs(data[x][0] - data[x + 1][0])) % BUFF_WIDTH;
 
-        draw_line(BUFF_WIDTH / 2, BUFF_HEIGHT / 2, xr, BUFF_HEIGHT - y, tcolor(255));
+        draw_line(BUFF_WIDTH / 2, BUFF_HEIGHT / 2, xr, BUFF_HEIGHT - y,
+            tcolor(laser_intensity_index(data[x][1])));
         xr = (xr + abs(data[x][1] - data[x + 1][1])) % BUFF_WIDTH;
     }
 }
