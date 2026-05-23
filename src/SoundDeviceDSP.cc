@@ -382,6 +382,10 @@ int SoundDeviceDSPOut::outputDelayBytes() const {
     return 0;
 }
 
+void SoundDeviceDSPOut::update() {
+    SoundDeviceDSP::update();
+}
+
 SoundDeviceDSP::~SoundDeviceDSP() {
     if (handle >= 0)
         close(handle);
@@ -410,6 +414,7 @@ int SoundDeviceDSPIn::read() { return 0; }
 int SoundDeviceDSPIn::initInputControls() { return 0; }
 int SoundDeviceDSPOut::write(const void*, int) { return 0; }
 int SoundDeviceDSPOut::outputDelayBytes() const { return 0; }
+void SoundDeviceDSPOut::update() { }
 SoundDeviceDSP::~SoundDeviceDSP() { }
 
 #endif

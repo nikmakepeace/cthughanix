@@ -132,6 +132,7 @@ public:
 
     int getHandle() const { return handle; }
     int isOpen() const { return handle >= 0; }
+    void update();
 };
 
 // Receives sound samples from another Cthugha instance over the network.
