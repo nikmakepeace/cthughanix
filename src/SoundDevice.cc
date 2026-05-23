@@ -11,8 +11,19 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 int bytesPerSample = 0;
+
+static int file_playback_has_sound_output() {
+#if WITH_DSP == 1
+    if (SoundDeviceDSP::dev_dsp[0] == '\0')
+        return 0;
+    return access(SoundDeviceDSP::dev_dsp, W_OK) == 0;
+#else
+    return 0;
+#endif
+}
 
 static void dump_audio_frame(const char2* data, int samplesRead, int requestedSamples) {
     static int initialized = 0;
@@ -58,7 +69,12 @@ static void dump_audio_frame(const char2* data, int samplesRead, int requestedSa
         return;
 
     char path[PATH_MAX];
-    snprintf(path, PATH_MAX, "%s/audio-%06d.csv", directory, frame);
+    int n = snprintf(path, PATH_MAX, "%s/audio-%06d.csv", directory, frame);
+    if ((n < 0) || (n >= PATH_MAX)) {
+        CTH_ERROR("Audio frame dump path too long.\n");
+        enabled = 0;
+        return;
+    }
 
     FILE* out = fopen(path, "w");
     if (out == NULL) {
@@ -267,6 +283,10 @@ void SoundDevice::newSD() {
         soundDevice = ::new SoundDeviceRandom();
         break;
     case SDN_File:
+        if (!soundSilent && !file_playback_has_sound_output()) {
+            CTH_WARN("  No usable sound output device; playing file silently.\n");
+            soundSilent.setValue(1);
+        }
         if (!soundSilent && !forked) {
             forked++;
             soundDevice = ::new SoundDeviceFork();

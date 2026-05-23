@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #if HAVE_SYS_WAIT_H
@@ -43,22 +44,35 @@ int soundPlayLoop = 1; // play file(s) over and over again
 #define PCM_CODE 1
 
 typedef struct _waveheader {
-    unsigned long main_chunk; /* 'RIFF' */
-    unsigned long length; /* filelen */
-    unsigned long chunk_type; /* 'WAVE' */
+    char main_chunk[4]; /* 'RIFF' */
+    uint32_t length; /* filelen */
+    char chunk_type[4]; /* 'WAVE' */
 
-    unsigned long sub_chunk; /* 'fmt ' */
-    unsigned long sc_len; /* length of sub_chunk, =16 */
-    unsigned short format; /* should be 1 for PCM-code */
-    unsigned short modus; /* 1 Mono, 2 Stereo */
-    unsigned long sample_fq; /* frequence of sample */
-    unsigned long byte_p_sec;
-    unsigned short byte_p_spl; /* samplesize; 1 or 2 bytes */
-    unsigned short bit_p_spl; /* 8, 12 or 16 bit */
+    char sub_chunk[4]; /* 'fmt ' */
+    uint32_t sc_len; /* length of sub_chunk, =16 */
+    uint16_t format; /* should be 1 for PCM-code */
+    uint16_t modus; /* 1 Mono, 2 Stereo */
+    uint32_t sample_fq; /* frequence of sample */
+    uint32_t byte_p_sec;
+    uint16_t byte_p_spl; /* samplesize; 1 or 2 bytes */
+    uint16_t bit_p_spl; /* 8, 12 or 16 bit */
 
-    unsigned long data_chunk; /* 'data' */
-    unsigned long data_length; /* samplecount */
+    char data_chunk[4]; /* 'data' */
+    uint32_t data_length; /* samplecount */
 } WaveHeader;
+
+typedef char WaveHeader_must_match_pcm_wav_header_size[(sizeof(WaveHeader) == 44) ? 1 : -1];
+
+static uint16_t read_le16(uint16_t value) {
+    unsigned char* p = (unsigned char*)&value;
+    return (uint16_t)(p[0] | (p[1] << 8));
+}
+
+static uint32_t read_le32(uint32_t value) {
+    unsigned char* p = (unsigned char*)&value;
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16)
+        | ((uint32_t)p[3] << 24);
+}
 
 SoundDeviceFile::SoundDeviceFile()
     : SoundDevice()
@@ -76,11 +90,20 @@ SoundDeviceFile::SoundDeviceFile()
         CTH_ERRNO(errno, "Can not create temporary directory.");
         error = 1;
     } else {
-        snprintf(fifo, PATH_MAX, "%s/sound", fifoDir);
+        int n = snprintf(fifo, PATH_MAX, "%s/sound", fifoDir);
+        if ((n < 0) || (n >= PATH_MAX)) {
+            CTH_ERROR("Temporary sound FIFO path too long.\n");
+            error = 1;
+        }
     }
 
-    if (!soundSilent)
+    if (!soundSilent) {
         dsp = ::new SoundDeviceDSPOut;
+        if (dsp->getHandle() < 0) {
+            delete dsp;
+            dsp = NULL;
+        }
+    }
 
     //
     // set up memory for sound buffer
@@ -237,7 +260,9 @@ int SoundDeviceFile::playNext() {
 // start the sound reading program
 //
 int SoundDeviceFile::open() {
+#if (MOD_PLAYER == 1) || (MP3_PLAYER == 1) || (MP3_PLAYER == 2)
     char prog[PATH_MAX * 6];
+#endif
     //
     // convert file name to lowercase
     //
@@ -397,7 +422,7 @@ int SoundDeviceFile::open() {
 }
 
 int SoundDeviceFile::openFile() {
-    if ((file = fopen(name, "r")) == NULL) {
+    if ((file = fopen(name, "rb")) == NULL) {
         CTH_ERRNO(errno, "Can not open sound file `%s' for reading.", name);
         return 1;
     }
@@ -414,15 +439,17 @@ int SoundDeviceFile::openProg(char* prog) {
         CTH_ERRNO(errno, "Can not fork for sound reading program.\n");
         error = 1;
         return 1;
-    case 0:
+    case 0: {
         if (dsp)
             delete dsp;
 
         CTH_DEBUG("    starting sound reader `%s'.\n", prog);
 
+        char sh[] = "sh";
+        char flag[] = "-c";
         char* argv[4];
-        argv[0] = "sh";
-        argv[1] = "-c";
+        argv[0] = sh;
+        argv[1] = flag;
         argv[2] = prog;
         argv[3] = 0;
         execv("/bin/sh", argv); // should not return
@@ -431,6 +458,7 @@ int SoundDeviceFile::openProg(char* prog) {
 
         abort();
         break;
+    }
     default:
         // now open this pipe for reading
         CTH_DEBUG("    opening '%s'\n", fifo);
@@ -445,27 +473,36 @@ int SoundDeviceFile::openProg(char* prog) {
 int SoundDeviceFile::wavHeader() {
     WaveHeader header;
 
-    if (fread(&header, sizeof(header), 1, file) <= 0) {
-        if (feof(file))
+    if (fread(&header, sizeof(header), 1, file) != 1) {
+        if (feof(file)) {
             CTH_ERROR("Can not read header (end of file).\n");
-        else
+        } else {
             CTH_ERRNO(errno, "Can not read header.");
+        }
+        return 1;
     }
 
     /* is it a .wav file */
-    if ((header.main_chunk == RIFF) && (header.chunk_type == WAVE)) {
+    if ((memcmp(header.main_chunk, "RIFF", 4) == 0) && (memcmp(header.chunk_type, "WAVE", 4) == 0)
+        && (memcmp(header.sub_chunk, "fmt ", 4) == 0) && (memcmp(header.data_chunk, "data", 4) == 0)
+        && (read_le16(header.format) == PCM_CODE)) {
 
-        soundChannels.setValue(header.modus);
-        switch (header.bit_p_spl) {
+        soundChannels.setValue(read_le16(header.modus));
+        switch (read_le16(header.bit_p_spl)) {
         case 8:
             soundFormat.setValue(SF_u8);
             break;
         case 16:
             soundFormat.setValue(SF_s16_le);
+            break;
+        default:
+            CTH_WARN("  Unsupported .wav sample size %d.\n", read_le16(header.bit_p_spl));
+            return 1;
         }
-        soundSampleRate.setValue(header.sample_fq);
+        soundSampleRate.setValue(read_le32(header.sample_fq));
     } else {
         CTH_WARN("  Error in .wav header\n");
+        return 1;
     }
     return 0;
 }
@@ -567,11 +604,20 @@ int SoundDeviceFile::read() {
 
         } else {
             fd_set rfds, wfds;
+            int fileHandle = fileno(file);
+            int dspHandle = dsp->getHandle();
+
+            if ((fileHandle < 0) || (dspHandle < 0)) {
+                CTH_ERROR("Invalid sound file or DSP handle.\n");
+                error = 1;
+                return 1;
+            }
+
             FD_ZERO(&rfds);
             FD_ZERO(&wfds);
 
-            FD_SET(fileno(file), &rfds);
-            FD_SET(dsp->getHandle(), &wfds);
+            FD_SET(fileHandle, &rfds);
+            FD_SET(dspHandle, &wfds);
 
             switch (select(FD_SETSIZE, &rfds, &wfds, NULL, NULL)) {
             case -1:
@@ -580,9 +626,9 @@ int SoundDeviceFile::read() {
             case 0:
                 break;
             default:
-                if (FD_ISSET(fileno(file), &rfds)) // reading possible
+                if (FD_ISSET(fileHandle, &rfds)) // reading possible
                     r = fread(readPos, 1, bufferChunkSize, file);
-                if (FD_ISSET(dsp->getHandle(), &wfds)) { // write possible
+                if (FD_ISSET(dspHandle, &wfds)) { // write possible
                     w = dsp->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
                     if (w > 0) {
                         rememberPlayback(writePos, w);
@@ -623,12 +669,12 @@ int SoundDeviceFile::close() {
     if (childPid >= 0) {
         CTH_DEBUG("    waiting for sound reader to stop.\n");
 
-        if (waitpid(childPid, NULL, WNOHANG) == -1) {
+        if (waitpid(childPid, NULL, WNOHANG) == 0) {
             sleep(1);
-            if (waitpid(childPid, NULL, WNOHANG) == -1) {
+            if (waitpid(childPid, NULL, WNOHANG) == 0) {
                 CTH_DEBUG("    stopping sound reader\n");
 
-                kill(SIGKILL, childPid);
+                kill(childPid, SIGKILL);
                 waitpid(childPid, NULL, 0);
             }
         }

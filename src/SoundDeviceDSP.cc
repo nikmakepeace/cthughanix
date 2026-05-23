@@ -30,7 +30,7 @@ char SoundDeviceDSP::dev_dsp[PATH_MAX] = DEV_DSP;
 
 SoundDeviceDSP::SoundDeviceDSP(int mode)
     : SoundDevice()
-    , handle(0)
+    , handle(-1)
     , DMAbuffer(NULL) {
     init(mode);
 }
@@ -377,14 +377,17 @@ int SoundDeviceDSPOut::outputDelayBytes() const {
     return 0;
 }
 
-SoundDeviceDSP::~SoundDeviceDSP() { close(handle); }
+SoundDeviceDSP::~SoundDeviceDSP() {
+    if (handle >= 0)
+        close(handle);
+}
 
 #else
 
 char SoundDeviceDSP::dev_dsp[PATH_MAX] = "";
 
 SoundDeviceDSP::SoundDeviceDSP(int mode)
-    : handle(0) {
+    : handle(-1) {
     init(mode);
 }
 
