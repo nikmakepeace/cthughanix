@@ -95,11 +95,11 @@ static SoundDevice* newSoundInputDevice(SoundInputContext context) {
     const char* contextName = (context == SIC_FileChild) ? "file child" : "main process";
 
     // File input has a second strategy decision: whether decoded samples should
-    // also be written to an output device. If not, use the direct silent path.
+    // also be passed through to an audio output. If not, use the direct silent path.
     if ((context == SIC_MainProcess) && (soundDeviceNr == SDN_File) && !soundSilent
         && !SoundDeviceFile::hasSoundOutputDevice()) {
-        CTH_WARN("  No usable sound output device; playing file silently.\n");
-        CTH_DEBUG("    sound input strategy: direct file input in %s, because output device is unavailable\n",
+        CTH_WARN("  No usable audio passthrough device; playing file silently.\n");
+        CTH_DEBUG("    sound input strategy: direct file input in %s, because audio passthrough is unavailable\n",
             contextName);
         soundSilent.setValue(1);
     }
@@ -134,7 +134,7 @@ static SoundDevice* newSoundInputDevice(SoundInputContext context) {
     }
 }
 
-void SoundDevice::finishNewSD() {
+void SoundDevice::finishNewSD(int initializeInputControls) {
     CTH_DEBUG("    channels           : %s\n", soundChannels.text());
     CTH_DEBUG("    sound format       : %s\n", soundFormat.text());
     CTH_DEBUG("    sample rate        : %d Hz\n", int(soundSampleRate));
@@ -151,6 +151,9 @@ void SoundDevice::finishNewSD() {
     }
 
     soundDevice->setTmpData();
+
+    if (initializeInputControls && soundDevice->initInputControls())
+        exit(0);
 }
 
 SoundDevice::SoundDevice() {
@@ -325,10 +328,10 @@ void SoundDevice::convert(char2* dst, void* src, int n) {
 
 void SoundDevice::newSD() {
     soundDevice = newSoundInputDevice(SIC_MainProcess);
-    finishNewSD();
+    finishNewSD(1);
 }
 
 void SoundDevice::newFileChildSD() {
     soundDevice = newSoundInputDevice(SIC_FileChild);
-    finishNewSD();
+    finishNewSD(0);
 }

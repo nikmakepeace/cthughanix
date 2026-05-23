@@ -167,6 +167,16 @@ int init_mixer() {
     nVolumes = 0;
 
     if ((mixer_des = open(dev_mixer, O_RDONLY)) < 0) {
+        if ((errno == ENOENT) || (errno == ENODEV)) {
+            if (mixer_initials) {
+                CTH_WARN("  OSS mixer `%s' is unavailable; mixer options will be ignored.\n",
+                    dev_mixer);
+            } else {
+                CTH_DEBUG("  OSS mixer `%s' is unavailable; skipping mixer initialization.\n",
+                    dev_mixer);
+            }
+            return 0;
+        }
         CTH_ERRNO(errno, "Can not open `%s'.", dev_mixer);
         return 0;
     }

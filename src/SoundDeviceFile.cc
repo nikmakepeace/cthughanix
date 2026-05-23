@@ -9,6 +9,11 @@
 #include <ctype.h>
 #include <stdint.h>
 
+#if WITH_PULSE == 1
+#include <pulse/error.h>
+#include <pulse/simple.h>
+#endif
+
 #include <sys/types.h>
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
@@ -43,6 +48,24 @@ int soundPlayLoop = 1; // play file(s) over and over again
 #define DATA 0x61746164
 #define PCM_CODE 1
 
+#if WITH_PULSE == 1
+class SoundOutputPulse : public SoundOutputDevice {
+    pa_simple* pulse;
+    pa_sample_spec sampleSpec;
+
+    int bytesPerSecond() const;
+
+public:
+    SoundOutputPulse();
+    virtual ~SoundOutputPulse();
+
+    int write(const void* buffer, int size);
+    int outputDelayBytes() const;
+    int isOpen() const { return pulse != NULL; }
+    void update();
+};
+#endif
+
 typedef struct _waveheader {
     char main_chunk[4]; /* 'RIFF' */
     uint32_t length; /* filelen */
@@ -74,7 +97,95 @@ static uint32_t read_le32(uint32_t value) {
         | ((uint32_t)p[3] << 24);
 }
 
+#if WITH_PULSE == 1
+static pa_sample_format_t pulse_sample_format() {
+    switch (soundFormat) {
+    case SF_u8:
+        return PA_SAMPLE_U8;
+    case SF_s16_le:
+        return PA_SAMPLE_S16LE;
+    case SF_s16_be:
+        return PA_SAMPLE_S16BE;
+    default:
+        return PA_SAMPLE_INVALID;
+    }
+}
+
+int SoundOutputPulse::bytesPerSecond() const {
+    return pa_bytes_per_second(&sampleSpec);
+}
+
+SoundOutputPulse::SoundOutputPulse()
+    : pulse(NULL) {
+    update();
+}
+
+SoundOutputPulse::~SoundOutputPulse() {
+    if (pulse)
+        pa_simple_free(pulse);
+    pulse = NULL;
+}
+
+void SoundOutputPulse::update() {
+    int error;
+
+    if (pulse) {
+        pa_simple_free(pulse);
+        pulse = NULL;
+    }
+
+    sampleSpec.format = pulse_sample_format();
+    sampleSpec.rate = int(soundSampleRate);
+    sampleSpec.channels = int(soundChannels);
+
+    if (sampleSpec.format == PA_SAMPLE_INVALID) {
+        CTH_DEBUG("    sound output strategy: Pulse passthrough unavailable for format `%s'\n",
+            soundFormat.text());
+        return;
+    }
+
+    pulse = pa_simple_new(NULL, "Cthughanix", PA_STREAM_PLAYBACK, NULL, "Audio passthrough",
+        &sampleSpec, NULL, NULL, &error);
+    if (pulse == NULL) {
+        CTH_DEBUG("    sound output strategy: Pulse passthrough failed to open: %s\n",
+            pa_strerror(error));
+    }
+}
+
+int SoundOutputPulse::write(const void* buffer, int size) {
+    int error;
+
+    if (pulse == NULL)
+        return 0;
+
+    if (pa_simple_write(pulse, buffer, size, &error) < 0) {
+        CTH_ERROR("Pulse passthrough write failed: %s\n", pa_strerror(error));
+        return 0;
+    }
+
+    return size;
+}
+
+int SoundOutputPulse::outputDelayBytes() const {
+    int error;
+    pa_usec_t latency;
+
+    if (pulse == NULL)
+        return 0;
+
+    latency = pa_simple_get_latency(pulse, &error);
+    if (latency == (pa_usec_t)-1)
+        return 0;
+
+    return (int)((latency * bytesPerSecond()) / 1000000);
+}
+#endif
+
 int SoundDeviceFile::hasSoundOutputDevice() {
+#if WITH_PULSE == 1
+    CTH_DEBUG("    sound output strategy: Pulse passthrough is compiled in\n");
+    return 1;
+#endif
 #if WITH_DSP == 1
     if (SoundDeviceDSP::dev_dsp[0] == '\0') {
         CTH_DEBUG("    sound output strategy: none, because no OSS DSP device is configured\n");
@@ -85,7 +196,7 @@ int SoundDeviceFile::hasSoundOutputDevice() {
             SoundDeviceDSP::dev_dsp);
         return 0;
     }
-    CTH_DEBUG("    sound output strategy: OSS DSP output, because `%s' is writable\n",
+    CTH_DEBUG("    sound output strategy: OSS DSP passthrough, because `%s' is writable\n",
         SoundDeviceDSP::dev_dsp);
     return 1;
 #else
@@ -94,24 +205,39 @@ int SoundDeviceFile::hasSoundOutputDevice() {
 #endif
 }
 
-SoundDeviceDSPOut* SoundDeviceFile::newOutputDevice() {
+SoundOutputDevice* SoundDeviceFile::newOutputDevice() {
     if (soundSilent) {
-        CTH_DEBUG("    sound output strategy: none, because silent playback is enabled\n");
+        CTH_DEBUG("    sound output strategy: none, because audio passthrough is disabled by silent playback\n");
         return NULL;
     }
 
+#if WITH_PULSE == 1
+    SoundOutputPulse* pulse = ::new SoundOutputPulse;
+    if (pulse->isOpen()) {
+        CTH_DEBUG("    sound output strategy: Pulse passthrough opened successfully\n");
+        return pulse;
+    }
+    delete pulse;
+    CTH_DEBUG("    sound output strategy: trying OSS DSP passthrough after Pulse failed\n");
+#endif
+
+#if WITH_DSP != 1
+    CTH_DEBUG("    sound output strategy: none, because OSS DSP support is not compiled in\n");
+    return NULL;
+#else
     if (!hasSoundOutputDevice())
         return NULL;
 
     SoundDeviceDSPOut* device = ::new SoundDeviceDSPOut;
     if (device->getHandle() < 0) {
-        CTH_DEBUG("    sound output strategy: none, because OSS DSP output failed to open\n");
+        CTH_DEBUG("    sound output strategy: none, because OSS DSP passthrough failed to open\n");
         delete device;
         return NULL;
     }
 
-    CTH_DEBUG("    sound output strategy: OSS DSP output opened successfully\n");
+    CTH_DEBUG("    sound output strategy: OSS DSP passthrough opened successfully\n");
     return device;
+#endif
 }
 
 SoundDeviceFile::SoundDeviceFile()
@@ -637,40 +763,54 @@ int SoundDeviceFile::read() {
             }
 
         } else {
-            fd_set rfds, wfds;
             int fileHandle = fileno(file);
             int outputHandle = output->getHandle();
 
-            if ((fileHandle < 0) || (outputHandle < 0)) {
-                CTH_ERROR("Invalid sound file or DSP handle.\n");
+            if (fileHandle < 0) {
+                CTH_ERROR("Invalid sound file handle.\n");
                 error = 1;
                 return 1;
             }
 
-            FD_ZERO(&rfds);
-            FD_ZERO(&wfds);
+            if (outputHandle < 0) {
+                r = fread(readPos, 1, bufferChunkSize, file);
+                w = output->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
+                if (w > 0) {
+                    rememberPlayback(writePos, w);
+                    visualBytes = copyPlaybackAtOutputTime(rawSize);
+                }
+                if (visualBytes <= 0) {
+                    memcpy(tmpData, writePos, w); // to shared memory for visual analysis
+                    visualBytes = w;
+                }
+            } else {
+                fd_set rfds, wfds;
 
-            FD_SET(fileHandle, &rfds);
-            FD_SET(outputHandle, &wfds);
+                FD_ZERO(&rfds);
+                FD_ZERO(&wfds);
 
-            switch (select(FD_SETSIZE, &rfds, &wfds, NULL, NULL)) {
-            case -1:
-                CTH_ERRNO(errno, "Error in select.");
-                break;
-            case 0:
-                break;
-            default:
-                if (FD_ISSET(fileHandle, &rfds)) // reading possible
-                    r = fread(readPos, 1, bufferChunkSize, file);
-                if (FD_ISSET(outputHandle, &wfds)) { // write possible
-                    w = output->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
-                    if (w > 0) {
-                        rememberPlayback(writePos, w);
-                        visualBytes = copyPlaybackAtOutputTime(rawSize);
-                    }
-                    if (visualBytes <= 0) {
-                        memcpy(tmpData, writePos, w); // to shared memory for visual analysis
-                        visualBytes = w;
+                FD_SET(fileHandle, &rfds);
+                FD_SET(outputHandle, &wfds);
+
+                switch (select(FD_SETSIZE, &rfds, &wfds, NULL, NULL)) {
+                case -1:
+                    CTH_ERRNO(errno, "Error in select.");
+                    break;
+                case 0:
+                    break;
+                default:
+                    if (FD_ISSET(fileHandle, &rfds)) // reading possible
+                        r = fread(readPos, 1, bufferChunkSize, file);
+                    if (FD_ISSET(outputHandle, &wfds)) { // write possible
+                        w = output->write(writePos, rawSize); // to soundcard, in visual-slice-sized chunks
+                        if (w > 0) {
+                            rememberPlayback(writePos, w);
+                            visualBytes = copyPlaybackAtOutputTime(rawSize);
+                        }
+                        if (visualBytes <= 0) {
+                            memcpy(tmpData, writePos, w); // to shared memory for visual analysis
+                            visualBytes = w;
+                        }
                     }
                 }
             }
@@ -697,17 +837,15 @@ void SoundDeviceFile::update() {
 
 int SoundDeviceFile::close() {
 
-    if (file)
-        fclose0(file);
-
     if (childPid >= 0) {
         CTH_DEBUG("    waiting for sound reader to stop.\n");
 
         if (waitpid(childPid, NULL, WNOHANG) == 0) {
-            sleep(1);
-            if (waitpid(childPid, NULL, WNOHANG) == 0) {
-                CTH_DEBUG("    stopping sound reader\n");
+            CTH_DEBUG("    stopping sound reader\n");
 
+            kill(childPid, SIGTERM);
+            usleep(100000);
+            if (waitpid(childPid, NULL, WNOHANG) == 0) {
                 kill(childPid, SIGKILL);
                 waitpid(childPid, NULL, 0);
             }
@@ -717,6 +855,9 @@ int SoundDeviceFile::close() {
 
         childPid = -1;
     }
+
+    if (file)
+        fclose0(file);
 
     return 0;
 }

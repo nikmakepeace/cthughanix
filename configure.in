@@ -73,7 +73,17 @@ AC_ARG_WITH(dsp,
   no) with_dsp=0 ;;
    *) with_dsp=1 dev_dsp=${withval} ;;
 esac],
-[with_dsp=1 dev_dsp="/dev/dsp"])
+	[with_dsp=1 dev_dsp="/dev/dsp"])
+
+dnl PulseAudio / PipeWire-Pulse output
+AC_ARG_WITH(pulse,
+[  --without-pulse         do not use PulseAudio-compatible output],
+[case "${withval}" in
+ yes) with_pulse=1 ;;
+  no) with_pulse=0 ;;
+   *) AC_MSG_ERROR(bad value ${withval} for --without-pulse) ;;
+esac],
+[with_pulse=1])
 
 
 dnl /dev/cdrom
@@ -282,6 +292,21 @@ fi
 dnl Check for xnet
 AC_CHECK_LIB(xnet, recv, N_LIBS="${N_LIBS} -lxnet",[],[])
 
+dnl PulseAudio-compatible output
+PULSE_CFLAGS=
+PULSE_LIBS=
+AC_SUBST(PULSE_CFLAGS)
+AC_SUBST(PULSE_LIBS)
+if test x$with_pulse = x1; then
+	AC_PATH_PROG(PKG_CONFIG, pkg-config)
+	if test x${PKG_CONFIG} != x && ${PKG_CONFIG} --exists libpulse-simple; then
+		PULSE_CFLAGS=`${PKG_CONFIG} --cflags libpulse-simple`
+		PULSE_LIBS=`${PKG_CONFIG} --libs libpulse-simple`
+	else
+		with_pulse=0
+	fi
+fi
+
 dnl
 dnl Check for OpenGL/MesaGL
 dnl
@@ -386,6 +411,7 @@ fi
 
 AC_DEFINE_UNQUOTED([WITH_DSP], 	 [${with_dsp}], [with DPS device])
 AC_DEFINE_UNQUOTED([DEV_DSP],	 ["${dev_dsp}"],[DPS device])
+AC_DEFINE_UNQUOTED([WITH_PULSE], 	 [${with_pulse}], [with PulseAudio-compatible output])
 AC_DEFINE_UNQUOTED([WITH_CDROM],	 [${with_cdrom}], [cdrom])
 AC_DEFINE_UNQUOTED([DEV_CDROM],	["${dev_cdrom}"], [dev-cdrom])
 AC_DEFINE_UNQUOTED([WITH_MIXER],	 [${with_mixer}], [with mixer])
@@ -417,6 +443,11 @@ if test x$with_dsp = x1; then
 	echo "DSP device     : ${dev_dsp}"
 else
 	echo "DSP device     : disabled"
+fi
+if test x$with_pulse = x1; then
+	echo "Pulse output   : enabled (${PULSE_LIBS})"
+else
+	echo "Pulse output   : disabled"
 fi
 if test x$with_cdrom = x1; then
 	echo "CDROM device   : ${dev_cdrom}"

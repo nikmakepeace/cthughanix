@@ -78,10 +78,6 @@ int main(int argc, char* argv[]) {
     CTH_INFO("Initializing CD player...\n");
     cdPlayer = new CDPlayer;
 
-    CTH_INFO("Initializing Mixer device...\n");
-    if (init_mixer())
-        exit(0);
-
     CTH_INFO("Initializing keymaps...\n");
     Keymap::init();
 

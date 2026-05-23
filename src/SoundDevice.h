@@ -48,7 +48,7 @@ protected:
     void borrowTmpData(char* data);
 
     void convert(char2* dst, void* src, int n);
-    static void finishNewSD();
+    static void finishNewSD(int initializeInputControls);
 public:
     int size; // Samples requested from read().
     char2* data; // Last 1024 converted stereo samples.
@@ -67,6 +67,7 @@ public:
 
     virtual int read();
     virtual void update() { };
+    virtual int initInputControls() { return 0; }
 
     friend class SoundDeviceFork;
     friend class SoundServer;
@@ -75,6 +76,17 @@ public:
 extern SoundDevice* soundDevice;
 
 enum SoundDeviceNr { SDN_DSPIn, SDN_Net, SDN_Random, SDN_File, SDN_Max };
+
+// Optional audio passthrough sink used by file playback.
+class SoundOutputDevice {
+public:
+    virtual ~SoundOutputDevice() { }
+    virtual int write(const void* buffer, int size) = 0;
+    virtual int outputDelayBytes() const = 0;
+    virtual int getHandle() const { return -1; }
+    virtual int isOpen() const = 0;
+    virtual void update() { }
+};
 
 // OSS /dev/dsp backend shared by reader and writer devices.
 class SoundDeviceDSP : public SoundDevice {
@@ -106,10 +118,11 @@ public:
     SoundDeviceDSPIn()
         : SoundDeviceDSP(O_RDONLY) { }
     virtual int read();
+    virtual int initInputControls();
 };
 
 // Writer side of OSS /dev/dsp, used when file playback also feeds the soundcard.
-class SoundDeviceDSPOut : public SoundDeviceDSP {
+class SoundDeviceDSPOut : public SoundDeviceDSP, public SoundOutputDevice {
 public:
     SoundDeviceDSPOut()
         : SoundDeviceDSP(O_WRONLY) { }
@@ -118,6 +131,7 @@ public:
     int outputDelayBytes() const;
 
     int getHandle() const { return handle; }
+    int isOpen() const { return handle >= 0; }
 };
 
 // Receives sound samples from another Cthugha instance over the network.
@@ -148,7 +162,7 @@ public:
 class SoundDeviceFile : public SoundDevice {
 protected:
     FILE* file;
-    SoundDeviceDSPOut* output;
+    SoundOutputDevice* output;
     int bufferPid;
     int childPid;
 
@@ -170,7 +184,7 @@ protected:
     int openProg(char*);
     int close();
     int wavHeader();
-    static SoundDeviceDSPOut* newOutputDevice();
+    static SoundOutputDevice* newOutputDevice();
     void rememberPlayback(const unsigned char* data, int n);
     int copyPlaybackAtOutputTime(int n);
     void copyPlaybackHistory(long long pos, unsigned char* dst, int n);

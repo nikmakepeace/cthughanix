@@ -355,6 +355,11 @@ int SoundDeviceDSPIn::read() {
     return r / bytesPerSample;
 }
 
+int SoundDeviceDSPIn::initInputControls() {
+    CTH_INFO("Initializing OSS mixer device...\n");
+    return init_mixer();
+}
+
 int SoundDeviceDSPOut::write(const void* data, int size) { return ::write(handle, data, size); }
 
 int SoundDeviceDSPOut::outputDelayBytes() const {
@@ -402,6 +407,7 @@ void SoundDeviceDSP::setSampleRate() { }
 void SoundDeviceDSP::setFormat() { }
 void SoundDeviceDSP::update() { }
 int SoundDeviceDSPIn::read() { return 0; }
+int SoundDeviceDSPIn::initInputControls() { return 0; }
 int SoundDeviceDSPOut::write(const void*, int) { return 0; }
 int SoundDeviceDSPOut::outputDelayBytes() const { return 0; }
 SoundDeviceDSP::~SoundDeviceDSP() { }

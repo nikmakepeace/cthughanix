@@ -27,7 +27,7 @@ cthugha_SOURCES = $(DISPSRC) $(NONXSRC) DisplayDeviceSvga.cc	\
 	 svga_options.cc display.cc CthughaDisplaySVGA.cc	\
 	nonGL_stubs.cc
 # EXTRA_cthugha_SOURCES =	 getopt_long.c
-cthugha_LDADD = ${N_LIBS} ${S_LIBS}  ${LIBOBJS}
+cthugha_LDADD = ${N_LIBS} ${S_LIBS} ${PULSE_LIBS} ${LIBOBJS}
 
 
 xcthugha_SOURCES = $(DISPSRC) xwin_keys.cc xwin_options.cc display.cc		\
@@ -35,7 +35,7 @@ xcthugha_SOURCES = $(DISPSRC) xwin_keys.cc xwin_options.cc display.cc		\
 	DisplayDeviceX11-Panel.cc nonGL_stubs.cc
 # EXTRA_xcthugha_SOURCES = getopt_long.c
 xcthugha_INCLUDES = ${X_CFLAGS}
-xcthugha_LDADD = ${N_LIBS} ${X_LIBS} -lz ${LIBOBJS}
+xcthugha_LDADD = ${N_LIBS} ${X_LIBS} -lz ${PULSE_LIBS} ${LIBOBJS}
 
 glcthugha_SOURCES = ${DISPSRC} GL_keys.cc GL_display.cc		\
 	nonx_options.cc GL_options.cc DisplayDeviceGL.cc	\
@@ -43,14 +43,14 @@ glcthugha_SOURCES = ${DISPSRC} GL_keys.cc GL_display.cc		\
 	GL_Fly.cc
 # EXTRA_glcthugha_SOURCES = getopt_long.c
 glcthugha_INCLUDES = ${X_CFLAGS}
-glcthugha_LDADD = ${N_LIBS} ${X_LIBS} ${GL_LIBS}  ${LIBOBJS}
+glcthugha_LDADD = ${N_LIBS} ${X_LIBS} ${GL_LIBS} ${PULSE_LIBS} ${LIBOBJS}
 
 
 
 cthugha_server_SOURCES = $(GENSRC) $(NONXSRC) serv_main.cc serv_display.cc	\
 	serv_stubs.cc serv_options.cc nonGL_stubs.cc
 # EXTRA_cthugha_server_SOURCES = getopt_long.c 
-cthugha_server_LDADD = ${N_LIBS}  ${LIBOBJS}
+cthugha_server_LDADD = ${N_LIBS} ${PULSE_LIBS} ${LIBOBJS}
 
 tabheader_SOURCES = tabheader.cc
 
@@ -74,7 +74,7 @@ noinst_HEADERS = 	\
 
 
 
-AM_CPPFLAGS = ${X_CFLAGS}
+AM_CPPFLAGS = ${X_CFLAGS} ${PULSE_CFLAGS}
 
 
 ## programs installed normalls
