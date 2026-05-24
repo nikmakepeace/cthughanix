@@ -10,5 +10,10 @@ void audioRuntimeTick();
 void audioRuntimeShutdown();
 int audioRuntimeIsInitialized();
 AudioProcessor* audioRuntimeProcessor();
+int audioRuntimeIsComplete();
+long long audioRuntimeDecodedBytePosition();
+long long audioRuntimeOutputBytePosition();
+long long audioRuntimeAudibleBytePosition();
+int audioRuntimeReadAt(long long bytePosition, char* dst, int bytes);
 
 #endif

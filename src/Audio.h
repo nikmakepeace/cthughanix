@@ -27,6 +27,7 @@ public:
 
     virtual int read(char* dst, int rawSize, int samplesRequested) = 0;
     virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+    virtual int isFinished() const { return 0; }
     virtual void update() { }
     virtual int initInputControls() { return 0; }
 };
@@ -90,21 +91,29 @@ public:
 class AudioBuffer {
     char* data;
     int capacity;
-    int readPos;
-    int writePos;
-    int fill;
+    int protectedHistoryBytes;
+    long long decoderWriteByte;
+    long long outputReadByte;
+
+    long long protectedStartByte() const;
+    int copyAt(long long bytePosition, char* dst, int bytes) const;
 
 public:
-    AudioBuffer(int capacity);
+    AudioBuffer(int capacity, int protectedHistoryBytes = 0);
     ~AudioBuffer();
 
-    int available() const { return fill; }
-    int freeSpace() const { return capacity - fill; }
+    int available() const { return int(decoderWriteByte - outputReadByte); }
+    int protectedBytes() const { return int(decoderWriteByte - protectedStartByte()); }
+    int freeSpace() const { return capacity - protectedBytes(); }
     int size() const { return capacity; }
+    long long protectedStartPosition() const { return protectedStartByte(); }
+    long long decoderWritePosition() const { return decoderWriteByte; }
+    long long outputReadPosition() const { return outputReadByte; }
     void clear();
 
     int write(const char* src, int bytes);
     int read(char* dst, int bytes);
+    int readAt(long long bytePosition, char* dst, int bytes) const;
 };
 
 struct PcmFormat {
@@ -137,6 +146,7 @@ public:
 class AudioPcmInput : public AudioInput {
     PcmSource* source;
     int sourceOwned;
+    int finished;
 
     void applyFormat();
 
@@ -145,6 +155,7 @@ public:
     virtual ~AudioPcmInput();
 
     virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual int isFinished() const;
     virtual void update();
 };
 

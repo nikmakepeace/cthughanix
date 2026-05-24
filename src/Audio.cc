@@ -395,16 +395,21 @@ void AudioDSPOutput::update() { }
 
 #endif
 
-AudioBuffer::AudioBuffer(int capacity_)
+AudioBuffer::AudioBuffer(int capacity_, int protectedHistoryBytes_)
     : data(NULL)
     , capacity(capacity_)
-    , readPos(0)
-    , writePos(0)
-    , fill(0) {
+    , protectedHistoryBytes(protectedHistoryBytes_)
+    , decoderWriteByte(0)
+    , outputReadByte(0) {
     if (capacity < 1)
         capacity = 1;
+    if (protectedHistoryBytes < 0)
+        protectedHistoryBytes = 0;
+    if (protectedHistoryBytes > capacity)
+        protectedHistoryBytes = capacity;
     data = new char[capacity];
-    CTH_TRACE("audio buffer: created capacity=%d\n", capacity);
+    CTH_TRACE("audio buffer: created capacity=%d protected-history=%d\n", capacity,
+        protectedHistoryBytes);
 }
 
 AudioBuffer::~AudioBuffer() {
@@ -413,9 +418,45 @@ AudioBuffer::~AudioBuffer() {
 }
 
 void AudioBuffer::clear() {
-    readPos = 0;
-    writePos = 0;
-    fill = 0;
+    decoderWriteByte = 0;
+    outputReadByte = 0;
+}
+
+long long AudioBuffer::protectedStartByte() const {
+    // Protected span:
+    //   [protectedStartByte(), outputReadByte)  = recent history for visual reads
+    //   [outputReadByte, decoderWriteByte)   = decoded audio queued for output
+    // Bytes outside that span may be overwritten by future decoder writes.
+    long long historyStartByte = outputReadByte - protectedHistoryBytes;
+    long long capacityStartByte = decoderWriteByte - capacity;
+    long long startByte = (historyStartByte > capacityStartByte) ? historyStartByte : capacityStartByte;
+
+    if (startByte < 0)
+        startByte = 0;
+    if (startByte > outputReadByte)
+        startByte = outputReadByte;
+
+    return startByte;
+}
+
+int AudioBuffer::copyAt(long long bytePosition, char* dst, int bytes) const {
+    int copied = 0;
+    long long startByte = protectedStartByte();
+
+    if ((bytes <= 0) || (bytePosition < startByte) || (bytePosition >= decoderWriteByte))
+        return 0;
+
+    long long availableBytes = decoderWriteByte - bytePosition;
+    int wanted = (bytes < availableBytes) ? bytes : int(availableBytes);
+
+    while (copied < wanted) {
+        int pos = int((bytePosition + copied) % capacity);
+        int chunk = min(wanted - copied, capacity - pos);
+        memcpy(dst + copied, data + pos, chunk);
+        copied += chunk;
+    }
+
+    return copied;
 }
 
 int AudioBuffer::write(const char* src, int bytes) {
@@ -423,29 +464,27 @@ int AudioBuffer::write(const char* src, int bytes) {
     int wanted = min(bytes, freeSpace());
 
     while (written < wanted) {
-        int chunk = min(wanted - written, capacity - writePos);
-        memcpy(data + writePos, src + written, chunk);
-        writePos = (writePos + chunk) % capacity;
-        fill += chunk;
+        int pos = int((decoderWriteByte + written) % capacity);
+        int chunk = min(wanted - written, capacity - pos);
+        memcpy(data + pos, src + written, chunk);
         written += chunk;
     }
+
+    decoderWriteByte += written;
 
     return written;
 }
 
 int AudioBuffer::read(char* dst, int bytes) {
-    int copied = 0;
-    int wanted = min(bytes, available());
+    int copied = copyAt(outputReadByte, dst, bytes);
 
-    while (copied < wanted) {
-        int chunk = min(wanted - copied, capacity - readPos);
-        memcpy(dst + copied, data + readPos, chunk);
-        readPos = (readPos + chunk) % capacity;
-        fill -= chunk;
-        copied += chunk;
-    }
+    outputReadByte += copied;
 
     return copied;
+}
+
+int AudioBuffer::readAt(long long bytePosition, char* dst, int bytes) const {
+    return copyAt(bytePosition, dst, bytes);
 }
 
 PcmSource::PcmSource()
@@ -465,7 +504,8 @@ static unsigned int readLe32(const unsigned char* p) {
 AudioPcmInput::AudioPcmInput(PcmSource* source_, int takeOwnership)
     : AudioInput()
     , source(source_)
-    , sourceOwned(takeOwnership) {
+    , sourceOwned(takeOwnership)
+    , finished(0) {
     if ((source == NULL) || source->hasError()) {
         CTH_TRACE("audio pcm input: source construction failed\n");
         error = 1;
@@ -492,6 +532,9 @@ void AudioPcmInput::applyFormat() {
 }
 
 int AudioPcmInput::read(char* dst, int rawSize, int /*samplesRequested*/) {
+    if (finished)
+        return 0;
+
     int bytesRead = source ? source->read(dst, rawSize) : 0;
 
     if (bytesRead == 0) {
@@ -501,8 +544,8 @@ int AudioPcmInput::read(char* dst, int rawSize, int /*samplesRequested*/) {
             applyFormat();
             bytesRead = source->read(dst, rawSize);
         } else {
-            CTH_INFO("Stopping...\n");
-            exit(0);
+            CTH_TRACE("audio pcm input: source reached end\n");
+            finished = 1;
         }
     }
 
@@ -512,9 +555,12 @@ int AudioPcmInput::read(char* dst, int rawSize, int /*samplesRequested*/) {
     return bytesRead / ((soundFormat < 2) ? soundChannels : 2 * soundChannels);
 }
 
+int AudioPcmInput::isFinished() const { return finished; }
+
 void AudioPcmInput::update() {
     if (source)
         applyFormat();
+    finished = 0;
 }
 
 WavAudioSource::WavAudioSource(const char* name_)
