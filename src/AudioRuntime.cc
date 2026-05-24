@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "AudioRuntime.h"
 
-static AudioProcessor* audioProcessor = NULL;
+static AudioInputProcessor* audioProcessor = NULL;
 static AudioInput* audioInput = NULL;
 static AudioOutput* audioOutput = NULL;
 static AudioBuffer* audioBuffer = NULL;
@@ -222,13 +222,13 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
     } else {
         audioProcessor = runtimeFactory.createAudioProcessor();
         if (audioProcessor != NULL) {
-            CTH_TRACE("audio runtime: installed native AudioProcessor path\n");
+            CTH_TRACE("audio runtime: installed native AudioInputProcessor path\n");
             if (initializeInputControls && audioProcessor->audioInput()->initInputControls()) {
                 CTH_TRACE("audio runtime: native input control initialization failed\n");
                 exit(0);
             }
         } else {
-            CTH_TRACE("audio runtime: native AudioProcessor unavailable; using legacy SoundDevice path\n");
+            CTH_TRACE("audio runtime: native AudioInputProcessor unavailable; using legacy SoundDevice path\n");
             SoundDevice::install(runtimeFactory.createLegacySoundDevice(context), initializeInputControls);
         }
     }
@@ -287,7 +287,7 @@ int audioRuntimeIsInitialized() {
     return (audioBuffer != NULL) || (audioProcessor != NULL) || (soundDevice != NULL);
 }
 
-AudioProcessor* audioRuntimeProcessor() {
+AudioInputProcessor* audioRuntimeProcessor() {
     return audioProcessor;
 }
 

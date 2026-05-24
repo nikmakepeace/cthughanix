@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "imath.h"
 #include "AutoChanger.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "Interface.h"
 #include "display.h"
 #include "options.h"
@@ -52,12 +52,12 @@ void AutoChanger::operator()() {
 
     /* get time since last sound */
     int quiet_length = now - quietSince;
-    if (soundAnalyze.noisy)
+    if (audioAnalysis.noisy)
         quietSince = now;
 
     /* Check for long quietness */
     if (int(changeMsgTime)) {
-        if (!soundAnalyze.noisy && (quiet_length > int(changeMsgTime))) {
+        if (!audioAnalysis.noisy && (quiet_length > int(changeMsgTime))) {
             quietSince = now; // start quiet-length again
 
             silenceMessage();
@@ -69,17 +69,17 @@ void AutoChanger::operator()() {
 
     /* Check for interrupted silence (like the pause btw. 2 tracks on a CD) */
     if (int(changeQuiet))
-        if (soundAnalyze.noisy && (quiet_length > int(changeQuiet))) {
+        if (audioAnalysis.noisy && (quiet_length > int(changeQuiet))) {
             change();
             return;
         }
 
     /* Check for enough fire to change */
     if (int(changeFireLevel))
-        if (soundAnalyze.fireLevel > int(changeFireLevel)) {
+        if (acousticContext.fireLevel() > int(changeFireLevel)) {
             CTH_DEBUG("autochange: fire threshold reached fireLevel=%d threshold=%d\n",
-                soundAnalyze.fireLevel, int(changeFireLevel));
-            soundAnalyze.fireLevel = 0;
+                acousticContext.fireLevel(), int(changeFireLevel));
+            acousticContext.resetFireLevel();
             change();
             return;
         }
@@ -189,7 +189,7 @@ const char* AutoChanger::status() {
         int now = gettime();
 
         sprintf(txt, "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 100.0,
-            changeFireLevel - soundAnalyze.fireLevel,
+            changeFireLevel - acousticContext.fireLevel(),
             double(changeQuiet - (now - quietSince)) / 100.0);
     }
 

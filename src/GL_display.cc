@@ -4,7 +4,7 @@
 #include "cth_buffer.h"
 #include "Interface.h"
 #include "CthughaDisplay.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "pcx.h"
 #include "CthughaBuffer.h"
 #include "imath.h"
@@ -390,11 +390,11 @@ int screen_2planes() {
 }
 
 void wave1(GLfloat pos[3], GLfloat normal[3], double alpha) {
-    pos[2] = soundAnalyze.intensity * sin(2.0 * M_PI * pos[0] + alpha);
+    pos[2] = acousticContext.intensity() * sin(2.0 * M_PI * pos[0] + alpha);
     pos[0] = -1.0 + pos[0] * 2.0;
     pos[1] = -1.0 + pos[1] * 2.0;
 
-    normal[0] = soundAnalyze.intensity * cos(2.0 * M_PI * pos[0] + alpha);
+    normal[0] = acousticContext.intensity() * cos(2.0 * M_PI * pos[0] + alpha);
 }
 int screen_wave1() {
 
@@ -410,14 +410,14 @@ int screen_wave1() {
 }
 
 void wave(GLfloat pos[3], GLfloat normal[3], double alpha) {
-    pos[2] = soundAnalyze.intensity * sin(2.0 * M_PI * pos[0] + alpha)
+    pos[2] = acousticContext.intensity() * sin(2.0 * M_PI * pos[0] + alpha)
         * sin(2.0 * M_PI * pos[1] + alpha);
     pos[0] = -1.0 + pos[0] * 2.0;
     pos[1] = -1.0 + pos[1] * 2.0;
 
-    normal[0] = soundAnalyze.intensity * cos(2.0 * M_PI * pos[0] + alpha)
+    normal[0] = acousticContext.intensity() * cos(2.0 * M_PI * pos[0] + alpha)
         * sin(2.0 * M_PI * pos[1] + alpha);
-    normal[1] = soundAnalyze.intensity * sin(2.0 * M_PI * pos[0] + alpha)
+    normal[1] = acousticContext.intensity() * sin(2.0 * M_PI * pos[0] + alpha)
         * cos(2.0 * M_PI * pos[1] + alpha);
 }
 int screen_wave() {
@@ -498,7 +498,7 @@ void cwave(GLfloat pos[3], GLfloat normal[3], double alpha) {
     const double r = x * x + y * y;
     pos[0] = -1.0 + pos[0] * 2.0;
     pos[1] = -1.0 + pos[1] * 2.0;
-    pos[2] = soundAnalyze.intensity * 0.2 * sin(25.0 * r - alpha) / (r + 0.5);
+    pos[2] = acousticContext.intensity() * 0.2 * sin(25.0 * r - alpha) / (r + 0.5);
 
     // TODO: compute normal
 }

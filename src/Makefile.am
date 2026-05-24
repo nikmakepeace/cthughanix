@@ -8,7 +8,7 @@ GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 	Mixer.cc CDPlayer.cc imath.cc sound.cc	IniFiles.cc		\
 	Interface.cc network.cc info_title_usage.cc disp-ncurses.cc	\
 	SoundDevice.cc SoundServer.cc misc.cc DisplayDevice.cc		\
-	AutoChanger.cc SoundAnalyze.cc  CthughaDisplay.cc 		\
+	AutoChanger.cc AudioAnalyzer.cc  CthughaDisplay.cc 		\
 	keymap.cc InterfaceCredits.cc InterfaceList.cc			\
 	joystick.cc
 
@@ -16,7 +16,7 @@ GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 DISPSRC = $(GENSRC)							\
 	palettes.cc pcx.cc			\
 	flames.cc waves.cc sound_tables.cc	\
-	translate.cc 	 SoundProcess.cc \
+	translate.cc 	 AudioProcessor.cc \
 	CthughaBuffer.cc initExitDisp.cc	\
 	Flashlight.cc  InterfaceHelp.cc 
 
@@ -60,9 +60,9 @@ tabinfo_SOURCES = tabinfo.cc
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  AutoChanger.h     SoundAnalyze.h    flames.h          pcx.h		\
+	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  AutoChanger.h     AudioAnalyzer.h    flames.h          pcx.h		\
         CDPlayer.h        SoundDevice.h  \
-	CoreOption.h      SoundProcess.h    imath.h           tab_header.h	\
+	CoreOption.h      AudioProcessor.h    imath.h           tab_header.h	\
 	CthughaBuffer.h   SoundServer.h     information.h     translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\

@@ -7,7 +7,7 @@
 #include "cth_buffer.h"
 #include "Interface.h"
 #include "CthughaDisplay.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "imath.h"
 #include "glcthugha.h"
 #include "DisplayDevice.h"

@@ -9,7 +9,7 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
 void audioRuntimeTick();
 void audioRuntimeShutdown();
 int audioRuntimeIsInitialized();
-AudioProcessor* audioRuntimeProcessor();
+AudioInputProcessor* audioRuntimeProcessor();
 AudioFrame* audioRuntimeCurrentFrame();
 int audioRuntimeIsComplete();
 long long audioRuntimeDecodedBytePosition();

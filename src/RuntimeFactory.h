@@ -54,7 +54,7 @@ public:
 
     AudioInput* createAudioInput() const;
     AudioOutput* createAudioOutput() const;
-    AudioProcessor* createAudioProcessor() const;
+    AudioInputProcessor* createAudioProcessor() const;
     AudioSourceStrategy selectAudioSourceStrategy() const;
 
     SoundDevice* createLegacySoundDevice(RuntimeSoundInputContext context) const;

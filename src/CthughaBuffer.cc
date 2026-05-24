@@ -5,8 +5,8 @@
 #include "waves.h"
 #include "display.h"
 #include "AudioFrame.h"
-#include "SoundAnalyze.h"
-#include "SoundProcess.h"
+#include "AudioAnalyzer.h"
+#include "AudioProcessor.h"
 #include "CthughaDisplay.h"
 #include "imath.h"
 
@@ -75,7 +75,7 @@ CthughaBuffer::CthughaBuffer()
     , waveScale(CthughaBuffer::nInit, "wave-scale", waveScaleEntries)
     , table(CthughaBuffer::nInit, "table", tableEntries)
     , border(CthughaBuffer::nInit, "border", borderEntries)
-    , soundProcess(CthughaBuffer::nInit, "sound-process", soundProcessEntries)
+    , soundProcess(CthughaBuffer::nInit, "sound-process", audioProcessorEntries)
     , flashlight(CthughaBuffer::nInit, "flashlight", flashlightEntries)
     ,
 
@@ -113,7 +113,7 @@ void CthughaBuffer::initAll() {
     current->waveScale.add(wave_scales, 3);
     current->table.add(table_entries, 10);
     current->border.add(border_entries, 4);
-    //  current->soundProcess.add(soundProcessEntries, 4);
+    //  current->soundProcess.add(audioProcessorEntries, 4);
     current->flashlight.add(flashlight_entries, 2);
 
     if (init_flames())
@@ -157,8 +157,8 @@ void CthughaBuffer::run() {
             }
             break;
         case 2:
-            memset(active_buffer + BUFF_SIZE, soundAnalyze.amplitude, 3 * BUFF_WIDTH);
-            memset(active_buffer - 3 * BUFF_WIDTH, soundAnalyze.amplitude, 3 * BUFF_WIDTH);
+            memset(active_buffer + BUFF_SIZE, audioAnalysis.amplitude, 3 * BUFF_WIDTH);
+            memset(active_buffer - 3 * BUFF_WIDTH, audioAnalysis.amplitude, 3 * BUFF_WIDTH);
             break;
         case 3:
             memset(active_buffer + BUFF_SIZE, 255, 3 * BUFF_WIDTH);

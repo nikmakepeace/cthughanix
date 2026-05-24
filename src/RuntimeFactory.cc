@@ -215,8 +215,8 @@ AudioOutput* RuntimeFactory::createAudioOutput() const {
     return new AudioNullOutput();
 }
 
-AudioProcessor* RuntimeFactory::createAudioProcessor() const {
-    CTH_TRACE("runtime factory: creating AudioProcessor\n");
+AudioInputProcessor* RuntimeFactory::createAudioProcessor() const {
+    CTH_TRACE("runtime factory: creating AudioInputProcessor\n");
     AudioInput* input = createAudioInput();
     if (input == NULL)
         return NULL;
@@ -227,7 +227,7 @@ AudioProcessor* RuntimeFactory::createAudioProcessor() const {
         return NULL;
     }
 
-    return new AudioProcessor(input);
+    return new AudioInputProcessor(input);
 }
 
 SoundDevice* RuntimeFactory::createLegacySoundDevice(RuntimeSoundInputContext context) const {

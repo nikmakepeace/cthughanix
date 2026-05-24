@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "CthughaDisplay.h"
-#include "SoundProcess.h"
+#include "AudioProcessor.h"
 #include "imath.h"
 #include "DisplayDevice.h"
 #include "Interface.h"

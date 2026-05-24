@@ -3,7 +3,7 @@
 #include "options.h"
 #include "Sound.h"
 #include "AudioFrame.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "translate.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -411,7 +411,7 @@ void update_3d_scale_factor() {
     if (scaleFactorPhase >= 2.0 * M_PI)
         scaleFactorPhase = fmod(scaleFactorPhase, 2.0 * M_PI);
 
-    scaleFactor = mid - amp * cos(scaleFactorPhase) + (intensityFactor * soundAnalyze.intensity);
+    scaleFactor = mid - amp * cos(scaleFactorPhase) + (intensityFactor * acousticContext.intensity());
     splatSize = int(scaleFactor + 0.5);
     if (splatSize < 1)
         splatSize = 1;
@@ -420,7 +420,7 @@ void update_3d_scale_factor() {
 
     CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f\n", dt, scaleFactorPhase,
         scaleFactor);
-    CTH_TRACE("intensity: %.3f\n", soundAnalyze.intensity);
+    CTH_TRACE("intensity: %.3f\n", acousticContext.intensity());
 }
 
 /*
@@ -523,7 +523,7 @@ int screen_bent() {
 
     prepare_3d(256);
 
-    h = h * 0.95 + (min((2 * soundAnalyze.amplitude), 120)) * 0.05;
+    h = h * 0.95 + (min((2 * audioAnalysis.amplitude), 120)) * 0.05;
 
     for (i = BUFF_WIDTH; i != 0; i--) {
         height[i] = (int)(h * sin(t) * sin((double)(i) / (double)BUFF_WIDTH * 3.0 * M_PI)) + 128;

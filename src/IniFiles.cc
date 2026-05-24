@@ -8,7 +8,7 @@
 #include "CDPlayer.h"
 #include "keys.h"
 #include "AutoChanger.h"
-#include "SoundProcess.h"
+#include "AudioProcessor.h"
 #include "CthughaBuffer.h"
 
 #include <unistd.h>

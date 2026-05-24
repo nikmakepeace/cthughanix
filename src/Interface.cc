@@ -7,7 +7,7 @@
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "AutoChanger.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 
 #include <ctype.h>
 #include <signal.h>
@@ -215,7 +215,7 @@ void Interface::display() {
             TEXT_COLOR_NORMAL);
     }
 
-    if (soundAnalyze.noisy) {
+    if (audioAnalysis.noisy) {
         silenceMsg = NULL;
     } else if ((silenceMsg != NULL) && (nElements == 0))
         displayDevice->print(silenceMsg, silenceLine, 'c', TEXT_COLOR_NORMAL);

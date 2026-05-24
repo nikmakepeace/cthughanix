@@ -5,7 +5,7 @@
 #include "CDPlayer.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "translate.h"
 
 #include <ctype.h>

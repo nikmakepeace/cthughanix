@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "CoreOption.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "display.h"
 #include "CthughaBuffer.h"
 #include "imath.h"
@@ -15,7 +15,7 @@ public:
         // transient palette changes such as PCX image palettes.
         memcpy(Pal, CthughaBuffer::current->currentPalette, sizeof(Palette));
 
-        for (l = soundAnalyze.fire << 3, i = 0; (i < 256) && (l > 0); i++, l -= 8)
+        for (l = acousticContext.fire() << 3, i = 0; (i < 256) && (l > 0); i++, l -= 8)
             for (j = 0; j < 3; j++)
                 Pal[i][j] = min(Pal[i][j] + l, 255);
 

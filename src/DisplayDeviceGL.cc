@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "DisplayDevice.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "AutoChanger.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"

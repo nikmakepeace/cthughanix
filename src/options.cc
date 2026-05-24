@@ -14,9 +14,9 @@
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
-#include "SoundProcess.h"
+#include "AudioProcessor.h"
 #include "DisplayDevice.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #ifdef CTH_XWIN
 #include "xcthugha.h"
 #endif

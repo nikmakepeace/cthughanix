@@ -8,7 +8,7 @@
 #include "imath.h"
 #include "waves.h"
 #include "Option.h"
-#include "SoundProcess.h"
+#include "AudioProcessor.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "SoundServer.h"

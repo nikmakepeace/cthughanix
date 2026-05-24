@@ -8,7 +8,7 @@
 #include "waves.h"
 #include "disp-sys.h"
 #include "cth_buffer.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 
@@ -307,20 +307,20 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Entry: Spiral (Spirograph)
  * - Does: draws a changing spirograph from center using current amplitude.
  * - Colours: one cycling value per frame, drawn as tcolor(col).
- * - Sound: soundAnalyze.amplitude, amplitudeLeft, and amplitudeRight shape
- *   the curve; soundAnalyze.fire counts down to the next random twist count.
+ * - Sound: audioAnalysis.amplitude, amplitudeLeft, and amplitudeRight shape
+ *   the curve; acousticContext.fire() counts down to the next random twist count.
  *
  * wave_pyro
  * - Entry: Pyro (Fire works)
  * - Does: launches and animates bouncing firework streaks on fire events.
  * - Colours: one random value per firework, drawn as tcolor(col).
- * - Sound: soundAnalyze.fire controls launch and vertical velocity.
+ * - Sound: acousticContext.fire() controls launch and vertical velocity.
  *
  * wave_warp
  * - Entry: Warp (Space warp)
  * - Does: launches expanding rotating radial rings on fire events.
  * - Colours: one random value per ring, drawn as tcolor(col).
- * - Sound: soundAnalyze.fire controls ring speed, trail count, and rotation.
+ * - Sound: acousticContext.fire() controls ring speed, trail count, and rotation.
  *
  * wave_laser
  * - Entry: Laser (Laser)
@@ -334,7 +334,7 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Entry: Corner (Corner)
  * - Does: on fire events, draws a bright corner/axis shape from a moving point.
  * - Colours: raw fading palette indices 255 >> i.
- * - Sound: soundAnalyze.fire controls movement and thickness, then is cleared.
+ * - Sound: acousticContext.fire() controls movement and thickness, then is cleared.
  *
  * wave_jump
  * - Entry: Jump (Jumping points)
@@ -347,7 +347,7 @@ int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
  * - Entry: Sticks (Random sticks)
  * - Does: draws random line segments across the buffer on fire events.
  * - Colours: raw random palette index Random(256), bypassing the table.
- * - Sound: soundAnalyze.fire controls how many sticks are drawn.
+ * - Sound: acousticContext.fire() controls how many sticks are drawn.
  *
  * wave_grid
  * - Entry: Grid (Diagnostic grid)
@@ -2103,7 +2103,7 @@ void wave_spiral(void) {
         loops = 2 + abs(rand() % 8);
     }
 
-    if (soundAnalyze.fire)
+    if (acousticContext.fire())
         loopcount--;
 
 
@@ -2111,9 +2111,9 @@ void wave_spiral(void) {
     cx = BUFF_WIDTH / 2;
     cy = BUFF_HEIGHT / 2;
 
-    amp = soundAnalyze.amplitude;
-    int al = soundAnalyze.amplitudeLeft;
-    int ar = soundAnalyze.amplitudeRight;
+    amp = audioAnalysis.amplitude;
+    int al = audioAnalysis.amplitudeLeft;
+    int ar = audioAnalysis.amplitudeRight;
 
     /* convert to float now instead of every time it gets used */
     a = (double)amp * mx / 256.0 / 128.0;
@@ -2202,11 +2202,12 @@ void wave_pyro(void) {
                 theWorks[i].dur = -1;
             }
 
-        } else if (soundAnalyze.fire) {
+        } else if (acousticContext.fire()) {
+            int fire = acousticContext.fire();
 
             /* maintain a maximum attack value for scaling purposes */
-            if (soundAnalyze.fire * 4 > maxA)
-                maxA = soundAnalyze.fire * 4;
+            if (fire * 4 > maxA)
+                maxA = fire * 4;
 
             /* slowly reduce max over time to keep it in line with the average levels */
             if (maxA > 30)
@@ -2217,9 +2218,9 @@ void wave_pyro(void) {
             theWorks[i].oxp = theWorks[i].xp = rand() % BUFF_WIDTH;
             theWorks[i].oyp = theWorks[i].yp = BUFF_HEIGHT - 4;
             theWorks[i].xv = (rand() % 20) - 10;
-            theWorks[i].yv = -(soundAnalyze.fire * maxV / (maxA / 4));
+            theWorks[i].yv = -(fire * maxV / (maxA / 4));
             theWorks[i].col = rand() % 256;
-            soundAnalyze.fire = soundAnalyze.fire * 2 / 3;
+            acousticContext.setFire(fire * 2 / 3);
         }
 
     /* test rocket exploded, reset */
@@ -2275,11 +2276,12 @@ void wave_warp(void) {
             if (theWarps[i].r > maxRad || theWarps[i].r < 0)
                 theWarps[i].r = -1;
 
-        } else if (soundAnalyze.fire) {
+        } else if (acousticContext.fire()) {
+            int fire = acousticContext.fire();
 
             /* maintain a maximum attack value for scaling purposes*/
-            if (soundAnalyze.fire * 4 > maxA)
-                maxA = soundAnalyze.fire * 4;
+            if (fire * 4 > maxA)
+                maxA = fire * 4;
 
             /* slowly reduce max over time to keep it in line with the average levels */
             if (maxA > 30)
@@ -2287,14 +2289,14 @@ void wave_warp(void) {
 
             /* fire off a new warp ring */
             theWarps[i].r = 0;
-            theWarps[i].s = 3 + soundAnalyze.fire * 4 * 20 / maxA;
-            theWarps[i].trails = 1 + soundAnalyze.fire * 4 * maxWarpTrails / maxA;
+            theWarps[i].s = 3 + fire * 4 * 20 / maxA;
+            theWarps[i].trails = 1 + fire * 4 * maxWarpTrails / maxA;
             theWarps[i].theta = rand() % 360;
-            theWarps[i].omg = (rand() % 16 - 8) * soundAnalyze.fire * 4 / maxA;
+            theWarps[i].omg = (rand() % 16 - 8) * fire * 4 / maxA;
             theWarps[i].col = rand() % 256;
             theWarps[i].rgrav = rand() % 2;
-            soundAnalyze.fire = 0;
-            /*				soundAnalyze.fire = soundAnalyze.fire * 2 / 3;*/
+            acousticContext.resetFire();
+            /*				acousticContext.setFire(fire * 2 / 3); */
         }
 }
 
@@ -2330,14 +2332,15 @@ void wave_laser() {
 /* Writes raw fading indices 255, 127, 63, 31, 15, 7, 3, and 1. */
 void wave_corner() {
 
-    if (soundAnalyze.fire) {
+    if (acousticContext.fire()) {
         static int x = 0, y = 0;
         int i, j, t;
+        int fire = acousticContext.fire();
 
-        x = (x + (rand() % soundAnalyze.fire)) % (BUFF_WIDTH - 16) + 8;
-        y = (y + (rand() % soundAnalyze.fire)) % (BUFF_HEIGHT - 16) + 8;
+        x = (x + (rand() % fire)) % (BUFF_WIDTH - 16) + 8;
+        y = (y + (rand() % fire)) % (BUFF_HEIGHT - 16) + 8;
 
-        t = min(soundAnalyze.fire >> 2, 8);
+        t = min(fire >> 2, 8);
 
         if (rand() & 1) {
             /* draw corner pointing right down */
@@ -2366,7 +2369,7 @@ void wave_corner() {
         }
     }
 
-    soundAnalyze.fire = 0;
+    acousticContext.resetFire();
 }
 
 // by Deischi
@@ -2411,7 +2414,7 @@ void wave_jump() {
 /* Writes raw random palette indices, Random(256). */
 void wave_sticks() {
 
-    int n = soundAnalyze.fire >> int(CthughaBuffer::current->waveScale);
+    int n = acousticContext.fire() >> int(CthughaBuffer::current->waveScale);
     for (int i = 0; i < n; i++) {
         draw_line(Random(BUFF_WIDTH), Random(BUFF_HEIGHT), Random(BUFF_WIDTH), Random(BUFF_HEIGHT),
             Random(256));

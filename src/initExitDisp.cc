@@ -14,7 +14,7 @@
 #include "imath.h"
 #include "waves.h"
 #include "Option.h"
-#include "SoundAnalyze.h"
+#include "AudioAnalyzer.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "SoundServer.h"
@@ -149,7 +149,7 @@ void run(int doDisplay) {
     audioFrameTick();
 
     PROFILING();
-    soundAnalyze();
+    audioAnalyzer();
 
     PROFILING();
     (*autoChanger)();

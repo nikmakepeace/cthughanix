@@ -890,7 +890,7 @@ void WavAudioSource::rewind() {
     dataRead = 0;
 }
 
-AudioProcessor::AudioProcessor(AudioInput* input_, int takeOwnership)
+AudioInputProcessor::AudioInputProcessor(AudioInput* input_, int takeOwnership)
     : input(input_)
     , inputOwned(takeOwnership)
     , tmpData(NULL)
@@ -904,7 +904,7 @@ AudioProcessor::AudioProcessor(AudioInput* input_, int takeOwnership)
     setTmpData();
 }
 
-AudioProcessor::~AudioProcessor() {
+AudioInputProcessor::~AudioInputProcessor() {
     delete[] tmpData;
     tmpData = NULL;
 
@@ -916,7 +916,7 @@ AudioProcessor::~AudioProcessor() {
     input = NULL;
 }
 
-void AudioProcessor::setTmpData() {
+void AudioInputProcessor::setTmpData() {
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
     rawSize = bytesPerSample * size;
     int requestedTmpSize = input ? input->rawBufferSize(rawSize, size) : rawSize;
@@ -932,7 +932,7 @@ void AudioProcessor::setTmpData() {
     }
 }
 
-void AudioProcessor::operator()() {
+void AudioInputProcessor::operator()() {
     if (input == NULL)
         return;
 
@@ -952,14 +952,14 @@ void AudioProcessor::operator()() {
     }
 }
 
-void AudioProcessor::change() {
+void AudioInputProcessor::change() {
     if (input)
         input->update();
     tmpSize = 0;
     setTmpData();
 }
 
-void AudioProcessor::convert(char2* dst, void* src, int n) {
+void AudioInputProcessor::convert(char2* dst, void* src, int n) {
     unsigned char* data_u8 = (unsigned char*)src;
     char* data_s8 = (char*)src;
     unsigned short* data_u16 = (unsigned short*)src;

@@ -194,6 +194,19 @@ public:
 };
 
 class AudioProcessor {
+public:
+    void none(AudioFrame& frame);
+    void filter1(AudioFrame& frame);
+    void filter2(AudioFrame& frame);
+    void fft(AudioFrame& frame);
+
+    void none(char2* data, char2* processed);
+    void filter1(char2* data, char2* processed);
+    void filter2(char2* data, char2* processed);
+    void fft(char2* data, char2* processed);
+};
+
+class AudioInputProcessor {
     AudioInput* input;
     int inputOwned;
 
@@ -210,8 +223,8 @@ public:
     char2* data;
     char2 dataProc[1024];
 
-    AudioProcessor(AudioInput* input, int takeOwnership = 1);
-    ~AudioProcessor();
+    AudioInputProcessor(AudioInput* input, int takeOwnership = 1);
+    ~AudioInputProcessor();
 
     AudioInput* audioInput() { return input; }
 
