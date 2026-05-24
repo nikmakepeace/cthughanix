@@ -1,7 +1,7 @@
-// Sound backend interface and concrete backend declarations.
-// The global soundDevice pointer is the current runtime strategy: startup and
-// resume create one concrete subclass, the main loop calls operator() each
-// frame, and shutdown/suspend deletes it.
+// Legacy sound backend interface and concrete backend declarations.
+// New startup code should choose Audio* implementations through AudioRuntime and
+// RuntimeFactory.  The global soundDevice pointer remains only for backends that
+// have not yet moved to the composition model.
 
 #ifndef __SOUND_DEVICE_H
 #define __SOUND_DEVICE_H

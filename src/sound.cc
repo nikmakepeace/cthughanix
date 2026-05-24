@@ -145,7 +145,7 @@ Interface interfaceSound("sound", "Sound Interface", NULL, elementsSound, nEleme
 
 int init_sound() {
 
-    if (soundDevice != NULL)
+    if (audioRuntimeIsInitialized())
         return 0;
 
     audioRuntimeInit(RSIC_MainProcess, 1);

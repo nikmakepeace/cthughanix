@@ -47,7 +47,7 @@ int serv_sound_read() {
 
 void deleter() {
     delete soundServer;
-    delete soundDevice;
+    audioRuntimeShutdown();
     delete cdPlayer;
 }
 

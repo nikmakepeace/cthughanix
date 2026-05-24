@@ -20,6 +20,7 @@ public:
     int hasError() const { return error; }
 
     virtual int read(char* dst, int rawSize, int samplesRequested) = 0;
+    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
     virtual void update() { }
     virtual int initInputControls() { return 0; }
 };
@@ -59,6 +60,7 @@ public:
 
     void operator()();
     void change();
+    int frameRawSize() const { return rawSize; }
 };
 
 class AudioRandomInput : public AudioInput {
@@ -71,6 +73,42 @@ public:
 
     virtual int read(char* dst, int rawSize, int samplesRequested);
     virtual void update();
+};
+
+class AudioNetInput : public AudioInput {
+    int handle;
+
+    void netRequest(int request);
+
+public:
+    AudioNetInput();
+    virtual ~AudioNetInput();
+
+    virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+    virtual void update();
+};
+
+class AudioDSPInput : public AudioInput {
+    int handle;
+    char* dmaBuffer;
+    int dmaSize;
+    int sampleWindow;
+
+    void setFragment();
+    void setChannels();
+    void setSampleRate();
+    void setFormat();
+    void init();
+
+public:
+    AudioDSPInput();
+    virtual ~AudioDSPInput();
+
+    virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+    virtual void update();
+    virtual int initInputControls();
 };
 
 #endif

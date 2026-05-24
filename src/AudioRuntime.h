@@ -7,5 +7,7 @@
 
 void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputControls);
 void audioRuntimeShutdown();
+int audioRuntimeIsInitialized();
+AudioProcessor* audioRuntimeProcessor();
 
 #endif

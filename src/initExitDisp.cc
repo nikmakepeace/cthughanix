@@ -51,7 +51,7 @@ void deleter() {
     delete autoChanger;
     delete cthughaDisplay;
     delete soundServer;
-    delete soundDevice;
+    audioRuntimeShutdown();
     delete cdPlayer;
 }
 

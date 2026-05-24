@@ -131,3 +131,5 @@
 - Document `xcthugha` as the current reference target and SVGAlib as archival.
 - Revisit `glcthugha` later; it depends on old GLUT/OpenGL assumptions and likely should
   not block the SDL path.
+- Look at the weird way it has mpg123 write to a tmp file and then reads that audio in. 
+  Surely there must be another way! 

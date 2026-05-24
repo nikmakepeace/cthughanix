@@ -50,23 +50,48 @@ AudioInput* RuntimeFactory::createAudioInput() const {
         settings.soundDeviceNumber);
 
     switch (settings.soundDeviceNumber) {
+    case SDN_DSPIn:
+        CTH_DEBUG("    audio input strategy: native OSS DSP input\n");
+        CTH_TRACE("runtime factory: selected AudioDSPInput\n");
+        return new AudioDSPInput();
+
+    case SDN_Net:
+        CTH_DEBUG("    audio input strategy: native network input\n");
+        CTH_TRACE("runtime factory: selected AudioNetInput\n");
+        return new AudioNetInput();
+
     case SDN_Random:
         CTH_DEBUG("    audio input strategy: random input from new runtime factory\n");
         CTH_TRACE("runtime factory: selected AudioRandomInput\n");
         return new AudioRandomInput();
 
+    case SDN_File:
+        CTH_DEBUG("    audio input strategy: legacy file input bridge, because file playback is not native yet\n");
+        CTH_TRACE("runtime factory: no native AudioInput for file playback yet\n");
+        return NULL;
+
     default:
-        CTH_DEBUG("    audio input strategy: random input placeholder; requested device %d is not migrated yet\n",
+        CTH_DEBUG("    audio input strategy: none, because requested device %d is illegal\n",
             settings.soundDeviceNumber);
-        CTH_TRACE("runtime factory: selected AudioRandomInput placeholder for requested device %d\n",
+        CTH_TRACE("runtime factory: illegal native AudioInput request %d\n",
             settings.soundDeviceNumber);
-        return new AudioRandomInput();
+        return NULL;
     }
 }
 
 AudioProcessor* RuntimeFactory::createAudioProcessor() const {
     CTH_TRACE("runtime factory: creating AudioProcessor\n");
-    return new AudioProcessor(createAudioInput());
+    AudioInput* input = createAudioInput();
+    if (input == NULL)
+        return NULL;
+
+    if (input->hasError()) {
+        CTH_TRACE("runtime factory: native AudioInput construction failed\n");
+        delete input;
+        return NULL;
+    }
+
+    return new AudioProcessor(input);
 }
 
 SoundDevice* RuntimeFactory::createLegacySoundDevice(RuntimeSoundInputContext context) const {
