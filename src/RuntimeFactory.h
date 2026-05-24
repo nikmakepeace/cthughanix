@@ -5,15 +5,28 @@
 
 #include "Audio.h"
 
+#include <limits.h>
+
 enum RuntimeSoundInputContext {
     RSIC_MainProcess,
     RSIC_FileChild
+};
+
+enum AudioSourceStrategy {
+    ASS_LineIn,
+    ASS_Network,
+    ASS_Random,
+    ASS_WavFile,
+    ASS_Mp3File,
+    ASS_RawFile,
+    ASS_Unknown
 };
 
 class Settings {
 public:
     int soundDeviceNumber;
     int silent;
+    char fileName[PATH_MAX];
 
     Settings();
 
@@ -38,7 +51,9 @@ public:
     RuntimeFactory(const Settings& settings, const Environment& environment);
 
     AudioInput* createAudioInput() const;
+    AudioOutput* createAudioOutput() const;
     AudioProcessor* createAudioProcessor() const;
+    AudioSourceStrategy selectAudioSourceStrategy() const;
 
     SoundDevice* createLegacySoundDevice(RuntimeSoundInputContext context) const;
 };

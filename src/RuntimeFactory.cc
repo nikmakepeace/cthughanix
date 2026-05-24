@@ -1,22 +1,63 @@
 #include "cthugha.h"
 #include "RuntimeFactory.h"
 
+#include <ctype.h>
+#include <string.h>
 #include <unistd.h>
 
 Settings::Settings()
     : soundDeviceNumber(SDN_DSPIn)
-    , silent(0) { }
+    , silent(0) {
+    fileName[0] = '\0';
+}
 
 Settings Settings::fromCurrentOptions() {
     Settings settings;
 
     settings.soundDeviceNumber = int(soundDeviceNr);
     settings.silent = int(soundSilent);
+    strncpy(settings.fileName, SoundDeviceFile::name, PATH_MAX);
+    settings.fileName[PATH_MAX - 1] = '\0';
 
-    CTH_TRACE("runtime settings: sound-device-number=%d silent=%d\n",
-        settings.soundDeviceNumber, settings.silent);
+    CTH_TRACE("runtime settings: sound-device-number=%d silent=%d file=`%s'\n",
+        settings.soundDeviceNumber, settings.silent, settings.fileName);
 
     return settings;
+}
+
+static const char* audioSourceStrategyName(AudioSourceStrategy strategy) {
+    switch (strategy) {
+    case ASS_LineIn:
+        return "line-in";
+    case ASS_Network:
+        return "network";
+    case ASS_Random:
+        return "random";
+    case ASS_WavFile:
+        return "wav-file";
+    case ASS_Mp3File:
+        return "mp3-file";
+    case ASS_RawFile:
+        return "raw-file";
+    default:
+        return "unknown";
+    }
+}
+
+static int filenameEndsWith(const char* name, const char* suffix) {
+    int nameLen = strlen(name);
+    int suffixLen = strlen(suffix);
+
+    if (suffixLen > nameLen)
+        return 0;
+
+    name += nameLen - suffixLen;
+    for (int i = 0; i < suffixLen; i++) {
+        if (tolower(name[i]) != tolower(suffix[i]))
+            return 0;
+    }
+
+    return 1;
 }
 
 Environment::Environment()
@@ -45,29 +86,74 @@ RuntimeFactory::RuntimeFactory(const Settings& settings_, const Environment& env
         environment.ossInputAvailable, environment.ossOutputAvailable);
 }
 
+AudioSourceStrategy RuntimeFactory::selectAudioSourceStrategy() const {
+    AudioSourceStrategy strategy;
+
+    switch (settings.soundDeviceNumber) {
+    case SDN_DSPIn:
+        strategy = ASS_LineIn;
+        break;
+    case SDN_Net:
+        strategy = ASS_Network;
+        break;
+    case SDN_Random:
+        strategy = ASS_Random;
+        break;
+    case SDN_File:
+        if (filenameEndsWith(settings.fileName, ".wav"))
+            strategy = ASS_WavFile;
+        else if (filenameEndsWith(settings.fileName, ".mp3"))
+            strategy = ASS_Mp3File;
+        else if (settings.fileName[0] != '\0')
+            strategy = ASS_RawFile;
+        else
+            strategy = ASS_Unknown;
+        break;
+    default:
+        strategy = ASS_Unknown;
+        break;
+    }
+
+    CTH_TRACE("runtime factory: selected audio source strategy=%s sound-device-number=%d file=`%s'\n",
+        audioSourceStrategyName(strategy), settings.soundDeviceNumber, settings.fileName);
+    return strategy;
+}
+
 AudioInput* RuntimeFactory::createAudioInput() const {
+    AudioSourceStrategy sourceStrategy = selectAudioSourceStrategy();
+
     CTH_TRACE("runtime factory: selecting AudioInput for sound-device-number=%d\n",
         settings.soundDeviceNumber);
 
     switch (settings.soundDeviceNumber) {
     case SDN_DSPIn:
-        CTH_DEBUG("    audio input strategy: native OSS DSP input\n");
+        CTH_DEBUG("    audio input strategy: native OSS DSP input from %s source\n",
+            audioSourceStrategyName(sourceStrategy));
         CTH_TRACE("runtime factory: selected AudioDSPInput\n");
         return new AudioDSPInput();
 
     case SDN_Net:
-        CTH_DEBUG("    audio input strategy: native network input\n");
+        CTH_DEBUG("    audio input strategy: native network input from %s source\n",
+            audioSourceStrategyName(sourceStrategy));
         CTH_TRACE("runtime factory: selected AudioNetInput\n");
         return new AudioNetInput();
 
     case SDN_Random:
-        CTH_DEBUG("    audio input strategy: random input from new runtime factory\n");
+        CTH_DEBUG("    audio input strategy: random input from %s source\n",
+            audioSourceStrategyName(sourceStrategy));
         CTH_TRACE("runtime factory: selected AudioRandomInput\n");
         return new AudioRandomInput();
 
     case SDN_File:
-        CTH_DEBUG("    audio input strategy: legacy file input bridge, because file playback is not native yet\n");
-        CTH_TRACE("runtime factory: no native AudioInput for file playback yet\n");
+        if ((sourceStrategy == ASS_WavFile) && settings.silent) {
+            CTH_DEBUG("    audio input strategy: native silent WAV file input\n");
+            CTH_TRACE("runtime factory: selected AudioPcmInput with WavAudioSource\n");
+            return new AudioPcmInput(new WavAudioSource(settings.fileName));
+        }
+        CTH_DEBUG("    audio input strategy: legacy file input bridge for %s source, because file playback is not native yet\n",
+            audioSourceStrategyName(sourceStrategy));
+        CTH_TRACE("runtime factory: no native AudioInput for file source strategy=%s yet\n",
+            audioSourceStrategyName(sourceStrategy));
         return NULL;
 
     default:
@@ -77,6 +163,41 @@ AudioInput* RuntimeFactory::createAudioInput() const {
             settings.soundDeviceNumber);
         return NULL;
     }
+}
+
+AudioOutput* RuntimeFactory::createAudioOutput() const {
+    CTH_TRACE("runtime factory: selecting AudioOutput silent=%d oss-output=%d\n",
+        settings.silent, environment.ossOutputAvailable);
+
+    if (settings.silent) {
+        CTH_DEBUG("    audio output strategy: null output, because playback is silent\n");
+        CTH_TRACE("runtime factory: selected AudioNullOutput\n");
+        return new AudioNullOutput();
+    }
+
+    CTH_DEBUG("    audio output strategy: trying Pulse output\n");
+    AudioPulseOutput* pulse = new AudioPulseOutput();
+    if (pulse->isOpen()) {
+        CTH_TRACE("runtime factory: selected AudioPulseOutput\n");
+        return pulse;
+    }
+    delete pulse;
+
+    if (environment.ossOutputAvailable) {
+        CTH_DEBUG("    audio output strategy: trying OSS DSP output\n");
+        AudioDSPOutput* dsp = new AudioDSPOutput();
+        if (dsp->isOpen()) {
+            CTH_TRACE("runtime factory: selected AudioDSPOutput\n");
+            return dsp;
+        }
+        delete dsp;
+    } else {
+        CTH_DEBUG("    audio output strategy: skipping OSS DSP output because it is unavailable\n");
+    }
+
+    CTH_DEBUG("    audio output strategy: null output, because no real output opened\n");
+    CTH_TRACE("runtime factory: selected AudioNullOutput fallback\n");
+    return new AudioNullOutput();
 }
 
 AudioProcessor* RuntimeFactory::createAudioProcessor() const {

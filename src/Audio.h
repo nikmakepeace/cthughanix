@@ -9,6 +9,12 @@
 
 #include "SoundDevice.h"
 
+#include <stdio.h>
+#include <limits.h>
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 class AudioInput {
 protected:
     int error;
@@ -34,6 +40,107 @@ public:
     virtual int getHandle() const { return -1; }
     virtual int isOpen() const = 0;
     virtual void update() { }
+};
+
+class AudioNullOutput : public AudioOutput {
+public:
+    virtual int write(const void* buffer, int size);
+    virtual int outputDelayBytes() const;
+    virtual int isOpen() const;
+};
+
+class AudioPulseOutput : public AudioOutput {
+    void* pulse;
+    int bytesPerSecondValue;
+
+public:
+    AudioPulseOutput();
+    virtual ~AudioPulseOutput();
+
+    virtual int write(const void* buffer, int size);
+    virtual int outputDelayBytes() const;
+    virtual int isOpen() const;
+    virtual void update();
+};
+
+class AudioDSPOutput : public AudioOutput {
+    int handle;
+
+    void setFragment();
+    void setChannels();
+    void setSampleRate();
+    void setFormat();
+    void init();
+
+public:
+    AudioDSPOutput();
+    virtual ~AudioDSPOutput();
+
+    virtual int write(const void* buffer, int size);
+    virtual int outputDelayBytes() const;
+    virtual int getHandle() const;
+    virtual int isOpen() const;
+    virtual void update();
+};
+
+struct PcmFormat {
+    int sampleRate;
+    int channels;
+    int sampleFormat;
+
+    PcmFormat()
+        : sampleRate(0)
+        , channels(0)
+        , sampleFormat(SF_u8) { }
+};
+
+class PcmSource {
+protected:
+    int error;
+    PcmFormat pcmFormat;
+
+public:
+    PcmSource();
+    virtual ~PcmSource();
+
+    int hasError() const { return error; }
+    const PcmFormat& format() const { return pcmFormat; }
+
+    virtual int read(char* dst, int bytes) = 0;
+    virtual void rewind() = 0;
+};
+
+class AudioPcmInput : public AudioInput {
+    PcmSource* source;
+    int sourceOwned;
+
+    void applyFormat();
+
+public:
+    AudioPcmInput(PcmSource* source, int takeOwnership = 1);
+    virtual ~AudioPcmInput();
+
+    virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual void update();
+};
+
+class WavAudioSource : public PcmSource {
+    char name[PATH_MAX];
+    FILE* file;
+    long dataStart;
+    long dataLength;
+    long dataRead;
+
+    int open();
+    int readChunkHeader(char id[4], unsigned int& size);
+    int parseHeader();
+
+public:
+    WavAudioSource(const char* name);
+    virtual ~WavAudioSource();
+
+    virtual int read(char* dst, int bytes);
+    virtual void rewind();
 };
 
 class AudioProcessor {

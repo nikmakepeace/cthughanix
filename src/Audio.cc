@@ -14,6 +14,11 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#if WITH_PULSE == 1
+#include <pulse/error.h>
+#include <pulse/simple.h>
+#endif
+
 #if WITH_DSP == 1
 #ifdef HAVE_LINUX_SOUNDCARD_H
 #include <linux/soundcard.h>
@@ -36,6 +41,530 @@ int AudioInput::rawBufferSize(int frameRawSize, int /*samplesRequested*/) const 
 }
 
 AudioOutput::~AudioOutput() { }
+
+int AudioNullOutput::write(const void*, int size) { return size; }
+int AudioNullOutput::outputDelayBytes() const { return 0; }
+int AudioNullOutput::isOpen() const { return 1; }
+
+#if WITH_PULSE == 1
+
+static pa_sample_format_t audioPulseSampleFormat() {
+    switch (soundFormat) {
+    case SF_u8:
+        return PA_SAMPLE_U8;
+    case SF_s16_le:
+        return PA_SAMPLE_S16LE;
+    case SF_s16_be:
+        return PA_SAMPLE_S16BE;
+    default:
+        return PA_SAMPLE_INVALID;
+    }
+}
+
+AudioPulseOutput::AudioPulseOutput()
+    : pulse(NULL)
+    , bytesPerSecondValue(0) {
+    update();
+}
+
+AudioPulseOutput::~AudioPulseOutput() {
+    if (pulse)
+        pa_simple_free((pa_simple*)pulse);
+    pulse = NULL;
+}
+
+void AudioPulseOutput::update() {
+    int error;
+    pa_sample_spec sampleSpec;
+
+    if (pulse) {
+        pa_simple_free((pa_simple*)pulse);
+        pulse = NULL;
+    }
+    bytesPerSecondValue = 0;
+
+    sampleSpec.format = audioPulseSampleFormat();
+    sampleSpec.rate = int(soundSampleRate);
+    sampleSpec.channels = int(soundChannels);
+
+    if (sampleSpec.format == PA_SAMPLE_INVALID) {
+        CTH_DEBUG("    audio output strategy: Pulse unavailable for format `%s'\n",
+            soundFormat.text());
+        return;
+    }
+
+    pulse = pa_simple_new(NULL, "Cthughanix", PA_STREAM_PLAYBACK, NULL, "Audio passthrough",
+        &sampleSpec, NULL, NULL, &error);
+    if (pulse == NULL) {
+        CTH_DEBUG("    audio output strategy: Pulse failed to open: %s\n", pa_strerror(error));
+        return;
+    }
+
+    bytesPerSecondValue = pa_bytes_per_second(&sampleSpec);
+    CTH_TRACE("audio pulse output: opened rate=%d channels=%d format=%d bytes-per-second=%d\n",
+        sampleSpec.rate, sampleSpec.channels, sampleSpec.format, bytesPerSecondValue);
+}
+
+int AudioPulseOutput::write(const void* buffer, int size) {
+    int error;
+
+    if (pulse == NULL)
+        return 0;
+
+    if (pa_simple_write((pa_simple*)pulse, buffer, size, &error) < 0) {
+        CTH_ERROR("Pulse passthrough write failed: %s\n", pa_strerror(error));
+        return 0;
+    }
+
+    return size;
+}
+
+int AudioPulseOutput::outputDelayBytes() const {
+    int error;
+    pa_usec_t latency;
+
+    if ((pulse == NULL) || (bytesPerSecondValue <= 0))
+        return 0;
+
+    latency = pa_simple_get_latency((pa_simple*)pulse, &error);
+    if (latency == (pa_usec_t)-1)
+        return 0;
+
+    return (int)((latency * bytesPerSecondValue) / 1000000);
+}
+
+int AudioPulseOutput::isOpen() const { return pulse != NULL; }
+
+#else
+
+AudioPulseOutput::AudioPulseOutput()
+    : pulse(NULL)
+    , bytesPerSecondValue(0) {
+    CTH_DEBUG("    audio output strategy: Pulse unavailable because support is not compiled in\n");
+}
+
+AudioPulseOutput::~AudioPulseOutput() { }
+int AudioPulseOutput::write(const void*, int) { return 0; }
+int AudioPulseOutput::outputDelayBytes() const { return 0; }
+int AudioPulseOutput::isOpen() const { return 0; }
+void AudioPulseOutput::update() { }
+
+#endif
+
+#if WITH_DSP == 1
+
+AudioDSPOutput::AudioDSPOutput()
+    : handle(-1) {
+    init();
+}
+
+void AudioDSPOutput::setFragment() {
+    int soundDSPFragment = (int(soundDSPFragments) << 16) | int(soundDSPFragmentSize);
+    if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
+
+    soundDSPFragments.setValue(soundDSPFragment >> 16);
+    soundDSPFragmentSize.setValue(soundDSPFragment & 0x7fff);
+}
+
+void AudioDSPOutput::setChannels() {
+    int channels = int(soundChannels) - 1;
+    if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
+    soundChannels.setValue(channels + 1);
+}
+
+void AudioDSPOutput::setSampleRate() {
+    if (ioctl(handle, SNDCTL_DSP_SPEED, &(soundSampleRate.value)) < 0)
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
+}
+
+void AudioDSPOutput::setFormat() {
+    int sound_format;
+
+    switch (soundFormat) {
+    case SF_u8:
+        sound_format = AFMT_U8;
+        break;
+    case SF_s8:
+        sound_format = AFMT_S8;
+        break;
+    case SF_u16_le:
+        sound_format = AFMT_U16_LE;
+        break;
+    case SF_s16_le:
+        sound_format = AFMT_S16_LE;
+        break;
+    case SF_u16_be:
+        sound_format = AFMT_U16_BE;
+        break;
+    case SF_s16_be:
+        sound_format = AFMT_S16_BE;
+        break;
+    default:
+        CTH_ERROR("Internal error: unknown sound format.\n");
+        sound_format = AFMT_U8;
+    }
+
+    CTH_TRACE("audio dsp output: setting sound format: %d   ", sound_format);
+    if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
+        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
+        sound_format = AFMT_U8;
+        if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0)
+            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed.");
+    }
+    CTH_TRACE("returned: %d\n", sound_format);
+
+    switch (sound_format) {
+    case AFMT_U8:
+        soundFormat.setValue(SF_u8);
+        break;
+    case AFMT_S8:
+        soundFormat.setValue(SF_s8);
+        break;
+    case AFMT_U16_LE:
+        soundFormat.setValue(SF_u16_le);
+        break;
+    case AFMT_S16_LE:
+        soundFormat.setValue(SF_s16_le);
+        break;
+    case AFMT_U16_BE:
+        soundFormat.setValue(SF_u16_be);
+        break;
+    case AFMT_S16_BE:
+        soundFormat.setValue(SF_s16_be);
+        break;
+    default:
+        CTH_ERROR("Unknown sound format returned by SNDCTL_DSP_SETFMT %d.\n", sound_format);
+    }
+}
+
+void AudioDSPOutput::init() {
+    CTH_DEBUG("  setting %s for writing...\n", SoundDeviceDSP::dev_dsp);
+    CTH_TRACE("audio dsp output: init device=`%s'\n", SoundDeviceDSP::dev_dsp);
+
+    if (handle >= 0)
+        close(handle);
+    handle = -1;
+
+    if ((handle = open(SoundDeviceDSP::dev_dsp, O_WRONLY)) < 0) {
+        CTH_ERRNO(errno, "Can't open `%s' for writing.", SoundDeviceDSP::dev_dsp);
+        return;
+    }
+
+    setFragment();
+    setChannels();
+    setSampleRate();
+    setFormat();
+}
+
+int AudioDSPOutput::write(const void* buffer, int size) {
+    if (handle < 0)
+        return 0;
+    return ::write(handle, buffer, size);
+}
+
+int AudioDSPOutput::outputDelayBytes() const {
+    int delay = 0;
+
+    if (handle < 0)
+        return 0;
+
+#ifdef SNDCTL_DSP_GETODELAY
+    if (ioctl(handle, SNDCTL_DSP_GETODELAY, &delay) == 0)
+        return max(0, delay);
+#endif
+
+#ifdef SNDCTL_DSP_GETOSPACE
+    {
+        audio_buf_info bi;
+        if (ioctl(handle, SNDCTL_DSP_GETOSPACE, &bi) == 0)
+            return max(0, bi.fragstotal * bi.fragsize - bi.bytes);
+    }
+#endif
+
+    return 0;
+}
+
+int AudioDSPOutput::getHandle() const { return handle; }
+int AudioDSPOutput::isOpen() const { return handle >= 0; }
+void AudioDSPOutput::update() { init(); }
+
+AudioDSPOutput::~AudioDSPOutput() {
+    if (handle >= 0)
+        close(handle);
+    handle = -1;
+}
+
+#else
+
+AudioDSPOutput::AudioDSPOutput()
+    : handle(-1) {
+    CTH_DEBUG("    audio output strategy: OSS DSP unavailable because support is not compiled in\n");
+}
+
+AudioDSPOutput::~AudioDSPOutput() { }
+void AudioDSPOutput::setFragment() { }
+void AudioDSPOutput::setChannels() { }
+void AudioDSPOutput::setSampleRate() { }
+void AudioDSPOutput::setFormat() { }
+void AudioDSPOutput::init() { }
+int AudioDSPOutput::write(const void*, int) { return 0; }
+int AudioDSPOutput::outputDelayBytes() const { return 0; }
+int AudioDSPOutput::getHandle() const { return -1; }
+int AudioDSPOutput::isOpen() const { return 0; }
+void AudioDSPOutput::update() { }
+
+#endif
+
+PcmSource::PcmSource()
+    : error(0) { }
+
+PcmSource::~PcmSource() { }
+
+static unsigned int readLe16(const unsigned char* p) {
+    return (unsigned int)p[0] | ((unsigned int)p[1] << 8);
+}
+
+static unsigned int readLe32(const unsigned char* p) {
+    return (unsigned int)p[0] | ((unsigned int)p[1] << 8) | ((unsigned int)p[2] << 16)
+        | ((unsigned int)p[3] << 24);
+}
+
+AudioPcmInput::AudioPcmInput(PcmSource* source_, int takeOwnership)
+    : AudioInput()
+    , source(source_)
+    , sourceOwned(takeOwnership) {
+    if ((source == NULL) || source->hasError()) {
+        CTH_TRACE("audio pcm input: source construction failed\n");
+        error = 1;
+        return;
+    }
+
+    applyFormat();
+}
+
+AudioPcmInput::~AudioPcmInput() {
+    if (sourceOwned)
+        delete source;
+    source = NULL;
+}
+
+void AudioPcmInput::applyFormat() {
+    const PcmFormat& format = source->format();
+
+    CTH_TRACE("audio pcm input: applying format rate=%d channels=%d format=%d\n",
+        format.sampleRate, format.channels, format.sampleFormat);
+    soundSampleRate.setValue(format.sampleRate);
+    soundChannels.setValue(format.channels);
+    soundFormat.setValue(format.sampleFormat);
+}
+
+int AudioPcmInput::read(char* dst, int rawSize, int /*samplesRequested*/) {
+    int bytesRead = source ? source->read(dst, rawSize) : 0;
+
+    if (bytesRead == 0) {
+        if (soundPlayLoop) {
+            CTH_TRACE("audio pcm input: source reached end; rewinding\n");
+            source->rewind();
+            applyFormat();
+            bytesRead = source->read(dst, rawSize);
+        } else {
+            CTH_INFO("Stopping...\n");
+            exit(0);
+        }
+    }
+
+    if (bytesRead < 0)
+        bytesRead = 0;
+
+    return bytesRead / ((soundFormat < 2) ? soundChannels : 2 * soundChannels);
+}
+
+void AudioPcmInput::update() {
+    if (source)
+        applyFormat();
+}
+
+WavAudioSource::WavAudioSource(const char* name_)
+    : PcmSource()
+    , file(NULL)
+    , dataStart(0)
+    , dataLength(0)
+    , dataRead(0) {
+    strncpy(name, name_, PATH_MAX - 1);
+    name[PATH_MAX - 1] = '\0';
+    if (open())
+        error = 1;
+}
+
+WavAudioSource::~WavAudioSource() {
+    if (file)
+        fclose0(file);
+}
+
+int WavAudioSource::open() {
+    if (file)
+        fclose0(file);
+
+    CTH_INFO("Playing file '%s'.\n", name);
+    CTH_TRACE("wav audio source: opening `%s'\n", name);
+
+    file = fopen(name, "rb");
+    if (file == NULL) {
+        CTH_ERRNO(errno, "Can not open sound file `%s' for reading.", name);
+        return 1;
+    }
+
+    return parseHeader();
+}
+
+int WavAudioSource::readChunkHeader(char id[4], unsigned int& size) {
+    unsigned char sizeBytes[4];
+
+    if (fread(id, 1, 4, file) != 4)
+        return 1;
+    if (fread(sizeBytes, 1, 4, file) != 4)
+        return 1;
+
+    size = readLe32(sizeBytes);
+    return 0;
+}
+
+int WavAudioSource::parseHeader() {
+    char id[4];
+    unsigned int size;
+    unsigned char formatBytes[16];
+    int foundFormat = 0;
+    int foundData = 0;
+
+    dataStart = 0;
+    dataLength = 0;
+    dataRead = 0;
+
+    if (readChunkHeader(id, size)) {
+        CTH_ERROR("Can not read WAV RIFF header.\n");
+        return 1;
+    }
+    if ((memcmp(id, "RIFF", 4) != 0) && (memcmp(id, "RIFX", 4) != 0)) {
+        CTH_WARN("  Error in .wav header\n");
+        return 1;
+    }
+    if (memcmp(id, "RIFX", 4) == 0) {
+        CTH_WARN("  Big-endian RIFX WAV files are not supported yet.\n");
+        return 1;
+    }
+    if (fread(id, 1, 4, file) != 4) {
+        CTH_ERROR("Can not read WAV type.\n");
+        return 1;
+    }
+    if (memcmp(id, "WAVE", 4) != 0) {
+        CTH_WARN("  Error in .wav header\n");
+        return 1;
+    }
+
+    while (!foundData && !feof(file)) {
+        if (readChunkHeader(id, size))
+            break;
+
+        if (memcmp(id, "fmt ", 4) == 0) {
+            if (size < 16) {
+                CTH_WARN("  Unsupported .wav fmt chunk size %u.\n", size);
+                return 1;
+            }
+            if (fread(formatBytes, 1, 16, file) != 16) {
+                CTH_ERROR("Can not read WAV format chunk.\n");
+                return 1;
+            }
+
+            unsigned int audioFormat = readLe16(formatBytes);
+            unsigned int channels = readLe16(formatBytes + 2);
+            unsigned int sampleRate = readLe32(formatBytes + 4);
+            unsigned int bitsPerSample = readLe16(formatBytes + 14);
+
+            if (audioFormat != 1) {
+                CTH_WARN("  Unsupported .wav encoding %u.\n", audioFormat);
+                return 1;
+            }
+            if ((channels < 1) || (channels > 2)) {
+                CTH_WARN("  Unsupported .wav channel count %u.\n", channels);
+                return 1;
+            }
+
+            pcmFormat.channels = channels;
+            pcmFormat.sampleRate = sampleRate;
+            switch (bitsPerSample) {
+            case 8:
+                pcmFormat.sampleFormat = SF_u8;
+                break;
+            case 16:
+                pcmFormat.sampleFormat = SF_s16_le;
+                break;
+            default:
+                CTH_WARN("  Unsupported .wav sample size %u.\n", bitsPerSample);
+                return 1;
+            }
+
+            CTH_TRACE("wav audio source: format rate=%d channels=%d sample-format=%d\n",
+                pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
+
+            if (size > 16)
+                fseek(file, size - 16, SEEK_CUR);
+            if (size & 1)
+                fseek(file, 1, SEEK_CUR);
+
+            foundFormat = 1;
+        } else if (memcmp(id, "data", 4) == 0) {
+            if (!foundFormat) {
+                CTH_WARN("  WAV data chunk arrived before fmt chunk.\n");
+                return 1;
+            }
+            dataStart = ftell(file);
+            dataLength = size;
+            dataRead = 0;
+            foundData = 1;
+            CTH_TRACE("wav audio source: data-start=%ld data-length=%ld\n", dataStart, dataLength);
+        } else {
+            fseek(file, size, SEEK_CUR);
+            if (size & 1)
+                fseek(file, 1, SEEK_CUR);
+        }
+    }
+
+    if (!foundData) {
+        CTH_WARN("  Error in .wav header\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+int WavAudioSource::read(char* dst, int bytes) {
+    if ((file == NULL) || error)
+        return 0;
+
+    if (dataRead >= dataLength)
+        return 0;
+
+    int remaining = dataLength - dataRead;
+    int wanted = min(bytes, remaining);
+    int readBytes = fread(dst, 1, wanted, file);
+
+    if (readBytes < 0)
+        readBytes = 0;
+    dataRead += readBytes;
+
+    return readBytes;
+}
+
+void WavAudioSource::rewind() {
+    CTH_TRACE("wav audio source: rewind `%s'\n", name);
+    if ((file == NULL) || error)
+        return;
+
+    fseek(file, dataStart, SEEK_SET);
+    dataRead = 0;
+}
 
 AudioProcessor::AudioProcessor(AudioInput* input_, int takeOwnership)
     : input(input_)
