@@ -99,11 +99,17 @@ int AudioOutput::queuedTargetBytes() const {
 long long AudioOutput::audibleBytePosition(const AudioBuffer& buffer) const {
     long long submittedEndByte = buffer.submittedEndPosition();
     int delay = outputDelayBytes();
+    long long audibleByte;
 
     if (delay > submittedEndByte)
         return 0;
 
-    return submittedEndByte - delay;
+    audibleByte = submittedEndByte - delay;
+    int bytesPerSample = audioOutputBytesPerSample();
+    if (bytesPerSample > 0)
+        audibleByte -= audibleByte % bytesPerSample;
+
+    return audibleByte;
 }
 
 int AudioOutput::playbackComplete(const AudioBuffer& buffer, int inputFinished) const {
@@ -706,6 +712,7 @@ void AudioFrameBuilder::setRawCapacity(int rawBytes) {
 void AudioFrameBuilder::build(AudioFrame& frame, const AudioBuffer& buffer, long long centerByte) {
     int bytesPerSample = (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
     int rawBytes;
+    int halfRawBytes;
     long long startByte;
     int bytesRead;
     int sampleOffset;
@@ -717,11 +724,15 @@ void AudioFrameBuilder::build(AudioFrame& frame, const AudioBuffer& buffer, long
     if (bytesPerSample <= 0)
         return;
 
+    centerByte -= centerByte % bytesPerSample;
+    frame.centerByte = centerByte;
+
     rawBytes = 1024 * bytesPerSample;
+    halfRawBytes = rawBytes / 2;
     setRawCapacity(rawBytes);
     memset(rawData, 0, rawBytes);
 
-    startByte = centerByte - rawBytes;
+    startByte = centerByte - halfRawBytes;
     sampleOffset = 0;
     if (startByte < 0) {
         sampleOffset = int((-startByte) / bytesPerSample);

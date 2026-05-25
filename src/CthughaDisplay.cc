@@ -303,16 +303,20 @@ void CthughaDisplay::resetFPS() {
 }
 
 void CthughaDisplay::observeVisualLatency(double seconds) {
+    double previous = visualLatencyEstimate;
+    double alpha = 0.1;
+
     if (seconds < 0)
         seconds = 0;
 
     if (visualLatencyEstimate <= 0)
         visualLatencyEstimate = seconds;
     else
-        visualLatencyEstimate = visualLatencyEstimate * 0.9 + seconds * 0.1;
+        visualLatencyEstimate = visualLatencyEstimate * (1.0 - alpha) + seconds * alpha;
 
-    CTH_TRACE("visual-latency-ms=%.3f observed-ms=%.3f\n", "display timing",
-        visualLatencyEstimate * 1000.0, seconds * 1000.0);
+    CTH_TRACE("visual-latency observed-ms=%.3f previous-ms=%.3f alpha=%.3f estimate-ms=%.3f\n",
+        "display timing", seconds * 1000.0, previous * 1000.0, alpha,
+        visualLatencyEstimate * 1000.0);
 }
 
 double CthughaDisplay::visualLatencySeconds() const {
