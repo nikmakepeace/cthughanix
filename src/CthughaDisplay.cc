@@ -34,6 +34,7 @@ CthughaDisplay::CthughaDisplay()
 
     frames = 0;
     displayStart = getTime();
+    visualLatencyEstimate = 0;
 
     // The logical Cthugha image can occupy four BUFF_SIZE quadrants after
     // screen() output has been mirrored into a full 2x2 buffer.
@@ -299,6 +300,23 @@ void CthughaDisplay::checkFPS() {
 void CthughaDisplay::resetFPS() {
     displayStart = getTime(); // restart the averaging window from this instant
     frames = 0;
+}
+
+void CthughaDisplay::observeVisualLatency(double seconds) {
+    if (seconds < 0)
+        seconds = 0;
+
+    if (visualLatencyEstimate <= 0)
+        visualLatencyEstimate = seconds;
+    else
+        visualLatencyEstimate = visualLatencyEstimate * 0.9 + seconds * 0.1;
+
+    CTH_TRACE("visual-latency-ms=%.3f observed-ms=%.3f\n", "display timing",
+        visualLatencyEstimate * 1000.0, seconds * 1000.0);
+}
+
+double CthughaDisplay::visualLatencySeconds() const {
+    return visualLatencyEstimate;
 }
 
 // Start a new frame by publishing a stable timestamp for all modules that run

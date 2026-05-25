@@ -28,6 +28,7 @@ protected:
     // FPS accounting starts at displayStart and counts completed frames.
     double displayStart;
     int frames;
+    double visualLatencyEstimate;
 
     // Complete the logical 2x2 Cthugha image when a screen() function only
     // produced the left half, top half, or top-left quadrant.
@@ -66,6 +67,8 @@ public:
     virtual void operator()() { }
 
     void resetFPS();
+    void observeVisualLatency(double seconds);
+    double visualLatencySeconds() const;
 
     double fps; // most recently measured frames per second
 

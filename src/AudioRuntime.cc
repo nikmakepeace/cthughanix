@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "AudioRuntime.h"
+#include "CthughaDisplay.h"
 
 static AudioInputProcessor* audioProcessor = NULL;
 static AudioInput* audioInput = NULL;
@@ -155,11 +156,23 @@ static void audioRuntimeBuildFrame() {
     if ((audioFrameBuilder == NULL) || (audioBuffer == NULL))
         return;
 
+    long long audibleByte = audioRuntimeAudibleBytePosition();
+    double visualLatencySeconds = cthughaDisplay ? cthughaDisplay->visualLatencySeconds() : 0;
+    long long visualOffsetBytes = (long long)(audioRuntimeBytesPerSecond() * visualLatencySeconds);
+    int bytesPerSample = audioRuntimeBytesPerSample();
+    if (bytesPerSample > 0)
+        visualOffsetBytes -= visualOffsetBytes % bytesPerSample;
+
+    long long frameCenterByte = audibleByte + visualOffsetBytes;
+    if (frameCenterByte > audioBuffer->decodedEndPosition())
+        frameCenterByte = audioBuffer->decodedEndPosition();
+
     double buildStart = getTime();
-    audioFrameBuilder->build(audioRuntimeFrame, *audioBuffer, audioRuntimeAudibleBytePosition());
-    CTH_TRACE("frame-build-ms=%.3f audible-byte=%lld queued=%d\n", "audio timing",
-        (getTime() - buildStart) * 1000.0, audioRuntimeAudibleBytePosition(),
-        audioBuffer->queuedForOutputBytes());
+    audioFrameBuilder->build(audioRuntimeFrame, *audioBuffer, frameCenterByte);
+    CTH_TRACE("frame-build-ms=%.3f audible-byte=%lld visual-offset-bytes=%lld visual-latency-ms=%.3f center-byte=%lld queued=%d\n",
+        "audio timing",
+        (getTime() - buildStart) * 1000.0, audibleByte, visualOffsetBytes,
+        visualLatencySeconds * 1000.0, frameCenterByte, audioBuffer->queuedForOutputBytes());
 }
 
 void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputControls) {

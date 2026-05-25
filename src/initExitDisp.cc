@@ -177,10 +177,14 @@ void run(int doDisplay) {
         frameTiming[6] = getTime();
 
     PROFILING();
+    double visualStart = getTime();
     if (doDisplay)
         (*cthughaDisplay)();
+    double visualEnd = getTime();
     if (traceFrameTiming)
-        frameTiming[7] = getTime();
+        frameTiming[7] = visualEnd;
+    if (cthughaDisplay)
+        cthughaDisplay->observeVisualLatency(visualEnd - visualStart);
 
     PROFILING();
     (*cdPlayer)();
