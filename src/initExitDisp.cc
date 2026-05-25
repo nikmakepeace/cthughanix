@@ -141,31 +141,64 @@ void run(int doDisplay) {
     double T[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int profilingIndex = 0;
 #endif
+    double frameTiming[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int traceFrameTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
+    if (traceFrameTiming)
+        frameTiming[0] = getTime();
 
     PROFILING();
     cthughaDisplay->nextFrame();
+    if (traceFrameTiming)
+        frameTiming[1] = getTime();
 
     PROFILING();
     audioFrameTick();
+    if (traceFrameTiming)
+        frameTiming[2] = getTime();
 
     PROFILING();
     audioAnalyzer();
+    if (traceFrameTiming)
+        frameTiming[3] = getTime();
 
     PROFILING();
     (*autoChanger)();
+    if (traceFrameTiming)
+        frameTiming[4] = getTime();
 
     PROFILING();
     (*soundServer)();
+    if (traceFrameTiming)
+        frameTiming[5] = getTime();
 
     PROFILING();
     CthughaBuffer::run();
+    if (traceFrameTiming)
+        frameTiming[6] = getTime();
 
     PROFILING();
     if (doDisplay)
         (*cthughaDisplay)();
+    if (traceFrameTiming)
+        frameTiming[7] = getTime();
 
     PROFILING();
     (*cdPlayer)();
+    if (traceFrameTiming) {
+        frameTiming[8] = getTime();
+        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f analyze=%.3f auto=%.3f server=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
+            "frame timing",
+            (frameTiming[8] - frameTiming[0]) * 1000.0,
+            (frameTiming[1] - frameTiming[0]) * 1000.0,
+            (frameTiming[2] - frameTiming[1]) * 1000.0,
+            (frameTiming[3] - frameTiming[2]) * 1000.0,
+            (frameTiming[4] - frameTiming[3]) * 1000.0,
+            (frameTiming[5] - frameTiming[4]) * 1000.0,
+            (frameTiming[6] - frameTiming[5]) * 1000.0,
+            (frameTiming[7] - frameTiming[6]) * 1000.0,
+            (frameTiming[8] - frameTiming[7]) * 1000.0,
+            doDisplay);
+    }
 
     PROFILING();
     // Suspend only between frame stages, after graphics operations are done.

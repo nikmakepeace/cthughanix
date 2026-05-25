@@ -92,7 +92,7 @@ void SoundDeviceDSP::setFormat() {
         sound_format = AFMT_U8;
     }
 
-    CTH_TRACE("setting sound format: %d   ", sound_format);
+    int requested_sound_format = sound_format;
 
     if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
@@ -103,7 +103,8 @@ void SoundDeviceDSP::setFormat() {
         }
     }
 
-    CTH_TRACE("returned: %d\n", sound_format);
+    CTH_TRACE("set sound format requested=%d returned=%d\n", "sound dsp",
+        requested_sound_format, sound_format);
 
     // Keep the public option value in sync with what the driver accepted.
     switch (sound_format) {

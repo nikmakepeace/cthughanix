@@ -16,7 +16,7 @@ CthughaDisplay* cthughaDisplay = NULL;
 
 CthughaDisplay::~CthughaDisplay() { }
 
-OptionInt maxFramesPerSecond("maxFPS", 25);
+OptionInt maxFramesPerSecond("maxFPS", 60);
 
 OptionInt zoom("zoom", 0, 3);
 xy draw_size(0, 0); /* size of the drawn image (including zoom) */
@@ -280,9 +280,19 @@ void CthughaDisplay::checkFPS() {
     // the true time between frame starts.
     if (maxFramesPerSecond) {
         double delta = (1.0 / maxFramesPerSecond) - deltaT;
+        double sleepStart = getTime();
+        double sleepEnd = sleepStart;
         if (delta > 0) {
             usleep(int(delta * 1e6));
+            sleepEnd = getTime();
         }
+        CTH_TRACE("checkFPS maxfps=%d deltaT-ms=%.3f requested-sleep-ms=%.3f actual-sleep-ms=%.3f fps=%.3f frames=%d\n",
+            "frame pacing", int(maxFramesPerSecond), deltaT * 1000.0,
+            (delta > 0 ? delta : 0.0) * 1000.0, (sleepEnd - sleepStart) * 1000.0,
+            fps, frames);
+    } else {
+        CTH_TRACE("checkFPS maxfps=0 deltaT-ms=%.3f requested-sleep-ms=0.000 actual-sleep-ms=0.000 fps=%.3f frames=%d\n",
+            "frame pacing", deltaT * 1000.0, fps, frames);
     }
 }
 
@@ -295,11 +305,17 @@ void CthughaDisplay::resetFPS() {
 // during this frame, then update FPS accounting and throttling.
 void CthughaDisplay::nextFrame() {
 
+    double previousNow = now;
     double nower = getTime();
     deltaT = nower - now;
     now = nower;
+    CTH_TRACE("nextFrame previous-now=%.6f sampled-now=%.6f raw-delta-ms=%.3f\n",
+        "frame pacing", previousNow, nower, deltaT * 1000.0);
 
+    double checkStart = getTime();
     checkFPS();
+    CTH_TRACE("nextFrame checkFPS-ms=%.3f published-now=%.6f published-delta-ms=%.3f\n",
+        "frame pacing", (getTime() - checkStart) * 1000.0, now, deltaT * 1000.0);
 }
 
 const char* CthughaDisplay::status() {

@@ -119,7 +119,7 @@ void CoreOption::change(int by, int doSave) {
                 value = mod(value + 1, getNEntries());
     }
 
-    CTH_TRACE("changed option `%s' to `%s'\n", name(), entries[value]->name);
+    CTH_TRACE("changed option `%s' to `%s'\n", "core option", name(), entries[value]->name);
 
     if (cthughaDisplay)
         cthughaDisplay->resetFPS();
@@ -142,13 +142,13 @@ void CoreOption::change(const char* to, int doSave) {
 
     /* if empty, set to a random value */
     if ((to == NULL) || (to[0] == '\0')) {
-        CTH_TRACE("    changing option `%s' to a random value.\n", name(), to);
+        CTH_TRACE("changing option `%s' to a random value.\n", "core option", name(), to);
         value = Random(getNEntries());
         change(0, 0);
         return;
     }
 
-    CTH_TRACE("    changing option `%s' to `%s'.\n", name(), to);
+    CTH_TRACE("changing option `%s' to `%s'.\n", "core option", name(), to);
 
     if (doSave)
         save();

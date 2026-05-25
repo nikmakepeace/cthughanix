@@ -18,7 +18,9 @@ void AudioFrame::clear() {
 }
 
 void audioFrameTick() {
+    double tickStart = getTime();
     audioRuntimeTick();
+    CTH_TRACE("audioFrameTick-ms=%.3f\n", "audio timing", (getTime() - tickStart) * 1000.0);
 }
 
 void audioFrameChange() {

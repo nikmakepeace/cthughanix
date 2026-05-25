@@ -85,7 +85,7 @@ void SoundServer::operator()() {
                     CTH_WARN("Connection refused while writing to sound client.\n");
                     soundServerWarnedConnectionRefused = 1;
                 }
-                CTH_TRACE("Connection refused\n");
+                CTH_TRACE("Connection refused\n", "sound server");
             }
         }
     }
@@ -100,13 +100,13 @@ void SoundServer::operator()() {
 
         if (my_s_addr.sa_family == AF_INET) {
             struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-            CTH_TRACE("accept from %x:%d. addr size: %d\n", ntohl(ai->sin_addr.s_addr),
+            CTH_TRACE("accept from %x:%d. addr size: %d\n", "sound server", ntohl(ai->sin_addr.s_addr),
                 ntohs(ai->sin_port), size);
 
             char data[512];
             int nr_read = recv(acc_socket, data, 64, 0);
 
-            CTH_TRACE("received %d bytes: %s\n", nr_read, data);
+            CTH_TRACE("received %d bytes: %s\n", "sound server", nr_read, data);
 
             int port;
             if (sscanf(data, "connect %d", &port) > 0) {
@@ -136,7 +136,7 @@ int SoundServer::add_client(struct sockaddr my_s_addr, int size) {
 
     if (my_s_addr.sa_family == AF_INET) {
         struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-        CTH_TRACE("adding %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
+        CTH_TRACE("adding %x:%d\n", "sound server", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
     }
 
     remove_client(my_s_addr, size); // remove old entry
@@ -163,13 +163,13 @@ int SoundServer::remove_client(struct sockaddr my_s_addr, int /*size*/) {
 
     if (my_s_addr.sa_family == AF_INET) {
         struct sockaddr_in* ai = (sockaddr_in*)&my_s_addr;
-        CTH_TRACE("removing %x:%d\n", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
+        CTH_TRACE("removing %x:%d\n", "sound server", ntohl(ai->sin_addr.s_addr), ntohs(ai->sin_port));
 
         for (int i = 0; i < nClients; i++) {
             struct sockaddr_in* ci = (sockaddr_in*)&(clientAddrs[i]);
             if ((ai->sin_addr.s_addr == ci->sin_addr.s_addr) && (ai->sin_port == ci->sin_port)) {
 
-                CTH_TRACE("Removing entry %d\n", i);
+                CTH_TRACE("Removing entry %d\n", "sound server", i);
                 memcpy(&(clientAddrs[i]), &(clientAddrs[i + 1]),
                     sizeof(struct sockaddr) * (nClients - i));
                 memcpy(&(clientSizes[i]), &(clientSizes[i + 1]), sizeof(int) * (nClients - i));

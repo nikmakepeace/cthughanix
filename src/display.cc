@@ -418,9 +418,10 @@ void update_3d_scale_factor() {
     if (splatSize > maxSplatSize)
         splatSize = maxSplatSize;
 
-    CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f\n", dt, scaleFactorPhase,
+    CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f\n", "display",
+        dt, scaleFactorPhase,
         scaleFactor);
-    CTH_TRACE("intensity: %.3f\n", acousticContext.intensity());
+    CTH_TRACE("intensity: %.3f\n", "display", acousticContext.intensity());
 }
 
 /*

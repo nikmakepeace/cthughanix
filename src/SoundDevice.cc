@@ -99,18 +99,18 @@ void SoundDevice::finishNewSD(int initializeInputControls) {
         delete soundDevice;
 
         CTH_ERROR("Can not use requested sound device. Using random noise.\n");
-        CTH_TRACE("sound device install: requested device unavailable; falling back to SoundDeviceRandom\n");
+        CTH_TRACE("requested device unavailable; falling back to SoundDeviceRandom\n", "sound device install");
         soundDevice = ::new SoundDeviceRandom;
     }
 
     soundDevice->setTmpData();
 
     if (initializeInputControls && soundDevice->initInputControls()) {
-        CTH_TRACE("sound device install: input control initialization failed\n");
+        CTH_TRACE("input control initialization failed\n", "sound device install");
         exit(0);
     }
 
-    CTH_TRACE("sound device install: completed initialize-input-controls=%d\n",
+    CTH_TRACE("completed initialize-input-controls=%d\n", "sound device install",
         initializeInputControls);
 }
 
@@ -285,7 +285,7 @@ void SoundDevice::convert(char2* dst, void* src, int n) {
 }
 
 void SoundDevice::install(SoundDevice* device, int initializeInputControls) {
-    CTH_TRACE("sound device install: requested device=%p initialize-input-controls=%d\n",
+    CTH_TRACE("requested device=%p initialize-input-controls=%d\n", "sound device install",
         device, initializeInputControls);
     soundDevice = device;
     finishNewSD(initializeInputControls);

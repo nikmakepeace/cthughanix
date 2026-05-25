@@ -153,6 +153,39 @@ int cth_log(int lvl, const char* fmt, ...) {
     return 0;
 }
 
+int cth_log_context(int lvl, const char* context, const char* fmt, ...) {
+    if (!cth_log_enabled(lvl))
+        return 0;
+
+#ifdef HAVE_VPRINTF
+    va_list ap;
+    va_start(ap, fmt);
+    if (context && context[0]) {
+        if (lvl <= CTH_LOG_ERROR)
+            fprintf(stderr, "%s: ", context);
+        else
+            printfv(lvl, "%s: ", context);
+    }
+    if (lvl <= CTH_LOG_ERROR)
+        vprintfe(fmt, ap);
+    else
+        vprintfv(lvl, fmt, ap);
+    va_end(ap);
+#else
+    if (context && context[0]) {
+        if (lvl <= CTH_LOG_ERROR)
+            fprintf(stderr, "%s: ", context);
+        else if (lvl <= int(cthugha_verbose))
+            printf("%s: ", context);
+    }
+    if (lvl <= CTH_LOG_ERROR)
+        fprintf(stderr, fmt);
+    else if (lvl <= int(cthugha_verbose))
+        printf(fmt);
+#endif
+    return 0;
+}
+
 //
 // print a named-level error message and a given error number
 //

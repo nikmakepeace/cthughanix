@@ -402,7 +402,7 @@ int load_palettes() {
         }
         if ((m > 0) && (m < 3 * 255)) {
             P = double(3 * 255) / double(m);
-            CTH_TRACE("    brightening palette %d (%s). Faktor: %0.3f\n", i,
+            CTH_TRACE("brightening palette %d (%s). Faktor: %0.3f\n", "palette", i,
                 CthughaBuffer::current->palette[i]->Name(), P);
 
             for (l = 0; l < 256; l++) {

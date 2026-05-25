@@ -750,7 +750,12 @@ void DisplayDeviceX11::postDraw() {
                     disp_size.x, disp_size.y,
                     0, 0);
             }
-            XFlush(xcth_display);
+            {
+                double flushStart = getTime();
+                XFlush(xcth_display);
+                CTH_TRACE("xflush-ms=%.3f copy-text=1\n", "display timing",
+                    (getTime() - flushStart) * 1000.0);
+            }
             return;
         }
     }
@@ -793,7 +798,10 @@ void DisplayDeviceX11::postDraw() {
                 SCREEN_OFFSET_X, SCREEN_OFFSET_Y);
         }
 
+    double flushStart = getTime();
     XFlush(xcth_display);
+    CTH_TRACE("xflush-ms=%.3f full-copy=%d shm-level=%d draw=%dx%d\n", "display timing",
+        (getTime() - flushStart) * 1000.0, needsFullCopy, shmLevel, draw_size.x, draw_size.y);
     needsFullCopy = 0;
 }
 
@@ -812,9 +820,9 @@ void DisplayDeviceX11::initPalette() {
         blue_mask = visual->blue_mask;
         blue_shift = ffs(blue_mask & ~(blue_mask >> 1)) - 8;
 
-        CTH_TRACE("    red   mask/shift   : 0x%4x/%d\n", red_mask, red_shift);
-        CTH_TRACE("    green mask/shift   : 0x%4x/%d\n", green_mask, green_shift);
-        CTH_TRACE("    blue  mask/shift   : 0x%4x/%d\n", blue_mask, blue_shift);
+        CTH_TRACE("red   mask/shift   : 0x%4x/%d\n", "x11 display", red_mask, red_shift);
+        CTH_TRACE("green mask/shift   : 0x%4x/%d\n", "x11 display", green_mask, green_shift);
+        CTH_TRACE("blue  mask/shift   : 0x%4x/%d\n", "x11 display", blue_mask, blue_shift);
 
         switch (bypp) {
         case 1:

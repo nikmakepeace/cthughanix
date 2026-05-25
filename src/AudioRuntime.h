@@ -13,8 +13,8 @@ AudioInputProcessor* audioRuntimeProcessor();
 AudioFrame* audioRuntimeCurrentFrame();
 int audioRuntimeIsComplete();
 long long audioRuntimeDecodedBytePosition();
-long long audioRuntimeOutputBytePosition();
+long long audioRuntimeSubmittedBytePosition();
 long long audioRuntimeAudibleBytePosition();
-int audioRuntimeReadAt(long long bytePosition, char* dst, int bytes);
+int audioRuntimeReadProtectedPcmAt(long long bytePosition, char* dst, int bytes);
 
 #endif

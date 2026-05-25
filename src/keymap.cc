@@ -230,7 +230,7 @@ Keymap::Binding Keymap::parseBinding(const char* line) {
         }
         skipSpace(line);
     }
-    CTH_TRACE("   parsed new keymap entry line '%s'\n", fullLine);
+    CTH_TRACE("parsed new keymap entry line '%s'\n", "keymap", fullLine);
     return b;
 }
 

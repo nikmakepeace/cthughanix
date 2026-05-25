@@ -16,6 +16,8 @@
 #define PATH_MAX 4096
 #endif
 
+class AudioBuffer;
+
 class AudioInput {
 protected:
     int error;
@@ -34,7 +36,16 @@ public:
 };
 
 class AudioOutput {
+    int outputBytesPerSecond;
+    int outputTargetDelayBytes;
+    int outputScratchBytes;
+
+protected:
+    virtual int defaultTargetLatencyMs() const = 0;
+    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
+
 public:
+    AudioOutput();
     virtual ~AudioOutput();
 
     virtual int write(const void* buffer, int size) = 0;
@@ -43,9 +54,20 @@ public:
     virtual int isOpen() const = 0;
     virtual int isRealtime() const { return 1; }
     virtual void update() { }
+    virtual void configureTiming(int bytesPerSecond, int inputChunkBytes);
+    int targetDelayBytes() const { return outputTargetDelayBytes; }
+    int scratchBytes() const { return outputScratchBytes; }
+    int queuedTargetBytes() const;
+    long long audibleBytePosition(const AudioBuffer& buffer) const;
+    int playbackComplete(const AudioBuffer& buffer, int inputFinished) const;
+    virtual int service(AudioBuffer& buffer, char* scratch, int scratchSize,
+        int inputFinished);
 };
 
 class AudioNullOutput : public AudioOutput {
+protected:
+    virtual int defaultTargetLatencyMs() const;
+
 public:
     virtual int write(const void* buffer, int size);
     virtual int outputDelayBytes() const;
@@ -56,6 +78,10 @@ public:
 class AudioPulseOutput : public AudioOutput {
     void* pulse;
     int bytesPerSecondValue;
+
+protected:
+    virtual int defaultTargetLatencyMs() const;
+    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
 
 public:
     AudioPulseOutput();
@@ -78,6 +104,10 @@ class AudioDSPOutput : public AudioOutput {
     void setFormat();
     void init();
 
+protected:
+    virtual int defaultTargetLatencyMs() const;
+    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
+
 public:
     AudioDSPOutput(int method);
     virtual ~AudioDSPOutput();
@@ -93,28 +123,28 @@ class AudioBuffer {
     char* data;
     int capacity;
     int protectedHistoryBytes;
-    long long decoderWriteByte;
-    long long outputReadByte;
+    long long decodedEndByte;
+    long long submittedEndByte;
 
-    long long protectedStartByte() const;
+    long long protectedWindowStartByte() const;
     int copyAt(long long bytePosition, char* dst, int bytes) const;
 
 public:
     AudioBuffer(int capacity, int protectedHistoryBytes = 0);
     ~AudioBuffer();
 
-    int available() const { return int(decoderWriteByte - outputReadByte); }
-    int protectedBytes() const { return int(decoderWriteByte - protectedStartByte()); }
-    int freeSpace() const { return capacity - protectedBytes(); }
+    int queuedForOutputBytes() const { return int(decodedEndByte - submittedEndByte); }
+    int protectedWindowBytes() const { return int(decodedEndByte - protectedWindowStartByte()); }
+    int writableBytes() const { return capacity - protectedWindowBytes(); }
     int size() const { return capacity; }
-    long long protectedStartPosition() const { return protectedStartByte(); }
-    long long decoderWritePosition() const { return decoderWriteByte; }
-    long long outputReadPosition() const { return outputReadByte; }
+    long long protectedWindowStartPosition() const { return protectedWindowStartByte(); }
+    long long decodedEndPosition() const { return decodedEndByte; }
+    long long submittedEndPosition() const { return submittedEndByte; }
     void clear();
 
-    int write(const char* src, int bytes);
-    int read(char* dst, int bytes);
-    int readAt(long long bytePosition, char* dst, int bytes) const;
+    int appendDecodedPcm(const char* src, int bytes);
+    int readForOutput(char* dst, int bytes);
+    int readProtectedPcmAt(long long bytePosition, char* dst, int bytes) const;
 };
 
 class AudioFrameBuilder {

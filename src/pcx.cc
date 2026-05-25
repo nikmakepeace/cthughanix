@@ -208,7 +208,7 @@ CoreOptionEntry* read_pcx(
         return NULL;
     }
 
-    CTH_TRACE("\n    version:%d, compr:%d, ncolpl.:%2d, greysc.:%d, X:%d-%d, Y:%d-%d",
+    CTH_TRACE("version:%d, compr:%d, ncolpl.:%2d, greysc.:%d, X:%d-%d, Y:%d-%d\n", "pcx",
         header.version, header.compr, header.ncolplanes, header.greyscale, header.xmin, header.xmax,
         header.ymin, header.ymax);
 

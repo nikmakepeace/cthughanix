@@ -250,7 +250,7 @@ int init_mixer() {
 
     close(mixer_des);
 
-    CTH_TRACE("  available mixer devices: %d.\n", nVolumes);
+    CTH_TRACE("available mixer devices: %d.\n", "mixer", nVolumes);
 
     return 0;
 }
