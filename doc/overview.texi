@@ -91,16 +91,4 @@ on all possible displays.
 
 @code{glcthugha}
 
-@item cthugha-server
-
-This program is used to access a remove sound card. Using
-@code{cthugha-server} you can use one sound card for a lot of other
-machines to run Cthugha.
-
-Simply start @code{cthugha-server} on a machine with soundcard.
-Then run Cthugha on any machine, but use the additional parameter
-@code{-N hostname}
-@footnote{@code{hostname} is the name of the machine
-running @code{cthugha-server}}.
-
 @end table

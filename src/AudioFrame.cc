@@ -10,9 +10,8 @@ AudioFrame::AudioFrame() {
 }
 
 void AudioFrame::clear() {
-    centerByte = 0;
+    centerSample = 0;
     samples = 0;
-    rawBytes = 0;
     memset(data, 0, sizeof(data));
     memset(processed, 0, sizeof(processed));
 }
@@ -58,8 +57,10 @@ char2* audioFrameProcessedData() {
 }
 
 int audioFrameBroadcastBytes() {
-    if (audioRuntimeCurrentFrame())
-        return audioRuntimeCurrentFrame()->rawBytes;
+    if (audioRuntimeCurrentFrame()) {
+        int bytesPerSample = (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
+        return pcmBytesForSamples(audioRuntimeCurrentFrame()->samples, bytesPerSample);
+    }
 
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->frameRawSize();

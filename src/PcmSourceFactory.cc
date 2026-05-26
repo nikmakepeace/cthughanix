@@ -29,8 +29,6 @@ const char* PcmSourceFactory::strategyName(AudioSourceStrategy strategy) {
     switch (strategy) {
     case ASS_LineIn:
         return "line-in";
-    case ASS_Network:
-        return "network";
     case ASS_Random:
         return "random";
     case ASS_WavFile:
@@ -50,9 +48,6 @@ AudioSourceStrategy PcmSourceFactory::selectAudioSourceStrategy(const Settings& 
     switch (settings.soundDeviceNumber) {
     case SDN_DSPIn:
         strategy = ASS_LineIn;
-        break;
-    case SDN_Net:
-        strategy = ASS_Network;
         break;
     case SDN_Random:
         strategy = ASS_Random;
@@ -81,20 +76,24 @@ PcmSource* PcmSourceFactory::create(const Settings& settings) const {
     AudioSourceStrategy strategy = selectAudioSourceStrategy(settings);
 
     switch (strategy) {
+    case ASS_LineIn:
+        CTH_TRACE("creating DspPcmSource\n", "pcm source factory");
+        return new DspPcmSource();
+
     case ASS_Random:
-        CTH_TRACE("creating RandomNoisePcmDriver\n", "pcm source factory");
-        return new PcmSource(new RandomNoisePcmDriver());
+        CTH_TRACE("creating RandomNoisePcmSource\n", "pcm source factory");
+        return new RandomNoisePcmSource();
 
     case ASS_WavFile:
-        CTH_TRACE("creating WavPcmDriver file=`%s'\n", "pcm source factory",
+        CTH_TRACE("creating WavPcmSource file=`%s'\n", "pcm source factory",
             settings.fileName);
-        return new PcmSource(new WavPcmDriver(settings.fileName));
+        return new WavPcmSource(settings.fileName);
 
     case ASS_Mp3File:
 #if WITH_MINIMP3 == 1
-        CTH_TRACE("creating Minimp3PcmDriver file=`%s'\n", "pcm source factory",
+        CTH_TRACE("creating Minimp3PcmSource file=`%s'\n", "pcm source factory",
             settings.fileName);
-        return new PcmSource(new Minimp3PcmDriver(settings.fileName));
+        return new Minimp3PcmSource(settings.fileName);
 #else
         CTH_TRACE("no MP3 PCM driver is compiled in file=`%s'\n", "pcm source factory",
             settings.fileName);

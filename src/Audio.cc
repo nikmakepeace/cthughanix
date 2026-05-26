@@ -3,15 +3,11 @@
 #include "Sound.h"
 #include "imath.h"
 #include "cth_buffer.h"
-#include "network.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <unistd.h>
 
 #ifndef WITH_MINIMP3
@@ -48,89 +44,68 @@
 #endif
 #endif
 
-AudioInput::AudioInput()
-    : error(0) { }
-
-AudioInput::~AudioInput() { }
-
-int AudioInput::rawBufferSize(int frameRawSize, int /*samplesRequested*/) const {
-    return frameRawSize;
-}
-
-static int audioOutputBytesPerSample() {
-    return (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
-}
-
-static int audioOutputAlignBytes(int bytes) {
-    int bytesPerSample = audioOutputBytesPerSample();
-
-    if (bytesPerSample <= 0)
-        return bytes;
-
-    return bytes - (bytes % bytesPerSample);
-}
-
 AudioOutput::AudioOutput()
-    : outputBytesPerSecond(0)
-    , outputTargetDelayBytes(0)
-    , outputScratchBytes(0) { }
+    : outputSamplesPerSecond(0)
+    , outputBytesPerSample(1)
+    , outputTargetDelaySamples(0)
+    , outputScratchSamples(0) { }
 
 AudioOutput::~AudioOutput() { }
 
-int AudioOutput::timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const {
-    return isRealtime() ? targetDelayBytes : inputChunkBytes;
+int AudioOutput::timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const {
+    return isRealtime() ? targetDelaySamples : inputChunkSamples;
 }
 
-void AudioOutput::configureTiming(int bytesPerSecond, int inputChunkBytes) {
-    outputBytesPerSecond = bytesPerSecond;
+void AudioOutput::configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples) {
+    outputSamplesPerSecond = samplesPerSecond;
+    outputBytesPerSample = bytesPerSample;
     int targetLatencyMs = defaultTargetLatencyMs();
-    outputScratchBytes = inputChunkBytes;
+    outputScratchSamples = inputChunkSamples;
 
-    if (outputScratchBytes < 1)
-        outputScratchBytes = 1;
+    if (outputBytesPerSample < 1)
+        outputBytesPerSample = 1;
+    if (outputScratchSamples < 1)
+        outputScratchSamples = 1;
     if (targetLatencyMs < 0)
         targetLatencyMs = 0;
 
-    outputTargetDelayBytes = (outputBytesPerSecond * targetLatencyMs) / 1000;
-    if (outputTargetDelayBytes < outputScratchBytes)
-        outputTargetDelayBytes = outputScratchBytes;
+    outputTargetDelaySamples = (outputSamplesPerSecond * targetLatencyMs) / 1000;
+    if (outputTargetDelaySamples < outputScratchSamples)
+        outputTargetDelaySamples = outputScratchSamples;
 
-    outputScratchBytes = timingScratchBytes(inputChunkBytes, outputTargetDelayBytes);
-    outputScratchBytes = audioOutputAlignBytes(outputScratchBytes);
-    outputTargetDelayBytes = audioOutputAlignBytes(outputTargetDelayBytes);
+    outputScratchSamples = timingScratchSamples(inputChunkSamples, outputTargetDelaySamples);
 
-    if (outputScratchBytes < 1)
-        outputScratchBytes = inputChunkBytes;
-    if (outputTargetDelayBytes < 1)
-        outputTargetDelayBytes = outputScratchBytes;
+    if (outputScratchSamples < 1)
+        outputScratchSamples = inputChunkSamples;
+    if (outputTargetDelaySamples < 1)
+        outputTargetDelaySamples = outputScratchSamples;
 
-    CTH_TRACE("configured timing realtime=%d bytes-per-second=%d input-chunk=%d target-latency-ms=%d target-delay=%d scratch=%d\n",
-        "audio output", isRealtime(), outputBytesPerSecond, inputChunkBytes,
-        targetLatencyMs, outputTargetDelayBytes, outputScratchBytes);
+    CTH_TRACE("configured timing realtime=%d samples-per-second=%d bytes-per-sample=%d input-chunk-samples=%d target-latency-ms=%d target-delay-samples=%d scratch-samples=%d\n",
+        "audio output", isRealtime(), outputSamplesPerSecond, outputBytesPerSample,
+        inputChunkSamples, targetLatencyMs, outputTargetDelaySamples, outputScratchSamples);
 }
 
-int AudioOutput::queuedTargetBytes() const {
-    return isRealtime() ? outputTargetDelayBytes : outputScratchBytes;
+int AudioOutput::outputDelaySamples() const {
+    int delayBytes = outputDelayBytes();
+    return (outputBytesPerSample > 0) ? delayBytes / outputBytesPerSample : 0;
 }
 
-long long AudioOutput::audibleBytePosition(const AudioBuffer& buffer) const {
-    long long submittedEndByte = buffer.submittedEndPosition();
-    int delay = outputDelayBytes();
-    long long audibleByte;
+int AudioOutput::queuedTargetSamples() const {
+    return isRealtime() ? outputTargetDelaySamples : outputScratchSamples;
+}
 
-    if (delay > submittedEndByte)
+long long AudioOutput::audibleSamplePosition(const AudioBuffer& buffer) const {
+    long long submittedEndSample = buffer.submittedEndPosition();
+    int delay = outputDelaySamples();
+
+    if (delay > submittedEndSample)
         return 0;
 
-    audibleByte = submittedEndByte - delay;
-    int bytesPerSample = audioOutputBytesPerSample();
-    if (bytesPerSample > 0)
-        audibleByte -= audibleByte % bytesPerSample;
-
-    return audibleByte;
+    return submittedEndSample - delay;
 }
 
 int AudioOutput::playbackComplete(const AudioBuffer& buffer, int inputFinished) const {
-    return inputFinished && (buffer.queuedForOutputBytes() == 0)
+    return inputFinished && (buffer.queuedForOutputSamples() == 0)
         && (!isRealtime() || (outputDelayBytes() == 0));
 }
 
@@ -173,8 +148,8 @@ int AudioPulseOutput::defaultTargetLatencyMs() const {
     return 250;
 }
 
-int AudioPulseOutput::timingScratchBytes(int, int targetDelayBytes) const {
-    return targetDelayBytes;
+int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const {
+    return targetDelaySamples;
 }
 
 void AudioPulseOutput::update() {
@@ -250,7 +225,7 @@ AudioPulseOutput::AudioPulseOutput()
 
 AudioPulseOutput::~AudioPulseOutput() { }
 int AudioPulseOutput::defaultTargetLatencyMs() const { return 250; }
-int AudioPulseOutput::timingScratchBytes(int, int targetDelayBytes) const { return targetDelayBytes; }
+int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 int AudioPulseOutput::write(const void*, int) { return 0; }
 int AudioPulseOutput::outputDelayBytes() const { return 0; }
 int AudioPulseOutput::isOpen() const { return 0; }
@@ -281,8 +256,8 @@ int AudioDSPOutput::defaultTargetLatencyMs() const {
     }
 }
 
-int AudioDSPOutput::timingScratchBytes(int, int targetDelayBytes) const {
-    return targetDelayBytes;
+int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const {
+    return targetDelaySamples;
 }
 
 void AudioDSPOutput::setFragment() {
@@ -507,7 +482,7 @@ AudioDSPOutput::AudioDSPOutput(int method_)
 
 AudioDSPOutput::~AudioDSPOutput() { }
 int AudioDSPOutput::defaultTargetLatencyMs() const { return 250; }
-int AudioDSPOutput::timingScratchBytes(int, int targetDelayBytes) const { return targetDelayBytes; }
+int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 void AudioDSPOutput::setFragment() { }
 void AudioDSPOutput::setChannels() { }
 void AudioDSPOutput::setSampleRate() { }
@@ -521,21 +496,24 @@ void AudioDSPOutput::update() { }
 
 #endif
 
-AudioBuffer::AudioBuffer(int capacity_, int protectedHistoryBytes_)
+AudioBuffer::AudioBuffer(int capacitySamples_, int bytesPerSample_, int protectedHistorySamples_)
     : data(NULL)
-    , capacity(capacity_)
-    , protectedHistoryBytes(protectedHistoryBytes_)
-    , decodedEndByte(0)
-    , submittedEndByte(0) {
-    if (capacity < 1)
-        capacity = 1;
-    if (protectedHistoryBytes < 0)
-        protectedHistoryBytes = 0;
-    if (protectedHistoryBytes > capacity)
-        protectedHistoryBytes = capacity;
-    data = new char[capacity];
-    CTH_TRACE("created capacity=%d protected-history=%d\n", "audio buffer", capacity,
-        protectedHistoryBytes);
+    , bytesPerSampleValue(bytesPerSample_)
+    , capacitySamples(capacitySamples_)
+    , protectedHistorySamples(protectedHistorySamples_)
+    , decodedEndSample(0)
+    , submittedEndSample(0) {
+    if (bytesPerSampleValue < 1)
+        bytesPerSampleValue = 1;
+    if (capacitySamples < 1)
+        capacitySamples = 1;
+    if (protectedHistorySamples < 0)
+        protectedHistorySamples = 0;
+    if (protectedHistorySamples > capacitySamples)
+        protectedHistorySamples = capacitySamples;
+    data = new char[pcmBytesForSamples(capacitySamples, bytesPerSampleValue)];
+    CTH_TRACE("created capacity-samples=%d bytes-per-sample=%d protected-history-samples=%d\n",
+        "audio buffer", capacitySamples, bytesPerSampleValue, protectedHistorySamples);
 }
 
 AudioBuffer::~AudioBuffer() {
@@ -544,92 +522,100 @@ AudioBuffer::~AudioBuffer() {
 }
 
 void AudioBuffer::clear() {
-    decodedEndByte = 0;
-    submittedEndByte = 0;
+    decodedEndSample = 0;
+    submittedEndSample = 0;
 }
 
-long long AudioBuffer::protectedWindowStartByte() const {
+long long AudioBuffer::protectedWindowStartSample() const {
     // Protected span:
-    //   [protectedWindowStartByte(), submittedEndByte) = recent submitted
+    //   [protectedWindowStartSample(), submittedEndSample) = recent submitted
     //       history retained for visual-frame reads.
-    //   [submittedEndByte, decodedEndByte) = decoded PCM queued ahead of output.
+    //   [submittedEndSample, decodedEndSample) = decoded PCM queued ahead of output.
     // Future driver writes may overwrite only data outside this span.
-    long long historyStartByte = submittedEndByte - protectedHistoryBytes;
-    long long capacityStartByte = decodedEndByte - capacity;
-    long long startByte = (historyStartByte > capacityStartByte) ? historyStartByte : capacityStartByte;
+    long long historyStartSample = submittedEndSample - protectedHistorySamples;
+    long long capacityStartSample = decodedEndSample - capacitySamples;
+    long long startSample = (historyStartSample > capacityStartSample) ? historyStartSample : capacityStartSample;
 
-    if (startByte < 0)
-        startByte = 0;
-    if (startByte > submittedEndByte)
-        startByte = submittedEndByte;
+    if (startSample < 0)
+        startSample = 0;
+    if (startSample > submittedEndSample)
+        startSample = submittedEndSample;
 
-    return startByte;
+    return startSample;
 }
 
-int AudioBuffer::copyAt(long long bytePosition, char* dst, int bytes) const {
-    int copied = 0;
-    long long startByte = protectedWindowStartByte();
+int AudioBuffer::copyAt(long long samplePosition, char* dst, int samples) const {
+    int copiedSamples = 0;
+    long long startSample = protectedWindowStartSample();
 
-    if ((bytes <= 0) || (bytePosition < startByte) || (bytePosition >= decodedEndByte))
+    if ((samples <= 0) || (samplePosition < startSample) || (samplePosition >= decodedEndSample))
         return 0;
 
-    long long availableBytes = decodedEndByte - bytePosition;
-    int wanted = (bytes < availableBytes) ? bytes : int(availableBytes);
+    long long availableSamples = decodedEndSample - samplePosition;
+    int wantedSamples = (samples < availableSamples) ? samples : int(availableSamples);
 
-    while (copied < wanted) {
-        int pos = int((bytePosition + copied) % capacity);
-        int chunk = min(wanted - copied, capacity - pos);
-        memcpy(dst + copied, data + pos, chunk);
-        copied += chunk;
+    while (copiedSamples < wantedSamples) {
+        int posSample = int((samplePosition + copiedSamples) % capacitySamples);
+        int chunkSamples = min(wantedSamples - copiedSamples, capacitySamples - posSample);
+        memcpy(dst + pcmBytesForSamples(copiedSamples, bytesPerSampleValue),
+            data + pcmBytesForSamples(posSample, bytesPerSampleValue),
+            pcmBytesForSamples(chunkSamples, bytesPerSampleValue));
+        copiedSamples += chunkSamples;
     }
+
+    return copiedSamples;
+}
+
+int AudioBuffer::appendDecodedPcm(const char* src, int samples) {
+    int writtenSamples = 0;
+    int wantedSamples = min(samples, writableSamples());
+
+    while (writtenSamples < wantedSamples) {
+        int posSample = int((decodedEndSample + writtenSamples) % capacitySamples);
+        int chunkSamples = min(wantedSamples - writtenSamples, capacitySamples - posSample);
+        memcpy(data + pcmBytesForSamples(posSample, bytesPerSampleValue),
+            src + pcmBytesForSamples(writtenSamples, bytesPerSampleValue),
+            pcmBytesForSamples(chunkSamples, bytesPerSampleValue));
+        writtenSamples += chunkSamples;
+    }
+
+    decodedEndSample += writtenSamples;
+
+    return writtenSamples;
+}
+
+int AudioBuffer::readForOutput(char* dst, int samples) {
+    int copied = copyAt(submittedEndSample, dst, samples);
+
+    submittedEndSample += copied;
 
     return copied;
 }
 
-int AudioBuffer::appendDecodedPcm(const char* src, int bytes) {
-    int written = 0;
-    int wanted = min(bytes, writableBytes());
-
-    while (written < wanted) {
-        int pos = int((decodedEndByte + written) % capacity);
-        int chunk = min(wanted - written, capacity - pos);
-        memcpy(data + pos, src + written, chunk);
-        written += chunk;
-    }
-
-    decodedEndByte += written;
-
-    return written;
+int AudioBuffer::readProtectedPcmAt(long long samplePosition, char* dst, int samples) const {
+    return copyAt(samplePosition, dst, samples);
 }
 
-int AudioBuffer::readForOutput(char* dst, int bytes) {
-    int copied = copyAt(submittedEndByte, dst, bytes);
-
-    submittedEndByte += copied;
-
-    return copied;
-}
-
-int AudioBuffer::readProtectedPcmAt(long long bytePosition, char* dst, int bytes) const {
-    return copyAt(bytePosition, dst, bytes);
-}
-
-int AudioOutput::service(AudioBuffer& buffer, char* scratch, int scratchSize,
+int AudioOutput::service(AudioBuffer& buffer, char* scratch, int scratchSamples,
     int inputFinished) {
-    if ((scratch == NULL) || (scratchSize <= 0))
+    if ((scratch == NULL) || (scratchSamples <= 0))
         return 0;
 
     double serviceStart = getTime();
     int writes = 0;
-    int configuredTargetDelayBytes = targetDelayBytes();
+    int bytesPerSample = buffer.bytesPerSample();
+    int configuredTargetDelaySamples = targetDelaySamples();
+    if (scratchSamples <= 0)
+        return 0;
 
     if (!isRealtime()) {
         double bufferReadStart = getTime();
-        int bytes = buffer.readForOutput(scratch, scratchSize);
+        int samples = buffer.readForOutput(scratch, scratchSamples);
         double bufferReadEnd = getTime();
-        if (bytes <= 0)
+        if (samples <= 0)
             return 0;
 
+        int bytes = pcmBytesForSamples(samples, bytesPerSample);
         double outputWriteStart = getTime();
         int written = write(scratch, bytes);
         double outputWriteEnd = getTime();
@@ -639,50 +625,45 @@ int AudioOutput::service(AudioBuffer& buffer, char* scratch, int scratchSize,
         double delayStart = getTime();
         int finalDelay = outputDelayBytes();
         double delayEnd = getTime();
-        CTH_TRACE("output submitted bytes=%d written=%d queued=%d submitted-end-byte=%lld delay=%d\n", "audio runtime",
-            bytes, written, buffer.queuedForOutputBytes(), buffer.submittedEndPosition(), finalDelay);
-        CTH_TRACE("drain buffer-read-ms=%.3f output-write-ms=%.3f delay-query-ms=%.3f service-ms=%.3f bytes=%d written=%d delay=%d queued=%d\n", "audio timing",
+        CTH_TRACE("output submitted samples=%d bytes=%d written=%d queued-samples=%d submitted-end-sample=%lld delay-samples=%d delay-bytes=%d\n", "audio runtime",
+            samples, bytes, written, buffer.queuedForOutputSamples(), buffer.submittedEndPosition(),
+            finalDelay / bytesPerSample, finalDelay);
+        CTH_TRACE("drain buffer-read-ms=%.3f output-write-ms=%.3f delay-query-ms=%.3f service-ms=%.3f samples=%d bytes=%d written=%d delay-samples=%d queued-samples=%d\n", "audio timing",
             (bufferReadEnd - bufferReadStart) * 1000.0,
             (outputWriteEnd - outputWriteStart) * 1000.0,
             (delayEnd - delayStart) * 1000.0,
             (getTime() - serviceStart) * 1000.0,
-            bytes, written, finalDelay, buffer.queuedForOutputBytes());
+            samples, bytes, written, finalDelay / bytesPerSample, buffer.queuedForOutputSamples());
         return writes;
     }
 
     double delayStart = getTime();
-    int delayBytes = outputDelayBytes();
+    int delaySamples = outputDelaySamples();
     double delayEnd = getTime();
-    int queuedBefore = buffer.queuedForOutputBytes();
-    int bytesWanted = inputFinished ? buffer.queuedForOutputBytes() : configuredTargetDelayBytes - delayBytes;
-    if (bytesWanted <= 0) {
-        CTH_TRACE("service idle realtime=1 delay-query-ms=%.3f delay=%d target-delay=%d queued=%d scratch=%d input-finished=%d reason=delay-target-met\n",
-            "audio timing", (delayEnd - delayStart) * 1000.0, delayBytes,
-            configuredTargetDelayBytes, queuedBefore, scratchSize, inputFinished);
+    int queuedBefore = buffer.queuedForOutputSamples();
+    int samplesWanted = inputFinished ? buffer.queuedForOutputSamples() : configuredTargetDelaySamples - delaySamples;
+    if (samplesWanted <= 0) {
+        CTH_TRACE("service idle realtime=1 delay-query-ms=%.3f delay-samples=%d target-delay-samples=%d queued-samples=%d scratch-samples=%d input-finished=%d reason=delay-target-met\n",
+            "audio timing", (delayEnd - delayStart) * 1000.0, delaySamples,
+            configuredTargetDelaySamples, queuedBefore, scratchSamples, inputFinished);
         return 0;
     }
-    if (bytesWanted > queuedBefore)
-        bytesWanted = queuedBefore;
-    if (bytesWanted > scratchSize)
-        bytesWanted = scratchSize;
-    bytesWanted = audioOutputAlignBytes(bytesWanted);
-    if (bytesWanted <= 0) {
-        CTH_TRACE("service idle realtime=1 delay-query-ms=%.3f delay=%d target-delay=%d queued=%d scratch=%d input-finished=%d reason=alignment\n",
-            "audio timing", (delayEnd - delayStart) * 1000.0, delayBytes,
-            configuredTargetDelayBytes, queuedBefore, scratchSize, inputFinished);
-        return 0;
-    }
+    if (samplesWanted > queuedBefore)
+        samplesWanted = queuedBefore;
+    if (samplesWanted > scratchSamples)
+        samplesWanted = scratchSamples;
 
-    CTH_TRACE("service plan realtime=1 delay-query-ms=%.3f delay=%d target-delay=%d queued=%d scratch=%d requested=%d input-finished=%d\n",
-        "audio timing", (delayEnd - delayStart) * 1000.0, delayBytes,
-        configuredTargetDelayBytes, queuedBefore, scratchSize, bytesWanted, inputFinished);
+    CTH_TRACE("service plan realtime=1 delay-query-ms=%.3f delay-samples=%d target-delay-samples=%d queued-samples=%d scratch-samples=%d requested-samples=%d input-finished=%d\n",
+        "audio timing", (delayEnd - delayStart) * 1000.0, delaySamples,
+        configuredTargetDelaySamples, queuedBefore, scratchSamples, samplesWanted, inputFinished);
 
     double bufferReadStart = getTime();
-    int bytes = buffer.readForOutput(scratch, bytesWanted);
+    int samples = buffer.readForOutput(scratch, samplesWanted);
     double bufferReadEnd = getTime();
-    if (bytes <= 0)
+    if (samples <= 0)
         return 0;
 
+    int bytes = pcmBytesForSamples(samples, bytesPerSample);
     double outputWriteStart = getTime();
     int written = write(scratch, bytes);
     double outputWriteEnd = getTime();
@@ -692,16 +673,16 @@ int AudioOutput::service(AudioBuffer& buffer, char* scratch, int scratchSize,
     double finalDelayStart = getTime();
     int finalDelay = outputDelayBytes();
     double finalDelayEnd = getTime();
-    CTH_TRACE("output submitted bytes=%d written=%d queued=%d submitted-end-byte=%lld delay=%d target-delay=%d requested=%d\n", "audio runtime",
-        bytes, written, buffer.queuedForOutputBytes(), buffer.submittedEndPosition(), finalDelay,
-        configuredTargetDelayBytes, bytesWanted);
-    CTH_TRACE("drain buffer-read-ms=%.3f output-write-ms=%.3f delay-query-ms=%.3f final-delay-query-ms=%.3f service-ms=%.3f bytes=%d written=%d delay=%d queued=%d\n", "audio timing",
+    CTH_TRACE("output submitted samples=%d bytes=%d written=%d queued-samples=%d submitted-end-sample=%lld delay-samples=%d delay-bytes=%d target-delay-samples=%d requested-samples=%d\n", "audio runtime",
+        samples, bytes, written, buffer.queuedForOutputSamples(), buffer.submittedEndPosition(),
+        finalDelay / bytesPerSample, finalDelay, configuredTargetDelaySamples, samplesWanted);
+    CTH_TRACE("drain buffer-read-ms=%.3f output-write-ms=%.3f delay-query-ms=%.3f final-delay-query-ms=%.3f service-ms=%.3f samples=%d bytes=%d written=%d delay-samples=%d queued-samples=%d\n", "audio timing",
         (bufferReadEnd - bufferReadStart) * 1000.0,
         (outputWriteEnd - outputWriteStart) * 1000.0,
         (delayEnd - delayStart) * 1000.0,
         (finalDelayEnd - finalDelayStart) * 1000.0,
         (getTime() - serviceStart) * 1000.0,
-        bytes, written, finalDelay, buffer.queuedForOutputBytes());
+        samples, bytes, written, finalDelay / bytesPerSample, buffer.queuedForOutputSamples());
 
     return writes;
 }
@@ -726,52 +707,49 @@ void AudioFrameBuilder::setRawCapacity(int rawBytes) {
     CTH_TRACE("resized raw buffer to %d bytes\n", "audio frame builder", rawCapacity);
 }
 
-void AudioFrameBuilder::build(AudioFrame& frame, const AudioBuffer& buffer, long long centerByte) {
-    int bytesPerSample = (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
+void AudioFrameBuilder::build(AudioFrame& frame, const AudioBuffer& buffer, long long centerSample) {
+    int bytesPerSample = buffer.bytesPerSample();
     int rawBytes;
-    int halfRawBytes;
-    long long startByte;
-    int bytesRead;
+    int halfFrameSamples;
+    long long startSample;
     int sampleOffset;
     int samplesRead;
 
     frame.clear();
-    frame.centerByte = centerByte;
+    frame.centerSample = centerSample;
 
     if (bytesPerSample <= 0)
         return;
 
-    centerByte -= centerByte % bytesPerSample;
-    frame.centerByte = centerByte;
-
-    rawBytes = 1024 * bytesPerSample;
-    halfRawBytes = rawBytes / 2;
+    rawBytes = pcmBytesForSamples(1024, bytesPerSample);
+    halfFrameSamples = 1024 / 2;
     setRawCapacity(rawBytes);
     memset(rawData, 0, rawBytes);
 
-    startByte = centerByte - halfRawBytes;
+    startSample = centerSample - halfFrameSamples;
     sampleOffset = 0;
-    if (startByte < 0) {
-        sampleOffset = int((-startByte) / bytesPerSample);
-        startByte = 0;
+    if (startSample < 0) {
+        sampleOffset = int(-startSample);
+        startSample = 0;
     }
 
-    bytesRead = buffer.readProtectedPcmAt(startByte, rawData + sampleOffset * bytesPerSample,
-        rawBytes - sampleOffset * bytesPerSample);
-    samplesRead = bytesRead / bytesPerSample;
+    samplesRead = buffer.readProtectedPcmAt(startSample,
+        rawData + pcmBytesForSamples(sampleOffset, bytesPerSample),
+        1024 - sampleOffset);
     if (samplesRead <= 0) {
-        CTH_TRACE("no samples center-byte=%lld start-byte=%lld\n", "audio frame builder",
-            centerByte, startByte);
+        CTH_TRACE("no samples center-sample=%lld start-sample=%lld\n", "audio frame builder",
+            centerSample, startSample);
         return;
     }
 
-    convert(frame.data + sampleOffset, rawData + sampleOffset * bytesPerSample, samplesRead);
+    convert(frame.data + sampleOffset,
+        rawData + pcmBytesForSamples(sampleOffset, bytesPerSample), samplesRead);
     memcpy(frame.processed, frame.data, sizeof(frame.processed));
     frame.samples = sampleOffset + samplesRead;
-    frame.rawBytes = frame.samples * bytesPerSample;
 
-    CTH_TRACE("built frame center-byte=%lld start-byte=%lld samples=%d raw-bytes=%d\n", "audio frame builder",
-        frame.centerByte, startByte, frame.samples, frame.rawBytes);
+    CTH_TRACE("built frame center-sample=%lld start-sample=%lld samples=%d raw-bytes=%d\n", "audio frame builder",
+        frame.centerSample, startSample, frame.samples,
+        pcmBytesForSamples(frame.samples, bytesPerSample));
 }
 
 void AudioFrameBuilder::convert(char2* dst, void* src, int n) {
@@ -858,38 +836,13 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n) {
     }
 }
 
-PcmDriver::PcmDriver()
+PcmSource::PcmSource()
     : error(0) { }
 
-PcmDriver::~PcmDriver() { }
+PcmSource::~PcmSource() { }
 
-static PcmFormat silentPcmFormat;
-
-PcmSource::PcmSource(PcmDriver* driver_, int takeOwnership)
-    : driver(driver_)
-    , driverOwned(takeOwnership) { }
-
-PcmSource::~PcmSource() {
-    if (driverOwned)
-        delete driver;
-    driver = NULL;
-}
-
-int PcmSource::hasError() const {
-    return (driver == NULL) || driver->hasError();
-}
-
-const PcmFormat& PcmSource::format() const {
-    return driver ? driver->format() : silentPcmFormat;
-}
-
-int PcmSource::read(char* dst, int bytes) {
-    return driver ? driver->read(dst, bytes) : 0;
-}
-
-void PcmSource::rewind() {
-    if (driver)
-        driver->rewind();
+int PcmSource::rawBufferSize(int frameRawSize, int /*samplesRequested*/) const {
+    return frameRawSize;
 }
 
 static unsigned int readLe16(const unsigned char* p) {
@@ -901,13 +854,13 @@ static unsigned int readLe32(const unsigned char* p) {
         | ((unsigned int)p[3] << 24);
 }
 
-AudioPcmInput::AudioPcmInput(PcmSource* source_, int takeOwnership)
-    : AudioInput()
+AudioInput::AudioInput(PcmSource* source_, int takeOwnership)
+    : error(0)
     , source(source_)
     , sourceOwned(takeOwnership)
     , finished(0) {
     if ((source == NULL) || source->hasError()) {
-        CTH_TRACE("source construction failed\n", "audio pcm input");
+        CTH_TRACE("source construction failed\n", "audio input");
         error = 1;
         return;
     }
@@ -915,56 +868,66 @@ AudioPcmInput::AudioPcmInput(PcmSource* source_, int takeOwnership)
     applyFormat();
 }
 
-AudioPcmInput::~AudioPcmInput() {
+AudioInput::~AudioInput() {
     if (sourceOwned)
         delete source;
     source = NULL;
 }
 
-void AudioPcmInput::applyFormat() {
+void AudioInput::applyFormat() {
     const PcmFormat& format = source->format();
 
-    CTH_TRACE("applying format rate=%d channels=%d format=%d\n", "audio pcm input",
+    CTH_TRACE("applying format rate=%d channels=%d format=%d\n", "audio input",
         format.sampleRate, format.channels, format.sampleFormat);
     soundSampleRate.setValue(format.sampleRate);
     soundChannels.setValue(format.channels);
     soundFormat.setValue(format.sampleFormat);
 }
 
-int AudioPcmInput::read(char* dst, int rawSize, int /*samplesRequested*/) {
+int AudioInput::read(char* dst, int rawSize, int samplesRequested) {
     if (finished)
         return 0;
 
-    int bytesRead = source ? source->read(dst, rawSize) : 0;
+    int samplesRead = source ? source->read(dst, rawSize, samplesRequested) : 0;
 
-    if (bytesRead == 0) {
+    if ((samplesRead == 0) && source && source->canFinish()) {
         if (soundPlayLoop) {
-            CTH_TRACE("source reached end; rewinding\n", "audio pcm input");
+            CTH_TRACE("source reached end; rewinding\n", "audio input");
             source->rewind();
             applyFormat();
-            bytesRead = source->read(dst, rawSize);
+            samplesRead = source->read(dst, rawSize, samplesRequested);
         } else {
-            CTH_TRACE("source reached end\n", "audio pcm input");
+            CTH_TRACE("source reached end\n", "audio input");
             finished = 1;
         }
     }
 
-    if (bytesRead < 0)
-        bytesRead = 0;
+    if (samplesRead < 0)
+        samplesRead = 0;
 
-    return bytesRead / ((soundFormat < 2) ? soundChannels : 2 * soundChannels);
+    return samplesRead;
 }
 
-int AudioPcmInput::isFinished() const { return finished; }
+int AudioInput::rawBufferSize(int frameRawSize, int samplesRequested) const {
+    return source ? source->rawBufferSize(frameRawSize, samplesRequested) : frameRawSize;
+}
 
-void AudioPcmInput::update() {
-    if (source)
+int AudioInput::isFinished() const { return finished; }
+
+void AudioInput::update() {
+    if (source) {
+        source->update();
         applyFormat();
+    }
     finished = 0;
 }
 
-WavPcmDriver::WavPcmDriver(const char* name_)
-    : PcmDriver()
+int AudioInput::initInputControls() {
+    return source ? source->initInputControls() : 0;
+}
+
+WavPcmSource::WavPcmSource(const char* name_)
+    : PcmSource()
     , file(NULL)
     , dataStart(0)
     , dataLength(0)
@@ -975,17 +938,17 @@ WavPcmDriver::WavPcmDriver(const char* name_)
         error = 1;
 }
 
-WavPcmDriver::~WavPcmDriver() {
+WavPcmSource::~WavPcmSource() {
     if (file)
         fclose0(file);
 }
 
-int WavPcmDriver::open() {
+int WavPcmSource::open() {
     if (file)
         fclose0(file);
 
     CTH_INFO("Playing file '%s'.\n", name);
-    CTH_TRACE("opening `%s'\n", "wav pcm driver", name);
+    CTH_TRACE("opening `%s'\n", "wav pcm source", name);
 
     file = fopen(name, "rb");
     if (file == NULL) {
@@ -996,7 +959,7 @@ int WavPcmDriver::open() {
     return parseHeader();
 }
 
-int WavPcmDriver::readChunkHeader(char id[4], unsigned int& size) {
+int WavPcmSource::readChunkHeader(char id[4], unsigned int& size) {
     unsigned char sizeBytes[4];
 
     if (fread(id, 1, 4, file) != 4)
@@ -1008,7 +971,7 @@ int WavPcmDriver::readChunkHeader(char id[4], unsigned int& size) {
     return 0;
 }
 
-int WavPcmDriver::parseHeader() {
+int WavPcmSource::parseHeader() {
     char id[4];
     unsigned int size;
     unsigned char formatBytes[16];
@@ -1082,7 +1045,7 @@ int WavPcmDriver::parseHeader() {
                 return 1;
             }
 
-            CTH_TRACE("format rate=%d channels=%d sample-format=%d\n", "wav pcm driver",
+            CTH_TRACE("format rate=%d channels=%d sample-format=%d\n", "wav pcm source",
                 pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
 
             if (size > 16)
@@ -1100,7 +1063,7 @@ int WavPcmDriver::parseHeader() {
             dataLength = size;
             dataRead = 0;
             foundData = 1;
-            CTH_TRACE("data-start=%ld data-length=%ld\n", "wav pcm driver", dataStart, dataLength);
+            CTH_TRACE("data-start=%ld data-length=%ld\n", "wav pcm source", dataStart, dataLength);
         } else {
             fseek(file, size, SEEK_CUR);
             if (size & 1)
@@ -1116,26 +1079,38 @@ int WavPcmDriver::parseHeader() {
     return 0;
 }
 
-int WavPcmDriver::read(char* dst, int bytes) {
+int WavPcmSource::read(char* dst, int rawSize, int samplesRequested) {
     if ((file == NULL) || error)
         return 0;
 
     if (dataRead >= dataLength)
         return 0;
 
+    int bytesPerSample = pcmFormat.bytesPerSample();
+    int maxSamples = (bytesPerSample > 0) ? rawSize / bytesPerSample : 0;
+    int samples = min(samplesRequested, maxSamples);
+    if ((bytesPerSample <= 0) || (samples <= 0))
+        return 0;
+
     int remaining = dataLength - dataRead;
-    int wanted = min(bytes, remaining);
+    int wanted = min(pcmBytesForSamples(samples, bytesPerSample), remaining);
+    wanted -= wanted % bytesPerSample;
+    if (wanted <= 0)
+        return 0;
     int readBytes = fread(dst, 1, wanted, file);
 
     if (readBytes < 0)
         readBytes = 0;
+    readBytes -= readBytes % bytesPerSample;
     dataRead += readBytes;
 
-    return readBytes;
+    return readBytes / bytesPerSample;
 }
 
-void WavPcmDriver::rewind() {
-    CTH_TRACE("rewind `%s'\n", "wav pcm driver", name);
+int WavPcmSource::canFinish() const { return 1; }
+
+void WavPcmSource::rewind() {
+    CTH_TRACE("rewind `%s'\n", "wav pcm source", name);
     if ((file == NULL) || error)
         return;
 
@@ -1143,8 +1118,8 @@ void WavPcmDriver::rewind() {
     dataRead = 0;
 }
 
-Minimp3PcmDriver::Minimp3PcmDriver(const char* name_)
-    : PcmDriver()
+Minimp3PcmSource::Minimp3PcmSource(const char* name_)
+    : PcmSource()
     , decoder(NULL) {
     strncpy(name, name_, PATH_MAX - 1);
     name[PATH_MAX - 1] = '\0';
@@ -1152,7 +1127,7 @@ Minimp3PcmDriver::Minimp3PcmDriver(const char* name_)
         error = 1;
 }
 
-Minimp3PcmDriver::~Minimp3PcmDriver() {
+Minimp3PcmSource::~Minimp3PcmSource() {
 #if WITH_MINIMP3 == 1
     if (decoder) {
         mp3dec_ex_close((mp3dec_ex_t*)decoder);
@@ -1162,10 +1137,10 @@ Minimp3PcmDriver::~Minimp3PcmDriver() {
     decoder = NULL;
 }
 
-int Minimp3PcmDriver::open() {
+int Minimp3PcmSource::open() {
 #if WITH_MINIMP3 == 1
     CTH_INFO("Playing file '%s'.\n", name);
-    CTH_TRACE("opening `%s'\n", "minimp3 pcm driver", name);
+    CTH_TRACE("opening `%s'\n", "minimp3 pcm source", name);
 
     mp3dec_ex_t* dec = new mp3dec_ex_t;
     memset(dec, 0, sizeof(*dec));
@@ -1181,12 +1156,12 @@ int Minimp3PcmDriver::open() {
     return applyFormat();
 #else
     CTH_WARN("  Embedded minimp3 decoder support is not compiled in.\n");
-    CTH_TRACE("open failed because WITH_MINIMP3=0 file=`%s'\n", "minimp3 pcm driver", name);
+    CTH_TRACE("open failed because WITH_MINIMP3=0 file=`%s'\n", "minimp3 pcm source", name);
     return 1;
 #endif
 }
 
-int Minimp3PcmDriver::applyFormat() {
+int Minimp3PcmSource::applyFormat() {
 #if WITH_MINIMP3 == 1
     mp3dec_ex_t* dec = (mp3dec_ex_t*)decoder;
     if (dec == NULL)
@@ -1206,7 +1181,7 @@ int Minimp3PcmDriver::applyFormat() {
         return 1;
     }
 
-    CTH_TRACE("format rate=%d channels=%d sample-format=%d\n", "minimp3 pcm driver",
+    CTH_TRACE("format rate=%d channels=%d sample-format=%d\n", "minimp3 pcm source",
         pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
     return 0;
 #else
@@ -1214,27 +1189,35 @@ int Minimp3PcmDriver::applyFormat() {
 #endif
 }
 
-int Minimp3PcmDriver::read(char* dst, int bytes) {
+int Minimp3PcmSource::read(char* dst, int rawSize, int samplesRequested) {
 #if WITH_MINIMP3 == 1
     if ((decoder == NULL) || error)
         return 0;
 
-    int sampleBytes = sizeof(mp3d_sample_t);
-    int samplesWanted = bytes / sampleBytes;
-    if (samplesWanted <= 0)
+    int bytesPerSample = pcmFormat.bytesPerSample();
+    int maxSamples = (bytesPerSample > 0) ? rawSize / bytesPerSample : 0;
+    int samples = min(samplesRequested, maxSamples);
+    if (samples <= 0)
         return 0;
 
-    size_t samplesRead = mp3dec_ex_read((mp3dec_ex_t*)decoder, (mp3d_sample_t*)dst,
-        (size_t)samplesWanted);
+    int channels = pcmFormat.channels;
+    if (channels <= 0)
+        return 0;
 
-    return (int)(samplesRead * sampleBytes);
+    size_t sampleValuesWanted = (size_t)samples * (size_t)channels;
+    size_t sampleValuesRead = mp3dec_ex_read((mp3dec_ex_t*)decoder, (mp3d_sample_t*)dst,
+        sampleValuesWanted);
+
+    return (int)(sampleValuesRead / channels);
 #else
     return 0;
 #endif
 }
 
-void Minimp3PcmDriver::rewind() {
-    CTH_TRACE("rewind `%s'\n", "minimp3 pcm driver", name);
+int Minimp3PcmSource::canFinish() const { return 1; }
+
+void Minimp3PcmSource::rewind() {
+    CTH_TRACE("rewind `%s'\n", "minimp3 pcm source", name);
 #if WITH_MINIMP3 == 1
     if ((decoder == NULL) || error)
         return;
@@ -1243,20 +1226,22 @@ void Minimp3PcmDriver::rewind() {
 #endif
 }
 
-RandomNoisePcmDriver::RandomNoisePcmDriver()
-    : PcmDriver()
+RandomNoisePcmSource::RandomNoisePcmSource()
+    : PcmSource()
     , v1(0)
     , v2(0)
     , maxdv(2) {
     pcmFormat.sampleRate = int(soundSampleRate);
     pcmFormat.channels = 2;
     pcmFormat.sampleFormat = SF_u8;
-    CTH_TRACE("created rate=%d channels=%d format=%d\n", "random noise pcm driver",
+    CTH_TRACE("created rate=%d channels=%d format=%d\n", "random noise pcm source",
         pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
 }
 
-int RandomNoisePcmDriver::read(char* dst, int bytes) {
-    int frames = min(bytes / 2, 256);
+int RandomNoisePcmSource::read(char* dst, int rawSize, int samplesRequested) {
+    int bytesPerSample = pcmFormat.bytesPerSample();
+    int maxSamples = (bytesPerSample > 0) ? rawSize / bytesPerSample : 0;
+    int frames = min(min(samplesRequested, maxSamples), 256);
 
     if (frames <= 0)
         return 0;
@@ -1283,10 +1268,10 @@ int RandomNoisePcmDriver::read(char* dst, int bytes) {
         current[1] = previous[1] + v2;
     }
 
-    return frames * 2;
+    return frames;
 }
 
-void RandomNoisePcmDriver::rewind() {
+void RandomNoisePcmSource::rewind() {
     v1 = 0;
     v2 = 0;
 }
@@ -1319,7 +1304,7 @@ AudioInputProcessor::~AudioInputProcessor() {
 
 void AudioInputProcessor::setTmpData() {
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
-    rawSize = bytesPerSample * size;
+    rawSize = pcmBytesForSamples(size, bytesPerSample);
     int requestedTmpSize = input ? input->rawBufferSize(rawSize, size) : rawSize;
     if (requestedTmpSize < rawSize)
         requestedTmpSize = rawSize;
@@ -1338,7 +1323,7 @@ void AudioInputProcessor::operator()() {
         return;
 
     bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
-    rawSize = bytesPerSample * size;
+    rawSize = pcmBytesForSamples(size, bytesPerSample);
     setTmpData();
 
     int r = input->read(tmpData, rawSize, size);
@@ -1346,7 +1331,7 @@ void AudioInputProcessor::operator()() {
         r = 0;
 
     if (r >= 1024)
-        convert(data, tmpData + (r - 1024) * bytesPerSample, 1024);
+        convert(data, tmpData + pcmBytesForSamples(r - 1024, bytesPerSample), 1024);
     else {
         memcpy(data, data + r, sizeof(char2) * (1024 - r));
         convert(data + 1024 - r, tmpData, r);
@@ -1444,127 +1429,10 @@ void AudioInputProcessor::convert(char2* dst, void* src, int n) {
     }
 }
 
-#if WITH_NETWORK == 1
-
-AudioNetInput::AudioNetInput()
-    : AudioInput()
-    , handle(-1) {
-    CTH_INFO("Initializing net-sound...\n");
-    CTH_TRACE("init host=`%s'\n", "audio net input", SoundDeviceNet::sound_hostname);
-
-    update();
-
-    if ((handle = make_socket(SOCK_DGRAM, CLT_PORT)) < 0) {
-        error = 1;
-        return;
-    }
-
-    fcntl(handle, F_SETFL, O_NONBLOCK);
-    netRequest(0);
-}
-
-void AudioNetInput::netRequest(int request) {
-    struct sockaddr_in my_s_addr;
-    struct hostent* hostinfo;
-    int request_socket;
-    char req[65];
-
-    switch (request) {
-    case 0:
-        sprintf(req, "connect %d", CLT_PORT);
-        break;
-    case 1:
-        sprintf(req, "disconnect %d", CLT_PORT);
-        break;
-    default:
-        error = 1;
-        return;
-    }
-
-    CTH_INFO("  Requesting: `%s'.\n", req);
-    CTH_TRACE("request `%s' to `%s'\n", "audio net input", req, SoundDeviceNet::sound_hostname);
-
-    if ((request_socket = make_socket(SOCK_STREAM, CLT_PORT2)) < 0)
-        CTH_ERRNO(errno, "Can not create request socket.");
-
-    my_s_addr.sin_family = AF_INET;
-    my_s_addr.sin_port = htons(SRV_PORT);
-    hostinfo = gethostbyname(SoundDeviceNet::sound_hostname);
-    if (hostinfo == NULL) {
-        CTH_ERRNO(errno, "Could not find host `%s'.", SoundDeviceNet::sound_hostname);
-        close(request_socket);
-        error = 1;
-        return;
-    }
-    my_s_addr.sin_addr = *(struct in_addr*)hostinfo->h_addr;
-
-    if (connect(request_socket, (struct sockaddr*)&my_s_addr, sizeof(struct sockaddr_in)) < 0) {
-        CTH_ERRNO(errno, "Can not connect to server `%s'.", SoundDeviceNet::sound_hostname);
-        close(request_socket);
-        return;
-    }
-
-    CTH_INFO("  Sending request `%s'\n", req);
-    strcat(req, "\n");
-    if (send(request_socket, req, 64, 0) <= 0)
-        CTH_ERRNO(errno, "Can not send request.");
-
-    sleep(1);
-
-    if (shutdown(request_socket, 2))
-        CTH_ERRNO(errno, "Can not shutdown request-socket.");
-
-    if (close(request_socket))
-        CTH_ERRNO(errno, "Can not close request-socket.");
-}
-
-int AudioNetInput::read(char* dst, int /*rawSize*/, int /*samplesRequested*/) {
-    int r, rmax = 0;
-
-    while ((r = recv(handle, dst, 1024, 0)) >= 0)
-        if (r > rmax)
-            rmax = r;
-
-    return rmax / 2;
-}
-
-int AudioNetInput::rawBufferSize(int frameRawSize, int /*samplesRequested*/) const {
-    return max(frameRawSize, 1024);
-}
-
-void AudioNetInput::update() {
-    soundFormat.setValue(SF_u8);
-    soundChannels.setValue(2);
-}
-
-AudioNetInput::~AudioNetInput() {
-    if (handle >= 0) {
-        netRequest(1);
-        close(handle);
-    }
-}
-
-#else
-
-AudioNetInput::AudioNetInput()
-    : AudioInput()
-    , handle(-1) {
-    CTH_ERROR("Network code was disabled at compile time.\n");
-    error = 1;
-}
-
-AudioNetInput::~AudioNetInput() { }
-void AudioNetInput::netRequest(int) { }
-int AudioNetInput::read(char*, int, int) { return 0; }
-int AudioNetInput::rawBufferSize(int frameRawSize, int) const { return frameRawSize; }
-void AudioNetInput::update() { }
-
-#endif
-
 #if WITH_DSP == 1
 
-AudioDSPInput::AudioDSPInput()
-    : AudioInput()
+DspPcmSource::DspPcmSource()
+    : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
@@ -1572,7 +1440,7 @@ AudioDSPInput::AudioDSPInput()
     init();
 }
 
-void AudioDSPInput::setFragment() {
+void DspPcmSource::setFragment() {
     int soundDSPFragment = (int(soundDSPFragments) << 16) | int(soundDSPFragmentSize);
     if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
@@ -1584,19 +1452,19 @@ void AudioDSPInput::setFragment() {
         CTH_WARN("  sound fragment size is not set big enough.\n");
 }
 
-void AudioDSPInput::setChannels() {
+void DspPcmSource::setChannels() {
     int channels = int(soundChannels) - 1;
     if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
     soundChannels.setValue(channels + 1);
 }
 
-void AudioDSPInput::setSampleRate() {
+void DspPcmSource::setSampleRate() {
     if (ioctl(handle, SNDCTL_DSP_SPEED, &(soundSampleRate.value)) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
 }
 
-void AudioDSPInput::setFormat() {
+void DspPcmSource::setFormat() {
     int sound_format;
 
     switch (soundFormat) {
@@ -1633,7 +1501,7 @@ void AudioDSPInput::setFormat() {
             CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed.");
     }
 
-    CTH_TRACE("set sound format requested=%d returned=%d\n", "audio dsp input",
+    CTH_TRACE("set sound format requested=%d returned=%d\n", "dsp pcm source",
         requested_sound_format, sound_format);
 
     switch (sound_format) {
@@ -1661,9 +1529,9 @@ void AudioDSPInput::setFormat() {
     }
 }
 
-void AudioDSPInput::init() {
+void DspPcmSource::init() {
     CTH_DEBUG("  setting %s for reading...\n", SoundDeviceDSP::dev_dsp);
-    CTH_TRACE("init method=%d sample-window=%d\n", "audio dsp input", int(soundDSPMethod), sampleWindow);
+    CTH_TRACE("init method=%d sample-window=%d\n", "dsp pcm source", int(soundDSPMethod), sampleWindow);
 
     if (handle >= 0)
         close(handle);
@@ -1780,9 +1648,13 @@ void AudioDSPInput::init() {
         error = 1;
         return;
     }
+
+    pcmFormat.sampleRate = int(soundSampleRate);
+    pcmFormat.channels = int(soundChannels);
+    pcmFormat.sampleFormat = int(soundFormat);
 }
 
-int AudioDSPInput::read(char* dst, int rawSize, int samplesRequested) {
+int DspPcmSource::read(char* dst, int rawSize, int samplesRequested) {
     int r = 0;
     int bytesPerSample = (soundFormat < 2) ? soundChannels : 2 * soundChannels;
 
@@ -1845,7 +1717,7 @@ int AudioDSPInput::read(char* dst, int rawSize, int samplesRequested) {
     return r / bytesPerSample;
 }
 
-int AudioDSPInput::rawBufferSize(int frameRawSize, int samplesRequested) const {
+int DspPcmSource::rawBufferSize(int frameRawSize, int samplesRequested) const {
     switch (int(soundDSPMethod)) {
     case 0:
         return max(frameRawSize, (1 << soundDSPFragmentSize) * 4);
@@ -1858,7 +1730,7 @@ int AudioDSPInput::rawBufferSize(int frameRawSize, int samplesRequested) const {
     }
 }
 
-void AudioDSPInput::update() {
+void DspPcmSource::update() {
     if (dmaBuffer != NULL) {
         munmap(dmaBuffer, dmaSize);
         dmaBuffer = NULL;
@@ -1867,12 +1739,12 @@ void AudioDSPInput::update() {
     init();
 }
 
-int AudioDSPInput::initInputControls() {
+int DspPcmSource::initInputControls() {
     CTH_INFO("Initializing OSS mixer device...\n");
     return init_mixer();
 }
 
-AudioDSPInput::~AudioDSPInput() {
+DspPcmSource::~DspPcmSource() {
     if (dmaBuffer != NULL)
         munmap(dmaBuffer, dmaSize);
     dmaBuffer = NULL;
@@ -1884,8 +1756,8 @@ AudioDSPInput::~AudioDSPInput() {
 
 #else
 
-AudioDSPInput::AudioDSPInput()
-    : AudioInput()
+DspPcmSource::DspPcmSource()
+    : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
@@ -1894,15 +1766,15 @@ AudioDSPInput::AudioDSPInput()
     error = 1;
 }
 
-AudioDSPInput::~AudioDSPInput() { }
-void AudioDSPInput::setFragment() { }
-void AudioDSPInput::setChannels() { }
-void AudioDSPInput::setSampleRate() { }
-void AudioDSPInput::setFormat() { }
-void AudioDSPInput::init() { }
-int AudioDSPInput::read(char*, int, int) { return 0; }
-int AudioDSPInput::rawBufferSize(int frameRawSize, int) const { return frameRawSize; }
-void AudioDSPInput::update() { }
-int AudioDSPInput::initInputControls() { return 0; }
+DspPcmSource::~DspPcmSource() { }
+void DspPcmSource::setFragment() { }
+void DspPcmSource::setChannels() { }
+void DspPcmSource::setSampleRate() { }
+void DspPcmSource::setFormat() { }
+void DspPcmSource::init() { }
+int DspPcmSource::read(char*, int, int) { return 0; }
+int DspPcmSource::rawBufferSize(int frameRawSize, int) const { return frameRawSize; }
+void DspPcmSource::update() { }
+int DspPcmSource::initInputControls() { return 0; }
 
 #endif

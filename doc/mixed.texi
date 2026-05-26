@@ -20,7 +20,7 @@ The values for the hotkeys are saved in
 
 
 
-@node Screen Saver, Sound Server, Hotkeys, Mixed
+@node Screen Saver, Pathes, Hotkeys, Mixed
 @section Screen Saver
 
 I have removed the "native" screen saver support of @code{xcthugha}. So
@@ -48,21 +48,7 @@ whole screen.
 
 
 
-@node Sound Server, Pathes, Screen Saver, Mixed
-@section Sound Server
-
-@code{cthugha} and @code{xcthugha} now always work as sound servers.
-Because of that if you want to use @code{cthugha-server} and 
-@code{xcthugha} on one machine you must use the @code{--srv-port} option
-with one of the two. 
-
-
-
-
-
-
-
-@node Pathes, Other OS, Sound Server, Mixed
+@node Pathes, Other OS, Screen Saver, Mixed
 
 @section Pathes
 
@@ -312,8 +298,6 @@ public license.
 program using GGI. This should also work with linux-fb.
 
 @end itemize
-
-
 
 
 

@@ -10,9 +10,8 @@
 
 class AudioFrame {
 public:
-    long long centerByte;
+    long long centerSample;
     int samples;
-    int rawBytes;
     char2 data[1024];
     char2 processed[1024];
 

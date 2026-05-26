@@ -10,7 +10,7 @@ F3  setInterface(Options)
 F4  setInterface(CD)
 F5  setInterface(sound)
 F6  setInterface(mixer)
-F7  setInterface(server)
+F7  setInterface(playList)
 F8  setInterface(playList)
 		  
 F9   setInterface(display)
@@ -140,13 +140,6 @@ F4 setInterface(main)
 #keymap Sound
 F5 setInterface(main)
 
-#keymap Server
-F6 setInterface(main)
-
-
-#keymap Server
-F6 setInterface(main)
-
 #keymap Options
 Q setInterface(main)
 O setInterface(main)
@@ -191,7 +184,6 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-
 
 
 

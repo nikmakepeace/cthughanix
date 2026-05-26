@@ -20,15 +20,6 @@ Debug mode (no sound-source). Cthugha uses some random noise.
 
 
 
-@item -N, --network HOST[:PORT]
-Use @code{cthugha-server} running at @code{HOST}. If the connection
-should get lost you can reconnect by pressing @code{n}.
-
-You can specify the port number used by the server. You should not need
-to specify that (only if you changed it with @code{--srv-port}).
-
-
-
 @item --play NAME
 Use a file as source for the sound. 
 Cthugha plays the file over and over again. In future versions playing
@@ -416,7 +407,7 @@ faster, while for debugging a window is very usefull.
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node General, Server, Display, Parameters
+@node General, , Display, Parameters
 @section General Options
 
 @table @code
@@ -462,37 +453,5 @@ sets a level of 3.
 
 @item -?, --help
 Print help information.
-
-@end table
-
-@c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node Server, , General, Parameters
-@section Server options
-
-@table @code
-@item -W, --srv-wait
-Time to wait after the saver sent the sound to its clients. The default
-value is 0, that is not to wait.
-
-If you set a high value here @code{cthugha-server} sends not so much data
-of the network. But if the value is too high, not enough data is sent
-(the clients have to wait - delays in the display). On the other hand if
-you set a very low value very much data is sent - waste of resources.
-
-@item --srv-port
-The port used by the server (@code{cthugha-server} or
-@code{cthugha}/@code{xcthugha} in server mode).
-
-Default value is 5555. You should change this only if you have
-problems. Don't forget to specify this port also for the clients
-accessing the server (with @code{--network}).
-
-@item --clt-port
-The port used by the clients to receive sounds from the server. 
-The default value is 5556. The clients use the port specified and the
-next one.
-
-You can use this option to use more than one client on one machine
-(e.g. @code{xcthugha-saver} and @code{xcthugha} at the same time).
 
 @end table

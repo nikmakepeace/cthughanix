@@ -3,6 +3,7 @@
 // order and the per-frame call sequence used by the display main loop.
 
 #include "cthugha.h"
+#include "cth_buffer.h"
 #include "information.h"
 #include "display.h"
 #include "Sound.h"
@@ -17,15 +18,58 @@
 #include "AudioAnalyzer.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
-#include "SoundServer.h"
 #include "CthughaDisplay.h"
+#include "CthughaFrameBuffer.h"
 #include "CDPlayer.h"
 #include "DisplayDevice.h"
 #include "Interface.h"
+#include "VisualDirector.h"
 #include "keymap.h"
 
 #include <unistd.h>
 #include <signal.h>
+
+static VisualPipeline* visualPipeline = NULL;
+static VisualPlan visualPlan;
+static CthughaFrameBuffer visualFrameBuffer;
+
+static void initVisualPipeline() {
+    if (visualPipeline != NULL)
+        return;
+
+    VisualDirector director;
+    VisualPipelineFactory factory;
+    visualPlan = director.planDefaultPipeline();
+    setVisualBufferTransform(CthughaBuffer::run);
+    visualPipeline = factory.create(visualPlan);
+}
+
+static void shutdownVisualPipeline() {
+    delete visualPipeline;
+    visualPipeline = NULL;
+}
+
+static void runVisualPipeline() {
+    initVisualPipeline();
+
+    if (CthughaBuffer::current != NULL
+        && (visualFrameBuffer.active() != CthughaBuffer::current->activeBuffer
+            || visualFrameBuffer.passive() != CthughaBuffer::current->passiveBuffer)) {
+        visualFrameBuffer.bind(CthughaBuffer::current->activeBuffer,
+            CthughaBuffer::current->passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH);
+    }
+
+    VisualFrameContext context;
+    context.audioFrame = audioFrameCurrent();
+    context.audioAnalysis = &audioAnalysis;
+    context.acousticContext = &acousticContext;
+    context.now = now;
+    context.deltaT = deltaT;
+
+    CTH_TRACE("running pipeline=%p modules=%d\n", "visual runtime",
+        visualPipeline, visualPipeline ? visualPipeline->size() : 0);
+    visualPipeline->run(visualFrameBuffer, context);
+}
 
 void sig_tty_cont(int);
 void sig_tty_stop(int) {
@@ -50,9 +94,9 @@ void deleter() {
     // autoChanger owns final option persistence, so destroy it first.
     delete autoChanger;
     delete cthughaDisplay;
-    delete soundServer;
     audioRuntimeShutdown();
     delete cdPlayer;
+    shutdownVisualPipeline();
 }
 
 int main(int argc, char* argv[]) {
@@ -82,9 +126,6 @@ int main(int argc, char* argv[]) {
 
     CTH_INFO("Initializing the sound device...\n");
     audioRuntimeInit(RSIC_MainProcess, 1);
-
-    CTH_INFO("Initializing the sound server...\n");
-    soundServer = new SoundServer;
 
     CTH_INFO("Initializing CD player...\n");
     cdPlayer = new CDPlayer;
@@ -167,14 +208,9 @@ void run(int doDisplay) {
         frameTiming[4] = getTime();
 
     PROFILING();
-    (*soundServer)();
+    runVisualPipeline();
     if (traceFrameTiming)
         frameTiming[5] = getTime();
-
-    PROFILING();
-    CthughaBuffer::run();
-    if (traceFrameTiming)
-        frameTiming[6] = getTime();
 
     PROFILING();
     double visualStart = getTime();
@@ -182,17 +218,17 @@ void run(int doDisplay) {
         (*cthughaDisplay)();
     double visualEnd = getTime();
     if (traceFrameTiming)
-        frameTiming[7] = visualEnd;
+        frameTiming[6] = visualEnd;
     if (cthughaDisplay)
         cthughaDisplay->observeVisualLatency(visualEnd - visualStart);
 
     PROFILING();
     (*cdPlayer)();
     if (traceFrameTiming) {
-        frameTiming[8] = getTime();
-        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f analyze=%.3f auto=%.3f server=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
+        frameTiming[7] = getTime();
+        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f analyze=%.3f auto=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
             "frame timing",
-            (frameTiming[8] - frameTiming[0]) * 1000.0,
+            (frameTiming[7] - frameTiming[0]) * 1000.0,
             (frameTiming[1] - frameTiming[0]) * 1000.0,
             (frameTiming[2] - frameTiming[1]) * 1000.0,
             (frameTiming[3] - frameTiming[2]) * 1000.0,
@@ -200,7 +236,6 @@ void run(int doDisplay) {
             (frameTiming[5] - frameTiming[4]) * 1000.0,
             (frameTiming[6] - frameTiming[5]) * 1000.0,
             (frameTiming[7] - frameTiming[6]) * 1000.0,
-            (frameTiming[8] - frameTiming[7]) * 1000.0,
             doDisplay);
     }
 

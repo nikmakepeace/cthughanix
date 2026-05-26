@@ -13,7 +13,6 @@ class Settings;
 
 enum AudioSourceStrategy {
     ASS_LineIn,
-    ASS_Network,
     ASS_Random,
     ASS_WavFile,
     ASS_Mp3File,

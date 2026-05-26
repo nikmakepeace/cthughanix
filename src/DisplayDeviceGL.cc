@@ -6,7 +6,6 @@
 #include "CthughaBuffer.h"
 #include "Interface.h"
 #include "keys.h"
-#include "SoundServer.h"
 #include "CDPlayer.h"
 #include "CthughaDisplay.h"
 #include "display.h"

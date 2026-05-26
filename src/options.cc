@@ -1,6 +1,5 @@
 #include "cthugha.h"
 #include "options.h"
-#include "SoundServer.h"
 #include "display.h"
 #include "translate.h"
 #include "information.h"
@@ -8,7 +7,6 @@
 #include "Sound.h"
 #include "CDPlayer.h"
 #include "keys.h"
-#include "network.h"
 #include "waves.h"
 #include "cth_buffer.h"
 #include "AutoChanger.h"
@@ -35,10 +33,8 @@ enum option_nr {
     opt_play,
     opt_snd_fragments,
     opt_mixer,
-    opt_srv_port,
     opt_msg_time,
     opt_prt_file,
-    opt_clt_port,
     opt_fire_level,
     opt_min_noise,
     opt_listen,
@@ -85,7 +81,7 @@ enum option_nr {
 
 struct option long_options[] = {
     // selecting sound device options
-    { "no-sound", 0, 0, 'x' }, { "network", 1, 0, 'N' },
+    { "no-sound", 0, 0, 'x' },
 
     { "play", 1, 0, opt_play }, { "silent", 0, 0, opt_silent },
     { "no-silent", 0, 0, opt_no_silent },
@@ -124,24 +120,19 @@ struct option long_options[] = {
 #endif
 
 // auto changer options
-#ifndef CTH_SERV
     { "lock", 0, &lock.value, 1 }, { "no-lock", 0, &lock.value, 0 },
     { "little", 0, &change_little.value, 1 }, { "no-little", 0, &change_little.value, 0 },
     { "min-time", 1, 0, 'T' }, { "random-time", 1, 0, 'R' },
     { "msg-time", 1, 0, opt_msg_time }, { "quiet-time", 1, 0, 'Q' },
     { "quiet-file", 1, 0, 'q' }, { "min-noise", 1, 0, opt_min_noise },
     { "fire-level", 1, 0, opt_fire_level },
-#endif
 
 // Core Options
-#ifndef CTH_SERV
     { "flashlight", 0, 0, opt_flashlight }, { "no-flashlight", 0, 0, opt_no_flashlight },
     { "sound-processing", 1, 0, 'm' }, { "flame", 1, 0, 'f' }, { "translation", 1, 0, 't' },
     { "light", 1, 0, opt_light }, { "no-light", 1, 0, opt_no_light },
-#endif
 
 // buffer options
-#ifndef CTH_SERV
     { "buff-size", 1, 0, 'S' }, { "wave", 1, 0, 'w' },
     { "wave-scale", 1, 0, opt_wave_scale }, { "object", 1, 0, 'o' },
     { "no-object", 0, &use_objects.value, 0 },
@@ -152,10 +143,8 @@ struct option long_options[] = {
     { "no-load-on-demand", 0, &transLoadOnDemand.value, 0 },
     { "load-late", 0, &transLoadLate.value, 1 }, { "no-load-late", 0, &transLoadLate.value, 0 },
     { "table", 1, 0, 'a' }, { "border", 1, 0, opt_border },
-#endif
 
 // display options
-#ifndef CTH_SERV
     { "disp-mode", 1, 0, 'D' }, { "palette", 1, 0, 'p' }, { "display", 1, 0, 'd' },
     { "pcx", 1, 0, 'P' }, { "use-pcx", 0, &display_use_pcx, 1 },
     { "no-pcx", 0, &display_use_pcx, 0 },
@@ -164,14 +153,11 @@ struct option long_options[] = {
     { "palette-set", 1, 0, opt_palette_set },
     { "test", 0, 0, opt_test }, { "max-fps", 1, 0, opt_maxfps },
     { "zoom", 1, 0, opt_zoom },
-#endif
 
 // SVGA options
-#ifndef CTH_SERV
     { "sync", 0, &display_syncwait, 1 }, { "no-sync", 0, &display_syncwait, 0 },
 #ifndef CTH_GL
     { "disp-direct", 0, &display_direct, 1 }, { "no-disp-direct", 0, &display_direct, 0 },
-#endif
 #endif
 
 // X11 options
@@ -202,19 +188,13 @@ struct option long_options[] = {
 
     // general options
     { "path", 1, 0, 'E' }, { "ini-file", 1, 0, opt_ini_file }, { "keymap", 1, 0, opt_keymap },
-#ifndef CTH_SERV
     { "dbl-load", 0, &double_load.value, 1 }, { "no-dbl-load", 0, &double_load.value, 0 },
     { "save", 0, &options_save.value, 1 }, { "no-save", 0, &options_save.value, 0 },
     { "prt-file", 1, 0, opt_prt_file },
-#endif
     { "joystick", 0, &Joystick::useJoystick, 1 }, { "no-joystick", 0, &Joystick::useJoystick, 0 },
     { "esc", 0, &key_esc, 1 },
     { "no-esc", 0, &key_esc, 0 }, { "verbose", 2, 0, opt_verbose },
     { "no-verbose", 1, &cthugha_verbose.value, 0 }, { "help", 0, 0, '?' },
-
-    // sound server options
-    { "srv-wait", 1, 0, 'W' }, { "srv-port", 1, 0, opt_srv_port },
-    { "clt-port", 1, 0, opt_clt_port },
 
     { 0, 0, 0, 0 }
 };
@@ -224,7 +204,6 @@ int do_param(int c, int value, char* str) {
     case 0:
         return 0;
 
-#ifndef CTH_SERV
         //
         // CoreOptions
         //
@@ -305,7 +284,6 @@ int do_param(int c, int value, char* str) {
         light.setInitialEntry("locked:none");
         break;
 
-#endif
 
     case '2': /* Stereo */
         soundChannels.setValue(2);
@@ -354,13 +332,11 @@ int do_param(int c, int value, char* str) {
         soundDeviceNr.setValue(SDN_Random);
         break;
 
-#ifndef CTH_SERV
 
     case 'l': /* Lock changes */
         lock.setValue(1);
         break;
 
-#ifndef CTH_SERV
     case 'T':
         changeWaitMin.change(str);
         break;
@@ -373,7 +349,6 @@ int do_param(int c, int value, char* str) {
     case opt_msg_time:
         changeMsgTime.change(str);
         break;
-#endif
 
     case 'r': /* sync-mode */
         display_syncwait = 1;
@@ -395,16 +370,6 @@ int do_param(int c, int value, char* str) {
         display_use_pcx = 0;
         break;
 
-    case 'N': { /* Read from remote machine */
-        char* p;
-        soundDeviceNr.setValue(SDN_Net);
-        if ((p = strchr(str, ':')) != NULL) {
-            *p = '\0';
-            SRV_PORT = atoi(p + 1);
-        }
-        strncpy(SoundDeviceNet::sound_hostname, str, 255);
-        break;
-    }
     case 'D': /* display-mode */
         if (strchr(str, 'x') == NULL) {
             /* use a predefined size */
@@ -416,7 +381,6 @@ int do_param(int c, int value, char* str) {
             disp_size.y = atoi(strchr(str, 'x') + 1);
         }
         break;
-#endif
 
     case 'S': /* buffer-size */
         if (strchr(str, 'x') == NULL) {
@@ -444,7 +408,6 @@ int do_param(int c, int value, char* str) {
         }
         break;
 
-#ifndef CTH_SERV
     case opt_prt_file:
         strncpy(display_prt_file, str, PATH_MAX);
         break;
@@ -459,30 +422,15 @@ int do_param(int c, int value, char* str) {
         ini_file_override[PATH_MAX - 1] = '\0';
         break;
 
-    case opt_clt_port:
-        CLT_PORT = value;
-        break;
-#endif
 
     case opt_keymap:
         strncpy(Keymap::keymapFile, str, PATH_MAX);
-        break;
-
-#if WITH_NETWORK == 1
-    case 'W': /* time to wait when server */
-        srv_wait_time.change(str);
-        break;
-#endif
-
-    case opt_srv_port:
-        REQ_PORT = value;
         break;
 
     case opt_verbose:
         cthugha_verbose.change(str ? str : (char*)"4");
         break;
 
-#ifndef CTH_SERV
     case opt_test:
         use_translates.value = 0;
         display_use_pcx = 0;
@@ -495,7 +443,6 @@ int do_param(int c, int value, char* str) {
     case opt_maxfps:
         maxFramesPerSecond.change(str);
         break;
-#endif
 
     case opt_play:
         strncpy(SoundDeviceFile::name, str, PATH_MAX);
@@ -665,10 +612,8 @@ int get_params(int argc, char* argv[]) {
     optind = optindsave; /* start again at first opt */
 
     while ((c = getopt_long(argc, argv,
-                "21v:L:M:C:c:xrP:E:?S:W:"
-#ifndef CTH_SERV
-                "f:w:d:p:t:o:q:T:R:N:D:a:m:XlQ:s"
-#endif
+                "21v:L:M:C:c:xrP:E:?S:"
+                "f:w:d:p:t:o:q:T:R:D:a:m:XlQ:s"
                 ,
                 long_options, &option_index))
         != -1) {

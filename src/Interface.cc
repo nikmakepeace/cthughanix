@@ -159,7 +159,7 @@ static char* InterfaceList[] = { "Help", // F1
     "CD", // F4
     "sound", // F5
     "mixer", // F6
-    "server", // F7
+    "playList", // F7
     "playList", // F8
 
     "display", // F9

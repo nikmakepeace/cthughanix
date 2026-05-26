@@ -18,31 +18,19 @@
 
 class AudioBuffer;
 
-class AudioInput {
-protected:
-    int error;
-
-public:
-    AudioInput();
-    virtual ~AudioInput();
-
-    int hasError() const { return error; }
-
-    virtual int read(char* dst, int rawSize, int samplesRequested) = 0;
-    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
-    virtual int isFinished() const { return 0; }
-    virtual void update() { }
-    virtual int initInputControls() { return 0; }
-};
+static inline int pcmBytesForSamples(int samples, int bytesPerSample) {
+    return samples * bytesPerSample;
+}
 
 class AudioOutput {
-    int outputBytesPerSecond;
-    int outputTargetDelayBytes;
-    int outputScratchBytes;
+    int outputSamplesPerSecond;
+    int outputBytesPerSample;
+    int outputTargetDelaySamples;
+    int outputScratchSamples;
 
 protected:
     virtual int defaultTargetLatencyMs() const = 0;
-    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
+    virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
     AudioOutput();
@@ -54,13 +42,15 @@ public:
     virtual int isOpen() const = 0;
     virtual int isRealtime() const { return 1; }
     virtual void update() { }
-    virtual void configureTiming(int bytesPerSecond, int inputChunkBytes);
-    int targetDelayBytes() const { return outputTargetDelayBytes; }
-    int scratchBytes() const { return outputScratchBytes; }
-    int queuedTargetBytes() const;
-    long long audibleBytePosition(const AudioBuffer& buffer) const;
+    virtual void configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples);
+    int bytesPerSample() const { return outputBytesPerSample; }
+    int targetDelaySamples() const { return outputTargetDelaySamples; }
+    int scratchSamples() const { return outputScratchSamples; }
+    int outputDelaySamples() const;
+    int queuedTargetSamples() const;
+    long long audibleSamplePosition(const AudioBuffer& buffer) const;
     int playbackComplete(const AudioBuffer& buffer, int inputFinished) const;
-    virtual int service(AudioBuffer& buffer, char* scratch, int scratchSize,
+    virtual int service(AudioBuffer& buffer, char* scratch, int scratchSamples,
         int inputFinished);
 };
 
@@ -81,7 +71,7 @@ class AudioPulseOutput : public AudioOutput {
 
 protected:
     virtual int defaultTargetLatencyMs() const;
-    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
+    virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
     AudioPulseOutput();
@@ -106,7 +96,7 @@ class AudioDSPOutput : public AudioOutput {
 
 protected:
     virtual int defaultTargetLatencyMs() const;
-    virtual int timingScratchBytes(int inputChunkBytes, int targetDelayBytes) const;
+    virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
     AudioDSPOutput(int method);
@@ -121,30 +111,30 @@ public:
 
 class AudioBuffer {
     char* data;
-    int capacity;
-    int protectedHistoryBytes;
-    long long decodedEndByte;
-    long long submittedEndByte;
+    int bytesPerSampleValue;
+    int capacitySamples;
+    int protectedHistorySamples;
+    long long decodedEndSample;
+    long long submittedEndSample;
 
-    long long protectedWindowStartByte() const;
-    int copyAt(long long bytePosition, char* dst, int bytes) const;
+    long long protectedWindowStartSample() const;
+    int copyAt(long long samplePosition, char* dst, int samples) const;
 
 public:
-    AudioBuffer(int capacity, int protectedHistoryBytes = 0);
+    AudioBuffer(int capacitySamples, int bytesPerSample, int protectedHistorySamples = 0);
     ~AudioBuffer();
 
-    int queuedForOutputBytes() const { return int(decodedEndByte - submittedEndByte); }
-    int protectedWindowBytes() const { return int(decodedEndByte - protectedWindowStartByte()); }
-    int writableBytes() const { return capacity - protectedWindowBytes(); }
-    int size() const { return capacity; }
-    long long protectedWindowStartPosition() const { return protectedWindowStartByte(); }
-    long long decodedEndPosition() const { return decodedEndByte; }
-    long long submittedEndPosition() const { return submittedEndByte; }
+    int bytesPerSample() const { return bytesPerSampleValue; }
+    int queuedForOutputSamples() const { return int(decodedEndSample - submittedEndSample); }
+    int protectedWindowSamples() const { return int(decodedEndSample - protectedWindowStartSample()); }
+    int writableSamples() const { return capacitySamples - protectedWindowSamples(); }
+    long long decodedEndPosition() const { return decodedEndSample; }
+    long long submittedEndPosition() const { return submittedEndSample; }
     void clear();
 
-    int appendDecodedPcm(const char* src, int bytes);
-    int readForOutput(char* dst, int bytes);
-    int readProtectedPcmAt(long long bytePosition, char* dst, int bytes) const;
+    int appendDecodedPcm(const char* src, int samples);
+    int readForOutput(char* dst, int samples);
+    int readProtectedPcmAt(long long samplePosition, char* dst, int samples) const;
 };
 
 class AudioFrameBuilder {
@@ -158,7 +148,7 @@ public:
     AudioFrameBuilder();
     ~AudioFrameBuilder();
 
-    void build(AudioFrame& frame, const AudioBuffer& buffer, long long centerByte);
+    void build(AudioFrame& frame, const AudioBuffer& buffer, long long centerSample);
 };
 
 struct PcmFormat {
@@ -170,39 +160,33 @@ struct PcmFormat {
         : sampleRate(0)
         , channels(0)
         , sampleFormat(SF_u8) { }
+
+    int bytesPerSample() const { return (sampleFormat < 2) ? channels : 2 * channels; }
+    int bytesForSamples(int samples) const { return pcmBytesForSamples(samples, bytesPerSample()); }
 };
 
-class PcmDriver {
+class PcmSource {
 protected:
     int error;
     PcmFormat pcmFormat;
 
 public:
-    PcmDriver();
-    virtual ~PcmDriver();
+    PcmSource();
+    virtual ~PcmSource();
 
     int hasError() const { return error; }
     const PcmFormat& format() const { return pcmFormat; }
 
-    virtual int read(char* dst, int bytes) = 0;
-    virtual void rewind() = 0;
+    virtual int read(char* dst, int rawSize, int samplesRequested) = 0;
+    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+    virtual int canFinish() const { return 0; }
+    virtual void rewind() { }
+    virtual void update() { }
+    virtual int initInputControls() { return 0; }
 };
 
-class PcmSource {
-    PcmDriver* driver;
-    int driverOwned;
-
-public:
-    PcmSource(PcmDriver* driver, int takeOwnership = 1);
-    ~PcmSource();
-
-    int hasError() const;
-    const PcmFormat& format() const;
-    int read(char* dst, int bytes);
-    void rewind();
-};
-
-class AudioPcmInput : public AudioInput {
+class AudioInput {
+    int error;
     PcmSource* source;
     int sourceOwned;
     int finished;
@@ -210,15 +194,18 @@ class AudioPcmInput : public AudioInput {
     void applyFormat();
 
 public:
-    AudioPcmInput(PcmSource* source, int takeOwnership = 1);
-    virtual ~AudioPcmInput();
+    AudioInput(PcmSource* source, int takeOwnership = 1);
+    ~AudioInput();
 
-    virtual int read(char* dst, int rawSize, int samplesRequested);
-    virtual int isFinished() const;
-    virtual void update();
+    int hasError() const { return error; }
+    int read(char* dst, int rawSize, int samplesRequested);
+    int rawBufferSize(int frameRawSize, int samplesRequested) const;
+    int isFinished() const;
+    void update();
+    int initInputControls();
 };
 
-class WavPcmDriver : public PcmDriver {
+class WavPcmSource : public PcmSource {
     char name[PATH_MAX];
     FILE* file;
     long dataStart;
@@ -230,14 +217,15 @@ class WavPcmDriver : public PcmDriver {
     int parseHeader();
 
 public:
-    WavPcmDriver(const char* name);
-    virtual ~WavPcmDriver();
+    WavPcmSource(const char* name);
+    virtual ~WavPcmSource();
 
-    virtual int read(char* dst, int bytes);
+    virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual int canFinish() const;
     virtual void rewind();
 };
 
-class Minimp3PcmDriver : public PcmDriver {
+class Minimp3PcmSource : public PcmSource {
     char name[PATH_MAX];
     void* decoder;
 
@@ -245,22 +233,23 @@ class Minimp3PcmDriver : public PcmDriver {
     int applyFormat();
 
 public:
-    Minimp3PcmDriver(const char* name);
-    virtual ~Minimp3PcmDriver();
+    Minimp3PcmSource(const char* name);
+    virtual ~Minimp3PcmSource();
 
-    virtual int read(char* dst, int bytes);
+    virtual int read(char* dst, int rawSize, int samplesRequested);
+    virtual int canFinish() const;
     virtual void rewind();
 };
 
-class RandomNoisePcmDriver : public PcmDriver {
+class RandomNoisePcmSource : public PcmSource {
     int v1;
     int v2;
     int maxdv;
 
 public:
-    RandomNoisePcmDriver();
+    RandomNoisePcmSource();
 
-    virtual int read(char* dst, int bytes);
+    virtual int read(char* dst, int rawSize, int samplesRequested);
     virtual void rewind();
 };
 
@@ -304,21 +293,7 @@ public:
     int frameRawSize() const { return rawSize; }
 };
 
-class AudioNetInput : public AudioInput {
-    int handle;
-
-    void netRequest(int request);
-
-public:
-    AudioNetInput();
-    virtual ~AudioNetInput();
-
-    virtual int read(char* dst, int rawSize, int samplesRequested);
-    virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
-    virtual void update();
-};
-
-class AudioDSPInput : public AudioInput {
+class DspPcmSource : public PcmSource {
     int handle;
     char* dmaBuffer;
     int dmaSize;
@@ -331,8 +306,8 @@ class AudioDSPInput : public AudioInput {
     void init();
 
 public:
-    AudioDSPInput();
-    virtual ~AudioDSPInput();
+    DspPcmSource();
+    virtual ~DspPcmSource();
 
     virtual int read(char* dst, int rawSize, int samplesRequested);
     virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;

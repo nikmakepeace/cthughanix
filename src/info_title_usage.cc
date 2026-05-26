@@ -66,7 +66,6 @@ void usage() {
     PH("-----------------------------");
     PH("Selecting sound device (DSP device by default):");
     PH(" -x, --no-sound      Debug mode (no sound-source)");
-    PH(" -N, --network HOST[:PORT]  Use cthugha-server running at HOST (using PORT)");
     PH(" --play FILE         Play FILE for sound input");
     PH(" --silent            Play silently", soundSilent.text());
     PH(" --loop, --no-loop   Play sound file over and over again or only once");
@@ -209,11 +208,6 @@ void usage() {
     PH("                     --verbose without LVL sets a level of 4");
     PH(" --no-verbose        Print no extra information");
     PH(" -?, --help          This Text");
-    PH("");
-    PH("Sound server options:");
-    PH(" -W, --srv-wait      Time (in msec) cthugha-server waits after sending      <0>");
-    PH(" --srv-port          Port used by the server                             <5555>");
-    PH(" --clt-port          Port used by the client                             <5556>");
     PH("");
     PH("Most switches can be used in a no-form to disable the feature.");
 }

@@ -73,37 +73,13 @@ AudioInput* RuntimeFactory::createAudioInput() const {
     case SDN_DSPIn:
         CTH_DEBUG("    audio input strategy: native OSS DSP input from %s source\n",
             PcmSourceFactory::strategyName(sourceStrategy));
-        CTH_TRACE("selected AudioDSPInput\n", "runtime factory");
-        return new AudioDSPInput();
-
-    case SDN_Net:
-        CTH_DEBUG("    audio input strategy: native network input from %s source\n",
-            PcmSourceFactory::strategyName(sourceStrategy));
-        CTH_TRACE("selected AudioNetInput\n", "runtime factory");
-        return new AudioNetInput();
+        break;
 
     case SDN_Random:
     case SDN_File:
-    {
         CTH_DEBUG("    audio input strategy: native PCM input from %s source\n",
             PcmSourceFactory::strategyName(sourceStrategy));
-        PcmSource* source = pcmSourceFactory.create(settings);
-        if (source != NULL) {
-            CTH_TRACE("selected AudioPcmInput with strategy=%s\n", "runtime factory",
-                PcmSourceFactory::strategyName(sourceStrategy));
-            return new AudioPcmInput(source);
-        }
-        if (settings.soundDeviceNumber == SDN_File) {
-            CTH_DEBUG("    audio input strategy: legacy file input bridge for %s source, because file playback is not native yet\n",
-                PcmSourceFactory::strategyName(sourceStrategy));
-        } else {
-            CTH_DEBUG("    audio input strategy: no native PCM input for %s source\n",
-                PcmSourceFactory::strategyName(sourceStrategy));
-        }
-        CTH_TRACE("no native AudioInput for source strategy=%s\n", "runtime factory",
-            PcmSourceFactory::strategyName(sourceStrategy));
-        return NULL;
-    }
+        break;
 
     default:
         CTH_DEBUG("    audio input strategy: none, because requested device %d is illegal\n",
@@ -112,6 +88,23 @@ AudioInput* RuntimeFactory::createAudioInput() const {
             settings.soundDeviceNumber);
         return NULL;
     }
+
+    PcmSource* source = pcmSourceFactory.create(settings);
+    if (source != NULL) {
+        CTH_TRACE("selected AudioInput with source strategy=%s\n", "runtime factory",
+            PcmSourceFactory::strategyName(sourceStrategy));
+        return new AudioInput(source);
+    }
+    if (settings.soundDeviceNumber == SDN_File) {
+        CTH_DEBUG("    audio input strategy: legacy file input bridge for %s source, because file playback is not native yet\n",
+            PcmSourceFactory::strategyName(sourceStrategy));
+    } else {
+        CTH_DEBUG("    audio input strategy: no native PCM source for %s source\n",
+            PcmSourceFactory::strategyName(sourceStrategy));
+    }
+    CTH_TRACE("no native AudioInput for source strategy=%s\n", "runtime factory",
+        PcmSourceFactory::strategyName(sourceStrategy));
+    return NULL;
 }
 
 AudioOutput* RuntimeFactory::createAudioOutput() const {
@@ -195,12 +188,6 @@ SoundDevice* RuntimeFactory::createLegacySoundDevice(RuntimeSoundInputContext co
             contextName, settings.soundDeviceNumber);
         CTH_TRACE("selected SoundDeviceDSPIn\n", "runtime factory");
         return new SoundDeviceDSPIn();
-
-    case SDN_Net:
-        CTH_DEBUG("    sound input strategy: network input in %s, because sound-device-number=%d\n",
-            contextName, settings.soundDeviceNumber);
-        CTH_TRACE("selected SoundDeviceNet\n", "runtime factory");
-        return new SoundDeviceNet();
 
     case SDN_Random:
         CTH_DEBUG("    sound input strategy: random input in %s, because sound-device-number=%d\n",

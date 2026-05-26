@@ -10,10 +10,14 @@ static AudioFrameBuilder* audioFrameBuilder = NULL;
 static char* audioRuntimeChunk = NULL;
 static char* audioRuntimeOutputChunk = NULL;
 static AudioFrame audioRuntimeFrame;
-static int audioRuntimeChunkSize = 0;
-static int audioRuntimeOutputChunkSize = 0;
+static int audioRuntimeChunkSamples = 0;
+static int audioRuntimeOutputChunkSamples = 0;
 static int audioRuntimeInputFinished = 0;
 static int audioRuntimeComplete = 0;
+
+static long long audioRuntimeDecodedSamplePosition();
+static long long audioRuntimeSubmittedSamplePosition();
+static long long audioRuntimeAudibleSamplePosition();
 
 #ifndef WITH_MINIMP3
 #define WITH_MINIMP3 1
@@ -37,50 +41,40 @@ static int audioRuntimeBytesPerSample() {
     return (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
 }
 
-static int audioRuntimeAlignBytes(int bytes) {
-    int bytesPerSample = audioRuntimeBytesPerSample();
-
-    if (bytesPerSample <= 0)
-        return bytes;
-
-    bytes -= bytes % bytesPerSample;
-    return bytes;
+static int audioRuntimeSamplesPerSecond() {
+    return int(soundSampleRate);
 }
 
-static int audioRuntimeBytesPerSecond() {
-    return int(soundSampleRate) * audioRuntimeBytesPerSample();
+static int audioRuntimeStrategyChunkSamples() {
+    int samples = audioRuntimeSamplesPerSecond() / 20;
+
+    if (samples < 1024)
+        samples = 1024;
+    if (samples > 8192)
+        samples = 8192;
+
+    return samples;
 }
 
-static int audioRuntimeStrategyChunkSize() {
-    int bytes = audioRuntimeBytesPerSecond() / 20;
+static int audioRuntimeStrategyBufferSamples() {
+    int samples = audioRuntimeSamplesPerSecond() * 3;
 
-    if (bytes < 4096)
-        bytes = 4096;
-    if (bytes > 32768)
-        bytes = 32768;
+    if (samples < 32768)
+        samples = 32768;
 
-    return audioRuntimeAlignBytes(bytes);
+    return samples;
 }
 
-static int audioRuntimeStrategyBufferSize() {
-    int bytes = audioRuntimeBytesPerSecond() * 3;
+static int audioRuntimeStrategyHistorySamples() {
+    int samples = audioRuntimeSamplesPerSecond();
 
-    if (bytes < 64 * 1024)
-        bytes = 64 * 1024;
+    if (samples < 16384)
+        samples = 16384;
 
-    return audioRuntimeAlignBytes(bytes);
+    return samples;
 }
 
-static int audioRuntimeStrategyHistorySize() {
-    int bytes = audioRuntimeBytesPerSecond();
-
-    if (bytes < 32 * 1024)
-        bytes = 32 * 1024;
-
-    return audioRuntimeAlignBytes(bytes);
-}
-
-static int audioRuntimeFillBuffer(int maxBytes) {
+static int audioRuntimeFillBuffer(int maxSamples) {
     if ((audioInput == NULL) || (audioOutput == NULL) || (audioBuffer == NULL)
         || (audioRuntimeChunk == NULL))
         return 0;
@@ -91,35 +85,34 @@ static int audioRuntimeFillBuffer(int maxBytes) {
     if (bytesPerSample <= 0)
         return 0;
 
-    int freeBytes = audioBuffer->writableBytes();
-    int limitedBytes = (maxBytes < freeBytes) ? maxBytes : freeBytes;
-    int bytesWanted = (audioRuntimeChunkSize < limitedBytes) ? audioRuntimeChunkSize : limitedBytes;
-    bytesWanted -= bytesWanted % bytesPerSample;
-    if (bytesWanted <= 0)
+    int freeSamples = audioBuffer->writableSamples();
+    int limitedSamples = (maxSamples < freeSamples) ? maxSamples : freeSamples;
+    int samplesWanted = (audioRuntimeChunkSamples < limitedSamples) ? audioRuntimeChunkSamples : limitedSamples;
+    if (samplesWanted <= 0)
         return 0;
 
-    int samplesWanted = bytesWanted / bytesPerSample;
     double readStart = getTime();
-    int samplesRead = audioInput->read(audioRuntimeChunk, bytesWanted, samplesWanted);
+    int samplesRead = audioInput->read(audioRuntimeChunk,
+        pcmBytesForSamples(samplesWanted, bytesPerSample), samplesWanted);
     double readEnd = getTime();
-    int bytesRead = samplesRead * bytesPerSample;
-    if (bytesRead > 0) {
+    if (samplesRead > 0) {
         double bufferStart = getTime();
-        int buffered = audioBuffer->appendDecodedPcm(audioRuntimeChunk, bytesRead);
+        int buffered = audioBuffer->appendDecodedPcm(audioRuntimeChunk, samplesRead);
         double bufferEnd = getTime();
-        CTH_TRACE("input produced samples=%d bytes=%d appended=%d queued=%d decoded-end-byte=%lld\n", "audio runtime",
-            samplesRead, bytesRead, buffered, audioBuffer->queuedForOutputBytes(),
+        int bytesRead = pcmBytesForSamples(samplesRead, bytesPerSample);
+        CTH_TRACE("input produced samples=%d bytes=%d appended-samples=%d queued-samples=%d decoded-end-sample=%lld\n", "audio runtime",
+            samplesRead, bytesRead, buffered, audioBuffer->queuedForOutputSamples(),
             audioBuffer->decodedEndPosition());
-        CTH_TRACE("fill read-ms=%.3f buffer-write-ms=%.3f bytes=%d queued=%d\n", "audio timing",
-            (readEnd - readStart) * 1000.0, (bufferEnd - bufferStart) * 1000.0, bytesRead,
-            audioBuffer->queuedForOutputBytes());
+        CTH_TRACE("fill read-ms=%.3f buffer-write-ms=%.3f samples=%d bytes=%d queued-samples=%d\n", "audio timing",
+            (readEnd - readStart) * 1000.0, (bufferEnd - bufferStart) * 1000.0,
+            samplesRead, bytesRead, audioBuffer->queuedForOutputSamples());
         return buffered;
     }
 
     if (audioInput->isFinished()) {
         audioRuntimeInputFinished = 1;
-        CTH_TRACE("input finished decoded-end-byte=%lld queued=%d\n", "audio runtime",
-            audioBuffer->decodedEndPosition(), audioBuffer->queuedForOutputBytes());
+        CTH_TRACE("input finished decoded-end-sample=%lld queued-samples=%d\n", "audio runtime",
+            audioBuffer->decodedEndPosition(), audioBuffer->queuedForOutputSamples());
     }
 
     return 0;
@@ -135,33 +128,33 @@ static void audioRuntimePumpPipeline() {
 
     double pumpStart = getTime();
     int fillCalls = 0;
-    int targetDelay = audioOutput->targetDelayBytes();
+    int targetDelay = audioOutput->targetDelaySamples();
 
-    int inputTarget = audioOutput->queuedTargetBytes();
+    int inputTarget = audioOutput->queuedTargetSamples();
     int loops = 0;
-    while (!audioRuntimeInputFinished && (audioBuffer->queuedForOutputBytes() < inputTarget)
+    while (!audioRuntimeInputFinished && (audioBuffer->queuedForOutputSamples() < inputTarget)
         && (loops < 16)) {
-        if (audioRuntimeFillBuffer(audioRuntimeChunkSize) <= 0)
+        if (audioRuntimeFillBuffer(audioRuntimeChunkSamples) <= 0)
             break;
         fillCalls++;
         loops++;
     }
 
     int writeCalls = audioOutput->service(*audioBuffer, audioRuntimeOutputChunk,
-        audioRuntimeOutputChunkSize, audioRuntimeInputFinished);
+        audioRuntimeOutputChunkSamples, audioRuntimeInputFinished);
 
     if (audioOutput->playbackComplete(*audioBuffer, audioRuntimeInputFinished))
         audioRuntimeComplete = 1;
 
-    CTH_TRACE("pump total-ms=%.3f fills=%d writes=%d queued=%d delay=%d target-delay=%d complete=%d\n", "audio timing",
+    CTH_TRACE("pump total-ms=%.3f fills=%d writes=%d queued-samples=%d delay-samples=%d target-delay-samples=%d complete=%d\n", "audio timing",
         (getTime() - pumpStart) * 1000.0, fillCalls, writeCalls,
-        audioBuffer->queuedForOutputBytes(), audioOutput->outputDelayBytes(), targetDelay, audioRuntimeComplete);
+        audioBuffer->queuedForOutputSamples(), audioOutput->outputDelaySamples(), targetDelay, audioRuntimeComplete);
 
     if (audioRuntimeComplete) {
         CTH_INFO("Stopping...\n");
-        CTH_TRACE("playback complete decoded-end-byte=%lld submitted-end-byte=%lld audible-byte=%lld\n", "audio runtime",
-            audioRuntimeDecodedBytePosition(), audioRuntimeSubmittedBytePosition(),
-            audioRuntimeAudibleBytePosition());
+        CTH_TRACE("playback complete decoded-end-sample=%lld submitted-end-sample=%lld audible-sample=%lld\n", "audio runtime",
+            audioRuntimeDecodedSamplePosition(), audioRuntimeSubmittedSamplePosition(),
+            audioRuntimeAudibleSamplePosition());
         cthugha_close++;
     }
 }
@@ -170,23 +163,20 @@ static void audioRuntimeBuildFrame() {
     if ((audioFrameBuilder == NULL) || (audioBuffer == NULL))
         return;
 
-    long long audibleByte = audioRuntimeAudibleBytePosition();
+    long long audibleSample = audioRuntimeAudibleSamplePosition();
     double visualLatencySeconds = cthughaDisplay ? cthughaDisplay->visualLatencySeconds() : 0;
-    long long visualOffsetBytes = (long long)(audioRuntimeBytesPerSecond() * visualLatencySeconds);
-    int bytesPerSample = audioRuntimeBytesPerSample();
-    if (bytesPerSample > 0)
-        visualOffsetBytes -= visualOffsetBytes % bytesPerSample;
+    long long visualOffsetSamples = (long long)(audioRuntimeSamplesPerSecond() * visualLatencySeconds);
 
-    long long frameCenterByte = audibleByte + visualOffsetBytes;
-    if (frameCenterByte > audioBuffer->decodedEndPosition())
-        frameCenterByte = audioBuffer->decodedEndPosition();
+    long long frameCenterSample = audibleSample + visualOffsetSamples;
+    if (frameCenterSample > audioBuffer->decodedEndPosition())
+        frameCenterSample = audioBuffer->decodedEndPosition();
 
     double buildStart = getTime();
-    audioFrameBuilder->build(audioRuntimeFrame, *audioBuffer, frameCenterByte);
-    CTH_TRACE("frame-build-ms=%.3f audible-byte=%lld visual-offset-bytes=%lld visual-latency-ms=%.3f center-byte=%lld queued=%d\n",
+    audioFrameBuilder->build(audioRuntimeFrame, *audioBuffer, frameCenterSample);
+    CTH_TRACE("frame-build-ms=%.3f audible-sample=%lld visual-offset-samples=%lld visual-latency-ms=%.3f center-sample=%lld queued-samples=%d\n",
         "audio timing",
-        (getTime() - buildStart) * 1000.0, audibleByte, visualOffsetBytes,
-        visualLatencySeconds * 1000.0, frameCenterByte, audioBuffer->queuedForOutputBytes());
+        (getTime() - buildStart) * 1000.0, audibleSample, visualOffsetSamples,
+        visualLatencySeconds * 1000.0, frameCenterSample, audioBuffer->queuedForOutputSamples());
 }
 
 void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputControls) {
@@ -226,17 +216,21 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
             exit(0);
         }
 
-        audioRuntimeChunkSize = audioRuntimeStrategyChunkSize();
-        audioOutput->configureTiming(audioRuntimeBytesPerSecond(), audioRuntimeChunkSize);
-        audioRuntimeOutputChunkSize = audioOutput->scratchBytes();
-        audioBuffer = new AudioBuffer(audioRuntimeStrategyBufferSize(), audioRuntimeStrategyHistorySize());
+        int bytesPerSample = audioRuntimeBytesPerSample();
+        audioRuntimeChunkSamples = audioRuntimeStrategyChunkSamples();
+        audioOutput->configureTiming(audioRuntimeSamplesPerSecond(), bytesPerSample,
+            audioRuntimeChunkSamples);
+        audioRuntimeOutputChunkSamples = audioOutput->scratchSamples();
+        audioBuffer = new AudioBuffer(audioRuntimeStrategyBufferSamples(), bytesPerSample,
+            audioRuntimeStrategyHistorySamples());
         audioFrameBuilder = new AudioFrameBuilder();
-        audioRuntimeChunk = new char[audioRuntimeChunkSize];
-        audioRuntimeOutputChunk = new char[audioRuntimeOutputChunkSize];
+        audioRuntimeChunk = new char[pcmBytesForSamples(audioRuntimeChunkSamples, bytesPerSample)];
+        audioRuntimeOutputChunk = new char[pcmBytesForSamples(audioRuntimeOutputChunkSamples, bytesPerSample)];
         audioRuntimeFrame.clear();
-        CTH_TRACE("installed native file pipeline strategy=%d input=%p buffer=%p output=%p frame-builder=%p input-chunk=%d output-chunk=%d target-delay=%d\n", "audio runtime",
+        CTH_TRACE("installed native file pipeline strategy=%d input=%p buffer=%p output=%p frame-builder=%p input-chunk-samples=%d output-chunk-samples=%d bytes-per-sample=%d target-delay-samples=%d\n", "audio runtime",
             sourceStrategy, audioInput, audioBuffer, audioOutput, audioFrameBuilder,
-            audioRuntimeChunkSize, audioRuntimeOutputChunkSize, audioOutput->targetDelayBytes());
+            audioRuntimeChunkSamples, audioRuntimeOutputChunkSamples, bytesPerSample,
+            audioOutput->targetDelaySamples());
     } else {
         audioProcessor = runtimeFactory.createAudioProcessor();
         if (audioProcessor != NULL) {
@@ -262,16 +256,16 @@ void audioRuntimeTick() {
         double pumpEnd = getTime();
         audioRuntimeBuildFrame();
         double buildEnd = getTime();
-        CTH_TRACE("tick pipeline-ms=%.3f pump-ms=%.3f build-ms=%.3f queued=%d delay=%d decoded-end-byte=%lld submitted-end-byte=%lld audible-byte=%lld\n",
+        CTH_TRACE("tick pipeline-ms=%.3f pump-ms=%.3f build-ms=%.3f queued-samples=%d delay-samples=%d decoded-end-sample=%lld submitted-end-sample=%lld audible-sample=%lld\n",
             "audio timing",
             (buildEnd - tickStart) * 1000.0,
             (pumpEnd - pumpStart) * 1000.0,
             (buildEnd - pumpEnd) * 1000.0,
-            audioBuffer->queuedForOutputBytes(),
-            audioOutput ? audioOutput->outputDelayBytes() : 0,
-            audioRuntimeDecodedBytePosition(),
-            audioRuntimeSubmittedBytePosition(),
-            audioRuntimeAudibleBytePosition());
+            audioBuffer->queuedForOutputSamples(),
+            audioOutput ? audioOutput->outputDelaySamples() : 0,
+            audioRuntimeDecodedSamplePosition(),
+            audioRuntimeSubmittedSamplePosition(),
+            audioRuntimeAudibleSamplePosition());
         return;
     }
 
@@ -310,8 +304,8 @@ void audioRuntimeShutdown() {
 
     audioRuntimeInputFinished = 0;
     audioRuntimeComplete = 0;
-    audioRuntimeChunkSize = 0;
-    audioRuntimeOutputChunkSize = 0;
+    audioRuntimeChunkSamples = 0;
+    audioRuntimeOutputChunkSamples = 0;
 
     delete soundDevice;
     soundDevice = NULL;
@@ -334,24 +328,17 @@ int audioRuntimeIsComplete() {
     return audioRuntimeComplete;
 }
 
-long long audioRuntimeDecodedBytePosition() {
+static long long audioRuntimeDecodedSamplePosition() {
     return audioBuffer ? audioBuffer->decodedEndPosition() : 0;
 }
 
-long long audioRuntimeSubmittedBytePosition() {
+static long long audioRuntimeSubmittedSamplePosition() {
     return audioBuffer ? audioBuffer->submittedEndPosition() : 0;
 }
 
-long long audioRuntimeAudibleBytePosition() {
+static long long audioRuntimeAudibleSamplePosition() {
     if ((audioBuffer == NULL) || (audioOutput == NULL))
         return 0;
 
-    return audioOutput->audibleBytePosition(*audioBuffer);
-}
-
-int audioRuntimeReadProtectedPcmAt(long long bytePosition, char* dst, int bytes) {
-    if (audioBuffer == NULL)
-        return 0;
-
-    return audioBuffer->readProtectedPcmAt(bytePosition, dst, bytes);
+    return audioOutput->audibleSamplePosition(*audioBuffer);
 }

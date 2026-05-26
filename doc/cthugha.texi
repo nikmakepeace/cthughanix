@@ -125,7 +125,6 @@ DOCUMENTATION
 @menu
 * Hotkeys::             Saving settings to hotkeys
 * Screen Saver::        Running @code{xcthugha} as a screen saver
-* Sound Server::        Using @code{cthugha-server}
 * Pathes::              Where Cthugha searches for tab, map, pcx files
 * Other OS::            Cthugha for DOS, PowerMac, Win95
 * Rules::               If you want to modify the source
@@ -228,7 +227,6 @@ When giving the options at the command line, you can use abbreviations
 * Initial Values::      Initial values for CoreOptions
 * Display::             Display options
 * General::             Some more options
-* Server::              Options for the sound server
 @end menu
 
 

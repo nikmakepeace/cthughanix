@@ -73,7 +73,7 @@ public:
 
 extern SoundDevice* soundDevice;
 
-enum SoundDeviceNr { SDN_DSPIn, SDN_Net, SDN_Random, SDN_File, SDN_Max };
+enum SoundDeviceNr { SDN_DSPIn, SDN_Random, SDN_File, SDN_Max };
 
 // Optional audio passthrough sink used by file playback.
 class SoundOutputDevice {
@@ -131,22 +131,6 @@ public:
     int getHandle() const { return handle; }
     int isOpen() const { return handle >= 0; }
     void update();
-};
-
-// Receives sound samples from another Cthugha instance over the network.
-class SoundDeviceNet : public SoundDevice {
-protected:
-    int handle;
-    void net_request(int);
-
-public:
-    static char sound_hostname[256];
-
-    SoundDeviceNet();
-    virtual ~SoundDeviceNet();
-
-    virtual int read();
-    virtual void update();
 };
 
 // Synthesizes input when no real sound backend is available.

@@ -5,11 +5,12 @@ GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 	Audio.cc AudioFrame.cc AudioRuntime.cc RuntimeFactory.cc		\
 	PcmSourceFactory.cc						\
 	SoundDeviceDSP.cc SoundDeviceFile.cc SoundDeviceFork.cc		\
-	SoundDeviceNet.cc SoundDeviceRandom.cc				\
+	SoundDeviceRandom.cc						\
 	Mixer.cc CDPlayer.cc imath.cc sound.cc	IniFiles.cc		\
-	Interface.cc network.cc info_title_usage.cc disp-ncurses.cc	\
-	SoundDevice.cc SoundServer.cc misc.cc DisplayDevice.cc		\
+	Interface.cc info_title_usage.cc disp-ncurses.cc		\
+	SoundDevice.cc misc.cc DisplayDevice.cc				\
 	AutoChanger.cc AudioAnalyzer.cc  CthughaDisplay.cc 		\
+	CthughaFrameBuffer.cc VisualPipeline.cc VisualDirector.cc	\
 	keymap.cc InterfaceCredits.cc InterfaceList.cc			\
 	joystick.cc
 
@@ -49,11 +50,6 @@ glcthugha_LDADD = ${N_LIBS} ${X_LIBS} ${GL_LIBS} ${PULSE_LIBS} ${LIBOBJS}
 
 
 
-cthugha_server_SOURCES = $(GENSRC) $(NONXSRC) serv_main.cc serv_display.cc	\
-	serv_stubs.cc serv_options.cc nonGL_stubs.cc
-# EXTRA_cthugha_server_SOURCES = getopt_long.c 
-cthugha_server_LDADD = ${N_LIBS} ${PULSE_LIBS} ${LIBOBJS}
-
 tabheader_SOURCES = tabheader.cc
 
 tabinfo_SOURCES = tabinfo.cc
@@ -61,13 +57,13 @@ tabinfo_SOURCES = tabinfo.cc
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  PcmSourceFactory.h  AutoChanger.h     AudioAnalyzer.h    flames.h          pcx.h		\
+	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  PcmSourceFactory.h  AutoChanger.h     AudioAnalyzer.h    CthughaFrameBuffer.h VisualPipeline.h VisualDirector.h flames.h          pcx.h		\
         CDPlayer.h        SoundDevice.h  \
 	CoreOption.h      AudioProcessor.h    imath.h           tab_header.h	\
-	CthughaBuffer.h   SoundServer.h     information.h     translate.h	\
+	CthughaBuffer.h   information.h     translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\
-	Option.h          disp-sys.h        network.h         xcthugha.h	\
+	Option.h          disp-sys.h        xcthugha.h	\
 	Sound.h           display.h         options.h	      glcthugha.h	\
 	Interface.h	  keymap.h	    joystick.h				\
 										\
@@ -84,7 +80,7 @@ bin_PROGRAMS = @TARGETS@
 ## programs that need special treatment (manual installation)
 noinst_PROGRAMS = @TARGETS_SUID@
 
-EXTRA_PROGRAMS = cthugha xcthugha glcthugha cthugha-server tabheader tabinfo
+EXTRA_PROGRAMS = cthugha xcthugha glcthugha tabheader tabinfo
 
 ## for debugging
 ## display.s: 
@@ -113,7 +109,6 @@ uninstall-local:
 #dist-hook:
 #	cp -p $(bindir)/cthugha $(distdir)/cthugha
 #	cp -p $(bindir)/xcthugha $(distdir)/xcthugha
-#	cp -p $(bindir)/cthugha-server $(distdir)/cthugha-server
 #	cp -p $(bindir)/tabinfo $(distdir)/tabinfo
 #	cp -p $(bindir)/tabheader $(distdir)/tabheader
 
