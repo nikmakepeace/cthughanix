@@ -6,6 +6,8 @@ CthughaFrameBuffer::CthughaFrameBuffer()
     , passiveData(0)
     , paletteData(0)
     , paletteChangedData(0)
+    , paletteOptionData(0)
+    , lastPaletteData(0)
     , widthValue(0)
     , heightValue(0)
     , pitchValue(0)
@@ -20,10 +22,13 @@ CthughaFrameBuffer::~CthughaFrameBuffer() {
     passiveData = 0;
     paletteData = 0;
     paletteChangedData = 0;
+    paletteOptionData = 0;
+    lastPaletteData = 0;
 }
 
 void CthughaFrameBuffer::bind(unsigned char* active, unsigned char* passive,
-    int width, int height, int pitch, Palette* palette, int* paletteChanged) {
+    int width, int height, int pitch, Palette* palette, int* paletteChanged,
+    CoreOption* paletteOption, int* lastPalette) {
     if (ownsData) {
         delete[] activeData;
         delete[] passiveData;
@@ -33,6 +38,8 @@ void CthughaFrameBuffer::bind(unsigned char* active, unsigned char* passive,
     passiveData = passive;
     paletteData = palette;
     paletteChangedData = paletteChanged;
+    paletteOptionData = paletteOption;
+    lastPaletteData = lastPalette;
     widthValue = width;
     heightValue = height;
     pitchValue = (pitch > 0) ? pitch : width;

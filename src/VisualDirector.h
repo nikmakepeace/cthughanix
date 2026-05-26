@@ -35,6 +35,8 @@ public:
     VisualPlan planDefaultPipeline() const;
 };
 
+extern double paletteSmoothingChance;
+
 typedef void (*VisualBufferTransformFn)();
 void setVisualBufferTransform(VisualBufferTransformFn transform);
 

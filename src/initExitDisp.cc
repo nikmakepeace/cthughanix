@@ -82,7 +82,8 @@ static void runVisualPipeline() {
             || visualFrameBuffer.passive() != CthughaBuffer::current->passiveBuffer)) {
         visualFrameBuffer.bind(CthughaBuffer::current->activeBuffer,
             CthughaBuffer::current->passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH,
-            &CthughaBuffer::current->currentPalette, &CthughaBuffer::current->palChanged);
+            &CthughaBuffer::current->currentPalette, &CthughaBuffer::current->palChanged,
+            &CthughaBuffer::current->palette, &CthughaBuffer::current->lastPalette);
     }
 
     VisualFrameContext context;

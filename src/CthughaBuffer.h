@@ -12,8 +12,6 @@
 #include "flames.h"
 #include "translate.h"
 
-extern double paletteSmoothingChance;
-
 class CthughaBuffer {
 public:
     int palChanged;
@@ -37,7 +35,6 @@ public:
 
     static void run();
 
-    void smoothPalette();
     void setPalette(const Palette pal);
 
     unsigned char* activeBuffer; /* buffer next on screen */

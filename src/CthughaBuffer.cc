@@ -15,8 +15,6 @@ int BUFF_HEIGHT = 100;
 int CthughaBuffer::maxNBuffers = 1;
 int CthughaBuffer::nBuffers = 1;
 int CthughaBuffer::nInit = 0;
-double paletteSmoothingChance = 1.0;
-
 CthughaBuffer CthughaBuffer::buffers[MAX_BUFFERS];
 
 CthughaBuffer* CthughaBuffer::current = buffers;
@@ -130,66 +128,11 @@ void CthughaBuffer::run() {
         current->translate();
         current->wave();
 
-        current->smoothPalette();
-
         unsigned char* t = current->activeBuffer;
         current->activeBuffer = current->passiveBuffer;
         current->passiveBuffer = t;
     }
     current = buffers + nCurrent;
-}
-
-//
-// brings the current palette nearer to the desired palette (palette of buffer 0)
-// smoothing one palette to the next needs at most 1 second.
-//
-//
-// original smooth_palette by "Stanislav V. Voronyi" <stas@use.kharkov.ua>
-//
-void CthughaBuffer::smoothPalette() {
-    int i, j;
-    int max_chg;
-
-    if ((lastPalette == palette.currentN()) && (palChanged == 0))
-        return;
-
-    // this is the palette that should be displayed
-    Palette* desiredPal = &(((PaletteEntry*)palette.current())->pal);
-
-    if (lastPalette != palette.currentN()) {
-        lastPalette = palette.currentN();
-        if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance) {
-            // skip smoothing, jump directly to the new palette (DOS behaviour)
-            setPalette(*desiredPal);
-            return;
-        }
-    }
-
-    const int PALETTE_CHANNEL_RANGE = 256;
-    const int PALETTE_SMOOTH_SECONDS = 2;
-
-    // Changing across the full palette range should take about PALETTE_SMOOTH_SECONDS seconds.
-    static int oldMC = 1;
-    max_chg = (cthughaDisplay->fps > 0)
-        ? max(int((double)(PALETTE_CHANNEL_RANGE / PALETTE_SMOOTH_SECONDS) / cthughaDisplay->fps), 1)
-        : oldMC;
-    oldMC = max_chg;
-
-    // count if anything changed
-    palChanged = 256 * 3; // so many value can change
-    for (i = 0; i < 256; i++)
-        for (j = 0; j < 3; j++) {
-            int d = (*desiredPal)[i][j] - currentPalette[i][j];
-            if (d == 0)
-                palChanged--;
-            else {
-                if (d < -max_chg)
-                    d = -max_chg;
-                else if (d > max_chg)
-                    d = max_chg;
-                currentPalette[i][j] += d;
-            }
-        }
 }
 
 void CthughaBuffer::setPalette(const Palette pal) {

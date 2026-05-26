@@ -17,6 +17,7 @@
 #include "Flashlight.h"
 #include "DisplayDevice.h"
 #include "AudioAnalyzer.h"
+#include "VisualDirector.h"
 #ifdef CTH_XWIN
 #include "xcthugha.h"
 #endif
