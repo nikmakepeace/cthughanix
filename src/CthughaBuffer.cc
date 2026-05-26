@@ -4,9 +4,6 @@
 #include "translate.h"
 #include "waves.h"
 #include "display.h"
-#include "AudioFrame.h"
-#include "AudioAnalyzer.h"
-#include "AudioProcessor.h"
 #include "CthughaDisplay.h"
 #include "imath.h"
 
@@ -46,19 +43,11 @@ CoreOptionEntry* table_entries[] = {
     new CoreOptionEntry("table9", ""),
 };
 
-CoreOptionEntry* border_entries[]
-    = { new CoreOptionEntry("border0", ""), new CoreOptionEntry("border1", ""),
-          new CoreOptionEntry("border2", ""), new CoreOptionEntry("border3", "") };
-
-extern CoreOptionEntry* flashlight_entries[];
-
 static CoreOptionEntryList flameEntries;
 static CoreOptionEntryList waveEntries;
 static CoreOptionEntryList objectEntries;
 static CoreOptionEntryList waveScaleEntries;
 static CoreOptionEntryList tableEntries;
-static CoreOptionEntryList borderEntries;
-static CoreOptionEntryList flashlightEntries;
 
 CthughaBuffer::CthughaBuffer()
     : palChanged(1)
@@ -74,9 +63,6 @@ CthughaBuffer::CthughaBuffer()
     , flameGeneral(CthughaBuffer::nInit)
     , waveScale(CthughaBuffer::nInit, "wave-scale", waveScaleEntries)
     , table(CthughaBuffer::nInit, "table", tableEntries)
-    , border(CthughaBuffer::nInit, "border", borderEntries)
-    , soundProcess(CthughaBuffer::nInit, "sound-process", audioProcessorEntries)
-    , flashlight(CthughaBuffer::nInit, "flashlight", flashlightEntries)
     ,
 
     lastPalette(-1) {
@@ -112,9 +98,6 @@ void CthughaBuffer::initAll() {
     current->object.add(_objects, _nObjects);
     current->waveScale.add(wave_scales, 3);
     current->table.add(table_entries, 10);
-    current->border.add(border_entries, 4);
-    //  current->soundProcess.add(audioProcessorEntries, 4);
-    current->flashlight.add(flashlight_entries, 2);
 
     if (init_flames())
         exit(0);
@@ -141,30 +124,6 @@ void CthughaBuffer::run() {
     for (int j = 0; j < nBuffers; j++) {
         current = buffers + j;
 
-        current->soundProcess();
-
-        current->flashlight();
-
-        switch (int(current->border)) {
-        case 0:
-            memset(active_buffer + BUFF_SIZE, 0, 3 * BUFF_WIDTH);
-            memset(active_buffer - 3 * BUFF_WIDTH, 0, 3 * BUFF_WIDTH);
-            break;
-        case 1:
-            for (int i = 0; i < 3; i++) {
-                memcpy(active_buffer - (i + 1) * BUFF_WIDTH, audioFrameData(), BUFF_WIDTH);
-                memcpy(active_buffer + BUFF_SIZE + i * BUFF_WIDTH, audioFrameData(), BUFF_WIDTH);
-            }
-            break;
-        case 2:
-            memset(active_buffer + BUFF_SIZE, audioAnalysis.amplitude, 3 * BUFF_WIDTH);
-            memset(active_buffer - 3 * BUFF_WIDTH, audioAnalysis.amplitude, 3 * BUFF_WIDTH);
-            break;
-        case 3:
-            memset(active_buffer + BUFF_SIZE, 255, 3 * BUFF_WIDTH);
-            memset(active_buffer - 3 * BUFF_WIDTH, 255, 3 * BUFF_WIDTH);
-            break;
-        }
         current->done_translate = 0;
 
         current->flame();

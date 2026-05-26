@@ -27,9 +27,6 @@ public:
     OptionGeneralFlame flameGeneral;
     CoreOption waveScale;
     CoreOption table;
-    CoreOption border;
-    CoreOption soundProcess;
-    CoreOption flashlight;
 
     Palette currentPalette;
     int lastPalette;

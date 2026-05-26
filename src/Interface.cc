@@ -8,6 +8,9 @@
 #include "DisplayDevice.h"
 #include "AutoChanger.h"
 #include "AudioAnalyzer.h"
+#include "AudioProcessor.h"
+#include "Border.h"
+#include "Flashlight.h"
 
 #include <ctype.h>
 #include <signal.h>
@@ -163,7 +166,7 @@ static char* InterfaceList[] = { "Help", // F1
     "playList", // F8
 
     "display", // F9
-    "flame", "border", "translate", "wave", "soundProcessing", "table", "waveScaling", "object",
+    "flame", "border", "translate", "wave", "table", "waveScaling", "object",
     "palette", "pcx", "flashlight", "light", "background", "fly", "Help", NULL };
 
 ACTION(nextInterface) {
@@ -396,12 +399,12 @@ public:
             elements[2] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &b.flame);
             elements[3]
                 = new InterfaceElementCoreOption("General Flame (g)     : %s", &b.flameGeneral);
-            elements[4] = new InterfaceElementCoreOption("Border (=)            : %s", &b.border);
+            elements[4] = new InterfaceElementCoreOption("Border (=)            : %s", &border);
             elements[5]
                 = new InterfaceElementCoreOption("Translate (t,T)       : %s", &b.translate);
             elements[6] = new InterfaceElementCoreOption("Wave (w)              : %s", &b.wave);
             elements[7]
-                = new InterfaceElementCoreOption("Sound Processing (m,M): %s", &b.soundProcess);
+                = new InterfaceElementOption("Sound Processing (m,M): %s", &audioProcessing);
             elements[8] = new InterfaceElementCoreOption("Table (b,B)           : %s", &b.table);
             elements[9]
                 = new InterfaceElementCoreOption("WaveScale (W)         : %s", &b.waveScale);
@@ -409,7 +412,7 @@ public:
             elements[11] = new InterfaceElementCoreOption("PCX (x,X))            : %s", &b.pcx);
             elements[12] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &b.object);
             elements[13]
-                = new InterfaceElementCoreOption("Flashlight (s)        : %s", &b.flashlight);
+                = new InterfaceElementCoreOption("Flashlight (s)        : %s", &flashlight);
             elements[14] = new InterfaceElementCoreOption("Lights (y/Y)          : %s", &light);
             elements[15]
                 = new InterfaceElementCoreOption("Background (i/I)      : %s", &background);
@@ -426,16 +429,15 @@ public:
         = ((InterfaceElementCoreOption*)elements[i])->coreOpt
         O(2) = &b.flame;
         O(3) = &b.flameGeneral;
-        O(4) = &b.border;
+        O(4) = &border;
         O(5) = &b.translate;
         O(6) = &b.wave;
-        O(7) = &b.soundProcess;
         O(8) = &b.table;
         O(9) = &b.waveScale;
         O(10) = &b.palette;
         O(11) = &b.pcx;
         O(12) = &b.object;
-        O(13) = &b.flashlight;
+        O(13) = &flashlight;
     }
     void doKey(int key) {
         if (Keymap::action("CoreOptions", key) == 0)

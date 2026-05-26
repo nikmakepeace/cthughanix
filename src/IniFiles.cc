@@ -500,6 +500,7 @@ int write_ini() {
         "# Core Options\n"
         "#\n");
     CoreOption::putIniInitials();
+    putini(audioProcessing);
 
     fprintf(ini_file,
         "#\n"

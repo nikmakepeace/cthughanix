@@ -1,28 +1,33 @@
 #include "cthugha.h"
-#include "CoreOption.h"
-#include "AudioAnalyzer.h"
+#include "Flashlight.h"
+#include "CthughaFrameBuffer.h"
+#include "VisualPipeline.h"
 #include "display.h"
-#include "CthughaBuffer.h"
 #include "imath.h"
 
-class FlashlightEntry : public OnEntry {
-public:
-    int operator()() {
-        int i, j, l;
-        static Palette Pal;
+static CoreOptionEntry* flashlight_entries[] = { new OffEntry(), new OnEntry() };
+static CoreOptionEntryList flashlightEntries;
 
-        // Brighten the palette currently being displayed. This preserves
-        // transient palette changes such as PCX image palettes.
-        memcpy(Pal, CthughaBuffer::current->currentPalette, sizeof(Palette));
+CoreOption flashlight(0, "flashlight", flashlightEntries);
 
-        for (l = acousticContext.fire() << 3, i = 0; (i < 256) && (l > 0); i++, l -= 8)
-            for (j = 0; j < 3; j++)
-                Pal[i][j] = min(Pal[i][j] + l, 255);
+void init_flashlight() {
+    flashlight.add(flashlight_entries, 2);
+}
 
-        CthughaBuffer::current->setPalette(Pal);
+void apply_flashlight(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+    if (!int(flashlight) || context.acousticContext == 0 || frameBuffer.palette() == 0)
+        return;
 
-        return 0;
-    }
-};
+    int i, j, l;
+    static Palette pal;
 
-CoreOptionEntry* flashlight_entries[] = { new OffEntry(), new FlashlightEntry() };
+    // Brighten the palette currently represented by this frame buffer. This
+    // preserves transient palette changes such as PCX image palettes.
+    memcpy(pal, *frameBuffer.palette(), sizeof(Palette));
+
+    for (l = context.acousticContext->fire() << 3, i = 0; (i < 256) && (l > 0); i++, l -= 8)
+        for (j = 0; j < 3; j++)
+            pal[i][j] = min(pal[i][j] + l, 255);
+
+    frameBuffer.setPalette(pal);
+}

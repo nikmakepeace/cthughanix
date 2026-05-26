@@ -2,8 +2,10 @@
 #include "Interface.h"
 #include "display.h"
 #include "imath.h"
+#include "Border.h"
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
+#include "Flashlight.h"
 
 //
 // ERROR:
@@ -140,16 +142,12 @@ InterfaceList interfaceList0("Display", "Select Display", &screen);
 
 InterfaceList interfaceList1("Flame", "Select Flame", &(CthughaBuffer::buffers[0].flame));
 
-InterfaceList interfaceList2(
-    "Border", "Select Border of Buffer", &(CthughaBuffer::buffers[0].border));
+InterfaceList interfaceList2("Border", "Select Border of Buffer", &border);
 
 InterfaceList interfaceList3(
     "Translate", "Select Translation Table", &(CthughaBuffer::buffers[0].translate));
 
 InterfaceList interfaceList4("Wave", "Select Wave", &(CthughaBuffer::buffers[0].wave));
-
-InterfaceList interfaceList5(
-    "SoundProcessing", "Select Sound Processing", &(CthughaBuffer::buffers[0].soundProcess));
 
 InterfaceList interfaceList6("Table", "Select Sound Table", &(CthughaBuffer::buffers[0].table));
 
@@ -163,8 +161,7 @@ InterfaceList interfaceList9("Palette", "Select Palette", &(CthughaBuffer::buffe
 
 InterfaceList interfaceListA("PCX", "Select PCX", &(CthughaBuffer::buffers[0].pcx));
 
-InterfaceList interfaceListB(
-    "Flashlight", "Select Flashlight", &(CthughaBuffer::buffers[0].flashlight));
+InterfaceList interfaceListB("Flashlight", "Select Flashlight", &flashlight);
 
 InterfaceList interfaceListC("Light", "Select Light", &light);
 

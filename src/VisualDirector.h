@@ -13,7 +13,14 @@ class VisualPlan {
 
 public:
     enum Stage {
-        BufferTransformStage = 1 << 0
+        BufferTransformStage = 1 << 0,
+        FlashlightStage = 1 << 1,
+        BorderStage = 1 << 2,
+        ImageStage = 1 << 3,
+        FlameStage = 1 << 4,
+        TranslateStage = 1 << 5,
+        WaveStage = 1 << 6,
+        PaletteStage = 1 << 7
     };
 
     VisualPlan();

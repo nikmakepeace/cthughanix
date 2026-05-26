@@ -18,13 +18,12 @@ F10  setInterface(flame)
 F11  setInterface(border)
 F12  setInterface(translate)
 F13  setInterface(wave)
-F14  setInterface(soundProcessing)
-F15  setInterface(table)
-F16  setInterface(waveScaling)
-F17  setInterface(object)
-F18  setInterface(palette)
-F19  setInterface(pcx)
-F20  setInterface(flashlight)
+F14  setInterface(table)
+F15  setInterface(waveScaling)
+F16  setInterface(object)
+F17  setInterface(palette)
+F18  setInterface(pcx)
+F19  setInterface(flashlight)
 F21  setInterface(light)
 F22  setInterface(background)
 F23  setInterface(fly)
@@ -184,7 +183,6 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-
 
 
 

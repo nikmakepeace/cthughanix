@@ -1,11 +1,11 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioFrame.h"
+#include "AudioProcessor.h"
 #include "Interface.h"
 #include "display.h"
 #include "cth_buffer.h"
 #include "imath.h"
-#include "CthughaBuffer.h"
 
 #include <math.h>
 
@@ -225,3 +225,87 @@ public:
 static CoreOptionEntry* _audioProcessorOptionEntries[]
     = { new NoAudioProcess(), new Massage1(), new Massage2(), new FFT() };
 CoreOptionEntryList audioProcessorEntries(_audioProcessorOptionEntries, 4);
+
+AudioProcessingOption audioProcessing("sound-processing", audioProcessorEntries);
+
+AudioProcessingOption::AudioProcessingOption(const char* name, CoreOptionEntryList& entries_)
+    : Option(name)
+    , entries(entries_) {
+    initialEntry[0] = '\0';
+}
+
+int AudioProcessingOption::entryCount() const {
+    return entries.n();
+}
+
+int AudioProcessingOption::optNr(const char* name) const {
+    int n = entryCount();
+
+    if (n == 0)
+        return 0;
+
+    if ((name == NULL) || (name[0] == '\0'))
+        return Random(n);
+
+    for (int i = 0; i < n; i++) {
+        CoreOptionEntry* entry = entries[i];
+        if ((entry != NULL) && entry->sameName(name))
+            return i;
+    }
+
+    char* pos;
+    int parsed = strtol(name, &pos, 0);
+    if (pos == name)
+        return Random(n);
+
+    return mod(parsed, n);
+}
+
+void AudioProcessingOption::setInitialEntry(const char* entry) {
+    if (entry == NULL)
+        initialEntry[0] = '\0';
+    else {
+        strncpy(initialEntry, entry, sizeof(initialEntry));
+        initialEntry[sizeof(initialEntry) - 1] = '\0';
+    }
+}
+
+void AudioProcessingOption::changeToInitial() {
+    change(initialEntry);
+}
+
+void AudioProcessingOption::change(int by) {
+    int n = entryCount();
+    if (n == 0)
+        return;
+
+    value = mod(value + by, n);
+    CTH_TRACE("changed audio processing to `%s'\n", "audio processing", text());
+}
+
+void AudioProcessingOption::change(const char* to) {
+    int n = entryCount();
+    if (n == 0)
+        return;
+
+    value = optNr(to);
+    if ((value < 0) || (value >= n))
+        value = 0;
+
+    CTH_TRACE("changed audio processing to `%s'\n", "audio processing", text());
+}
+
+const char* AudioProcessingOption::text() const {
+    if ((value < 0) || (value >= entryCount()) || (entries[value] == NULL))
+        return "unknown";
+
+    return entries[value]->Name();
+}
+
+int AudioProcessingOption::process() {
+    if ((value < 0) || (value >= entryCount()) || (entries[value] == NULL))
+        return 0;
+
+    CTH_TRACE("processing mode=`%s'\n", "audio processing", text());
+    return entries[value]->operator()();
+}

@@ -10,7 +10,9 @@
 #include "AutoChanger.h"
 #include "AudioProcessor.h"
 #include "AudioAnalyzer.h"
+#include "Border.h"
 #include "CthughaBuffer.h"
+#include "Flashlight.h"
 #include "imath.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
@@ -320,9 +322,9 @@ ACTION(waveChg) { CthughaBuffer::current->wave.change(int(v), 0); }
 ACTION(waveScaleChg) { CthughaBuffer::current->waveScale.change(int(v), 0); }
 ACTION(objectChg) { CthughaBuffer::current->object.change(int(v), 0); }
 ACTION(translateChg) { CthughaBuffer::current->translate.change(int(v), 0); }
-ACTION(soundProcessChg) { CthughaBuffer::current->soundProcess.change(int(v), 0); }
-ACTION(borderChg) { CthughaBuffer::current->border.change(int(v), 0); }
-ACTION(flashlightChg) { CthughaBuffer::current->flashlight.change(int(v), 0); }
+ACTION(soundProcessChg) { audioProcessing.change(int(v)); }
+ACTION(borderChg) { border.change(int(v), 0); }
+ACTION(flashlightChg) { flashlight.change(int(v), 0); }
 ACTION(paletteChg) { CthughaBuffer::current->palette.change(int(v), 0); }
 ACTION(deletePaletteChg) {
     PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
@@ -346,9 +348,9 @@ ACTION(wave) { CthughaBuffer::current->wave.change(p, 0); }
 ACTION(waveScale) { CthughaBuffer::current->waveScale.change(p, 0); }
 ACTION(object) { CthughaBuffer::current->object.change(p, 0); }
 ACTION(translate) { CthughaBuffer::current->translate.change(p, 0); }
-ACTION(soundProcess) { CthughaBuffer::current->soundProcess.change(p, 0); }
-ACTION(border) { CthughaBuffer::current->border.change(p, 0); }
-ACTION(flashlight) { CthughaBuffer::current->flashlight.change(p, 0); }
+ACTION(soundProcess) { audioProcessing.change(p); }
+ACTION(border) { border.change(p, 0); }
+ACTION(flashlight) { flashlight.change(p, 0); }
 ACTION(palette) { CthughaBuffer::current->palette.change(p, 0); }
 ACTION(table) { CthughaBuffer::current->table.change(p, 0); }
 ACTION(pcx) { CthughaBuffer::current->pcx.change(p, 0); }

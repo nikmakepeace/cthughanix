@@ -96,10 +96,9 @@ public:
     CoreOptionEntry* operator[](int n) {
         return (n == 0) ? entry : ((next != NULL) ? (*next)[n - 1] : (CoreOptionEntry*)NULL);
     }
-    /*const CoreOptionEntry * operator[](int n) const {
-        return (n == 0) ? entry : ( (next != NULL) ? (*next)[n-1] : (CoreOptionEntry*)NULL);
+    CoreOptionEntry* operator[](int n) const {
+        return (n == 0) ? entry : ((next != NULL) ? (*next)[n - 1] : (CoreOptionEntry*)NULL);
     }
-    */
     int n() const { return (next == NULL) ? ((entry == NULL) ? 0 : 1) : 1 + next->n(); }
 };
 
@@ -251,7 +250,6 @@ public:
 };
 
 extern CoreOption screen;
-extern CoreOption flashlight;
 
 //
 // options from glcthugha

@@ -104,7 +104,6 @@ Examples:
 - `palette`
 - `translate`
 - `display`
-- `sound-process`
 - `border`
 - `flashlight`
 
@@ -235,7 +234,6 @@ For every active buffer:
 
 ```text
 current = buffers + j
-soundProcess()
 flashlight()
 set border rows
 done_translate = 0
@@ -248,16 +246,18 @@ swap(activeBuffer, passiveBuffer)
 
 This order matters.
 
-### 11.1 Sound Process
+### 11.1 Audio Processing
 
-`current->soundProcess()` calls the selected entry from `src/SoundProcess.cc`.
+Audio processing no longer belongs to the visual buffer loop. `AudioVisualBridge`
+runs the selected `audioProcessing` mode from `src/AudioProcessor.cc` before
+audio analysis and before auto-changing.
 
 The built-in entries are:
 
-- `none`: copy `soundDevice->data` to `soundDevice->dataProc`.
+- `none`: copy raw frame data to processed frame data.
 - `Filter1`: slope-limits sharp sample jumps.
 - `Filter2`: low-pass-ish smoothing.
-- `FFT`: transforms the 1024-sample stereo window and writes the result to `dataProc`.
+- `FFT`: transforms the 1024-sample stereo window and writes the result to the processed frame.
 
 Waves normally read `dataProc`, not raw `data`. This lets a visual use raw waveform samples, filtered samples, or FFT bins without changing the wave code.
 
@@ -521,17 +521,18 @@ If you want to step through one whole frame in your editor, use this route:
 5. Step into `src/CthughaDisplay.cc::nextFrame()`.
 6. Step into `src/SoundDevice.cc::SoundDevice::operator()()`.
 7. Step into the active backend's `read()`, such as `src/SoundDeviceDSP.cc::SoundDeviceDSPIn::read()`.
-8. Step into `src/SoundAnalyze.cc::SoundAnalyze::operator()()`.
-9. Step into `src/AutoChanger.cc::AutoChanger::operator()()`.
-10. Step into `src/CthughaBuffer.cc::CthughaBuffer::run()`.
-11. In the buffer step, jump to the current `sound-process` in `src/SoundProcess.cc`.
-12. Jump to the current flame in `src/flames.cc`.
-13. Jump to `src/translate.cc::TranslateOption::operator()()` if translate is enabled.
-14. Jump to the current wave in `src/waves.cc`.
-15. Return to `CthughaBuffer::smoothPalette()`.
-16. Step into `src/CthughaDisplayX11.cc::operator()()` or `src/CthughaDisplaySVGA.cc::operator()()`.
-17. Jump to the current `screen()` function in `src/display.cc`.
-18. Finish in the frontend `DisplayDevice` `postDraw()` path.
+8. Step into `src/AudioVisualBridge.cc::AudioVisualBridge::runFrame()`.
+9. Step into `src/AudioProcessor.cc` for the selected audio processing mode.
+10. Step into `src/AudioAnalyzer.cc::AudioAnalyzer::operator()()`.
+11. Step into `src/AutoChanger.cc::AutoChanger::operator()()`.
+12. Step into `src/CthughaBuffer.cc::CthughaBuffer::run()`.
+13. Jump to the current flame in `src/flames.cc`.
+14. Jump to `src/translate.cc::TranslateOption::operator()()` if translate is enabled.
+15. Jump to the current wave in `src/waves.cc`.
+16. Return to `CthughaBuffer::smoothPalette()`.
+17. Step into `src/CthughaDisplayX11.cc::operator()()` or `src/CthughaDisplaySVGA.cc::operator()()`.
+18. Jump to the current `screen()` function in `src/display.cc`.
+19. Finish in the frontend `DisplayDevice` `postDraw()` path.
 
 ## 19. How To Think About One Frame
 

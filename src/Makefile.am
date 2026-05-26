@@ -3,14 +3,14 @@
 ## general source files
 GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 	Audio.cc AudioFrame.cc AudioRuntime.cc RuntimeFactory.cc		\
-	PcmSourceFactory.cc						\
+	PcmSourceFactory.cc AudioVisualBridge.cc			\
 	SoundDeviceDSP.cc SoundDeviceFile.cc SoundDeviceFork.cc		\
 	SoundDeviceRandom.cc						\
 	Mixer.cc CDPlayer.cc imath.cc sound.cc	IniFiles.cc		\
 	Interface.cc info_title_usage.cc disp-ncurses.cc		\
 	SoundDevice.cc misc.cc DisplayDevice.cc				\
 	AutoChanger.cc AudioAnalyzer.cc  CthughaDisplay.cc 		\
-	CthughaFrameBuffer.cc VisualPipeline.cc VisualDirector.cc	\
+	CthughaFrameBuffer.cc Border.cc VisualPipeline.cc VisualDirector.cc	\
 	keymap.cc InterfaceCredits.cc InterfaceList.cc			\
 	joystick.cc
 
@@ -57,9 +57,9 @@ tabinfo_SOURCES = tabinfo.cc
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  PcmSourceFactory.h  AutoChanger.h     AudioAnalyzer.h    CthughaFrameBuffer.h VisualPipeline.h VisualDirector.h flames.h          pcx.h		\
+	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    CthughaFrameBuffer.h VisualPipeline.h VisualDirector.h flames.h          pcx.h		\
         CDPlayer.h        SoundDevice.h  \
-	CoreOption.h      AudioProcessor.h    imath.h           tab_header.h	\
+	CoreOption.h      AudioProcessor.h    Border.h          Flashlight.h      imath.h           tab_header.h	\
 	CthughaBuffer.h   information.h     translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\

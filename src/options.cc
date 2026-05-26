@@ -13,6 +13,8 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "AudioProcessor.h"
+#include "Border.h"
+#include "Flashlight.h"
 #include "DisplayDevice.h"
 #include "AudioAnalyzer.h"
 #ifdef CTH_XWIN
@@ -208,11 +210,11 @@ int do_param(int c, int value, char* str) {
         // CoreOptions
         //
     case opt_flashlight:
-        CthughaBuffer::current->flashlight.setInitialEntry(str ? str : (char*)"non-locked:on");
+        flashlight.setInitialEntry(str ? str : (char*)"non-locked:on");
         break;
     case opt_no_flashlight:
     case 's':
-        CthughaBuffer::current->flashlight.setInitialEntry(str ? str : (char*)"locked:off");
+        flashlight.setInitialEntry(str ? str : (char*)"locked:off");
         break;
 
     case 'f':
@@ -220,7 +222,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_border:
-        CthughaBuffer::current->border.setInitialEntry(str);
+        border.setInitialEntry(str);
         break;
 
     case 't':
@@ -274,7 +276,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'm':
-        CthughaBuffer::current->soundProcess.setInitialEntry(str);
+        audioProcessing.setInitialEntry(str);
         break;
 
     case opt_light:

@@ -9,19 +9,21 @@
 #include "Sound.h"
 #include "AudioFrame.h"
 #include "AudioRuntime.h"
+#include "AudioVisualBridge.h"
+#include "AudioProcessor.h"
+#include "Border.h"
 #include "translate.h"
 #include "options.h"
 #include "keys.h"
 #include "imath.h"
 #include "waves.h"
 #include "Option.h"
-#include "AudioAnalyzer.h"
-#include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "CthughaFrameBuffer.h"
 #include "CDPlayer.h"
 #include "DisplayDevice.h"
+#include "Flashlight.h"
 #include "Interface.h"
 #include "VisualDirector.h"
 #include "keymap.h"
@@ -32,6 +34,7 @@
 static VisualPipeline* visualPipeline = NULL;
 static VisualPlan visualPlan;
 static CthughaFrameBuffer visualFrameBuffer;
+static AudioVisualBridge* audioVisualBridge = NULL;
 
 static void initVisualPipeline() {
     if (visualPipeline != NULL)
@@ -49,6 +52,28 @@ static void shutdownVisualPipeline() {
     visualPipeline = NULL;
 }
 
+static void initAudioVisualBridge() {
+    if (audioVisualBridge == NULL)
+        audioVisualBridge = new AudioVisualBridge;
+}
+
+static void shutdownAudioVisualBridge() {
+    delete audioVisualBridge;
+    audioVisualBridge = NULL;
+}
+
+static void runAudioVisualBridge() {
+    initAudioVisualBridge();
+    audioVisualBridge->runFrame();
+
+    if (audioVisualBridge->pipelineRefreshRequested()) {
+        initVisualPipeline();
+        VisualPipelineFactory factory;
+        factory.refresh(*visualPipeline, visualPlan);
+        audioVisualBridge->clearPipelineRefreshRequest();
+    }
+}
+
 static void runVisualPipeline() {
     initVisualPipeline();
 
@@ -56,7 +81,8 @@ static void runVisualPipeline() {
         && (visualFrameBuffer.active() != CthughaBuffer::current->activeBuffer
             || visualFrameBuffer.passive() != CthughaBuffer::current->passiveBuffer)) {
         visualFrameBuffer.bind(CthughaBuffer::current->activeBuffer,
-            CthughaBuffer::current->passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH);
+            CthughaBuffer::current->passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH,
+            &CthughaBuffer::current->currentPalette, &CthughaBuffer::current->palChanged);
     }
 
     VisualFrameContext context;
@@ -91,8 +117,8 @@ void sig_tty_cont(int) {
 }
 
 void deleter() {
-    // autoChanger owns final option persistence, so destroy it first.
-    delete autoChanger;
+    // AutoChanger owns final option persistence, so destroy the bridge first.
+    shutdownAudioVisualBridge();
     delete cthughaDisplay;
     audioRuntimeShutdown();
     delete cdPlayer;
@@ -132,6 +158,8 @@ int main(int argc, char* argv[]) {
 
     CTH_INFO("Initializing cthugha Buffer...\n");
     CthughaBuffer::initAll();
+    init_border();
+    init_flashlight();
 
     CTH_INFO("Initializing display...\n");
     newDisplayDevice();
@@ -139,6 +167,7 @@ int main(int argc, char* argv[]) {
 
     CTH_INFO("Setting initial core options...\n");
     CoreOption::changeToInitial();
+    audioProcessing.changeToInitial();
 
     CTH_INFO("Initializing interface...\n");
     Interface::set("main");
@@ -146,8 +175,8 @@ int main(int argc, char* argv[]) {
     CTH_INFO("Initializing keymaps...\n");
     Keymap::init();
 
-    CTH_INFO("Initializing the automatic changing...\n");
-    autoChanger = new AutoChanger;
+    CTH_INFO("Initializing the audio-visual bridge...\n");
+    initAudioVisualBridge();
 
     signal(SIGTSTP, sig_tty_stop);
 
@@ -198,19 +227,14 @@ void run(int doDisplay) {
         frameTiming[2] = getTime();
 
     PROFILING();
-    audioAnalyzer();
+    runAudioVisualBridge();
     if (traceFrameTiming)
         frameTiming[3] = getTime();
 
     PROFILING();
-    (*autoChanger)();
-    if (traceFrameTiming)
-        frameTiming[4] = getTime();
-
-    PROFILING();
     runVisualPipeline();
     if (traceFrameTiming)
-        frameTiming[5] = getTime();
+        frameTiming[4] = getTime();
 
     PROFILING();
     double visualStart = getTime();
@@ -218,24 +242,23 @@ void run(int doDisplay) {
         (*cthughaDisplay)();
     double visualEnd = getTime();
     if (traceFrameTiming)
-        frameTiming[6] = visualEnd;
+        frameTiming[5] = visualEnd;
     if (cthughaDisplay)
         cthughaDisplay->observeVisualLatency(visualEnd - visualStart);
 
     PROFILING();
     (*cdPlayer)();
     if (traceFrameTiming) {
-        frameTiming[7] = getTime();
-        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f analyze=%.3f auto=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
+        frameTiming[6] = getTime();
+        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f bridge=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
             "frame timing",
-            (frameTiming[7] - frameTiming[0]) * 1000.0,
+            (frameTiming[6] - frameTiming[0]) * 1000.0,
             (frameTiming[1] - frameTiming[0]) * 1000.0,
             (frameTiming[2] - frameTiming[1]) * 1000.0,
             (frameTiming[3] - frameTiming[2]) * 1000.0,
             (frameTiming[4] - frameTiming[3]) * 1000.0,
             (frameTiming[5] - frameTiming[4]) * 1000.0,
             (frameTiming[6] - frameTiming[5]) * 1000.0,
-            (frameTiming[7] - frameTiming[6]) * 1000.0,
             doDisplay);
     }
 
