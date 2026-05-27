@@ -75,6 +75,7 @@ void usage() {
     PH(" -v, --rate N        Set sample rate to N", soundSampleRate.text());
     PH(" -1, -2, --stereo, --no-stereo Set number of sound channels", soundChannels.text());
     PH(" --snd-format FMT    Set sound format to FMT", soundFormat.text());
+    PH(" --pulse-server SERVER  Set PulseAudio server", pulse_server);
     PH("");
 
 #if WITH_DSP == 1

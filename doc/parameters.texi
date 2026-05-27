@@ -70,6 +70,11 @@ unsigned}, @code{16bit signed le}, @code{16bit signed be},
 
 You usually don't need to change this option. 
 
+@item --pulse-server SERVER
+Specify the PulseAudio server used for playback passthrough. The same setting
+can be placed in an ini file as @code{cthugha.pulse-server: SERVER}. If unset,
+PulseAudio uses its default server.
+
 @end table
 
 

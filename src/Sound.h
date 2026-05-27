@@ -27,5 +27,7 @@ int mixer_initial_volume(char* name, int volume);
 int init_mixer();
 
 extern char dev_mixer[];
+extern char pulse_server[];
+const char* pulse_server_name();
 
 #endif

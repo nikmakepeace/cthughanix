@@ -94,9 +94,10 @@ the middle of drawing code.
 ### Runtime Selection
 
 `audioRuntimeInit()` builds the active audio runtime through `RuntimeFactory`.
-Settings are read from current options (`sound-device-number`, `sound-method`,
-`silent`, and the `--play` file name). Environment detection checks OSS read and
-write availability and whether Pulse support was compiled in.
+Audio startup uses current options (`sound-device-number`, `sound-method`,
+`silent`, `--pulse-server`, and the `--play` file name). Environment detection
+checks OSS read and write availability and whether Pulse support was compiled
+in.
 
 `PcmSourceFactory` currently selects:
 
@@ -121,7 +122,8 @@ Important pieces:
 
 - `WavPcmSource` parses and reads WAV data.
 - `Minimp3PcmSource` decodes MP3 data through `external/minimp3`.
-- `AudioOutput` is selected as Pulse, OSS DSP output, or null output.
+- `AudioOutput` is selected as Pulse, OSS DSP output, or null output. Pulse
+  connects to `--pulse-server` / `cthugha.pulse-server` when set.
 - `AudioBuffer` stores decoded/submitted sample history.
 - `AudioFrameBuilder` builds the 1024-sample visual frame around the currently
   audible sample, with compensation for observed visual latency.

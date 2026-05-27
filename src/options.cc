@@ -79,6 +79,7 @@ enum option_nr {
     opt_palette_smoothing,
     opt_no_palette_smoothing,
     opt_palette_set,
+    opt_pulse_server,
     opt_ini_file,
 };
 
@@ -92,6 +93,7 @@ struct option long_options[] = {
     // general sound options
     { "rate", 1, 0, 'v' }, { "stereo", 0, 0, '2' }, { "no-stereo", 0, 0, '1' },
     { "snd-format", 1, 0, opt_sound_format },
+    { "pulse-server", 1, 0, opt_pulse_server },
 
 // DSP options
 #if WITH_DSP == 1
@@ -301,6 +303,15 @@ int do_param(int c, int value, char* str) {
 
     case opt_sound_format:
         soundFormat.change(str);
+        break;
+
+    case opt_pulse_server:
+        if (str != NULL) {
+            strncpy(pulse_server, str, PATH_MAX);
+            pulse_server[PATH_MAX - 1] = '\0';
+        } else {
+            pulse_server[0] = '\0';
+        }
         break;
 
     case 'L': /* Line as input */

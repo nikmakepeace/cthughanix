@@ -144,11 +144,15 @@ void SoundOutputPulse::update() {
         return;
     }
 
-    pulse = pa_simple_new(NULL, "Cthughanix", PA_STREAM_PLAYBACK, NULL, "Audio passthrough",
-        &sampleSpec, NULL, NULL, &error);
+    pulse = pa_simple_new(pulse_server_name(), "Cthughanix", PA_STREAM_PLAYBACK, NULL,
+        "Audio passthrough", &sampleSpec, NULL, NULL, &error);
     if (pulse == NULL) {
         CTH_DEBUG("    sound output strategy: Pulse passthrough failed to open: %s\n",
             pa_strerror(error));
+    } else {
+        CTH_TRACE("opened server=`%s' rate=%d channels=%d format=%d\n",
+            "sound pulse output", pulse_server_name() ? pulse_server_name() : "default",
+            sampleSpec.rate, sampleSpec.channels, sampleSpec.format);
     }
 }
 

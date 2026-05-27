@@ -44,6 +44,12 @@
 #endif
 #endif
 
+char pulse_server[PATH_MAX] = "";
+
+const char* pulse_server_name() {
+    return (pulse_server[0] != '\0') ? pulse_server : NULL;
+}
+
 AudioOutput::AudioOutput()
     : outputSamplesPerSecond(0)
     , outputBytesPerSample(1)
@@ -172,15 +178,16 @@ void AudioPulseOutput::update() {
         return;
     }
 
-    pulse = pa_simple_new(NULL, "Cthughanix", PA_STREAM_PLAYBACK, NULL, "Audio passthrough",
-        &sampleSpec, NULL, NULL, &error);
+    pulse = pa_simple_new(pulse_server_name(), "Cthughanix", PA_STREAM_PLAYBACK, NULL,
+        "Audio passthrough", &sampleSpec, NULL, NULL, &error);
     if (pulse == NULL) {
         CTH_DEBUG("    audio output strategy: Pulse failed to open: %s\n", pa_strerror(error));
         return;
     }
 
     bytesPerSecondValue = pa_bytes_per_second(&sampleSpec);
-    CTH_TRACE("opened rate=%d channels=%d format=%d bytes-per-second=%d\n", "audio pulse output",
+    CTH_TRACE("opened server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d\n",
+        "audio pulse output", pulse_server_name() ? pulse_server_name() : "default",
         sampleSpec.rate, sampleSpec.channels, sampleSpec.format, bytesPerSecondValue);
 }
 
