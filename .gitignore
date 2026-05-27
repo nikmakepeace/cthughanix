@@ -4,6 +4,7 @@
 *.swp
 *.swo
 .vscode/*
+.devcontainer/*
 !.vscode/tasks.json
 !.vscode/launch.json
 .rsync-filter
