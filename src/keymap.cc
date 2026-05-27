@@ -27,6 +27,191 @@ void skipSpace(const char*& str) {
         str++;
 }
 
+static int keymapFeatureValue(const char* name, int& known) {
+    known = 1;
+
+#ifdef WITH_CDROM
+    if (strcasecmp(name, "WITH_CDROM") == 0)
+        return WITH_CDROM;
+#endif
+#ifdef WITH_DSP
+    if (strcasecmp(name, "WITH_DSP") == 0)
+        return WITH_DSP;
+#endif
+#ifdef WITH_MIXER
+    if (strcasecmp(name, "WITH_MIXER") == 0)
+        return WITH_MIXER;
+#endif
+#ifdef WITH_PULSE
+    if (strcasecmp(name, "WITH_PULSE") == 0)
+        return WITH_PULSE;
+#endif
+#ifdef WITH_MINIMP3
+    if (strcasecmp(name, "WITH_MINIMP3") == 0)
+        return WITH_MINIMP3;
+#endif
+#ifdef USE_XPM
+    if (strcasecmp(name, "USE_XPM") == 0)
+        return USE_XPM;
+#endif
+
+    known = 0;
+    return 0;
+}
+
+static long keymapConditionTerm(const char*& str, int& known) {
+    skipSpace(str);
+
+    char* end = NULL;
+    long value = strtol(str, &end, 0);
+    if (end != str) {
+        str = end;
+        known = 1;
+        return value;
+    }
+
+    char name[128];
+    int i = 0;
+    while ((isalnum(*str) || (*str == '_')) && (i < int(sizeof(name)) - 1)) {
+        name[i++] = *str;
+        str++;
+    }
+    name[i] = '\0';
+
+    if (i == 0) {
+        known = 0;
+        return 0;
+    }
+
+    int featureKnown = 0;
+    value = keymapFeatureValue(name, featureKnown);
+    if (!featureKnown)
+        CTH_WARN("Unknown keymap condition feature '%s'.\n", name);
+
+    known = featureKnown;
+    return value;
+}
+
+static int keymapConditionValue(const char* str) {
+    int negate = 0;
+    skipSpace(str);
+    if (*str == '!') {
+        negate = 1;
+        str++;
+    }
+
+    int known = 0;
+    long left = keymapConditionTerm(str, known);
+    int result = known && (left != 0);
+
+    skipSpace(str);
+    if ((strncmp(str, "==", 2) == 0) || (strncmp(str, "!=", 2) == 0)) {
+        int equals = (str[0] == '=');
+        str += 2;
+
+        int rightKnown = 0;
+        long right = keymapConditionTerm(str, rightKnown);
+        result = known && rightKnown && (equals ? (left == right) : (left != right));
+    } else if (*str != '\0') {
+        CTH_WARN("Unsupported keymap condition expression near '%s'.\n", str);
+        result = 0;
+    }
+
+    return negate ? !result : result;
+}
+
+static int keymapDirective(const char*& str, const char* directive) {
+    int len = strlen(directive);
+    if (strncasecmp(str, directive, len) != 0)
+        return 0;
+
+    if ((str[len] != '\0') && !isspace(str[len]))
+        return 0;
+
+    str += len;
+    skipSpace(str);
+    return 1;
+}
+
+class KeymapConditionState {
+    struct Frame {
+        int parentActive;
+        int conditionActive;
+        int seenElse;
+    };
+
+    enum { MaxDepth = 32 };
+
+    Frame stack[MaxDepth];
+    int depth;
+    int currentActive;
+
+public:
+    KeymapConditionState()
+        : depth(0)
+        , currentActive(1) { }
+
+    int active() const { return currentActive; }
+
+    int handle(const char* rawLine) {
+        const char* line = rawLine;
+        skipSpace(line);
+
+        if (*line != '#')
+            return 0;
+
+        line++;
+
+        if (keymapDirective(line, "if")) {
+            if (depth >= MaxDepth) {
+                CTH_ERROR("Too many nested keymap conditionals.\n");
+                currentActive = 0;
+                return 1;
+            }
+
+            int conditionActive = keymapConditionValue(line);
+            stack[depth].parentActive = currentActive;
+            stack[depth].conditionActive = conditionActive;
+            stack[depth].seenElse = 0;
+            currentActive = currentActive && conditionActive;
+            depth++;
+            return 1;
+        }
+
+        if (keymapDirective(line, "else")) {
+            if (depth == 0) {
+                CTH_ERROR("Unexpected #else in keymap.\n");
+                return 1;
+            }
+
+            Frame& frame = stack[depth - 1];
+            if (frame.seenElse)
+                CTH_ERROR("Duplicate #else in keymap conditional.\n");
+            frame.seenElse = 1;
+            currentActive = frame.parentActive && !frame.conditionActive;
+            return 1;
+        }
+
+        if (keymapDirective(line, "endif")) {
+            if (depth == 0) {
+                CTH_ERROR("Unexpected #endif in keymap.\n");
+                return 1;
+            }
+
+            depth--;
+            currentActive = stack[depth].parentActive;
+            return 1;
+        }
+
+        return 0;
+    }
+
+    void finish() const {
+        if (depth != 0)
+            CTH_ERROR("Unterminated #if in keymap.\n");
+    }
+};
+
 char Keymap::keymapFile[PATH_MAX] = "";
 
 Action* Action::head = NULL;
@@ -53,20 +238,21 @@ void Keymap::readFile(const char* fileName) {
     int lineNr = 0;
     char line[4096];
     Keymap* keymap = find("default");
+    KeymapConditionState conditions;
 
-    while (!feof(file)) {
+    while (fgets(line, 4096, file) != NULL) {
         const char* lineP = line;
 
-        fgets(line, 4096, file);
         char* N = strchr(line, '\n'); // delete the trailing newline
         if (N)
             *N = '\0';
         lineNr++;
-        if (ferror(file)) {
-            CTH_ERRNO(errno, "Error while reading keymap file '%s' at line %d.", fileName, lineNr);
-            fclose(file);
-            return;
-        }
+
+        if (conditions.handle(line))
+            continue;
+
+        if (!conditions.active())
+            continue;
 
         if (strncasecmp("#keymap", line, 7) == 0) {
             lineP = line + 7;
@@ -79,6 +265,14 @@ void Keymap::readFile(const char* fileName) {
         }
     }
 
+    if (ferror(file)) {
+        CTH_ERRNO(errno, "Error while reading keymap file '%s' at line %d.", fileName, lineNr);
+        fclose(file);
+        return;
+    }
+
+    conditions.finish();
+
     CTH_DEBUG("   finished reading keymap file '%s'.\n", fileName);
     fclose(file);
 }
@@ -89,10 +283,21 @@ void Keymap::addList(int dummy, ...) {
     va_start(ap, dummy); /* Initialize the argument list. */
 
     Keymap* keymap = find("default");
+    KeymapConditionState conditions;
 
     const char* line = va_arg(ap, const char*);
     while (line != NULL) {
         const char* lineP;
+
+        if (conditions.handle(line)) {
+            line = va_arg(ap, const char*);
+            continue;
+        }
+
+        if (!conditions.active()) {
+            line = va_arg(ap, const char*);
+            continue;
+        }
 
         if (strncasecmp("#keymap", line, 7) == 0) {
             lineP = line + 7;
@@ -106,6 +311,8 @@ void Keymap::addList(int dummy, ...) {
 
         line = va_arg(ap, const char*);
     }
+
+    conditions.finish();
 
     va_end(ap);
 }
@@ -291,7 +498,9 @@ void Keymap::init() {
     static Keymap defaultKM("default");
     static Keymap mainKM("main");
     static Keymap helpKM("Help");
+#if WITH_CDROM == 1
     static Keymap CDKM("CD");
+#endif
     static Keymap soundKM("sound");
     static Keymap serverKM("server");
     static Keymap playListKM("playList");

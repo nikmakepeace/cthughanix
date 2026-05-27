@@ -156,10 +156,12 @@ ACTION(setValue) {
     }
 }
 
-static char* InterfaceList[] = { "Help", // F1
+static const char* InterfaceList[] = { "Help", // F1
     "CoreOptions", // F2
     "Options", // F3
+#if WITH_CDROM == 1
     "CD", // F4
+#endif
     "sound", // F5
     "mixer", // F6
     "playList", // F7
@@ -170,14 +172,14 @@ static char* InterfaceList[] = { "Help", // F1
     "palette", "pcx", "flashlight", "light", "background", "fly", "Help", NULL };
 
 ACTION(nextInterface) {
-    for (char** N = InterfaceList; *N != NULL; N++)
+    for (const char** N = InterfaceList; *N != NULL; N++)
         if (strcasecmp(*N, Interface::current->name) == 0) {
             Interface::set(N[1]);
             return;
         }
 }
 ACTION(prevInterface) {
-    for (char** N = InterfaceList + 1; *N != NULL; N++)
+    for (const char** N = InterfaceList + 1; *N != NULL; N++)
         if (strcasecmp(*N, Interface::current->name) == 0) {
             Interface::set(N[-1]);
             return;

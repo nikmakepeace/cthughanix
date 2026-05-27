@@ -496,8 +496,6 @@ ACTION(CDcloseEject) {
 
 char dev_cd[PATH_MAX] = "";
 
-Interface interfaceCD("CD", "CD Player", "CD was disabled at compile time");
-
 CDPlayer* cdPlayer = NULL;
 
 #endif
