@@ -34,7 +34,7 @@ public:
 
         // This is the temporary coarse visual stage: all current internal
         // indexed-buffer mutation happens here, before DisplayDevice handoff.
-        CTH_TRACE("executing legacy buffer transform\n", "visual pipeline");
+        CTH_TRACE("executing classic buffer transform\n", "visual pipeline");
         if (visualBufferTransform != 0)
             visualBufferTransform();
         if (CthughaBuffer::current != 0)

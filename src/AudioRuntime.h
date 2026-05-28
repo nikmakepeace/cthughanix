@@ -5,7 +5,7 @@
 
 #include "RuntimeFactory.h"
 
-void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputControls);
+void audioRuntimeInit(int initializeInputControls);
 void audioRuntimeTick();
 void audioRuntimeShutdown();
 int audioRuntimeIsInitialized();

@@ -66,9 +66,13 @@ Observed performance in the verified environment:
 
 But! This was a virtualised 
 
-## Sound device expectations
+## Audio expectations
 
-The current code expects legacy OSS-style sound devices, commonly:
+For file playback, the current code decodes into the modern audio runtime and
+plays through PulseAudio/PipeWire-Pulse when available. Use `--pulse-server` or
+`cthugha.pulse-server` to point the client at a specific Pulse server.
+
+For live input and mixer control, the remaining Unix device paths are commonly:
 
 ```text
 /dev/dsp
@@ -79,18 +83,17 @@ If these devices are missing, startup may print messages like:
 
 ```text
 Initializing the sound device...
-
+    audio input strategy: OSS /dev/dsp input
 Can't open `/dev/dsp' for reading. (2 - No such file or directory)
-
-Can not use requested sound device. Using random noise.
-Initializing sound server...
+Can not use requested sound input. Using random noise.
 Initializing CD player...
 Initializing Mixer device...
-
 Can not open `/dev/mixer'. (2 - No such file or directory)
 ```
 
-This means the program could not open the expected OSS sound device. It may fall back to random noise or degraded behaviour.
+This means the program could not open the requested live-input device. It may
+fall back to random noise or degraded behaviour. File playback does not depend
+on the live-input device path.
 
 In the verified setup, audio input works when the VM exposes an emulated sound card in a way that provides usable OSS-compatible device access.
 
@@ -98,7 +101,9 @@ In the verified setup, audio input works when the VM exposes an emulated sound c
 
 When running inside UTM on macOS, UTM may request microphone access from the host.
 
-This can happen because the VM sound device is being backed by host audio input. If granted, the emulated sound card may provide input that `xcthugha` can read through the legacy sound path.
+This can happen because the VM sound device is being backed by host audio input.
+If granted, the emulated sound card may provide input that `xcthugha` can read
+through the OSS-compatible line-input path.
 
 ## Mixer device
 
@@ -135,9 +140,9 @@ For normal interactive work in Etch, `xterm` is usually the best balance of comp
 ## Known caveats
 
 - `--no-mit-shm` may be required even though it is not advertised in the help text.
-- Audio is still tied to legacy OSS assumptions.
+- Live input and mixer control still depend on OSS-compatible device paths.
 - `/dev/dsp` and `/dev/mixer` may not exist on modern Linux systems.
-- Running on modern Linux will likely require either OSS compatibility layers or code changes.
+- File playback is better exercised through PulseAudio/PipeWire-Pulse output.
 - The X11 path is the only currently verified graphics path.
 - The SVGA and OpenGL paths are untested.
 

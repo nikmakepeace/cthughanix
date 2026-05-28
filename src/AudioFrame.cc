@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "AudioFrame.h"
+#include "AudioOptions.h"
 #include "AudioRuntime.h"
 
 static char2 silentAudioFrameData[1024];
@@ -27,9 +28,6 @@ void audioFrameChange() {
         audioRuntimeProcessor()->change();
         return;
     }
-
-    if (soundDevice)
-        soundDevice->change();
 }
 
 AudioFrame* audioFrameCurrent() {
@@ -43,7 +41,7 @@ char2* audioFrameData() {
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->data;
 
-    return soundDevice ? soundDevice->data : silentAudioFrameData;
+    return silentAudioFrameData;
 }
 
 char2* audioFrameProcessedData() {
@@ -53,17 +51,17 @@ char2* audioFrameProcessedData() {
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->dataProc;
 
-    return soundDevice ? soundDevice->dataProc : silentAudioFrameProcessedData;
+    return silentAudioFrameProcessedData;
 }
 
 int audioFrameBroadcastBytes() {
     if (audioRuntimeCurrentFrame()) {
         int bytesPerSample = (soundFormat < 2) ? int(soundChannels) : 2 * int(soundChannels);
-        return pcmBytesForSamples(audioRuntimeCurrentFrame()->samples, bytesPerSample);
+        return audioRuntimeCurrentFrame()->samples * bytesPerSample;
     }
 
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->frameRawSize();
 
-    return soundDevice ? soundDevice->frameRawSize() : 0;
+    return 0;
 }

@@ -1,5 +1,4 @@
 #include "cthugha.h"
-#include "Sound.h"
 #include "AudioFrame.h"
 #include "display.h"
 #include "Interface.h"
@@ -1793,7 +1792,7 @@ void wave_wire2() {
 
     /*
      * Object midpoint and normalization divisor in source coordinate space.
-     * The legacy formula deliberately uses the y extent, so flat/wide models
+     * The classic formula deliberately uses the y extent, so flat/wide models
      * keep the same tall, spindly Wire2 character as the built-in glyphs.
      */
     double omx, omy, omz, om;

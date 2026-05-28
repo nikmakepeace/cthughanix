@@ -131,7 +131,7 @@ Contract:
 - write raw PCM into the caller's buffer from `read()`;
 - report finishability through `canFinish()`/`isFinished()` when applicable.
 
-This is preferred over adding new legacy `SoundDevice` subclasses.
+This is the preferred audio-input extension seam.
 
 ### Add an Audio Output
 
@@ -149,7 +149,7 @@ Contract:
 Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
 Current reality: the pipeline exists, but `LegacyBufferTransformModule` still
-wraps most legacy pixel work by calling `CthughaBuffer::run()`. New stages should
+wraps most classic pixel work by calling `CthughaBuffer::run()`. New stages should
 be introduced one at a time, with attention to ordering relative to flashlight,
 border, flame, translate, wave, swap, and palette smoothing.
 
@@ -187,7 +187,6 @@ This is still a large seam because many globals (`disp_size`, `bypp`,
 Subsystems communicate mainly through globals:
 
 - `cthughaDisplay`, `displayDevice`, `cdPlayer`, `autoChanger`;
-- `soundDevice` as a legacy fallback pointer;
 - `audioAnalysis`, `acousticContext`;
 - `BUFF_WIDTH`, `BUFF_HEIGHT`;
 - `active_buffer`, `passive_buffer`;
@@ -197,16 +196,16 @@ Subsystems communicate mainly through globals:
 The new runtime/pipeline classes reduce some coupling, but most modules still
 assume initialization order rather than checking dependencies.
 
-### Audio Has Two Active Models
+### Audio Has One Runtime Model
 
 The current audio system can use:
 
-- native `AudioRuntime`/`PcmSource`/`AudioOutput` paths;
-- `AudioInputProcessor` for rolling live/random input;
-- legacy `SoundDevice` fallback paths.
+- `AudioRuntime`/`PcmSource`/`AudioOutput` for file playback;
+- `AudioInputProcessor` for rolling live/random input.
 
-Code that reads audio directly from `soundDevice` will miss native file-pipeline
-frames. Prefer `audioFrameData()` and `audioFrameProcessedData()`.
+Visual code should use `audioFrameData()` and `audioFrameProcessedData()` so
+file playback, live input, random input, and silence all present the same
+1024-sample frame contract.
 
 ### VisualPipeline Is Not Fully Decomposed Yet
 
@@ -270,7 +269,7 @@ just an overlay; in 8-bit modes it changes palette strategy.
 ### Build System
 
 CMake is now the verified path and should remain the reference for active work.
-Autotools can be kept coherent for historical users, but new targets should be
+Autotools can be kept coherent for longtime users, but new targets should be
 added to CMake first.
 
 ### Sound
@@ -282,7 +281,7 @@ interfaces. The best replacement seam is the modern audio composition model:
 - `AudioOutput` for playback;
 - `AudioFrame` for visual sampling.
 
-Avoid new direct dependencies on `SoundDevice`.
+Keep new audio work inside these interfaces.
 
 ### Display
 
@@ -317,23 +316,20 @@ with safer metadata.
 - Setuid root SVGAlib path remains in source; `DisplayDeviceSvga.cc` can regain
   root with `seteuid(0)` to call `vga_init()` when built that way.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd`,
-  translation load-on-demand uses `/bin/sh -c`, legacy file playback can run
-  decoder commands, and silence messages can run `fortune`.
-- Legacy file playback still uses fifo/process orchestration and forked shared
-  memory in some paths.
+  translation load-on-demand uses `/bin/sh -c`, and silence messages can run
+  `fortune`.
 - OSS and CD ioctl paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 - OpenGL source still assumes old GLUT/paletted-texture behavior.
 
 ### Medium Risk
 
-- The native audio path and legacy `SoundDevice` path coexist; subtle behavior
-  differences are likely around playback latency, EOF, `--silent`, and raw/MOD
-  files.
+- File playback has a single buffered runtime path now; the riskiest edges are
+  playback latency accounting, EOF/drain behavior, and raw PCM option handling.
 - `VisualPipeline` is only partially decomposed; new stages can accidentally run
-  before/after legacy work in surprising ways.
+  before/after classic work in surprising ways.
 - Many fixed-size string buffers use `sprintf`, `strncpy`, and `strncat` with
-  historical assumptions.
+  longstanding assumptions.
 - Some code assumes little-endian behavior despite partial big-endian branches.
 - Palette metadata is stricter than old free-form comments; malformed metadata
   is warned/ignored before RGB data begins.

@@ -71,7 +71,7 @@ deferred suspend handling
 
 ## Architectural Center
 
-The legacy visual domain still revolves around `CoreOption`, the runtime
+The classic visual domain still revolves around `CoreOption`, the runtime
 registry for selectable visual entries. The current active categories include:
 
 - global/display-ish options: `display`, `border`, `flashlight`,
@@ -79,8 +79,7 @@ registry for selectable visual entries. The current active categories include:
 - per-buffer options: `flame`, `palette`, `pcx`, `translate`, `wave`, `object`,
   `flame-general`, `wave-scale`, and `table`.
 
-Audio and visual control have been pulled apart from the older `SoundDevice`
-monolith:
+Audio and visual control are now separated:
 
 - `AudioRuntime`, `RuntimeFactory`, `PcmSourceFactory`, and `Audio` classes own
   modern source/output composition.
@@ -93,7 +92,7 @@ monolith:
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.
 - `VisualPipeline` is the new visual-stage scaffold. It currently wraps the
-  old `CthughaBuffer::run()` as a coarse legacy transform while hosting newer
+  old `CthughaBuffer::run()` as a coarse classic transform while hosting newer
   flashlight, border, and palette stages outside that transform.
 
 ## Highest-Value Seams
@@ -105,7 +104,7 @@ monolith:
 - Visual pipeline seam: `VisualDirector`, `VisualPipelineFactory`,
   `VisualPipeline`, `VisualModule`, `VisualFrameContext`, and
   `CthughaFrameBuffer`.
-- Legacy visual effect seam: `CoreOptionEntry` and `CoreOptionEntryList`.
+- Classic visual effect seam: `CoreOptionEntry` and `CoreOptionEntryList`.
 - Display frontend seam: `DisplayDevice` plus `CthughaDisplay` subclasses.
 - Asset seams: `.map` palettes, `.pcx`/`.pcx.gz` images, `.cmd` table
   descriptors, `.tab` binary translation tables, and optional `.obj` line
@@ -132,6 +131,6 @@ initialization before it can print help.
 
 The project is portable in a transitional sense, not yet a modern clean-room
 port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer, CD-ROM
-ioctl, SVGAlib, GLUT/OpenGL, fork/shared-memory playback, shell-based legacy
-decoder paths, and many global singletons. The refactor has created better
-audio and visual seams, but the classic engine is still stateful and global.
+ioctl, SVGAlib, GLUT/OpenGL, shell-based asset helpers, and many global
+singletons. The refactor has created better audio and visual seams, but the
+classic engine is still stateful and global.

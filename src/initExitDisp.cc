@@ -6,7 +6,7 @@
 #include "cth_buffer.h"
 #include "information.h"
 #include "display.h"
-#include "Sound.h"
+#include "AudioSystem.h"
 #include "AudioFrame.h"
 #include "AudioRuntime.h"
 #include "AudioVisualBridge.h"
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
     }
 
     CTH_INFO("Initializing the sound device...\n");
-    audioRuntimeInit(RSIC_MainProcess, 1);
+    init_sound();
 
     CTH_INFO("Initializing CD player...\n");
     cdPlayer = new CDPlayer;

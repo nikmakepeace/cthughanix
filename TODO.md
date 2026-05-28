@@ -26,7 +26,7 @@
    - Add shared helpers for clearing the full display surface and/or base display region.
    - Document which screen functions produce `BUFF_WIDTH x BUFF_HEIGHT` content and rely
      on mirroring, and which produce the full `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` surface.
-   - Leave the legacy `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` display-surface coupling intact
+   - Leave the classic `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` display-surface coupling intact
      until the future target display architecture is chosen; then split engine buffer,
      presentation surface, and window/output size deliberately.
    - Add debug assertions where they can catch invalid writes or bad assumptions.
@@ -34,14 +34,13 @@
 4. Improve sound diagnostics and file playback.
    - Add better deterministic sound test fixtures than `-x` random noise, with controlled
      intensity ramps and attack/fire events.
-   - Decouple file playback output from visual-analysis sampling: read/decode into a
-     buffer, write to `/dev/dsp` in backend-friendly chunks, and feed only the required
-     visual window into Cthugha.
-   - Address MP3 playback next. Avoid preserving the legacy `mpg123` tmp-file path as the
-     long-term model; design it as an `AudioInput` decoder/source that produces PCM for
-     the same buffer/output/frame pipeline as WAV.
+   - Keep file playback output decoupled from visual-analysis sampling: read/decode into
+     `AudioBuffer`, let `AudioOutput` keep the server/device buffer fed, and feed only the
+     required visual window into Cthugha.
+   - Add tests around MP3, WAV, and raw PCM playback so each format produces PCM for the
+     same buffer/output/frame pipeline.
    - Document `--play FILE --silent` as the preferred fixture path for analysis-only
-     runs, and `--snd-method 3` as the current smoother OSS/QEMU playback workaround.
+     runs.
 
 5. ~~Revisit automatic option-change timing.
    - Compare the feel of the three current/reference behaviors:
@@ -97,7 +96,7 @@
      return `0`, while `CthughaBuffer::initAll()` still checks them and calls `exit(0)`.
      Decide whether those functions should be `void`, or whether startup should have real
      fatal error propagation.
-   - ~~Keep PCX working as legacy content while preparing for a modern image path.~~
+   - ~~Keep PCX working as classic content while preparing for a modern image path.~~
 
 8. Add a modern image loader.
    - Add a small image-loader abstraction, with PNG as the first supported modern format.
@@ -144,7 +143,7 @@
      - `VisualFrameContext`: read-only per-frame inputs such as `AudioFrame`,
        `AudioAnalysis`, `AcousticContext`, `now`, and `deltaT`.
    - Current `CthughaBuffer::run()` maps roughly to:
-     - `SoundProcessStage`
+     - `AudioProcessingStage`
      - `FlashlightStage`
      - `BorderStage`
      - `FlameStage`
@@ -154,7 +153,7 @@
      - `SwapBuffersStage`
    - Pipeline construction happens once per session, and module refresh/rebuild happens
      when startup settings or `AutoChanger` alter selected visual options.
-   - Treat legacy `screen` functions carefully:
+   - Treat classic `screen` functions carefully:
      - If a screen function mutates the internal indexed frame as an artistic transform,
        it belongs in the visual pipeline.
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
@@ -175,10 +174,8 @@
 - Load/generate all translation tables in the background after startup, staging each table
   invisibly and activating cached tables only once complete.
 - Rationalize ini file naming: accept unprefixed keys like `lock: yes` in addition to
-  legacy `cthugha.lock: yes`, warn on likely misspellings such as `chuthga.*`, and decide
+  `cthugha.lock: yes`, warn on likely misspellings such as `chuthga.*`, and decide
   whether future auto-written ini files should keep the old prefix for compatibility.
 - Document `xcthugha` as the current reference target and SVGAlib as archival.
 - Revisit `glcthugha` later; it depends on old GLUT/OpenGL assumptions and likely should
   not block the SDL path.
-- Look at the weird way it has mpg123 write to a tmp file and then reads that audio in. 
-  Surely there must be another way! 

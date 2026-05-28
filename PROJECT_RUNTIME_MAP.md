@@ -15,7 +15,7 @@ main(argc, argv)
   init_imath()
   atexit(deleter)
   init_ncurses() if requested
-  audioRuntimeInit(RSIC_MainProcess, 1)
+  init_sound()
   new CDPlayer()
   CthughaBuffer::initAll()
   init_border()
@@ -31,9 +31,9 @@ main(argc, argv)
   displayDevice->mainLoop()
 ```
 
-There is no current `cthugha-server` startup path in source. Earlier docs that
-mention `serv_main.cc`, `SoundServer`, or network clients are describing removed
-code or stale build artifacts.
+There is no current server-mode startup path in source. Earlier notes about a
+separate audio server or network clients are describing removed code or stale
+build artifacts.
 
 ## Frame Loop
 
@@ -53,7 +53,7 @@ AudioVisualBridge::runFrame()
   runs AutoChanger
 
 VisualPipeline::run()
-  runs visual-stage modules around the legacy buffer transform
+  runs visual-stage modules around the classic buffer transform
 
 CthughaDisplay::operator()()
   frontend-specific display composition, when doDisplay is true
@@ -64,8 +64,10 @@ CDPlayer::operator()()
 pause/suspend handling
 ```
 
-The frame loop is cooperative. There are no threads in the visualizer. The code
-still uses processes for legacy file playback and translation-table loading.
+The visual frame loop is cooperative. File playback now uses the modern audio
+runtime; Pulse output owns its feed through its write callback, and decoded PCM
+is shared with the visual engine through `AudioBuffer`/`AudioFrameBuilder`.
+Translation-table load-on-demand can still spawn helper commands.
 
 ### Frontend Event Loops
 
@@ -101,17 +103,17 @@ in.
 
 `PcmSourceFactory` currently selects:
 
-- `ASS_LineIn` for `SDN_DSPIn`;
-- `ASS_Random` for `SDN_Random`;
+- `ASS_LineIn` for `AIM_DSPIn`;
+- `ASS_Random` for `AIM_Random`;
 - `ASS_WavFile` for `--play *.wav`;
 - `ASS_Mp3File` for `--play *.mp3`;
-- `ASS_RawFile` for other `--play` names, which currently falls back to legacy
-  file handling;
+- `ASS_RawFile` for other `--play` names, using `sound-format`,
+  `sound-channels`, and `sound-sample-rate`;
 - `ASS_Unknown` for unsupported cases.
 
 ### Native File Pipeline
 
-For WAV files, and MP3 files when minimp3 is enabled, `AudioRuntime` uses:
+For WAV, MP3, and raw PCM file playback, `AudioRuntime` uses:
 
 ```text
 PcmSource -> AudioInput -> AudioBuffer -> AudioOutput
@@ -122,6 +124,8 @@ Important pieces:
 
 - `WavPcmSource` parses and reads WAV data.
 - `Minimp3PcmSource` decodes MP3 data through `external/minimp3`.
+- `RawPcmSource` reads headerless PCM according to the current raw-audio
+  format options.
 - `AudioOutput` is selected as Pulse, OSS DSP output, or null output. Pulse
   connects to `--pulse-server` / `cthugha.pulse-server` when set.
 - `AudioBuffer` stores decoded/submitted sample history.
@@ -142,18 +146,13 @@ PcmSource -> AudioInput -> AudioInputProcessor
 `AudioInputProcessor` keeps the rolling 1024-sample normalized internal frame
 and processed workspace used by visual code.
 
-### Legacy SoundDevice Fallback
+### Input Fallbacks
 
-If no native audio path is available, `AudioRuntime` installs a legacy
-`SoundDevice`:
-
-- `SoundDeviceDSPIn`: OSS `/dev/dsp` input.
-- `SoundDeviceRandom`: random-noise debug/input source.
-- `SoundDeviceFile`: legacy file/fifo/external-program source.
-- `SoundDeviceFork`: fork/shared-memory wrapper for legacy non-silent file
-  playback.
-
-`SoundDeviceNet` is not a current source file.
+There is no separate old backend fallback path. Live input uses the same modern
+`PcmSource`/`AudioInputProcessor` model as random input, and file playback uses
+the buffered `AudioInput` -> `AudioBuffer` -> `AudioOutput` path. If line input
+cannot be opened, startup falls back to `RandomNoisePcmSource` unless sound is
+explicitly disabled.
 
 ### AudioFrame Facade
 
@@ -171,13 +170,11 @@ These functions choose the current source in this order:
 
 1. `AudioRuntime` frame from the native file pipeline;
 2. `AudioInputProcessor` frame from the native input path;
-3. legacy `soundDevice`;
-4. silent static buffers.
+3. silent static buffers.
 
 ### Sound Processing
 
-The `sound-processing` option is implemented by `src/AudioProcessor.cc`, not by
-the old `SoundProcess.cc` file.
+The `sound-processing` option is implemented by `src/AudioProcessor.cc`.
 
 Built-in entries:
 
@@ -211,7 +208,7 @@ analysis and before visual mutation. Waves normally read
 
 ## Visual Buffer Pipeline
 
-`CthughaBuffer` still owns the legacy per-buffer options and the raw active and
+`CthughaBuffer` still owns the classic per-buffer options and the raw active and
 passive indexed buffers. Default dimensions are:
 
 ```text

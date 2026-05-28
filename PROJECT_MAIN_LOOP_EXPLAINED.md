@@ -1,8 +1,8 @@
 # Main Loop Explained
 
 This is a guided walk through the current CthughaNix graphical main loop in
-`src/`. It describes the refactored tree, not the older `SoundAnalyze` /
-`SoundProcess` / sound-server architecture.
+`src/`. It describes the refactored tree, not the older analyzer/processor or
+server-mode architecture.
 
 The short version:
 
@@ -12,7 +12,7 @@ frontend event loop
       -> publish frame time
       -> advance audio runtime and current AudioFrame
       -> process/analyze audio and maybe auto-change options
-      -> run visual pipeline around the legacy buffer transform
+      -> run visual pipeline around the classic buffer transform
       -> draw current passive buffer to the frontend
       -> update CD state
       -> handle deferred suspend
@@ -30,7 +30,7 @@ Keep these files open:
 - `src/AutoChanger.*`: automatic effect changes.
 - `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage scaffold.
 - `src/CthughaFrameBuffer.*`: indexed buffer/palette adapter.
-- `src/CthughaBuffer.*`: legacy visual buffer and flame/translate/wave driver.
+- `src/CthughaBuffer.*`: classic visual buffer and flame/translate/wave driver.
 - `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effects.
 - `src/display.cc`: 2D display mapping effects.
 - `src/CthughaDisplay*.cc`: frontend display composition.
@@ -51,7 +51,7 @@ cth_init()
 get_params()
 title()
 init_imath()
-audioRuntimeInit(RSIC_MainProcess, 1)
+init_sound()
 new CDPlayer
 CthughaBuffer::initAll()
 init_border()
@@ -69,7 +69,7 @@ displayDevice->mainLoop()
 Read this as "build long-lived singletons, then hand control to the selected
 frontend." The code is C++, but ownership is still mostly global:
 `displayDevice`, `cthughaDisplay`, `cdPlayer`, `autoChanger`, `audioAnalysis`,
-`acousticContext`, and sometimes the legacy `soundDevice`.
+and `acousticContext`.
 
 ## 2. The Frontend Loop Calls `run()`
 
@@ -119,7 +119,7 @@ char2 data[1024];
 char2 processed[1024];
 ```
 
-Use these functions instead of reading `soundDevice` directly:
+Use these functions instead of coupling visual code to a concrete input path:
 
 ```cpp
 audioFrameData();
@@ -127,8 +127,8 @@ audioFrameProcessedData();
 audioFrameCurrent();
 ```
 
-They hide whether the current data came from the native file pipeline, a native
-input processor, a legacy `SoundDevice`, or silent fallback buffers.
+They hide whether the current data came from file playback, live/random input,
+or silent fallback buffers.
 
 ## 5. Concept: CoreOption
 
@@ -173,7 +173,7 @@ unsigned char* activeBuffer;
 unsigned char* passiveBuffer;
 ```
 
-During the legacy transform:
+During the classic transform:
 
 - `activeBuffer` is the buffer being written for the next finished image.
 - `passiveBuffer` is the previous/current finished image.
@@ -208,9 +208,9 @@ This gives later modules a consistent frame timestamp.
 
 `audioFrameTick()` calls `audioRuntimeTick()`.
 
-There are three broad cases.
+There are two broad cases.
 
-Native file playback:
+File playback:
 
 ```text
 AudioInput reads WavPcmSource/Minimp3PcmSource
@@ -219,16 +219,10 @@ AudioOutput writes Pulse, OSS, or null output
 AudioFrameBuilder builds the visual frame around the audible sample
 ```
 
-Native live/random input:
+Live/random input:
 
 ```text
 PcmSource -> AudioInput -> AudioInputProcessor
-```
-
-Legacy fallback:
-
-```text
-SoundDevice::operator()()
 ```
 
 The result is always exposed as a 1024-sample signed 8-bit stereo visual frame
@@ -310,7 +304,7 @@ functions. It asks the CoreOption system to move current selections.
 ## 13. Step 4: VisualPipeline
 
 `runVisualPipeline()` initializes the default visual pipeline if needed, binds a
-`CthughaFrameBuffer` to the current legacy buffer pointers, builds a
+`CthughaFrameBuffer` to the current classic buffer pointers, builds a
 `VisualFrameContext`, and calls:
 
 ```cpp

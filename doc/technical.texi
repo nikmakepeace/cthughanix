@@ -145,7 +145,6 @@ screen by pressing @key{X}. Cthugha also uses the palette stored in a
 PCX file.
 
 For information about the format of such an image, read a book about 
-file formats. PCX is a very simple form of saving pictures, it is used
-mainly for historic reasons (the DOS version used it). Maybe in future
-versions also other file formats will be supported.
-
+file formats. PCX is a very simple form of saving pictures, used here for
+compatibility with the DOS version. Maybe in future versions also other file
+formats will be supported.

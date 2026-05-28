@@ -14,7 +14,7 @@
 |-- external/minimp3/    embedded MP3 decoder used by the modern audio path
 |-- external/cthugha-js/ JavaScript port/reference implementation
 |-- build/               populated CMake build directory
-|-- precompiled/         historical 32-bit Linux binaries
+|-- precompiled/         old 32-bit Linux binaries
 |-- CMakeLists.txt       modern build entry point
 |-- cmake/config.h.in    CMake config header template
 |-- Makefile.am          automake root
@@ -25,8 +25,7 @@
 `-- cthugha.ini.eg       example config file
 ```
 
-`project-docs/` also exists, but those files are older LLM-generated notes and
-were not updated in this pass. The authoritative project notes are the root
+`project-docs/` contains short compatibility pointers to the authoritative root
 `PROJECT_*.md` files.
 
 The tree contains local build artifacts in `src/`, `tab/`, `doc/`, and
@@ -47,7 +46,7 @@ boundary.
 - `tab/cmd_*.c`, `tab/cmdRead.cc`: translation-table generator/reader tools used
   by `.cmd` descriptors.
 
-There is no current `cthugha-server` source entry point in `src/`.
+There is no current server-mode source entry point in `src/`.
 
 ### Runtime and Composition
 
@@ -68,7 +67,7 @@ There is no current `cthugha-server` source entry point in `src/`.
 
 ### Legacy Visual Core
 
-- `src/CthughaBuffer.*`: classic per-buffer effect state and the coarse legacy
+- `src/CthughaBuffer.*`: classic per-buffer effect state and the coarse
   `flame -> translate -> wave -> swap` transform.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
@@ -84,20 +83,20 @@ There is no current `cthugha-server` source entry point in `src/`.
   `Filter2`, and `FFT`.
 - `src/AudioAnalyzer.*`: RMS-like frame analysis plus rolling
   `AcousticContext` intensity/fire state.
-- `src/SoundDevice.*`: legacy backend interface retained as fallback and for
-  migrated code compatibility.
-- `src/SoundDeviceDSP.cc`: OSS `/dev/dsp` input/output implementation and
-  `DspPcmSource`.
-- `src/SoundDeviceFile.cc`: legacy file, fifo, and external-program playback
-  path for unsupported formats.
-- `src/SoundDeviceFork.cc`: legacy fork/shared-memory file playback reader.
-- `src/SoundDeviceRandom.cc`: random-noise source.
-- `src/sound.cc`, `src/Sound.h`: sound option registry and lifecycle wrapper.
-- `src/Mixer.cc`: OSS mixer integration.
+- `src/AudioTypes.h`: shared audio sample and input-mode definitions.
+- `src/AudioOptions.h`: audio option globals shared by option parsing and
+  runtime construction.
+- `src/AudioSystem.*`: sound lifecycle wrapper, input-mode defaults, raw-format
+  options, and suspend/resume entry points.
+- `src/Audio.*`: PCM sources, input, buffering, output, Pulse/OSS/null output,
+  and visual-frame construction.
+- `src/PcmSourceFactory.*`: maps settings and file names to line input, random
+  noise, WAV, MP3, or raw PCM sources.
+- `src/Mixer.*`: OSS mixer integration.
 - `src/CDPlayer.*`: CD-ROM ioctl integration when compiled in.
 
-`SoundAnalyze.*`, `SoundProcess.cc`, `SoundDeviceNet.cc`, `SoundServer.*`,
-`network.*`, and `serv_main.cc` are not current source files.
+Old analyzer/processor/server/network audio source files are not current source
+files.
 
 ### 2D Visual Effects
 
@@ -137,7 +136,7 @@ The modern CMake build only wires up the X11 frontend.
   `src/InterfaceList.cc`: specific screens.
 - `src/keymap.*`: configurable keymaps and action dispatch.
 - `src/default.keymap`: default keymap source.
-- `src/default.keymap.str`: generated C string include in legacy/in-tree builds;
+- `src/default.keymap.str`: generated C string include in in-tree builds;
   CMake generates its own copy under `build/src/`.
 - `src/keys.cc`: key symbol translation and terminal/X/GL key polling.
 - `src/nonx_keys.cc`, `src/xwin_keys.cc`, `src/GL_keys.cc`: wrapper variants for
@@ -149,7 +148,7 @@ The modern CMake build only wires up the X11 frontend.
   generated `.cthugha.auto`.
 - `src/info_title_usage.cc`: title/help/usage output.
 - `src/disp-ncurses.cc`: ncurses setup/teardown.
-- `src/joystick.*`: Linux joystick input for GL camera movement and legacy UI
+- `src/joystick.*`: Linux joystick input for GL camera movement and old UI
   options.
 
 ## Build Targets and Source Groups
@@ -167,15 +166,15 @@ Current CMake targets:
 
 ### Autotools
 
-`src/Makefile.am` still describes these legacy source sets:
+`src/Makefile.am` still describes these source sets:
 
-- `GENSRC`: shared options, modern audio/runtime files, sound, UI, misc, base
+- `GENSRC`: shared options, audio/runtime files, UI, misc, base
   display classes, autochanger, analyzer, and pipeline scaffolding.
 - `DISPSRC`: `GENSRC` plus visual effects, palettes, PCX, translation,
   `AudioProcessor`, `CthughaBuffer`, `initExitDisp`, flashlight, and help UI.
 - `NONXSRC`: non-X key/options wrappers.
 
-Legacy target source sets:
+Autotools target source sets:
 
 | Target | Purpose | Distinct source pieces |
 | --- | --- | --- |

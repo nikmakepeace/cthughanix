@@ -107,22 +107,15 @@ static void audioRuntimeDebugDecodedPcm(const char* data, int samples, int bytes
         int(soundSampleRate));
 }
 
-#ifndef WITH_MINIMP3
-#define WITH_MINIMP3 1
-#endif
+static int audioRuntimeUsesNativeFilePipeline(const Settings& settings,
+    AudioSourceStrategy sourceStrategy) {
+    if (settings.audioInputMode != AIM_File)
+        return 0;
 
-static const char* audioRuntimeContextName(RuntimeSoundInputContext context) {
-    return (context == RSIC_FileChild) ? "file child" : "main process";
-}
+    if (sourceStrategy == ASS_Unknown)
+        CTH_TRACE("file input has no PCM source strategy\n", "audio runtime");
 
-static int audioRuntimeUsesNativeFilePipeline(AudioSourceStrategy sourceStrategy) {
-    if (sourceStrategy == ASS_WavFile)
-        return 1;
-#if WITH_MINIMP3 == 1
-    if (sourceStrategy == ASS_Mp3File)
-        return 1;
-#endif
-    return 0;
+    return 1;
 }
 
 static int audioRuntimeBytesPerSample() {
@@ -399,9 +392,9 @@ static void audioRuntimeAnnounceComplete() {
     cthugha_close++;
 }
 
-void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputControls) {
-    CTH_TRACE("init requested context=%s initialize-input-controls=%d\n", "audio runtime",
-        audioRuntimeContextName(context), initializeInputControls);
+void audioRuntimeInit(int initializeInputControls) {
+    CTH_TRACE("init requested initialize-input-controls=%d\n", "audio runtime",
+        initializeInputControls);
 
     if (audioRuntimeIsInitialized()) {
         CTH_TRACE("init skipped because audio is already installed\n", "audio runtime");
@@ -418,7 +411,7 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
     audioRuntimeCallbackDrainStarted.store(0);
     audioRuntimeCompletionAnnounced = 0;
 
-    if (audioRuntimeUsesNativeFilePipeline(sourceStrategy)) {
+    if (audioRuntimeUsesNativeFilePipeline(settings, sourceStrategy)) {
         audioInput = runtimeFactory.createAudioInput();
         if ((audioInput == NULL) || audioInput->hasError()) {
             CTH_TRACE("native file input construction failed strategy=%d\n", "audio runtime",
@@ -467,19 +460,19 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
             audioRuntimeStrategyVisualSlackSamples());
     } else {
         audioProcessor = runtimeFactory.createAudioProcessor();
-        if (audioProcessor != NULL) {
-            CTH_TRACE("installed native AudioInputProcessor path\n", "audio runtime");
-            if (initializeInputControls && audioProcessor->audioInput()->initInputControls()) {
-                CTH_TRACE("native input control initialization failed\n", "audio runtime");
-                exit(0);
-            }
-        } else {
-            CTH_TRACE("native AudioInputProcessor unavailable; using legacy SoundDevice path\n", "audio runtime");
-            SoundDevice::install(runtimeFactory.createLegacySoundDevice(context), initializeInputControls);
+        if (audioProcessor == NULL) {
+            CTH_TRACE("native AudioInputProcessor unavailable\n", "audio runtime");
+            exit(0);
+        }
+
+        CTH_TRACE("installed native AudioInputProcessor path\n", "audio runtime");
+        if (initializeInputControls && audioProcessor->audioInput()->initInputControls()) {
+            CTH_TRACE("native input control initialization failed\n", "audio runtime");
+            exit(0);
         }
     }
 
-    CTH_TRACE("init completed context=%s\n", "audio runtime", audioRuntimeContextName(context));
+    CTH_TRACE("init completed\n", "audio runtime");
 }
 
 void audioRuntimeTick() {
@@ -517,13 +510,11 @@ void audioRuntimeTick() {
         return;
     }
 
-    if (soundDevice)
-        (*soundDevice)();
 }
 
 void audioRuntimeShutdown() {
-    CTH_TRACE("shutdown requested pipeline=%d native=%d legacy=%d\n", "audio runtime",
-        audioBuffer != NULL, audioProcessor != NULL, soundDevice != NULL);
+    CTH_TRACE("shutdown requested pipeline=%d native=%d\n", "audio runtime",
+        audioBuffer != NULL, audioProcessor != NULL);
     audioRuntimeStopThreads();
 
     delete[] audioRuntimeChunk;
@@ -555,13 +546,11 @@ void audioRuntimeShutdown() {
     audioRuntimeChunkSamples = 0;
     audioRuntimeOutputChunkSamples = 0;
 
-    delete soundDevice;
-    soundDevice = NULL;
     CTH_TRACE("shutdown completed\n", "audio runtime");
 }
 
 int audioRuntimeIsInitialized() {
-    return (audioBuffer != NULL) || (audioProcessor != NULL) || (soundDevice != NULL);
+    return (audioBuffer != NULL) || (audioProcessor != NULL);
 }
 
 AudioInputProcessor* audioRuntimeProcessor() {

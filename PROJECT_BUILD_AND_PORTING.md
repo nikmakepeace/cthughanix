@@ -6,7 +6,7 @@ The project currently has two build paths:
 
 - modern CMake, which is the verified reference path in this workspace;
 - old autoconf/automake files, still maintained enough to describe/build the
-  legacy target layout.
+  non-reference frontends.
 
 The CMake files are:
 
@@ -66,7 +66,7 @@ Major CMake options:
   `libpulse-simple` is available. Default: `ON`.
 - `CTH_ENABLE_DSP`: enable OSS `/dev/dsp` support when soundcard headers are
   available. Default: `ON`.
-- `CTH_ENABLE_CDROM`: enable legacy CD-ROM controls when headers are available.
+- `CTH_ENABLE_CDROM`: enable CD-ROM controls when headers are available.
   Default: `OFF`.
 - `CTH_ENABLE_MIXER`: enable OSS mixer controls when soundcard headers are
   available. Default: `ON`.
@@ -112,7 +112,7 @@ Current generated autotools target state:
 - selected setuid programs: none;
 - `cthugha` and `glcthugha` remain `EXTRA_PROGRAMS`, not selected in the
   current generated Makefiles;
-- `cthugha-server` is not a current target.
+- the old server-mode program is not a current target.
 
 Major `configure.in` options:
 
@@ -124,14 +124,13 @@ Major `configure.in` options:
 - `--without-pulse`: disable PulseAudio-compatible output.
 - `--with-cdrom=DEV` / `--without-cdrom`: CD-ROM ioctl support.
 - `--with-mixer=DEV` / `--without-mixer`: OSS mixer.
-- `--without-mpg123`: prefer `l3dec` in the legacy decoder path.
 - `--with-arch=ARCH`: old CPU optimization selection.
 
 Removed/stale options from earlier project notes:
 
 - `--disable-serv` is not present.
 - `--without-network` is not present.
-- `cthugha-server` is not built from current source files.
+- the old server-mode program is not built from current source files.
 
 Current generated autotools config state from `config.h` and generated
 Makefiles:
@@ -174,12 +173,10 @@ Audio and media:
 - optional OSS `/dev/dsp`;
 - optional OSS mixer ioctls;
 - optional Linux/Unix CD-ROM ioctls;
-- optional legacy external `mpg123`, `l3dec`, and `xmp` paths in
-  `SoundDeviceFile`.
 
-Legacy/non-reference frontends:
+Non-reference frontends:
 
-- SVGAlib requires `libvga`, `libvgagl`, and historically setuid console
+- SVGAlib requires `libvga`, `libvgagl`, and traditionally setuid console
   access.
 - OpenGL requires OpenGL, GLU, GLUT, and old paletted-texture assumptions.
 
@@ -251,7 +248,7 @@ local logging path rather than adding a new one.
   handling variants.
 - `nonGL_stubs.cc` is needed for non-GL targets because shared code references
   GL option globals.
-- CMake generates `default.keymap.str` under `build/src/`; legacy in-tree builds
+- CMake generates `default.keymap.str` under `build/src/`; in-tree builds
   may generate `src/default.keymap.str`.
 - CMake currently builds only the X11 frontend, even though SVGAlib/OpenGL source
   files still exist.
@@ -269,13 +266,13 @@ Recommended practice:
 - Use CMake for active development.
 - Keep the autotools files coherent while they remain in the tree, but avoid
   relying on stale build artifacts.
-- Keep SVGAlib and OpenGL as source-preserved legacy frontends until they are
+- Keep SVGAlib and OpenGL as source-preserved non-reference frontends until they are
   intentionally revived or removed.
 - Treat `xcthugha` as the behavioral reference when modernizing.
 
-### Phase 2: Continue The Audio Migration
+### Phase 2: Extend The Modern Audio Runtime
 
-The new audio seams are already in place:
+The audio seams are now the only playback/input model:
 
 - `RuntimeFactory`;
 - `PcmSourceFactory`;
@@ -289,10 +286,10 @@ The new audio seams are already in place:
 Good next steps:
 
 - Add an ALSA/PipeWire-native input/output path through these interfaces.
-- Reduce fallback dependence on `SoundDeviceFile` for raw/MOD/legacy decoder
-  cases.
+- Add targeted tests for raw PCM, EOF/drain handling, and latency-driven visual
+  sample selection.
 - Keep visual code reading through `audioFrameData()` and
-  `audioFrameProcessedData()` rather than directly from `soundDevice`.
+  `audioFrameProcessedData()`.
 
 ### Phase 3: Continue The Visual Pipeline Migration
 
