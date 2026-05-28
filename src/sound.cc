@@ -99,7 +99,6 @@ const int OptionFormat::nFmts = sizeof(OptionFormat::fmts) / sizeof(const char*)
 SoundDevice* soundDevice = NULL;
 
 static OptionInt soundDeviceNrImpl = OptionInt("sound-device-number", SDN_DSPIn, SDN_Max);
-static OptionOnOff soundForkImpl("sound-fork", 0);
 
 static OptionSound soundSampleRateImpl("sound-sample-rate", 44000);
 static OptionChannels soundChannelsImpl("sound-channels", 2);
@@ -114,7 +113,6 @@ static OptionSound soundBufferImpl("sound-buffer", 1024);
 static OptionSoundOnOff soundSilentImpl("silent", 0);
 
 Option& soundDeviceNr = soundDeviceNrImpl;
-Option& soundFork = soundForkImpl;
 Option& soundSampleRate = soundSampleRateImpl;
 Option& soundChannels = soundChannelsImpl;
 Option& soundFormat = soundFormatImpl;

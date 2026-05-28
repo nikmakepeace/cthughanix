@@ -1,7 +1,6 @@
 // Sound subsystem entry points shared by the main program and sound backends.
-// SoundDevice owns the active input strategy; this header exposes lifecycle
-// hooks plus the older mixer/process helpers still used by platform-specific
-// implementations.
+// AudioRuntime owns backend selection; this header exposes lifecycle hooks plus
+// the older mixer bridge still used by OSS capture paths.
 
 #ifndef __SOUND_H__
 #define __SOUND_H__
@@ -15,13 +14,6 @@ int exit_sound();
 
 // Parent/child control channel used by SoundDeviceFork.
 int sound_communicate(int to_child = 1);
-
-extern int sine[320];
-int sound_read();
-int sound_fork_process();
-int sound_kill_process();
-
-int massage_audio();
 
 int mixer_initial_volume(char* name, int volume);
 int init_mixer();
