@@ -3,18 +3,24 @@
 #include "AudioAnalyzer.h"
 #include "AudioProcessor.h"
 #include "AudioFrame.h"
+#ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
 #include "AutoChanger.h"
+#endif
 
 AudioVisualBridge::AudioVisualBridge()
     : pipelineRefreshRequestedValue(0) {
     CTH_TRACE("creating bridge\n", "audio visual bridge");
+#ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
     autoChanger = new AutoChanger;
+#endif
 }
 
 AudioVisualBridge::~AudioVisualBridge() {
     CTH_TRACE("destroying bridge\n", "audio visual bridge");
+#ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
     delete autoChanger;
     autoChanger = 0;
+#endif
 }
 
 void AudioVisualBridge::runFrame() {
@@ -36,8 +42,10 @@ void AudioVisualBridge::runFrame() {
     audioAnalyzer();
     double analyzed = CTH_LOG_ENABLED(CTH_LOG_TRACE) ? getTime() : 0.0;
 
+#ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
     if (autoChanger != 0)
         (*autoChanger)();
+#endif
 
     if (CTH_LOG_ENABLED(CTH_LOG_TRACE)) {
         double done = getTime();

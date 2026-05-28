@@ -135,9 +135,13 @@ CVS/
 # Test files
 *.mp3
 *.wav
+!tests/fixtures/
+!tests/fixtures/audio/
+!tests/fixtures/audio/*.wav
 
 # compiled object files
 /obj/*.obj
+__pycache__/
 
 # customised ini file
 /*.ini

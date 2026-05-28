@@ -28,4 +28,8 @@ char2* audioFrameData();
 char2* audioFrameProcessedData();
 int audioFrameBroadcastBytes();
 
+#ifdef CTH_AUDIO_FRAME_TEST_OVERRIDE
+void audioFrameSetTestOverride(AudioFrame* frame);
+#endif
+
 #endif

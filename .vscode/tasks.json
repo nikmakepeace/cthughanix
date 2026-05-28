@@ -37,6 +37,78 @@
         "problemMatcher": "$gcc"
     },
     {
+        "label": "CMake: configure benchmarks",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+            "-S",
+            "${workspaceFolder}",
+            "-B",
+            "${workspaceFolder}/build",
+            "-DCMAKE_BUILD_TYPE=Debug",
+            "-DCTH_BUILD_BENCHMARKS=ON"
+        ],
+        "options": {
+            "cwd": "${workspaceFolder}"
+        },
+        "problemMatcher": []
+    },
+    {
+        "label": "Benchmarks: build audio pipeline",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+            "--build",
+            "${workspaceFolder}/build",
+            "--target",
+            "audio_pipeline_bench",
+            "--parallel"
+        ],
+        "options": {
+            "cwd": "${workspaceFolder}"
+        },
+        "dependsOn": "CMake: configure benchmarks",
+        "problemMatcher": "$gcc"
+    },
+    {
+        "label": "Benchmarks: run audio pipeline report",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+            "--build",
+            "${workspaceFolder}/build",
+            "--target",
+            "audio_pipeline_benchmark_report"
+        ],
+        "options": {
+            "cwd": "${workspaceFolder}"
+        },
+        "dependsOn": "CMake: configure benchmarks",
+        "problemMatcher": "$gcc"
+    },
+    {
+        "label": "Benchmarks: quick audio pipeline report",
+        "type": "shell",
+        "command": "python3",
+        "args": [
+            "${workspaceFolder}/tools/run_audio_pipeline_benchmarks.py",
+            "--build-dir",
+            "${workspaceFolder}/build",
+            "--source-dir",
+            "${workspaceFolder}",
+            "--repetitions",
+            "5",
+            "--warmup-time",
+            "0.05",
+            "--benchmark-arg=--benchmark_min_time=0.03s"
+        ],
+        "options": {
+            "cwd": "${workspaceFolder}"
+        },
+        "dependsOn": "Benchmarks: build audio pipeline",
+        "problemMatcher": []
+    },
+    {
         "label": "CMake: clean",
         "type": "shell",
         "command": "cmake",
