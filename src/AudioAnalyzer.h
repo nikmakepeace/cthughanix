@@ -4,7 +4,7 @@
 #define __AUDIO_ANALYZER_H
 
 #include "cthugha.h"
-#include "AudioTypes.h"
+#include "Sound.h"
 
 #include "CoreOption.h"
 

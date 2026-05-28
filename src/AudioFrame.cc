@@ -27,6 +27,9 @@ void audioFrameChange() {
         audioRuntimeProcessor()->change();
         return;
     }
+
+    if (soundDevice)
+        soundDevice->change();
 }
 
 AudioFrame* audioFrameCurrent() {
@@ -40,7 +43,7 @@ char2* audioFrameData() {
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->data;
 
-    return silentAudioFrameData;
+    return soundDevice ? soundDevice->data : silentAudioFrameData;
 }
 
 char2* audioFrameProcessedData() {
@@ -50,7 +53,7 @@ char2* audioFrameProcessedData() {
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->dataProc;
 
-    return silentAudioFrameProcessedData;
+    return soundDevice ? soundDevice->dataProc : silentAudioFrameProcessedData;
 }
 
 int audioFrameBroadcastBytes() {
@@ -62,5 +65,5 @@ int audioFrameBroadcastBytes() {
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->frameRawSize();
 
-    return 0;
+    return soundDevice ? soundDevice->frameRawSize() : 0;
 }

@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "Sound.h"
 #include "waves.h"
 
 // TODO: This should be change to OptionList

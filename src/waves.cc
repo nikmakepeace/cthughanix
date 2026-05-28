@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "Sound.h"
 #include "AudioFrame.h"
 #include "display.h"
 #include "Interface.h"

@@ -4,9 +4,11 @@
 GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 	Audio.cc AudioFrame.cc AudioRuntime.cc RuntimeFactory.cc		\
 	PcmSourceFactory.cc AudioVisualBridge.cc			\
-	Mixer.cc CDPlayer.cc imath.cc AudioSystem.cc IniFiles.cc		\
+	SoundDeviceDSP.cc SoundDeviceFile.cc SoundDeviceFork.cc		\
+	SoundDeviceRandom.cc						\
+	Mixer.cc CDPlayer.cc imath.cc sound.cc	IniFiles.cc		\
 	Interface.cc info_title_usage.cc disp-ncurses.cc		\
-	misc.cc DisplayDevice.cc				\
+	SoundDevice.cc misc.cc DisplayDevice.cc				\
 	AutoChanger.cc AudioAnalyzer.cc  CthughaDisplay.cc 		\
 	CthughaFrameBuffer.cc Border.cc VisualPipeline.cc VisualDirector.cc	\
 	keymap.cc InterfaceCredits.cc InterfaceList.cc			\
@@ -55,14 +57,14 @@ tabinfo_SOURCES = tabinfo.cc
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       RuntimeFactory.h  PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    CthughaFrameBuffer.h VisualPipeline.h VisualDirector.h flames.h          pcx.h		\
-        CDPlayer.h        Mixer.h  \
+	Audio.h           AudioFrame.h      AudioRuntime.h    RuntimeFactory.h  PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    CthughaFrameBuffer.h VisualPipeline.h VisualDirector.h flames.h          pcx.h		\
+        CDPlayer.h        SoundDevice.h  \
 	CoreOption.h      AudioProcessor.h    Border.h          Flashlight.h      imath.h           tab_header.h	\
 	CthughaBuffer.h   information.h     translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\
 	Option.h          disp-sys.h        xcthugha.h	\
-	display.h         options.h	      glcthugha.h	\
+	Sound.h           display.h         options.h	      glcthugha.h	\
 	Interface.h	  keymap.h	    joystick.h				\
 										\
 	keys.cc options.cc			\

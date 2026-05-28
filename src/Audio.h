@@ -1,9 +1,13 @@
-// Audio input, output, buffering, and frame conversion interfaces.
+// New audio composition interfaces.
+//
+// These classes are intentionally separate from SoundDevice*.  They provide a
+// target shape for the new startup path while the legacy sound backends remain
+// intact during migration.
 
 #ifndef __AUDIO_H
 #define __AUDIO_H
 
-#include "AudioOptions.h"
+#include "SoundDevice.h"
 #include "AudioFrame.h"
 
 #include <stdio.h>
@@ -160,7 +164,6 @@ public:
     int queuedForOutputSamples() const;
     int protectedWindowSamples() const;
     int writableSamples() const;
-    long long oldestProtectedPosition() const;
     long long decodedEndPosition() const;
     long long submittedEndPosition() const;
     void clear();
@@ -269,22 +272,6 @@ class Minimp3PcmSource : public PcmSource {
 public:
     Minimp3PcmSource(const char* name);
     virtual ~Minimp3PcmSource();
-
-    virtual int read(char* dst, int rawSize, int samplesRequested);
-    virtual int canFinish() const;
-    virtual void rewind();
-};
-
-class RawFilePcmSource : public PcmSource {
-    char name[PATH_MAX];
-    FILE* file;
-
-    int open();
-    int applyFormat();
-
-public:
-    RawFilePcmSource(const char* name);
-    virtual ~RawFilePcmSource();
 
     virtual int read(char* dst, int rawSize, int samplesRequested);
     virtual int canFinish() const;

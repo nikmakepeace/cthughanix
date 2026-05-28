@@ -9,14 +9,19 @@ set(CTHUGHA_COMMON_SOURCES
     RuntimeFactory.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc
+    SoundDeviceDSP.cc
+    SoundDeviceFile.cc
+    SoundDeviceFork.cc
+    SoundDeviceRandom.cc
     Mixer.cc
     CDPlayer.cc
     imath.cc
-    AudioSystem.cc
+    sound.cc
     IniFiles.cc
     Interface.cc
     info_title_usage.cc
     disp-ncurses.cc
+    SoundDevice.cc
     misc.cc
     DisplayDevice.cc
     AutoChanger.cc

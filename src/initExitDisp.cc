@@ -6,7 +6,7 @@
 #include "cth_buffer.h"
 #include "information.h"
 #include "display.h"
-#include "AudioSystem.h"
+#include "Sound.h"
 #include "AudioFrame.h"
 #include "AudioRuntime.h"
 #include "AudioVisualBridge.h"
@@ -110,7 +110,7 @@ void sig_tty_stop(int) {
 void sig_tty_cont(int) {
     CTH_INFO("Continuing...\n");
 
-    init_audio();
+    init_sound();
 
     signal(SIGTSTP, sig_tty_stop);
 
@@ -268,7 +268,7 @@ void run(int doDisplay) {
     if (cthugha_pause) {
         cthugha_pause = 0;
 
-        exit_audio();
+        exit_sound();
 
         raise(SIGTSTP);
     }

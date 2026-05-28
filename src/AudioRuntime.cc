@@ -107,21 +107,22 @@ static void audioRuntimeDebugDecodedPcm(const char* data, int samples, int bytes
         int(soundSampleRate));
 }
 
+#ifndef WITH_MINIMP3
+#define WITH_MINIMP3 1
+#endif
+
 static const char* audioRuntimeContextName(RuntimeSoundInputContext context) {
-    (void)context;
-    return "main process";
+    return (context == RSIC_FileChild) ? "file child" : "main process";
 }
 
-static int audioRuntimeUsesNativeFilePipeline(const Settings& settings,
-    AudioSourceStrategy sourceStrategy) {
-    if (settings.audioInputMode != AIM_File)
-        return 0;
-
-    if (sourceStrategy == ASS_Unknown)
-        CTH_TRACE("file input has no PCM source strategy; not using legacy fallback\n",
-            "audio runtime");
-
-    return 1;
+static int audioRuntimeUsesNativeFilePipeline(AudioSourceStrategy sourceStrategy) {
+    if (sourceStrategy == ASS_WavFile)
+        return 1;
+#if WITH_MINIMP3 == 1
+    if (sourceStrategy == ASS_Mp3File)
+        return 1;
+#endif
+    return 0;
 }
 
 static int audioRuntimeBytesPerSample() {
@@ -143,13 +144,23 @@ static int audioRuntimeStrategyChunkSamples() {
     return samples;
 }
 
-static int audioRuntimeStrategyBufferSamples(int protectedHistorySamples,
-    int queuedTargetSamples, int chunkSamples) {
-    int samples = audioRuntimeSamplesPerSecond() * 3;
-    int requiredSamples = protectedHistorySamples + queuedTargetSamples + chunkSamples;
+static int audioRuntimeStrategyVisualSlackSamples() {
+    int samplesPerSecond = audioRuntimeSamplesPerSecond();
+    int visualSlackSamples = samplesPerSecond / 4;
+    int observedVisualSlackSamples = 0;
 
-    if (samples < requiredSamples)
-        samples = requiredSamples;
+    if (cthughaDisplay != NULL)
+        observedVisualSlackSamples = (int)(cthughaDisplay->visualLatencySeconds()
+            * samplesPerSecond);
+    if (observedVisualSlackSamples > visualSlackSamples)
+        visualSlackSamples = observedVisualSlackSamples;
+
+    return visualSlackSamples + 1024;
+}
+
+static int audioRuntimeStrategyHistorySamples(const AudioOutput& output) {
+    int samples = output.targetDelaySamples() + audioRuntimeStrategyVisualSlackSamples();
+    int minimumSamples = audioRuntimeSamplesPerSecond();
 
     if (minimumSamples < 16384)
         minimumSamples = 16384;
@@ -159,12 +170,11 @@ static int audioRuntimeStrategyBufferSamples(int protectedHistorySamples,
     return samples;
 }
 
-static int audioRuntimeStrategyHistorySamples(int outputTargetDelaySamples) {
-    int samples = audioRuntimeSamplesPerSecond();
-    int requiredSamples = outputTargetDelaySamples + 1024;
-
-    if (samples < requiredSamples)
-        samples = requiredSamples;
+static int audioRuntimeStrategyBufferSamples(const AudioOutput& output,
+    int protectedHistorySamples, int inputChunkSamples) {
+    int decodeAheadSamples = output.targetDelaySamples() + inputChunkSamples * 2;
+    int samples = protectedHistorySamples + decodeAheadSamples;
+    int minimumSamples = audioRuntimeSamplesPerSecond() * 3;
 
     if (minimumSamples < 32768)
         minimumSamples = 32768;
@@ -408,7 +418,7 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
     audioRuntimeCallbackDrainStarted.store(0);
     audioRuntimeCompletionAnnounced = 0;
 
-    if (audioRuntimeUsesNativeFilePipeline(settings, sourceStrategy)) {
+    if (audioRuntimeUsesNativeFilePipeline(sourceStrategy)) {
         audioInput = runtimeFactory.createAudioInput();
         if ((audioInput == NULL) || audioInput->hasError()) {
             CTH_TRACE("native file input construction failed strategy=%d\n", "audio runtime",
@@ -434,36 +444,38 @@ void audioRuntimeInit(RuntimeSoundInputContext context, int initializeInputContr
         audioOutput->configureTiming(audioRuntimeSamplesPerSecond(), bytesPerSample,
             audioRuntimeChunkSamples);
         audioRuntimeOutputChunkSamples = audioOutput->scratchSamples();
-        int protectedHistorySamples
-            = audioRuntimeStrategyHistorySamples(audioOutput->targetDelaySamples());
-        int bufferSamples = audioRuntimeStrategyBufferSamples(protectedHistorySamples,
-            audioOutput->queuedTargetSamples(), audioRuntimeChunkSamples);
-        audioBuffer = new AudioBuffer(bufferSamples, bytesPerSample, protectedHistorySamples);
+        int protectedHistorySamples = audioRuntimeStrategyHistorySamples(*audioOutput);
+        int bufferSamples = audioRuntimeStrategyBufferSamples(*audioOutput,
+            protectedHistorySamples, audioRuntimeChunkSamples);
+        audioBuffer = new AudioBuffer(bufferSamples, bytesPerSample,
+            protectedHistorySamples);
         audioFrameBuilder = new AudioFrameBuilder();
         audioRuntimeChunk = new char[pcmBytesForSamples(audioRuntimeChunkSamples, bytesPerSample)];
         audioRuntimeOutputChunk = new char[pcmBytesForSamples(audioRuntimeOutputChunkSamples, bytesPerSample)];
         audioRuntimeFrame.clear();
         audioRuntimeStartThreads();
         CTH_DEBUG("    audio runtime: native file pipeline rate=%d channels=%d format=%s bytes-per-sample=%d input-chunk-samples=%d output-chunk-samples=%d target-delay-samples=%d protected-history-samples=%d buffer-samples=%d\n",
-        CTH_DEBUG("    audio runtime: native file pipeline rate=%d channels=%d format=%s bytes-per-sample=%d input-chunk-samples=%d output-chunk-samples=%d target-delay-samples=%d protected-history-samples=%d buffer-samples=%d\n",
             int(soundSampleRate), int(soundChannels), soundFormat.text(), bytesPerSample,
             audioRuntimeChunkSamples, audioRuntimeOutputChunkSamples,
             audioOutput->targetDelaySamples(), protectedHistorySamples, bufferSamples);
-        CTH_TRACE("installed native file pipeline strategy=%d input=%p buffer=%p output=%p frame-builder=%p input-chunk-samples=%d output-chunk-samples=%d bytes-per-sample=%d target-delay-samples=%d protected-history-samples=%d buffer-samples=%d\n", "audio runtime",
+        CTH_TRACE("installed native file pipeline strategy=%d input=%p buffer=%p output=%p frame-builder=%p input-chunk-samples=%d output-chunk-samples=%d bytes-per-sample=%d target-delay-samples=%d protected-history-samples=%d protected-history-ms=%d buffer-samples=%d buffer-ms=%d visual-slack-samples=%d\n", "audio runtime",
             sourceStrategy, audioInput, audioBuffer, audioOutput, audioFrameBuilder,
             audioRuntimeChunkSamples, audioRuntimeOutputChunkSamples, bytesPerSample,
-            audioOutput->targetDelaySamples(), protectedHistorySamples, bufferSamples);
+            audioOutput->targetDelaySamples(), protectedHistorySamples,
+            (protectedHistorySamples * 1000) / audioRuntimeSamplesPerSecond(),
+            bufferSamples, (bufferSamples * 1000) / audioRuntimeSamplesPerSecond(),
+            audioRuntimeStrategyVisualSlackSamples());
     } else {
         audioProcessor = runtimeFactory.createAudioProcessor();
-        if (audioProcessor == NULL) {
-            CTH_TRACE("native AudioInputProcessor unavailable\n", "audio runtime");
-            exit(0);
-        }
-
-        CTH_TRACE("installed native AudioInputProcessor path\n", "audio runtime");
-        if (initializeInputControls && audioProcessor->audioInput()->initInputControls()) {
-            CTH_TRACE("native input control initialization failed\n", "audio runtime");
-            exit(0);
+        if (audioProcessor != NULL) {
+            CTH_TRACE("installed native AudioInputProcessor path\n", "audio runtime");
+            if (initializeInputControls && audioProcessor->audioInput()->initInputControls()) {
+                CTH_TRACE("native input control initialization failed\n", "audio runtime");
+                exit(0);
+            }
+        } else {
+            CTH_TRACE("native AudioInputProcessor unavailable; using legacy SoundDevice path\n", "audio runtime");
+            SoundDevice::install(runtimeFactory.createLegacySoundDevice(context), initializeInputControls);
         }
     }
 
@@ -504,11 +516,14 @@ void audioRuntimeTick() {
         (*audioProcessor)();
         return;
     }
+
+    if (soundDevice)
+        (*soundDevice)();
 }
 
 void audioRuntimeShutdown() {
-    CTH_TRACE("shutdown requested pipeline=%d native=%d\n", "audio runtime",
-        audioBuffer != NULL, audioProcessor != NULL);
+    CTH_TRACE("shutdown requested pipeline=%d native=%d legacy=%d\n", "audio runtime",
+        audioBuffer != NULL, audioProcessor != NULL, soundDevice != NULL);
     audioRuntimeStopThreads();
 
     delete[] audioRuntimeChunk;
@@ -540,11 +555,13 @@ void audioRuntimeShutdown() {
     audioRuntimeChunkSamples = 0;
     audioRuntimeOutputChunkSamples = 0;
 
+    delete soundDevice;
+    soundDevice = NULL;
     CTH_TRACE("shutdown completed\n", "audio runtime");
 }
 
 int audioRuntimeIsInitialized() {
-    return (audioBuffer != NULL) || (audioProcessor != NULL);
+    return (audioBuffer != NULL) || (audioProcessor != NULL) || (soundDevice != NULL);
 }
 
 AudioInputProcessor* audioRuntimeProcessor() {

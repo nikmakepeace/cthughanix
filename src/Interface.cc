@@ -1,6 +1,7 @@
 #include "cthugha.h"
 #include "Interface.h"
 #include "keys.h"
+#include "Sound.h"
 #include "imath.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
