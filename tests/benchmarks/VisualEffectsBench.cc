@@ -43,7 +43,6 @@ int putini(const Option&) { return 0; }
 int init_wave() { return 0; }
 int load_palettes() { return 0; }
 int init_pcx() { return 0; }
-int show_pcx() { return 0; }
 
 char extra_lib_path[PATH_MAX] = "";
 CthughaDisplay* cthughaDisplay = NULL;

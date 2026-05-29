@@ -10,7 +10,6 @@
 #include "waves.h"
 
 double paletteSmoothingChance = 1.0;
-static int imageStageRequested = 0;
 
 static void bindSelectedBuffer(CthughaFrameBuffer& frameBuffer) {
     CthughaBuffer::current = CthughaBuffer::buffers + CthughaBuffer::nCurrent;
@@ -28,7 +27,9 @@ public:
         (void)context;
 
         CTH_TRACE("executing image stage\n", "visual pipeline");
-        show_pcx(frameBuffer);
+        PCXEntry* pcx = static_cast<PCXEntry*>(CthughaBuffer::current->pcx.current());
+        if (pcx != 0)
+            pcx->overlay(frameBuffer);
     }
 };
 
@@ -235,19 +236,25 @@ VisualPlan VisualDirector::planDefaultPipeline() const {
     return plan;
 }
 
-void VisualDirector::requestImageStage() {
-    imageStageRequested = 1;
+int VisualDirector::pcxSelectionChanged() {
+    int bufferIndex = int(CthughaBuffer::nCurrent);
+    if (bufferIndex < 0 || bufferIndex >= CthughaBuffer::maxNBuffers)
+        return 0;
+
+    if (int(pcxSelectionByBuffer.size()) < CthughaBuffer::maxNBuffers)
+        pcxSelectionByBuffer.resize(CthughaBuffer::maxNBuffers, -1);
+
+    int selectedPcx = CthughaBuffer::buffers[bufferIndex].pcx.currentN();
+    if (pcxSelectionByBuffer[bufferIndex] == selectedPcx)
+        return 0;
+
+    pcxSelectionByBuffer[bufferIndex] = selectedPcx;
+    return 1;
 }
 
-int VisualDirector::consumeImageStageRequest() {
-    int requested = imageStageRequested;
-    imageStageRequested = 0;
-    return requested;
-}
-
-void VisualDirector::configurePipeline(VisualPipeline& pipeline) const {
+void VisualDirector::configurePipeline(VisualPipeline& pipeline) {
     pipeline.setStageMode(VisualPlan::BufferFrameBeginStage, VisualStageEnabled);
-    if (consumeImageStageRequest())
+    if (pcxSelectionChanged())
         pipeline.setStageMode(VisualPlan::ImageStage, VisualStageArmedOnce);
     pipeline.setStageMode(VisualPlan::FlashlightStage,
         (int(flashlight) != 0) ? VisualStageEnabled : VisualStageDisabled);

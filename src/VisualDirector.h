@@ -5,6 +5,8 @@
 
 #include "VisualPipeline.h"
 
+#include <vector>
+
 class Environment;
 class Settings;
 
@@ -32,13 +34,13 @@ public:
 };
 
 class VisualDirector {
+    std::vector<int> pcxSelectionByBuffer;
+
+    int pcxSelectionChanged();
+
 public:
     VisualPlan planDefaultPipeline() const;
-    void configurePipeline(VisualPipeline& pipeline) const;
-    static void requestImageStage();
-
-private:
-    static int consumeImageStageRequest();
+    void configurePipeline(VisualPipeline& pipeline);
 };
 
 extern double paletteSmoothingChance;

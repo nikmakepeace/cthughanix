@@ -6,7 +6,6 @@
 #include "CthughaBuffer.h"
 #include "CthughaFrameBuffer.h"
 #include "CthughaDisplay.h"
-#include "VisualDirector.h"
 #include "imath.h"
 
 #include <unistd.h>
@@ -64,11 +63,6 @@ int init_pcx() {
     return 0;
 }
 
-int show_pcx() {
-    VisualDirector::requestImageStage();
-    return 0;
-}
-
 static int choose_image_left(int imageSize, int bufferSize) {
     if (imageSize > bufferSize)
         return -(Random(imageSize - bufferSize + 1));
@@ -77,14 +71,13 @@ static int choose_image_left(int imageSize, int bufferSize) {
 }
 
 /*
- * bring the active_pcx to the frame buffer
+ * Overlay this PCX onto the frame buffer.
  */
-int show_pcx(CthughaFrameBuffer& frameBuffer) {
+int PCXEntry::overlay(CthughaFrameBuffer& frameBuffer) const {
 
-    CTH_DEBUG("showing pcx `%s'...\n", CthughaBuffer::current->pcx.currentName());
-    PCXEntry* pcxE = (PCXEntry*)CthughaBuffer::current->pcx.current();
+    CTH_DEBUG("overlaying pcx `%s'...\n", Name());
 
-    if ((pcxE == NULL) || (pcxE->data == NULL))
+    if (data == NULL)
         return 0;
 
     unsigned char* active = frameBuffer.active();
@@ -96,22 +89,22 @@ int show_pcx(CthughaFrameBuffer& frameBuffer) {
     int height = frameBuffer.height();
     int pitch = frameBuffer.pitch();
 
-    int x = choose_image_left(pcxE->width, width);
-    int y = choose_image_left(pcxE->height, height);
+    int x = choose_image_left(this->width, width);
+    int y = choose_image_left(this->height, height);
 
     int src_x = (x < 0) ? -x : 0;
     int dst_x = (x > 0) ? x : 0;
-    int copy_w = min(pcxE->width - src_x, width - dst_x);
+    int copy_w = min(this->width - src_x, width - dst_x);
 
     int src_y = (y < 0) ? -y : 0;
     int dst_y = (y > 0) ? y : 0;
-    int copy_h = min(pcxE->height - src_y, height - dst_y);
+    int copy_h = min(this->height - src_y, height - dst_y);
 
     if (copy_w <= 0 || copy_h <= 0)
         return 0;
 
     for (int row = 0; row < copy_h; row++) {
-        unsigned char* src = pcxE->data + (src_y + row) * pcxE->width + src_x;
+        unsigned char* src = data + (src_y + row) * this->width + src_x;
         unsigned char* active_dst = active + (dst_y + row) * pitch + dst_x;
         unsigned char* passive_dst = passive + (dst_y + row) * pitch + dst_x;
 

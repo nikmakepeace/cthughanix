@@ -5,7 +5,8 @@
 
 #include "cthugha.h"
 #include "CoreOption.h"
-#include "display.h"
+
+class CthughaFrameBuffer;
 
 class PCXEntry : public CoreOptionEntry {
 
@@ -26,7 +27,7 @@ public:
         data = NULL;
     }
 
-    int operator()() { return show_pcx(); }
+    int overlay(CthughaFrameBuffer& frameBuffer) const;
 
     friend CoreOptionEntry* read_pcx(FILE*, const char*, const char*);
 };
@@ -36,14 +37,6 @@ class OptionPCX : public CoreOption {
 public:
     OptionPCX(int b, const char* n)
         : CoreOption(b, n, pcxEntries) { }
-    void change(int by, int doSave) {
-        CoreOption::change(by, doSave); // business as usuall
-        show_pcx();
-    }
-    void change(const char* to, int doSave) {
-        CoreOption::change(to, doSave);
-        show_pcx();
-    }
 };
 
 #endif
