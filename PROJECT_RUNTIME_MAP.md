@@ -226,13 +226,14 @@ code reads those rows as boundary data.
 `VisualDirector::planDefaultPipeline()` currently includes these stages:
 
 ```text
+BufferFrameBeginStage
+ImageStage
 FlashlightStage
 BorderStage
-BufferTransformStage  # expressed as begin/end frame modules
-ImageStage            # currently null
 FlameStage
 TranslateStage
 WaveStage
+BufferFrameEndStage
 PaletteStage
 ```
 
@@ -240,10 +241,10 @@ PaletteStage
 order:
 
 ```text
+BufferFrameBeginModule
+ImageStageModule
 FlashlightVisualModule
 BorderVisualModule
-BufferFrameBeginModule
-NullVisualStageModule("image")
 FlameStageModule
 TranslateStageModule
 WaveStageModule
@@ -251,9 +252,11 @@ BufferFrameEndModule
 PaletteStageModule
 ```
 
-`FlameStageModule`, `TranslateStageModule`, and `WaveStageModule` are now real
-stages. They select the current `FlameEntry`, `TranslateEntry`, or `WaveEntry`
-and call `execute(frameBuffer, context)` on the object.
+`ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
+`WaveStageModule` are real stages. Image overlays the currently selected PCX
+when `VisualDirector` arms the one-shot image stage. Flame, translate, and wave
+select the current `FlameEntry`, `TranslateEntry`, or `WaveEntry` and call
+`execute(frameBuffer, context)` on the object.
 
 Current limitation: the stages still select and bind through the global
 `CthughaBuffer::buffers` registry and `CthughaBuffer::current`. The intended
@@ -289,8 +292,10 @@ modules. The frame-level order is:
 
 ```text
 BufferFrameBeginModule
-  clear done_translate for each active buffer
   bind the selected buffer to CthughaFrameBuffer
+
+ImageStageModule
+  overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
   bind each active buffer
@@ -315,8 +320,7 @@ BufferFrameEndModule
 The order matters:
 
 - `flame` propagates/decays the previous finished image.
-- `translate` remaps pixels using loaded translation tables unless the flame
-  folded translation into its own loop and set `done_translate`.
+- `translate` remaps pixels using loaded translation tables as its own stage.
 - `wave` draws fresh sound-reactive marks into the active buffer.
 - swapping makes the finished frame become `passiveBuffer`, which display code
   reads.

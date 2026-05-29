@@ -37,23 +37,24 @@ state updates, and automatic option changes before visual mutation.
 default pipeline stages are:
 
 ```text
+BufferFrameBeginStage
+ImageStage
 FlashlightStage
 BorderStage
-BufferTransformStage  # expands to begin/end indexed-buffer modules
-ImageStage            # currently null
 FlameStage
 TranslateStage
 WaveStage
+BufferFrameEndStage
 PaletteStage
 ```
 
 In module form, this is currently:
 
 ```text
+BufferFrameBeginModule
+ImageStageModule
 FlashlightVisualModule
 BorderVisualModule
-BufferFrameBeginModule
-NullVisualStageModule("image")
 FlameStageModule
 TranslateStageModule
 WaveStageModule
@@ -61,10 +62,11 @@ BufferFrameEndModule
 PaletteStageModule
 ```
 
-Flame, translate, and wave are real object-executing stages now. They still use
-the legacy `CthughaBuffer` globals to select/bind the active buffer, but they
-call the selected `FlameEntry`, `TranslateEntry`, or `WaveEntry` through
-`execute(frameBuffer, context)`.
+Image, flame, translate, and wave are real object-executing stages now. The
+image stage overlays the selected PCX when `VisualDirector` arms it once.
+Flame, translate, and wave still use the legacy `CthughaBuffer` globals to
+select/bind the active buffer, but they call the selected `FlameEntry`,
+`TranslateEntry`, or `WaveEntry` through `execute(frameBuffer, context)`.
 
 ## Where Audio Affects Pixels
 

@@ -347,9 +347,6 @@ int TranslateEntry::operator()() {
 
     int* trans = this->trans;
 
-    if (CthughaBuffer::current->done_translate)
-        return 0;
-
     dst = (unsigned int*)passive_buffer;
     src = active_buffer;
     active_buffer = passive_buffer;

@@ -423,7 +423,6 @@ void copyImageWithHiddenRows(unsigned char* visibleBuffer, const ImageFixture& i
 
 void resetForFlame(const BufferFixture& fixture) {
     CthughaBuffer::current = CthughaBuffer::buffers;
-    CthughaBuffer::current->done_translate = 0;
     copyImageWithHiddenRows(CthughaBuffer::current->activeBuffer,
         fixture.active.pixels.empty() ? zeroImage() : fixture.active);
     copyImageWithHiddenRows(CthughaBuffer::current->passiveBuffer,
@@ -432,7 +431,6 @@ void resetForFlame(const BufferFixture& fixture) {
 
 void resetForTranslate(const BufferFixture& fixture) {
     CthughaBuffer::current = CthughaBuffer::buffers;
-    CthughaBuffer::current->done_translate = 0;
     copyImageWithHiddenRows(CthughaBuffer::current->activeBuffer,
         fixture.active.pixels.empty() ? fixture.base : fixture.active);
     copyImageWithHiddenRows(CthughaBuffer::current->passiveBuffer,

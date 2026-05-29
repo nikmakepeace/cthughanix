@@ -97,8 +97,7 @@ Contract:
 
 - read/write `active_buffer` and `passive_buffer`;
 - respect `BUFF_WIDTH`, `BUFF_HEIGHT`, and the extra 3-line top/bottom border;
-- coordinate with `done_translate` if the flame folds translation into its own
-  loop;
+- leave coordinate remapping to the dedicated translate stage;
 - expose execution through `FlameEntry::execute(frameBuffer, context)` while
   preserving the legacy `CoreOptionEntry::operator()()` path.
 
@@ -247,12 +246,11 @@ wrappers, not simply compile every `.cc` file once.
 
 Changing buffer size is a system-wide operation.
 
-### Translation Can Be Folded Into Flame
+### Translation Is A Dedicated Stage
 
-Some flame functions detect the current translation table and apply it
-internally, setting `done_translate`. Then `translate()` skips its own remap.
-This is a speed optimization and a hidden coupling between `flames.cc` and
-`translate.cc`.
+Translation now runs through `TranslateStageModule`. Flames should not apply
+translation internally; keeping coordinate remapping in its own stage avoids the
+old hidden coupling between `flames.cc` and `translate.cc`.
 
 ### Display Functions May Self-Reject
 

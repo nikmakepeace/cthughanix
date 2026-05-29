@@ -30,8 +30,6 @@ public:
     Palette currentPalette;
     int lastPalette;
 
-    int done_translate;
-
     CthughaBuffer();
 
     void bindFrameBuffer(CthughaFrameBuffer& frameBuffer);

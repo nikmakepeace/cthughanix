@@ -39,9 +39,6 @@ public:
         (void)context;
 
         CTH_TRACE("beginning indexed buffer frame\n", "visual pipeline");
-        for (int j = 0; j < CthughaBuffer::nBuffers; j++)
-            CthughaBuffer::buffers[j].done_translate = 0;
-
         bindSelectedBuffer(frameBuffer);
     }
 };

@@ -111,7 +111,7 @@ files.
   heightfield, roll, bent, and plate.
 - `src/palettes.cc`: palette loading, metadata, filtering, random palettes, and
   palette handling.
-- `src/pcx.*`: PCX loading, display, and screenshot save.
+- `src/pcx.*`: PCX loading, indexed-buffer overlay, and screenshot save.
 
 ### Display Frontends
 

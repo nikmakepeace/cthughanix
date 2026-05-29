@@ -159,9 +159,9 @@ screen();
 
 Those calls invoke the currently selected `CoreOptionEntry::operator()()`, not a
 hard-coded function. The visual pipeline is now one step more explicit for the
-internal image stages: `FlameStageModule`, `TranslateStageModule`, and
-`WaveStageModule` select the current entry object and call its
-`execute(frameBuffer, context)` method.
+internal image stages: `ImageStageModule`, `FlameStageModule`,
+`TranslateStageModule`, and `WaveStageModule` select or render the current
+entry object through stage-specific APIs.
 
 `sound-processing` is adjacent but now implemented by `AudioProcessingOption`
 in `src/AudioProcessor.cc`.
@@ -328,10 +328,10 @@ The context contains:
 The default pipeline currently has these modules:
 
 ```text
+BufferFrameBeginModule
+ImageStageModule
 FlashlightVisualModule
 BorderVisualModule
-BufferFrameBeginModule
-NullVisualStageModule("image")
 FlameStageModule
 TranslateStageModule
 WaveStageModule
@@ -339,10 +339,11 @@ BufferFrameEndModule
 PaletteStageModule
 ```
 
-Only `image` is still a null placeholder. Flame, translate, and wave are real
-stages now: each stage iterates the active `CthughaBuffer` objects, binds the
-shared `CthughaFrameBuffer` adapter to the current buffer, selects the current
-effect entry, and calls `execute(frameBuffer, context)` on that entry.
+Image, flame, translate, and wave are real stages now. `ImageStageModule`
+overlays the selected PCX when `VisualDirector` arms the one-shot image stage.
+Flame, translate, and wave iterate the active `CthughaBuffer` objects, bind the
+shared `CthughaFrameBuffer` adapter to the current buffer, select the current
+effect entry, and call `execute(frameBuffer, context)` on that entry.
 
 Important limitation: this is not the final inversion-of-control shape yet.
 Stage execution still uses the global `CthughaBuffer::buffers` registry and
@@ -386,7 +387,10 @@ pipeline modules. The logical order for a frame is:
 
 ```text
 BufferFrameBeginModule
-  clear done_translate for every active buffer
+  bind the selected buffer to CthughaFrameBuffer
+
+ImageStageModule
+  overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
   select current FlameEntry
@@ -446,9 +450,8 @@ helper programs, and `.tab` files can be loaded directly. Tables can be loaded
 on demand. That loading/caching work belongs to the option/provider side; the
 selected `TranslateEntry::execute(frameBuffer, context)` just applies a ready
 translation table.
-
-Some flame paths fold translation into the flame step and set `done_translate`,
-so the separate translate pass skips duplicate work.
+Flames no longer fold translation into their own loops; translate runs as a
+dedicated pipeline stage.
 
 ### What Is A Wave?
 
