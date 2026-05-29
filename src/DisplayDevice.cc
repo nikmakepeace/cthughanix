@@ -43,7 +43,7 @@ int DisplayDevice::setGlobalPalette() {
         return 1;
     }
 
-    return CthughaBuffer::buffers[0].palChanged;
+    return CthughaBuffer::current->palChanged;
 }
 
 DisplayDevice::DisplayDevice()

@@ -140,25 +140,25 @@ int InterfaceList::size = 6;
 
 InterfaceList interfaceList0("Display", "Select Display", &screen);
 
-InterfaceList interfaceList1("Flame", "Select Flame", &(CthughaBuffer::buffers[0].flame));
+InterfaceList interfaceList1("Flame", "Select Flame", &(CthughaBuffer::buffer.flame));
 
 InterfaceList interfaceList2("Border", "Select Border of Buffer", &border);
 
 InterfaceList interfaceList3(
-    "Translate", "Select Translation Table", &(CthughaBuffer::buffers[0].translate));
+    "Translate", "Select Translation Table", &(CthughaBuffer::buffer.translate));
 
-InterfaceList interfaceList4("Wave", "Select Wave", &(CthughaBuffer::buffers[0].wave));
+InterfaceList interfaceList4("Wave", "Select Wave", &(CthughaBuffer::buffer.wave));
 
-InterfaceList interfaceList6("Table", "Select Sound Table", &(CthughaBuffer::buffers[0].table));
+InterfaceList interfaceList6("Table", "Select Sound Table", &(CthughaBuffer::buffer.table));
 
 InterfaceList interfaceList7(
-    "WaveScaling", "Select Wave Scaling", &(CthughaBuffer::buffers[0].waveScale));
+    "WaveScaling", "Select Wave Scaling", &(CthughaBuffer::buffer.waveScale));
 
 InterfaceList interfaceList8(
-    "Object", "Select 3D Object (for some waves)", &(CthughaBuffer::buffers[0].object));
+    "Object", "Select 3D Object (for some waves)", &(CthughaBuffer::buffer.object));
 
-InterfaceList interfaceList9("Palette", "Select Palette", &(CthughaBuffer::buffers[0].palette));
+InterfaceList interfaceList9("Palette", "Select Palette", &(CthughaBuffer::buffer.palette));
 
-InterfaceList interfaceListA("PCX", "Select PCX", &(CthughaBuffer::buffers[0].pcx));
+InterfaceList interfaceListA("PCX", "Select PCX", &(CthughaBuffer::buffer.pcx));
 
 InterfaceList interfaceListB("Flashlight", "Select Flashlight", &flashlight);

@@ -48,8 +48,6 @@ d screenChg(+1)
 D screenChg(-1)
 z zoomChg(+1)
 Z zoomChg(-1)
-< bufferChg(-1)
-> bufferChg(+1)
 f flameChg(+1)
 F flameChg(-1)
 g flameGeneral()
@@ -178,7 +176,6 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-
 
 
 

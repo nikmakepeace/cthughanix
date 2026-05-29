@@ -30,7 +30,7 @@ Keep these files open:
 - `src/AutoChanger.*`: automatic effect changes.
 - `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage executor,
   default stage plan, and pipeline factory.
-- `src/CthughaBuffer.*`: classic per-buffer options and raw indexed buffers.
+- `src/CthughaBuffer.*`: classic visual options and raw indexed buffers.
 - `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
   objects used by the visual stages.
 - `src/display.cc`: 2D display mapping effects.
@@ -302,11 +302,11 @@ functions. It asks the CoreOption system to move current selections.
 ## 13. Step 4: VisualPipeline
 
 `runVisualPipeline()` initializes the default visual pipeline if needed, builds
-a `VisualFrameContext`, lets `VisualDirector` bind the current stage objects,
+a `VisualFrameContext`, lets `VisualDirector` update the current stage objects,
 and calls:
 
 ```cpp
-visualPipeline->run(context);
+visualPipeline->run(buffer, context);
 ```
 
 The context contains:
@@ -332,17 +332,15 @@ PaletteStageModule
 
 Image, flame, translate, and wave are real stages now. `ImageStageModule`
 overlays the selected PCX when `VisualDirector` arms the one-shot image stage.
-Before each frame, `VisualDirector` synchronizes `CthughaBuffer::current` with
-the selected buffer, then updates stage bindings for the selected PCX,
-per-buffer flames, translate providers, waves, border mode, and palette state.
-Flame, translate, and wave modules iterate those bound objects and pass
-the relevant `CthughaBuffer&` into the entry/provider API they were given.
+Before each frame, `VisualDirector` updates the modules with the selected PCX,
+flame, translate provider, wave, and border mode. The pipeline then passes the
+same `CthughaBuffer&` through each enabled module.
 
 Important limitation: this is not the final inversion-of-control shape yet.
 Selection now lives in `VisualDirector`, and the pipeline effect path no longer
 uses the old active/passive macros or a frame-buffer binding adapter. The
-remaining coupling is the selected-buffer global used by UI, loading, and
-display code around the pipeline.
+remaining coupling is the `CthughaBuffer::current` compatibility pointer used
+by UI, loading, and display code around the pipeline.
 
 ## 14. Step 4a: Flashlight
 
@@ -352,7 +350,7 @@ If `flashlight` is enabled, it:
 
 1. copies the current frame palette;
 2. brightens low palette entries according to `acousticContext.fire()`;
-3. installs that temporary palette on the selected buffer.
+3. installs that temporary palette on the visual buffer.
 
 It does not draw pixels.
 
@@ -521,7 +519,7 @@ Examples from `src/display.cc`:
 - `screen_hfield`: heightfield.
 - `screen_roll`, `screen_bent`, `screen_plate`: more 3D-ish mappings.
 
-These functions read the selected buffer's passive pixels, which are the
+These functions read the visual buffer's passive pixels, which are the
 completed Cthugha image after the buffer swap.
 
 ## 20. Concept: CthughaDisplay vs DisplayDevice

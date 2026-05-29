@@ -421,7 +421,7 @@ void copyImageWithHiddenRows(unsigned char* visibleBuffer, const ImageFixture& i
 }
 
 void resetForFlame(const BufferFixture& fixture) {
-    CthughaBuffer::current = CthughaBuffer::buffers;
+    CthughaBuffer::current = &CthughaBuffer::buffer;
     copyImageWithHiddenRows(CthughaBuffer::current->activePixels(),
         fixture.active.pixels.empty() ? zeroImage() : fixture.active);
     copyImageWithHiddenRows(CthughaBuffer::current->passivePixels(),
@@ -429,7 +429,7 @@ void resetForFlame(const BufferFixture& fixture) {
 }
 
 void resetForTranslate(const BufferFixture& fixture) {
-    CthughaBuffer::current = CthughaBuffer::buffers;
+    CthughaBuffer::current = &CthughaBuffer::buffer;
     copyImageWithHiddenRows(CthughaBuffer::current->activePixels(),
         fixture.active.pixels.empty() ? fixture.base : fixture.active);
     copyImageWithHiddenRows(CthughaBuffer::current->passivePixels(),
@@ -480,9 +480,8 @@ void initializeVisualBenchmarks() {
     init_flames();
     createTranslationEntries();
 
-    CthughaBuffer::nBuffers = 1;
-    CthughaBuffer::current = CthughaBuffer::buffers;
-    CthughaBuffer::buffers[0].init();
+    CthughaBuffer::current = &CthughaBuffer::buffer;
+    CthughaBuffer::buffer.init();
 }
 
 void setCommonCounters(benchmark::State& state) {

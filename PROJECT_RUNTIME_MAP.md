@@ -205,10 +205,11 @@ analysis and before visual mutation. Waves normally read
 
 ## Visual Buffer Pipeline
 
-`CthughaBuffer` still owns the classic per-buffer options and the raw active and
-passive indexed buffers. It no longer owns the per-frame flame/translate/wave
-choreography; `VisualDirector` builds pipeline modules that execute those
-selected effect entries. Default dimensions are:
+`CthughaBuffer` owns the single classic visual buffer, its selectable effect
+options, and the raw active/passive indexed pixel buffers. It no longer owns
+the per-frame flame/translate/wave choreography; `VisualDirector` configures
+pipeline modules with the currently selected effect entries. Default
+dimensions are:
 
 ```text
 BUFF_WIDTH  = 160
@@ -248,22 +249,22 @@ PaletteStageModule
 ```
 
 `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
-`WaveStageModule` are real stages. Image overlays the currently selected PCX
-when `VisualDirector` arms the one-shot image stage. Before each frame,
-`VisualDirector` synchronizes `CthughaBuffer::current` with the selected buffer
-and updates bindings for the selected PCX, per-buffer flames, translate
-providers, waves, border mode, and palette state.
+`WaveStageModule` are real stages. Image overlays the current PCX when
+`VisualDirector` arms the one-shot image stage. Before each frame,
+`VisualDirector` updates the stage modules with the selected PCX, flame,
+translate provider, wave, and border mode. `VisualPipeline::run()` then passes
+the same `CthughaBuffer&` through each enabled stage.
 
-Current limitation: entry selection is now director-owned and stage entries
-receive explicit `CthughaBuffer&` objects, but UI, loading, and display code
-still use `CthughaBuffer::current` to find the selected buffer.
+Current limitation: entry selection is now director-owned and stage execution
+receives an explicit `CthughaBuffer&`, but UI, loading, and display code still
+use `CthughaBuffer::current`.
 
 ### Flashlight
 
 `apply_flashlight()` is a palette effect. If the `flashlight` CoreOption is on,
 it copies the current palette, brightens low palette entries according to
-`acousticContext.fire()`, and installs the temporary palette on the
-selected buffer.
+`acousticContext.fire()`, and installs the temporary palette on the visual
+buffer.
 
 It does not draw pixels into the indexed buffer.
 
@@ -288,14 +289,14 @@ ImageStageModule
   overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
-  pass each active CthughaBuffer into bound Flame objects
+  execute the selected Flame against the frame buffer
 
 TranslateStageModule
-  ask bound TranslateOption providers to prepare/load TranslateEntry objects
+  ask the selected TranslateOption to prepare/load a TranslateEntry
   TranslateEntry::execute(buffer, context) when ready
 
 WaveStageModule
-  pass each active CthughaBuffer into bound WaveEntry objects
+  execute the selected WaveEntry against the frame buffer
 
 FrameCommitModule
   log a limited visual-buffer summary

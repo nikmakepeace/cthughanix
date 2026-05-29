@@ -64,8 +64,8 @@ There is no current server-mode source entry point in `src/`.
   default stage plan, and pipeline factory.
 ### Legacy Visual Core
 
-- `src/CthughaBuffer.*`: classic per-buffer effect state, option instances, and
-  raw indexed active/passive buffers. Per-frame flame/translate/wave/swap
+- `src/CthughaBuffer.*`: single classic visual buffer, option instances, and
+  raw indexed active/passive pixel buffers. Per-frame flame/translate/wave/swap
   choreography now lives in visual pipeline modules.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.

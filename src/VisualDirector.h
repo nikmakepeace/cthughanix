@@ -7,6 +7,7 @@
 
 #include <vector>
 
+class CthughaBuffer;
 class Environment;
 class Settings;
 
@@ -33,15 +34,17 @@ public:
 };
 
 class VisualDirector {
-    std::vector<int> pcxSelectionByBuffer;
+    int lastPcxSelection;
 
     int pcxSelectionChanged();
-    void syncSelectedBuffer();
-    void bindPipelineStages(VisualPipeline& pipeline);
+    void syncCurrentBuffer();
+    void updatePipelineStages(VisualPipeline& pipeline, CthughaBuffer& buffer);
 
 public:
+    VisualDirector();
+
     VisualPlan planDefaultPipeline() const;
-    void configurePipeline(VisualPipeline& pipeline);
+    CthughaBuffer* configurePipeline(VisualPipeline& pipeline);
 };
 
 extern double paletteSmoothingChance;

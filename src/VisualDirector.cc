@@ -11,18 +11,8 @@
 
 double paletteSmoothingChance = 1.0;
 
-static CthughaBuffer* selectedBuffer() {
-    int bufferIndex = int(CthughaBuffer::nCurrent);
-    if (bufferIndex < 0 || bufferIndex >= CthughaBuffer::maxNBuffers)
-        return 0;
-
-    return CthughaBuffer::buffers + bufferIndex;
-}
-
-static int activeBufferCount() {
-    if (CthughaBuffer::nBuffers < 0)
-        return 0;
-    return min(CthughaBuffer::nBuffers, CthughaBuffer::maxNBuffers);
+static CthughaBuffer* currentBuffer() {
+    return CthughaBuffer::current;
 }
 
 static const Flame* flameFromOption(CoreOption& option) {
@@ -30,247 +20,168 @@ static const Flame* flameFromOption(CoreOption& option) {
     return (entry != 0) ? &entry->flame() : 0;
 }
 
-struct FlameStageBinding {
-    CthughaBuffer* buffer;
-    const Flame* flame;
-
-    FlameStageBinding(CthughaBuffer* buffer_, const Flame* flame_)
-        : buffer(buffer_)
-        , flame(flame_) { }
-};
-
-struct TranslateStageBinding {
-    CthughaBuffer* buffer;
-    TranslateOption* translate;
-
-    TranslateStageBinding(CthughaBuffer* buffer_, TranslateOption* translate_)
-        : buffer(buffer_)
-        , translate(translate_) { }
-};
-
-struct WaveStageBinding {
-    CthughaBuffer* buffer;
-    WaveEntry* wave;
-
-    WaveStageBinding(CthughaBuffer* buffer_, WaveEntry* wave_)
-        : buffer(buffer_)
-        , wave(wave_) { }
-};
-
 template <class Module>
 static Module* stageModule(VisualPipeline& pipeline, VisualPlan::Stage stage) {
     return dynamic_cast<Module*>(pipeline.stageModule(stage));
 }
 
 class ImageStageModule : public VisualModule {
-    CthughaBuffer* buffer;
     PCXEntry* image;
 
 public:
     ImageStageModule()
-        : buffer(0)
-        , image(0) { }
+        : image(0) { }
 
-    void setImage(CthughaBuffer* buffer_, PCXEntry* image_) {
-        buffer = buffer_;
+    void setImage(PCXEntry* image_) {
         image = image_;
     }
 
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         (void)context;
 
         CTH_TRACE("executing image stage\n", "visual pipeline");
-        if (buffer != 0 && image != 0)
-            image->overlay(*buffer);
+        if (image != 0)
+            image->overlay(buffer);
     }
 };
 
 class FlameStageModule : public VisualModule {
-    std::vector<FlameStageBinding> flames;
+    const Flame* flame;
 
 public:
-    FlameStageModule() { }
+    FlameStageModule()
+        : flame(0) { }
 
-    void setFlames(const std::vector<FlameStageBinding>& flames_) {
-        flames = flames_;
+    void setFlame(const Flame* flame_) {
+        flame = flame_;
     }
 
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing flame stage\n", "visual pipeline");
 
-        for (unsigned int j = 0; j < flames.size(); j++) {
-            if (flames[j].buffer != 0 && flames[j].flame != 0)
-                flames[j].flame->execute(*flames[j].buffer, context);
-        }
+        if (flame != 0)
+            flame->execute(buffer, context);
     }
 };
 
 class TranslateStageModule : public VisualModule {
-    std::vector<TranslateStageBinding> translates;
+    TranslateOption* translate;
 
 public:
-    TranslateStageModule() { }
+    TranslateStageModule()
+        : translate(0) { }
 
-    void setTranslateProviders(const std::vector<TranslateStageBinding>& translates_) {
-        translates = translates_;
+    void setTranslateProvider(TranslateOption* translate_) {
+        translate = translate_;
     }
 
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing translate stage\n", "visual pipeline");
-        for (unsigned int j = 0; j < translates.size(); j++) {
-            TranslateEntry* translate = NULL;
-            if (translates[j].buffer != 0
-                && translates[j].translate != 0
-                && translates[j].translate->prepareCurrentEntry(translate) == 0
-                && translate != NULL)
-                translate->execute(*translates[j].buffer, context);
-        }
+        TranslateEntry* entry = NULL;
+        if (translate != 0
+            && translate->prepareCurrentEntry(entry) == 0
+            && entry != NULL)
+            entry->execute(buffer, context);
     }
 };
 
 class WaveStageModule : public VisualModule {
-    std::vector<WaveStageBinding> waves;
+    WaveEntry* wave;
 
 public:
-    WaveStageModule() { }
+    WaveStageModule()
+        : wave(0) { }
 
-    void setWaves(const std::vector<WaveStageBinding>& waves_) {
-        waves = waves_;
+    void setWave(WaveEntry* wave_) {
+        wave = wave_;
     }
 
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing wave stage\n", "visual pipeline");
-        for (unsigned int j = 0; j < waves.size(); j++) {
-            if (waves[j].buffer != 0 && waves[j].wave != NULL)
-                waves[j].wave->execute(*waves[j].buffer, context);
-        }
+        if (wave != NULL)
+            wave->execute(buffer, context);
     }
 };
 
 class FrameCommitModule : public VisualModule {
-    std::vector<CthughaBuffer*> buffers;
-
 public:
     FrameCommitModule() { }
 
-    void setBuffers(const std::vector<CthughaBuffer*>& buffers_) {
-        buffers = buffers_;
-    }
-
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         (void)context;
 
         CTH_TRACE("committing indexed buffer frame\n", "visual pipeline");
         static int debugReports = 0;
 
-        for (unsigned int j = 0; j < buffers.size(); j++) {
-            CthughaBuffer* buffer = buffers[j];
-            if (buffer == 0)
-                continue;
-
-            if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
-                int nonzero = 0;
-                int peak = 0;
-                for (int i = 0; i < BUFF_SIZE; i++) {
-                    int value = buffer->activePixels()[i];
-                    if (value != 0)
-                        nonzero++;
-                    if (value > peak)
-                        peak = value;
-                }
-                debugReports++;
-                CTH_DEBUG("visual buffer: buffer=%d wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
-                    j, buffer->wave.currentName(),
-                    buffer->waveScale.currentName(),
-                    buffer->flame.currentName(),
-                    buffer->table.currentName(),
-                    nonzero, peak, BUFF_SIZE);
+        if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
+            int nonzero = 0;
+            int peak = 0;
+            for (int i = 0; i < BUFF_SIZE; i++) {
+                int value = buffer.activePixels()[i];
+                if (value != 0)
+                    nonzero++;
+                if (value > peak)
+                    peak = value;
             }
-
-            buffer->swapBuffers();
+            debugReports++;
+            CTH_DEBUG("visual buffer: wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
+                buffer.wave.currentName(),
+                buffer.waveScale.currentName(),
+                buffer.flame.currentName(),
+                buffer.table.currentName(),
+                nonzero, peak, BUFF_SIZE);
         }
+
+        buffer.swapBuffers();
     }
 };
 
 class FlashlightVisualModule : public VisualModule {
-    CthughaBuffer* buffer;
-
 public:
-    FlashlightVisualModule()
-        : buffer(0) { }
+    FlashlightVisualModule() { }
 
-    void setBuffer(CthughaBuffer* buffer_) {
-        buffer = buffer_;
-    }
-
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing flashlight stage\n", "visual pipeline");
-        if (buffer != 0)
-            apply_flashlight(*buffer, context);
+        apply_flashlight(buffer, context);
     }
 };
 
 class BorderVisualModule : public VisualModule {
-    CthughaBuffer* buffer;
-    CoreOption* borderOption;
+    int borderMode;
 
 public:
     BorderVisualModule()
-        : buffer(0)
-        , borderOption(0) { }
+        : borderMode(0) { }
 
-    void setBorder(CthughaBuffer* buffer_, CoreOption* borderOption_) {
-        buffer = buffer_;
-        borderOption = borderOption_;
+    void setBorderMode(int borderMode_) {
+        borderMode = borderMode_;
     }
 
-    void execute(const VisualFrameContext& context) {
-        int borderMode = (borderOption != 0) ? int(*borderOption) : 0;
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing border stage mode=%d\n", "visual pipeline", borderMode);
-        if (buffer != 0)
-            apply_border(*buffer, context, borderMode);
+        apply_border(buffer, context, borderMode);
     }
 };
 
 class PaletteStageModule : public VisualModule {
-    CoreOption* paletteOption;
-    Palette* currentPalette;
-    int* paletteChanged;
-    int* lastPalette;
-
 public:
-    PaletteStageModule()
-        : paletteOption(0)
-        , currentPalette(0)
-        , paletteChanged(0)
-        , lastPalette(0) { }
+    PaletteStageModule() { }
 
-    void setPalette(CoreOption* paletteOption_, Palette* currentPalette_,
-        int* paletteChanged_, int* lastPalette_) {
-        paletteOption = paletteOption_;
-        currentPalette = currentPalette_;
-        paletteChanged = paletteChanged_;
-        lastPalette = lastPalette_;
-    }
-
-    void execute(const VisualFrameContext& context) {
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         (void)context;
 
-        if (paletteOption == 0 || currentPalette == 0 || paletteChanged == 0 || lastPalette == 0)
+        int selectedPalette = buffer.palette.currentN();
+        if ((buffer.lastPalette == selectedPalette) && (buffer.palChanged == 0))
             return;
 
-        int selectedPalette = paletteOption->currentN();
-        if ((*lastPalette == selectedPalette) && (*paletteChanged == 0))
-            return;
+        Palette* desiredPalette = &(((PaletteEntry*)buffer.palette.current())->pal);
 
-        Palette* desiredPalette = &(((PaletteEntry*)paletteOption->current())->pal);
-
-        if (*lastPalette != selectedPalette) {
-            *lastPalette = selectedPalette;
+        if (buffer.lastPalette != selectedPalette) {
+            buffer.lastPalette = selectedPalette;
             if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance) {
                 // Skip smoothing, jump directly to the new palette (DOS behaviour).
-                memcpy(*currentPalette, *desiredPalette, sizeof(Palette));
-                *paletteChanged = 1;
+                memcpy(buffer.currentPalette, *desiredPalette, sizeof(Palette));
+                buffer.palChanged = 1;
                 return;
             }
         }
@@ -284,18 +195,18 @@ public:
             : oldMaxChange;
         oldMaxChange = maxChange;
 
-        *paletteChanged = 256 * 3;
+        buffer.palChanged = 256 * 3;
         for (int i = 0; i < 256; i++) {
             for (int j = 0; j < 3; j++) {
-                int d = (*desiredPalette)[i][j] - (*currentPalette)[i][j];
+                int d = (*desiredPalette)[i][j] - buffer.currentPalette[i][j];
                 if (d == 0)
-                    (*paletteChanged)--;
+                    buffer.palChanged--;
                 else {
                     if (d < -maxChange)
                         d = -maxChange;
                     else if (d > maxChange)
                         d = maxChange;
-                    (*currentPalette)[i][j] += d;
+                    buffer.currentPalette[i][j] += d;
                 }
             }
         }
@@ -317,6 +228,9 @@ int VisualPlan::includes(Stage stage) const {
     return 0;
 }
 
+VisualDirector::VisualDirector()
+    : lastPcxSelection(-1) { }
+
 VisualPlan VisualDirector::planDefaultPipeline() const {
     VisualPlan plan;
 
@@ -334,93 +248,56 @@ VisualPlan VisualDirector::planDefaultPipeline() const {
 }
 
 int VisualDirector::pcxSelectionChanged() {
-    int bufferIndex = int(CthughaBuffer::nCurrent);
-    if (bufferIndex < 0 || bufferIndex >= CthughaBuffer::maxNBuffers)
+    CthughaBuffer* buffer = currentBuffer();
+    if (buffer == 0)
         return 0;
 
-    if (int(pcxSelectionByBuffer.size()) < CthughaBuffer::maxNBuffers)
-        pcxSelectionByBuffer.resize(CthughaBuffer::maxNBuffers, -1);
-
-    int selectedPcx = CthughaBuffer::buffers[bufferIndex].pcx.currentN();
-    if (pcxSelectionByBuffer[bufferIndex] == selectedPcx)
+    int selectedPcx = buffer->pcx.currentN();
+    if (lastPcxSelection == selectedPcx)
         return 0;
 
-    pcxSelectionByBuffer[bufferIndex] = selectedPcx;
+    lastPcxSelection = selectedPcx;
     return 1;
 }
 
-void VisualDirector::syncSelectedBuffer() {
-    CthughaBuffer* selected = selectedBuffer();
-    if (selected != 0)
-        CthughaBuffer::current = selected;
+void VisualDirector::syncCurrentBuffer() {
+    CthughaBuffer::current = &CthughaBuffer::buffer;
 }
 
-void VisualDirector::bindPipelineStages(VisualPipeline& pipeline) {
-    CthughaBuffer* selected = selectedBuffer();
-    std::vector<CthughaBuffer*> buffers;
-    std::vector<FlameStageBinding> flames;
-    std::vector<TranslateStageBinding> translates;
-    std::vector<WaveStageBinding> waves;
-
-    for (int j = 0; j < activeBufferCount(); j++) {
-        CthughaBuffer* buffer = CthughaBuffer::buffers + j;
-
-        buffers.push_back(buffer);
-        flames.push_back(FlameStageBinding(buffer, flameFromOption(buffer->flame)));
-        translates.push_back(TranslateStageBinding(buffer, &buffer->translate));
-        waves.push_back(WaveStageBinding(buffer,
-            static_cast<WaveEntry*>(buffer->wave.current())));
-    }
-
+void VisualDirector::updatePipelineStages(VisualPipeline& pipeline, CthughaBuffer& buffer) {
     ImageStageModule* imageModule
         = stageModule<ImageStageModule>(pipeline, VisualPlan::ImageStage);
     if (imageModule != 0)
-        imageModule->setImage(selected,
-            (selected != 0) ? static_cast<PCXEntry*>(selected->pcx.current()) : 0);
+        imageModule->setImage(static_cast<PCXEntry*>(buffer.pcx.current()));
 
     FlameStageModule* flameModule
         = stageModule<FlameStageModule>(pipeline, VisualPlan::FlameStage);
     if (flameModule != 0)
-        flameModule->setFlames(flames);
+        flameModule->setFlame(flameFromOption(buffer.flame));
 
     TranslateStageModule* translateModule
         = stageModule<TranslateStageModule>(pipeline, VisualPlan::TranslateStage);
     if (translateModule != 0)
-        translateModule->setTranslateProviders(translates);
+        translateModule->setTranslateProvider(&buffer.translate);
 
     WaveStageModule* waveModule
         = stageModule<WaveStageModule>(pipeline, VisualPlan::WaveStage);
     if (waveModule != 0)
-        waveModule->setWaves(waves);
-
-    FrameCommitModule* frameCommitModule
-        = stageModule<FrameCommitModule>(pipeline, VisualPlan::FrameCommitStage);
-    if (frameCommitModule != 0)
-        frameCommitModule->setBuffers(buffers);
-
-    FlashlightVisualModule* flashlightModule
-        = stageModule<FlashlightVisualModule>(pipeline, VisualPlan::FlashlightStage);
-    if (flashlightModule != 0)
-        flashlightModule->setBuffer(selected);
+        waveModule->setWave(static_cast<WaveEntry*>(buffer.wave.current()));
 
     BorderVisualModule* borderModule
         = stageModule<BorderVisualModule>(pipeline, VisualPlan::BorderStage);
     if (borderModule != 0)
-        borderModule->setBorder(selected, &border);
-
-    PaletteStageModule* paletteModule
-        = stageModule<PaletteStageModule>(pipeline, VisualPlan::PaletteStage);
-    if (paletteModule != 0)
-        paletteModule->setPalette(
-            (selected != 0) ? &selected->palette : 0,
-            (selected != 0) ? &selected->currentPalette : 0,
-            (selected != 0) ? &selected->palChanged : 0,
-            (selected != 0) ? &selected->lastPalette : 0);
+        borderModule->setBorderMode(int(border));
 }
 
-void VisualDirector::configurePipeline(VisualPipeline& pipeline) {
-    syncSelectedBuffer();
-    bindPipelineStages(pipeline);
+CthughaBuffer* VisualDirector::configurePipeline(VisualPipeline& pipeline) {
+    syncCurrentBuffer();
+    CthughaBuffer* buffer = currentBuffer();
+    if (buffer == 0)
+        return 0;
+
+    updatePipelineStages(pipeline, *buffer);
 
     if (pcxSelectionChanged())
         pipeline.setStageMode(VisualPlan::ImageStage, VisualStageArmedOnce);
@@ -432,6 +309,8 @@ void VisualDirector::configurePipeline(VisualPipeline& pipeline) {
     pipeline.setStageMode(VisualPlan::WaveStage, VisualStageEnabled);
     pipeline.setStageMode(VisualPlan::FrameCommitStage, VisualStageEnabled);
     pipeline.setStageMode(VisualPlan::PaletteStage, VisualStageEnabled);
+
+    return buffer;
 }
 
 VisualPipelineFactory::VisualPipelineFactory() { }

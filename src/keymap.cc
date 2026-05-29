@@ -523,7 +523,6 @@ ACTION(quit) { cthugha_close++; }
 
 ACTION(screenChg) { screen.change(int(v), 0); }
 ACTION(zoomChg) { zoom.change(int(v)); }
-ACTION(bufferChg) { CthughaBuffer::nCurrent.change(int(v)); }
 ACTION(flameChg) { CthughaBuffer::current->flame.change(int(v), 0); }
 ACTION(flameGeneral) { CthughaBuffer::current->flameGeneral.changeRandom(); }
 ACTION(waveChg) { CthughaBuffer::current->wave.change(int(v), 0); }
@@ -547,7 +546,6 @@ ACTION(lockChg) { lock.change(+1); }
 
 ACTION(screen) { screen.change(p, 0); }
 ACTION(zoom) { zoom.change(p); }
-ACTION(buffer) { CthughaBuffer::nCurrent.change(int(v)); }
 ACTION(flame) { CthughaBuffer::current->flame.change(p, 0); }
 ACTION(wave) { CthughaBuffer::current->wave.change(p, 0); }
 ACTION(waveScale) { CthughaBuffer::current->waveScale.change(p, 0); }

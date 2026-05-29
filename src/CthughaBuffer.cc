@@ -10,15 +10,10 @@
 int BUFF_WIDTH = 160;
 int BUFF_HEIGHT = 100;
 
-#define MAX_BUFFERS 3
-
-int CthughaBuffer::maxNBuffers = 1;
-int CthughaBuffer::nBuffers = 1;
 int CthughaBuffer::nInit = 0;
-CthughaBuffer CthughaBuffer::buffers[MAX_BUFFERS];
+CthughaBuffer CthughaBuffer::buffer;
 
-CthughaBuffer* CthughaBuffer::current = buffers;
-OptionInt CthughaBuffer::nCurrent("", 0, MAX_BUFFERS);
+CthughaBuffer* CthughaBuffer::current = &CthughaBuffer::buffer;
 
 extern CoreOptionEntry* _waves[];
 extern int _nWaves;
@@ -83,10 +78,7 @@ void CthughaBuffer::init() {
 
 void CthughaBuffer::initAll() {
 
-    nCurrent.setMaxValue(maxNBuffers);
-
-    nCurrent.value = 0;
-    current = buffers;
+    current = &buffer;
 
     //
     // add the default entries
@@ -113,8 +105,7 @@ void CthughaBuffer::initAll() {
         exit(0);
 
     // allocate memory for the buffers
-    for (int i = 0; i < maxNBuffers; i++)
-        buffers[i].init();
+    buffer.init();
 }
 
 void CthughaBuffer::setPalette(const Palette pal) {

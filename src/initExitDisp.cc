@@ -83,8 +83,9 @@ static void runVisualPipeline() {
 
     CTH_TRACE("running pipeline=%p modules=%d\n", "visual runtime",
         visualPipeline, visualPipeline ? visualPipeline->size() : 0);
-    visualDirector.configurePipeline(*visualPipeline);
-    visualPipeline->run(context);
+    CthughaBuffer* buffer = visualDirector.configurePipeline(*visualPipeline);
+    if (buffer != NULL)
+        visualPipeline->run(*buffer, context);
 }
 
 void sig_tty_cont(int);

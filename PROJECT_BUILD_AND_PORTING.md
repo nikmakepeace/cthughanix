@@ -275,18 +275,17 @@ Good next steps:
 
 `VisualPipeline` now has explicit image, flame, translate, wave, flashlight,
 border, palette, and frame-commit modules. The old `CthughaBuffer::run()`
-choreography has been removed, and `VisualDirector` synchronizes the selected
-buffer and updates the current stage bindings before each pipeline run.
+choreography has been removed, and `VisualDirector` updates the current stage
+objects before each pipeline run.
 
-The migration is still incomplete, but the visual stage path now passes
-`CthughaBuffer&` into stage entries. The remaining legacy coupling is that UI,
-loading, and display paths still use `CthughaBuffer::current` to find the
-selected buffer.
+The visual stage path now passes one `CthughaBuffer&` through the pipeline.
+The remaining legacy coupling is that UI, loading, and display paths still use
+`CthughaBuffer::current` as a compatibility pointer.
 
 Good next steps:
 
-- Move the remaining selected-buffer lookups behind explicit display/provider
-  objects so stage execution no longer has to restore `CthughaBuffer::current`.
+- Move the remaining `CthughaBuffer::current` lookups behind explicit
+  display/provider objects.
 - Add tests around deterministic visual stages before changing artistic
   behavior.
 

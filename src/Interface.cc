@@ -387,54 +387,49 @@ public:
     InterfaceCoreOption()
         : Interface("CoreOptions", "Core Options", NULL) {
 
-        nElements = 14;
+        nElements = 13;
         elements = new InterfaceElement*[nElements];
 
-        CthughaBuffer& b = CthughaBuffer::buffers[CthughaBuffer::nCurrent];
-
-        elements[0]
-            = new InterfaceElementOption("Current Buffer (<,>)  : %s", &CthughaBuffer::nCurrent);
+        CthughaBuffer& b = CthughaBuffer::buffer;
 
         {
-            elements[1] = new InterfaceElementCoreOption("Display (d,D)         : %s", &screen);
-            elements[2] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &b.flame);
-            elements[3]
+            elements[0] = new InterfaceElementCoreOption("Display (d,D)         : %s", &screen);
+            elements[1] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &b.flame);
+            elements[2]
                 = new InterfaceElementCoreOption("General Flame (g)     : %s", &b.flameGeneral);
-            elements[4] = new InterfaceElementCoreOption("Border (=)            : %s", &border);
-            elements[5]
+            elements[3] = new InterfaceElementCoreOption("Border (=)            : %s", &border);
+            elements[4]
                 = new InterfaceElementCoreOption("Translate (t,T)       : %s", &b.translate);
-            elements[6] = new InterfaceElementCoreOption("Wave (w)              : %s", &b.wave);
-            elements[7]
+            elements[5] = new InterfaceElementCoreOption("Wave (w)              : %s", &b.wave);
+            elements[6]
                 = new InterfaceElementOption("Sound Processing (m,M): %s", &audioProcessing);
-            elements[8] = new InterfaceElementCoreOption("Table (b,B)           : %s", &b.table);
-            elements[9]
+            elements[7] = new InterfaceElementCoreOption("Table (b,B)           : %s", &b.table);
+            elements[8]
                 = new InterfaceElementCoreOption("WaveScale (W)         : %s", &b.waveScale);
-            elements[10] = new InterfaceElementCoreOption("Palette (p,P)         : %s", &b.palette);
-            elements[11] = new InterfaceElementCoreOption("PCX (x,X))            : %s", &b.pcx);
-            elements[12] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &b.object);
-            elements[13]
+            elements[9] = new InterfaceElementCoreOption("Palette (p,P)         : %s", &b.palette);
+            elements[10] = new InterfaceElementCoreOption("PCX (x,X))            : %s", &b.pcx);
+            elements[11] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &b.object);
+            elements[12]
                 = new InterfaceElementCoreOption("Flashlight (s)        : %s", &flashlight);
         }
     }
 
     void preRun() {
-        // update the Option pointers, might have changed because of switching to a different
-        // buffer
-        CthughaBuffer& b = CthughaBuffer::buffers[CthughaBuffer::nCurrent];
+        CthughaBuffer& b = *CthughaBuffer::current;
 #define O(i)                                                                                       \
     ((InterfaceElementOption*)elements[i])->opt                                                    \
         = ((InterfaceElementCoreOption*)elements[i])->coreOpt
-        O(2) = &b.flame;
-        O(3) = &b.flameGeneral;
-        O(4) = &border;
-        O(5) = &b.translate;
-        O(6) = &b.wave;
-        O(8) = &b.table;
-        O(9) = &b.waveScale;
-        O(10) = &b.palette;
-        O(11) = &b.pcx;
-        O(12) = &b.object;
-        O(13) = &flashlight;
+        O(1) = &b.flame;
+        O(2) = &b.flameGeneral;
+        O(3) = &border;
+        O(4) = &b.translate;
+        O(5) = &b.wave;
+        O(7) = &b.table;
+        O(8) = &b.waveScale;
+        O(9) = &b.palette;
+        O(10) = &b.pcx;
+        O(11) = &b.object;
+        O(12) = &flashlight;
     }
     void doKey(int key) {
         if (Keymap::action("CoreOptions", key) == 0)

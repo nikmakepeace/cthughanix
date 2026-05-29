@@ -294,11 +294,11 @@ CoreOptionEntry* read_pcx(
         for (y = 0; y < 768; y++)
             pal[y] = getnextbyte();
 
-        CthughaBuffer::buffers[0].palette.add(new_pal);
+        CthughaBuffer::buffer.palette.add(new_pal);
 
-        new_pcx->pal = CthughaBuffer::buffers[0].palette.getNEntries() - 1;
+        new_pcx->pal = CthughaBuffer::buffer.palette.getNEntries() - 1;
 
-        CTH_DEBUG("\n    loaded palette %d from PCX", CthughaBuffer::buffers[0].palette.getNEntries());
+        CTH_DEBUG("\n    loaded palette %d from PCX", CthughaBuffer::buffer.palette.getNEntries());
     }
 
     return new_pcx;

@@ -153,15 +153,14 @@ Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
 Current reality: flashlight, border, image, flame, translate, wave,
 frame-commit, and palette smoothing are explicit modules. `VisualDirector`
-synchronizes the selected buffer and updates typed stage bindings before each
-run; flame, translate, and wave stages execute the bound `Flame`,
-`TranslateOption`, and `WaveEntry` objects.
+updates typed stage objects before each run; flame, translate, and wave stages
+execute the selected `Flame`, `TranslateOption`, and `WaveEntry` objects against
+the `CthughaBuffer&` passed through the pipeline.
 
-The next seam to improve is the remaining selected-buffer global. Stage
-execution no longer synchronizes `CthughaBuffer::current`; the director does
-that before the sequenced pipeline runs. Stage entries now receive explicit
-`CthughaBuffer&` objects and entry selection no longer happens inside the stage
-modules.
+The next seam to improve is the remaining compatibility global. Stage entries
+now receive explicit `CthughaBuffer&` objects and entry selection no longer
+happens inside the stage modules, but UI/loading/display code still consult
+`CthughaBuffer::current`.
 
 ### Add a Display Mode
 
@@ -222,7 +221,7 @@ former `CthughaBuffer::run()` loop and the temporary frame-buffer binding
 adapter have been removed.
 
 Do not assume this is full inversion of control yet. UI, loading, and display
-code still use `CthughaBuffer::current` to find the selected buffer.
+code still use `CthughaBuffer::current` as a compatibility pointer.
 
 ### Build Wrappers Include `.cc` Files
 
@@ -302,8 +301,8 @@ path is:
 
 1. keep `CoreOption`, `flames`, `waves`, `translate`, palettes, and PCX behavior
    stable;
-2. continue moving selected-buffer lookups behind explicit display/provider
-   objects;
+2. continue moving `CthughaBuffer::current` lookups behind explicit
+   display/provider objects;
 3. add tests around loaders and deterministic transforms before deep refactors.
 
 ### Configuration and UI

@@ -124,7 +124,7 @@ void VisualPipeline::refresh() {
         modules[i].module->refresh();
 }
 
-void VisualPipeline::run(const VisualFrameContext& context) {
+void VisualPipeline::run(CthughaBuffer& buffer, const VisualFrameContext& context) {
     for (unsigned int stageIndex = 0; stageIndex < sequence.size(); stageIndex++) {
         unsigned int stage = sequence[stageIndex];
         for (unsigned int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
@@ -137,7 +137,7 @@ void VisualPipeline::run(const VisualFrameContext& context) {
                 continue;
             }
 
-            modules[moduleIndex].module->execute(context);
+            modules[moduleIndex].module->execute(buffer, context);
 
             if (modules[moduleIndex].mode == VisualStageArmedOnce) {
                 CTH_TRACE("disarming one-shot stage=%u module=%p\n",

@@ -8,6 +8,8 @@
 
 #include <unistd.h>
 
+static const int visualBufferCount = 1;
+
 // autoconf suggests this
 #if HAVE_DIRENT_H
 #include <dirent.h>
@@ -248,7 +250,7 @@ void CoreOption::changeOne() {
             CTH_ERROR("internal error: Something very strange happend. %d/%d\n", n, nCoreOptions);
             return;
         }
-    } while (o->buffer >= CthughaBuffer::nBuffers);
+    } while (o->buffer >= visualBufferCount);
     o->changeRandom(1);
 }
 
@@ -260,7 +262,7 @@ void CoreOption::changeAll() {
     save();
 
     for (CoreOption* o = first; o != NULL; o = o->next) {
-        if ((o->buffer < 0) || (o->buffer < CthughaBuffer::nBuffers))
+        if ((o->buffer < 0) || (o->buffer < visualBufferCount))
             o->changeRandom(0);
     }
 }

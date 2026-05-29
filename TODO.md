@@ -63,7 +63,7 @@
    - Treat this as a musical attention model, not just a beat detector: change when the
      audio suggests the current visual state has earned a turn.
    - Compare DOS 5.3 `peaknoise` with CthughaNix `fire`:
-     - DOS checks whether the per-buffer min/max audio range exceeds `peaklevel`; after
+     - DOS checks whether the min/max audio range exceeds `peaklevel`; after
        `peakframes` such hits, it exits the current dwell early.
      - Nix accumulates rising RMS amplitude into `attackLevel`, emits `fire` when the
        amplitude starts to decline, accumulates `fireLevel`, then changes when that
@@ -168,9 +168,8 @@
        uses domain `Flame` objects; `FlameEntry` remains only as the current
        `CoreOption` adapter.
    - Next practical slice:
-     - Continue moving selected-buffer lookups behind explicit display/provider
-       objects so non-pipeline code no longer has to consult
-       `CthughaBuffer::current`.
+     - Continue moving `CthughaBuffer::current` lookups behind explicit
+       display/provider objects.
      - Add focused tests around director-owned stage sequencing, stage modes, and
        frame commit behavior.
 

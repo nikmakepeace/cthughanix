@@ -42,18 +42,15 @@ private:
     unsigned char* passiveBuffer; /* buffer current on screen */
 
 public:
-    static int maxNBuffers; // max. buffers in use
-    static int nBuffers; // nr. of currently running buffers
-    static CthughaBuffer buffers[];
+    static CthughaBuffer buffer;
     static CthughaBuffer* current;
-    static OptionInt nCurrent;
     static int nInit;
 
     void init();
     static void initAll();
 
     static const Palette& getPalette(int i) {
-        return ((PaletteEntry*)(buffers[0].palette[i]))->pal;
+        return ((PaletteEntry*)(buffer.palette[i]))->pal;
     }
 };
 

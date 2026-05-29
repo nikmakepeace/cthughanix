@@ -1100,15 +1100,15 @@ int DisplayDeviceX11::setGlobalPalette() {
                 for (i = 0; i < 128; i++)
                     for (j = 0; j < 3; j++)
                         textPalette[i][j]
-                            = (CthughaBuffer::buffers[0].currentPalette[i * 2][j]
-                                  + CthughaBuffer::buffers[0].currentPalette[i * 2 + 1][j])
+                            = (CthughaBuffer::current->currentPalette[i * 2][j]
+                                  + CthughaBuffer::current->currentPalette[i * 2 + 1][j])
                             >> 2;
             } else {
                 for (i = 0; i < 128; i++)
                     for (j = 0; j < 3; j++)
                         textPalette[i][j]
-                            = (CthughaBuffer::buffers[0].currentPalette[i * 2][j]
-                                  + CthughaBuffer::buffers[0].currentPalette[i * 2 + 1][j])
+                            = (CthughaBuffer::current->currentPalette[i * 2][j]
+                                  + CthughaBuffer::current->currentPalette[i * 2 + 1][j])
                             >> 1;
             }
 
@@ -1131,12 +1131,12 @@ int DisplayDeviceX11::setGlobalPalette() {
             if (darkenPalette) {
                 for (i = 0; i < 256; i++)
                     for (j = 0; j < 3; j++)
-                        textPalette[i][j] = CthughaBuffer::buffers[0].currentPalette[i][j] >> 1;
+                        textPalette[i][j] = CthughaBuffer::current->currentPalette[i][j] >> 1;
 
                 setPalette(textPalette);
 
             } else {
-                setPalette(CthughaBuffer::buffers[0].currentPalette);
+                setPalette(CthughaBuffer::current->currentPalette);
             }
         }
     } else {
@@ -1152,7 +1152,7 @@ int DisplayDeviceX11::setGlobalPalette() {
             }
         }
 
-        setPalette(CthughaBuffer::buffers[0].currentPalette);
+        setPalette(CthughaBuffer::current->currentPalette);
     }
 
     return 0;

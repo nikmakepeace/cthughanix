@@ -76,7 +76,7 @@ registry for selectable visual entries. The current active categories include:
 
 - global/display-ish options: `display`, `border`, `flashlight`,
   `sound-processing`;
-- per-buffer options: `flame`, `palette`, `pcx`, `translate`, `wave`, `object`,
+- visual-buffer options: `flame`, `palette`, `pcx`, `translate`, `wave`, `object`,
   `flame-general`, `wave-scale`, and `table`.
 
 Audio and visual control are now separated:
@@ -93,9 +93,9 @@ Audio and visual control are now separated:
   visual mutation.
 - `VisualPipeline` is the visual-stage executor. One-shot PCX image overlay,
   flashlight, border, flame, translate, wave, frame commit, and palette
-  smoothing now run as explicit modules. `VisualDirector` synchronizes the
-  selected buffer and updates stage bindings for selected images, per-buffer
-  effects, border mode, and palette state before each run.
+  smoothing now run as explicit modules. `VisualDirector` updates those modules
+  with the selected image/effect objects and `VisualPipeline::run()` passes the
+  single `CthughaBuffer&` through each enabled stage.
 
 ## Highest-Value Seams
 
