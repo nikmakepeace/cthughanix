@@ -43,7 +43,6 @@ static void initVisualPipeline() {
     VisualDirector director;
     VisualPipelineFactory factory;
     visualPlan = director.planDefaultPipeline();
-    setVisualBufferTransform(CthughaBuffer::run);
     visualPipeline = factory.create(visualPlan);
 }
 

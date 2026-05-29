@@ -41,6 +41,47 @@ if(WITH_PULSE)
     target_link_directories(audio_pipeline_bench PRIVATE ${PULSE_LIBRARY_DIRS})
 endif()
 
+add_executable(visual_effects_bench
+    VisualEffectsBench.cc
+    ${CMAKE_SOURCE_DIR}/src/CoreOption.cc
+    ${CMAKE_SOURCE_DIR}/src/CoreOptionEntry.cc
+    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/CthughaFrameBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/flames.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+    ${CMAKE_SOURCE_DIR}/src/misc.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/translate.cc
+    ${CMAKE_SOURCE_DIR}/src/VisualPipeline.cc
+)
+
+target_compile_definitions(visual_effects_bench PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+    CTH_VISUAL_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures/visual"
+)
+
+target_include_directories(visual_effects_bench PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(visual_effects_bench PRIVATE
+    benchmark::benchmark
+    Threads::Threads
+    m
+)
+
+add_custom_target(visual_effects_benchmark_report
+    COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tools/run_visual_effects_benchmarks.py
+        --build-dir ${CMAKE_BINARY_DIR}
+    DEPENDS visual_effects_bench
+    USES_TERMINAL
+    VERBATIM
+)
+
 add_custom_target(audio_pipeline_benchmark_report
     COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tools/run_audio_pipeline_benchmarks.py

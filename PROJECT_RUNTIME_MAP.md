@@ -53,7 +53,7 @@ AudioVisualBridge::runFrame()
   runs AutoChanger
 
 VisualPipeline::run()
-  runs visual-stage modules around the classic buffer transform
+  runs visual-stage modules over the indexed visual buffers
 
 CthughaDisplay::operator()()
   frontend-specific display composition, when doDisplay is true
@@ -209,7 +209,9 @@ analysis and before visual mutation. Waves normally read
 ## Visual Buffer Pipeline
 
 `CthughaBuffer` still owns the classic per-buffer options and the raw active and
-passive indexed buffers. Default dimensions are:
+passive indexed buffers. It no longer owns the per-frame flame/translate/wave
+choreography; `VisualDirector` builds pipeline modules that execute those
+selected effect entries. Default dimensions are:
 
 ```text
 BUFF_WIDTH  = 160
@@ -226,17 +228,39 @@ code reads those rows as boundary data.
 ```text
 FlashlightStage
 BorderStage
-BufferTransformStage
-ImageStage        # currently null
-FlameStage        # currently null
-TranslateStage    # currently null
-WaveStage         # currently null
+BufferTransformStage  # expressed as begin/end frame modules
+ImageStage            # currently null
+FlameStage
+TranslateStage
+WaveStage
 PaletteStage
 ```
 
-The actual flame/translate/wave work still happens inside
-`BufferTransformStage`, which calls `CthughaBuffer::run()` through
-`LegacyBufferTransformModule`.
+`VisualPipelineFactory::create()` currently expands that plan into this module
+order:
+
+```text
+FlashlightVisualModule
+BorderVisualModule
+BufferFrameBeginModule
+NullVisualStageModule("image")
+FlameStageModule
+TranslateStageModule
+WaveStageModule
+BufferFrameEndModule
+PaletteStageModule
+```
+
+`FlameStageModule`, `TranslateStageModule`, and `WaveStageModule` are now real
+stages. They select the current `FlameEntry`, `TranslateEntry`, or `WaveEntry`
+and call `execute(frameBuffer, context)` on the object.
+
+Current limitation: the stages still select and bind through the global
+`CthughaBuffer::buffers` registry and `CthughaBuffer::current`. The intended
+next shape is for `VisualDirector`/`VisualPipelineFactory` to construct the
+effect objects, inject framebuffer dependencies into them, and inject those
+objects into stages so stage execution itself does not know about the global
+buffer registry.
 
 ### Flashlight
 
@@ -258,17 +282,34 @@ The selected `border` CoreOption decides whether those rows are:
 - filled with current amplitude;
 - filled with 255.
 
-### Legacy Buffer Transform
+### Indexed Buffer Stages
 
-`CthughaBuffer::run()` loops over active buffers and applies:
+The old `CthughaBuffer::run()` transform has been split across visual pipeline
+modules. The frame-level order is:
 
 ```text
-current = buffers + j
-done_translate = 0
-flame()
-translate()
-wave()
-swap(activeBuffer, passiveBuffer)
+BufferFrameBeginModule
+  clear done_translate for each active buffer
+  bind the selected buffer to CthughaFrameBuffer
+
+FlameStageModule
+  bind each active buffer
+  select current FlameEntry
+  FlameEntry::execute(frameBuffer, context)
+
+TranslateStageModule
+  bind each active buffer
+  ask TranslateOption to prepare/load the current TranslateEntry
+  TranslateEntry::execute(frameBuffer, context) when ready
+
+WaveStageModule
+  bind each active buffer
+  select current WaveEntry
+  WaveEntry::execute(frameBuffer, context)
+
+BufferFrameEndModule
+  log a limited visual-buffer summary
+  swap(activeBuffer, passiveBuffer)
 ```
 
 The order matters:
@@ -280,7 +321,7 @@ The order matters:
 - swapping makes the finished frame become `passiveBuffer`, which display code
   reads.
 
-Palette smoothing no longer lives in `CthughaBuffer::run()`.
+Palette smoothing is separate from the indexed pixel mutation stages.
 
 ### Palette Stage
 

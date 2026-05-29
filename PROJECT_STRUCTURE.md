@@ -60,15 +60,16 @@ There is no current server-mode source entry point in `src/`.
   windows to the rest of the program.
 - `src/AudioVisualBridge.*`: runs audio processing, analysis, and auto-changing
   before visual mutation.
-- `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage scaffold and
-  pipeline factory.
+- `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage executor,
+  default stage plan, and pipeline factory.
 - `src/CthughaFrameBuffer.*`: adapter/owner for indexed active/passive visual
   buffers plus palette pointers.
 
 ### Legacy Visual Core
 
-- `src/CthughaBuffer.*`: classic per-buffer effect state and the coarse
-  `flame -> translate -> wave -> swap` transform.
+- `src/CthughaBuffer.*`: classic per-buffer effect state, option instances, and
+  raw indexed active/passive buffers. Per-frame flame/translate/wave/swap
+  choreography now lives in visual pipeline modules.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.

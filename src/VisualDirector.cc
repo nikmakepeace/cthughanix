@@ -7,9 +7,19 @@
 #include "VisualDirector.h"
 #include "cth_buffer.h"
 #include "imath.h"
+#include "waves.h"
 
-static VisualBufferTransformFn visualBufferTransform = 0;
 double paletteSmoothingChance = 1.0;
+
+static void bindSelectedBuffer(CthughaFrameBuffer& frameBuffer) {
+    CthughaBuffer::current = CthughaBuffer::buffers + CthughaBuffer::nCurrent;
+    CthughaBuffer::current->bindFrameBuffer(frameBuffer);
+}
+
+static void bindBuffer(CthughaFrameBuffer& frameBuffer, int bufferIndex) {
+    CthughaBuffer::current = CthughaBuffer::buffers + bufferIndex;
+    CthughaBuffer::current->bindFrameBuffer(frameBuffer);
+}
 
 class NullVisualStageModule : public VisualModule {
     const char* stageName;
@@ -26,22 +36,104 @@ public:
     }
 };
 
-class LegacyBufferTransformModule : public VisualModule {
+class BufferFrameBeginModule : public VisualModule {
 public:
     void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
-        (void)frameBuffer;
         (void)context;
 
-        // This is the temporary coarse visual stage: all current internal
-        // indexed-buffer mutation happens here, before DisplayDevice handoff.
-        CTH_TRACE("executing classic buffer transform\n", "visual pipeline");
-        if (visualBufferTransform != 0)
-            visualBufferTransform();
-        if (CthughaBuffer::current != 0)
-            frameBuffer.bind(CthughaBuffer::current->activeBuffer,
-                CthughaBuffer::current->passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH,
-                &CthughaBuffer::current->currentPalette, &CthughaBuffer::current->palChanged,
-                &CthughaBuffer::current->palette, &CthughaBuffer::current->lastPalette);
+        CTH_TRACE("beginning indexed buffer frame\n", "visual pipeline");
+        for (int j = 0; j < CthughaBuffer::nBuffers; j++)
+            CthughaBuffer::buffers[j].done_translate = 0;
+
+        bindSelectedBuffer(frameBuffer);
+    }
+};
+
+class FlameStageModule : public VisualModule {
+public:
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+        CTH_TRACE("executing flame stage\n", "visual pipeline");
+
+        for (int j = 0; j < CthughaBuffer::nBuffers; j++) {
+            bindBuffer(frameBuffer, j);
+
+            FlameEntry* flame = static_cast<FlameEntry*>(CthughaBuffer::current->flame.current());
+            if (flame != 0)
+                flame->execute(frameBuffer, context);
+        }
+
+        bindSelectedBuffer(frameBuffer);
+    }
+};
+
+class TranslateStageModule : public VisualModule {
+public:
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+        CTH_TRACE("executing translate stage\n", "visual pipeline");
+        for (int j = 0; j < CthughaBuffer::nBuffers; j++) {
+            bindBuffer(frameBuffer, j);
+            TranslateEntry* translate = NULL;
+            if (CthughaBuffer::current->translate.prepareCurrentEntry(translate) == 0
+                && translate != NULL)
+                translate->execute(frameBuffer, context);
+            CthughaBuffer::current->bindFrameBuffer(frameBuffer);
+        }
+
+        bindSelectedBuffer(frameBuffer);
+    }
+};
+
+class WaveStageModule : public VisualModule {
+public:
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+        CTH_TRACE("executing wave stage\n", "visual pipeline");
+        for (int j = 0; j < CthughaBuffer::nBuffers; j++) {
+            bindBuffer(frameBuffer, j);
+            WaveEntry* wave = static_cast<WaveEntry*>(CthughaBuffer::current->wave.current());
+            if (wave != NULL)
+                wave->execute(frameBuffer, context);
+        }
+
+        bindSelectedBuffer(frameBuffer);
+    }
+};
+
+class BufferFrameEndModule : public VisualModule {
+public:
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+        (void)context;
+
+        CTH_TRACE("ending indexed buffer frame\n", "visual pipeline");
+        static int debugReports = 0;
+
+        for (int j = 0; j < CthughaBuffer::nBuffers; j++) {
+            CthughaBuffer::current = CthughaBuffer::buffers + j;
+
+            if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
+                int nonzero = 0;
+                int peak = 0;
+                for (int i = 0; i < BUFF_SIZE; i++) {
+                    int value = CthughaBuffer::current->activeBuffer[i];
+                    if (value != 0)
+                        nonzero++;
+                    if (value > peak)
+                        peak = value;
+                }
+                debugReports++;
+                CTH_DEBUG("visual buffer: buffer=%d wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
+                    j, CthughaBuffer::current->wave.currentName(),
+                    CthughaBuffer::current->waveScale.currentName(),
+                    CthughaBuffer::current->flame.currentName(),
+                    CthughaBuffer::current->table.currentName(),
+                    nonzero, peak, BUFF_SIZE);
+            }
+
+            unsigned char* t = CthughaBuffer::current->activeBuffer;
+            CthughaBuffer::current->activeBuffer = CthughaBuffer::current->passiveBuffer;
+            CthughaBuffer::current->passiveBuffer = t;
+        }
+
+        bindSelectedBuffer(frameBuffer);
     }
 };
 
@@ -126,11 +218,6 @@ int VisualPlan::includes(Stage stage) const {
     return (stagesValue & stage) != 0;
 }
 
-void setVisualBufferTransform(VisualBufferTransformFn transform) {
-    visualBufferTransform = transform;
-    CTH_TRACE("set buffer transform=%p\n", "visual director", (void*)visualBufferTransform);
-}
-
 VisualPlan VisualDirector::planDefaultPipeline() const {
     VisualPlan plan;
 
@@ -157,15 +244,17 @@ VisualPipeline* VisualPipelineFactory::create(const VisualPlan& plan) const {
     if (plan.includes(VisualPlan::BorderStage))
         pipeline->add(new BorderVisualModule(), 1);
     if (plan.includes(VisualPlan::BufferTransformStage))
-        pipeline->add(new LegacyBufferTransformModule(), 1);
+        pipeline->add(new BufferFrameBeginModule(), 1);
     if (plan.includes(VisualPlan::ImageStage))
         pipeline->add(new NullVisualStageModule("image"), 1);
     if (plan.includes(VisualPlan::FlameStage))
-        pipeline->add(new NullVisualStageModule("flame"), 1);
+        pipeline->add(new FlameStageModule(), 1);
     if (plan.includes(VisualPlan::TranslateStage))
-        pipeline->add(new NullVisualStageModule("translate"), 1);
+        pipeline->add(new TranslateStageModule(), 1);
     if (plan.includes(VisualPlan::WaveStage))
-        pipeline->add(new NullVisualStageModule("wave"), 1);
+        pipeline->add(new WaveStageModule(), 1);
+    if (plan.includes(VisualPlan::BufferTransformStage))
+        pipeline->add(new BufferFrameEndModule(), 1);
     if (plan.includes(VisualPlan::PaletteStage))
         pipeline->add(new PaletteStageModule(), 1);
 

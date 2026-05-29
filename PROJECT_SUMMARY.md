@@ -91,9 +91,11 @@ Audio and visual control are now separated:
   rolling intensity/fire state for effects and automatic changes.
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.
-- `VisualPipeline` is the new visual-stage scaffold. It currently wraps the
-  old `CthughaBuffer::run()` as a coarse classic transform while hosting newer
-  flashlight, border, and palette stages outside that transform.
+- `VisualPipeline` is the visual-stage executor. Flashlight, border, indexed
+  buffer begin/end, flame, translate, wave, and palette smoothing now run as
+  explicit modules. Flame, translate, and wave stages select their current
+  entry objects and call `execute(frameBuffer, context)`, though selection and
+  buffer binding still pass through the legacy `CthughaBuffer` globals.
 
 ## Highest-Value Seams
 
@@ -132,5 +134,6 @@ initialization before it can print help.
 The project is portable in a transitional sense, not yet a modern clean-room
 port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer, CD-ROM
 ioctl, SVGAlib, GLUT/OpenGL, shell-based asset helpers, and many global
-singletons. The refactor has created better audio and visual seams, but the
-classic engine is still stateful and global.
+singletons. The refactor has created better audio and visual seams, and the old
+monolithic flame/translate/wave loop has been decomposed into pipeline stages,
+but the classic engine is still stateful and global.

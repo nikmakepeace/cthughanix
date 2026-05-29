@@ -12,7 +12,7 @@ frontend event loop
       -> publish frame time
       -> advance audio runtime and current AudioFrame
       -> process/analyze audio and maybe auto-change options
-      -> run visual pipeline around the classic buffer transform
+      -> run visual pipeline stages over the indexed visual buffers
       -> draw current passive buffer to the frontend
       -> update CD state
       -> handle deferred suspend
@@ -28,10 +28,12 @@ Keep these files open:
 - `src/AudioAnalyzer.*`: frame analysis and rolling acoustic state.
 - `src/AudioVisualBridge.*`: processing, analysis, and autochanger bridge.
 - `src/AutoChanger.*`: automatic effect changes.
-- `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage scaffold.
+- `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage executor,
+  default stage plan, and pipeline factory.
 - `src/CthughaFrameBuffer.*`: indexed buffer/palette adapter.
-- `src/CthughaBuffer.*`: classic visual buffer and flame/translate/wave driver.
-- `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effects.
+- `src/CthughaBuffer.*`: classic per-buffer options and raw indexed buffers.
+- `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
+  objects used by the visual stages.
 - `src/display.cc`: 2D display mapping effects.
 - `src/CthughaDisplay*.cc`: frontend display composition.
 - `src/DisplayDevice*.cc`: X11, SVGAlib, or OpenGL event loops and screen IO.
@@ -147,7 +149,7 @@ Examples:
 - `border`
 - `flashlight`
 
-The pattern is:
+The legacy call pattern is:
 
 ```cpp
 current->flame();
@@ -156,7 +158,10 @@ screen();
 ```
 
 Those calls invoke the currently selected `CoreOptionEntry::operator()()`, not a
-hard-coded function.
+hard-coded function. The visual pipeline is now one step more explicit for the
+internal image stages: `FlameStageModule`, `TranslateStageModule`, and
+`WaveStageModule` select the current entry object and call its
+`execute(frameBuffer, context)` method.
 
 `sound-processing` is adjacent but now implemented by `AudioProcessingOption`
 in `src/AudioProcessor.cc`.
@@ -173,11 +178,12 @@ unsigned char* activeBuffer;
 unsigned char* passiveBuffer;
 ```
 
-During the classic transform:
+During the visual pipeline's indexed-buffer stages:
 
 - `activeBuffer` is the buffer being written for the next finished image.
 - `passiveBuffer` is the previous/current finished image.
-- At the end of the transform, the pointers are swapped.
+- `BufferFrameEndModule` swaps the pointers after flame, translate, and wave
+  stages have run.
 - Display code reads from `passive_buffer`, so after the swap it sees the newly
   completed frame.
 
@@ -304,8 +310,8 @@ functions. It asks the CoreOption system to move current selections.
 ## 13. Step 4: VisualPipeline
 
 `runVisualPipeline()` initializes the default visual pipeline if needed, binds a
-`CthughaFrameBuffer` to the current classic buffer pointers, builds a
-`VisualFrameContext`, and calls:
+`CthughaFrameBuffer` to the current classic buffer pointers when needed, builds
+a `VisualFrameContext`, and calls:
 
 ```cpp
 visualPipeline->run(visualFrameBuffer, context);
@@ -324,16 +330,27 @@ The default pipeline currently has these modules:
 ```text
 FlashlightVisualModule
 BorderVisualModule
-LegacyBufferTransformModule
+BufferFrameBeginModule
 NullVisualStageModule("image")
-NullVisualStageModule("flame")
-NullVisualStageModule("translate")
-NullVisualStageModule("wave")
+FlameStageModule
+TranslateStageModule
+WaveStageModule
+BufferFrameEndModule
 PaletteStageModule
 ```
 
-The null modules are placeholders for future decomposition. Most classic visual
-mutation is still inside `LegacyBufferTransformModule`.
+Only `image` is still a null placeholder. Flame, translate, and wave are real
+stages now: each stage iterates the active `CthughaBuffer` objects, binds the
+shared `CthughaFrameBuffer` adapter to the current buffer, selects the current
+effect entry, and calls `execute(frameBuffer, context)` on that entry.
+
+Important limitation: this is not the final inversion-of-control shape yet.
+Stage execution still uses the global `CthughaBuffer::buffers` registry and
+`CthughaBuffer::current` while selecting and binding entries. The intended next
+shape is for `VisualDirector`/`VisualPipelineFactory` to construct concrete
+flame, translate, and wave objects, inject the framebuffer dependency, then
+inject those objects into stages so stage execution does not know how selection
+or binding happened.
 
 ## 14. Step 4a: Flashlight
 
@@ -362,22 +379,36 @@ The selected `border` CoreOption decides whether those rows are:
 Flames read neighboring pixels, so these rows are boundary conditions for
 diffusion.
 
-## 16. Step 4c: Legacy Buffer Transform
+## 16. Step 4c: Indexed Buffer Mutation Stages
 
-`LegacyBufferTransformModule` calls `CthughaBuffer::run()`.
-
-For every active buffer:
+The old monolithic `CthughaBuffer::run()` path has been decomposed into
+pipeline modules. The logical order for a frame is:
 
 ```text
-current = buffers + j
-done_translate = 0
-flame()
-translate()
-wave()
-swap(activeBuffer, passiveBuffer)
+BufferFrameBeginModule
+  clear done_translate for every active buffer
+
+FlameStageModule
+  select current FlameEntry
+  FlameEntry::execute(frameBuffer, context)
+
+TranslateStageModule
+  let TranslateOption prepare/load the current table
+  select current TranslateEntry when ready
+  TranslateEntry::execute(frameBuffer, context)
+
+WaveStageModule
+  select current WaveEntry
+  WaveEntry::execute(frameBuffer, context)
+
+BufferFrameEndModule
+  emit limited debug summaries
+  swap(activeBuffer, passiveBuffer)
 ```
 
-This order matters.
+This order matters. The implementation currently applies each stage across all
+active buffers before moving to the next stage. In normal X11 use there is one
+active buffer, but the code still preserves the old multi-buffer registry.
 
 ### What Is A Flame?
 
@@ -391,6 +422,7 @@ In source:
 
 - entries are registered in `src/flames.cc::_flames`;
 - each entry is a `FlameEntry`;
+- `FlameStageModule` calls `FlameEntry::execute(frameBuffer, context)`;
 - `init_flames()` precomputes lookup tables such as `divsub`.
 
 Mentally:
@@ -408,9 +440,12 @@ which source pixel to read:
 dst_pixel[i] = src_pixel[translation_table[i]]
 ```
 
-Loading is in `src/translate.cc::init_translate()`. `.cmd` files can generate
-tables with helper programs, and `.tab` files can be loaded directly. Tables can
-be loaded on demand.
+Loading is in `src/translate.cc::init_translate()` and
+`TranslateOption::prepareCurrentEntry()`. `.cmd` files can generate tables with
+helper programs, and `.tab` files can be loaded directly. Tables can be loaded
+on demand. That loading/caching work belongs to the option/provider side; the
+selected `TranslateEntry::execute(frameBuffer, context)` just applies a ready
+translation table.
 
 Some flame paths fold translation into the flame step and set `done_translate`,
 so the separate translate pass skips duplicate work.
@@ -422,7 +457,8 @@ A wave is the fresh drawing seeded by current sound.
 Wave functions read `audioFrameProcessedData()`, `audioAnalysis`,
 `acousticContext`, `waveScale`, and `table`, then draw points, vertical lines,
 horizontal lines, spikes, Lissajous shapes, lightning, objects, spirals, and
-other geometry into `active_buffer`.
+other geometry into `active_buffer`. `WaveStageModule` calls the selected
+`WaveEntry::execute(frameBuffer, context)`.
 
 Those marks become fuel for later frames' flames.
 
@@ -609,15 +645,18 @@ If you want to step through one frame in your editor:
 15. Step into `src/VisualPipeline.cc::VisualPipeline::run()`.
 16. Step into `src/Flashlight.cc::apply_flashlight()`.
 17. Step into `src/Border.cc::apply_border()`.
-18. Step into `src/CthughaBuffer.cc::CthughaBuffer::run()`.
-19. Jump to the current flame in `src/flames.cc`.
-20. Jump to `src/translate.cc::TranslateEntry::operator()()` if translate is
-   enabled.
-21. Jump to the current wave in `src/waves.cc`.
-22. Return through `PaletteStageModule` in `src/VisualDirector.cc`.
-23. Step into `src/CthughaDisplayX11.cc::operator()()`.
-24. Jump to the current `screen()` function in `src/display.cc`.
-25. Finish in the X11 `DisplayDevice` `postDraw()` path.
+18. Step through `BufferFrameBeginModule` in `src/VisualDirector.cc`.
+19. Step through `FlameStageModule`, then jump to the current flame entry in
+   `src/flames.cc`.
+20. Step through `TranslateStageModule`; if a table is ready, jump to
+   `src/translate.cc::TranslateEntry::execute()`.
+21. Step through `WaveStageModule`, then jump to the current wave entry in
+   `src/waves.cc`.
+22. Step through `BufferFrameEndModule` to see the active/passive swap.
+23. Return through `PaletteStageModule` in `src/VisualDirector.cc`.
+24. Step into `src/CthughaDisplayX11.cc::operator()()`.
+25. Jump to the current `screen()` function in `src/display.cc`.
+26. Finish in the X11 `DisplayDevice` `postDraw()` path.
 
 ## 25. How To Think About One Frame
 

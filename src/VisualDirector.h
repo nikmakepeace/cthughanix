@@ -37,9 +37,6 @@ public:
 
 extern double paletteSmoothingChance;
 
-typedef void (*VisualBufferTransformFn)();
-void setVisualBufferTransform(VisualBufferTransformFn transform);
-
 class VisualPipelineFactory {
 public:
     VisualPipelineFactory();

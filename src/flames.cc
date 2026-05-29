@@ -44,19 +44,21 @@ const char* OptionGeneralFlame::text() const {
     return str;
 }
 
-class FlameEntry : public CoreOptionEntry {
-public:
-    void (*flame)();
+FlameEntry::FlameEntry(void (*f)(), const char* name, const char* desc, int inUse)
+    : CoreOptionEntry(name, desc, inUse)
+    , flame(f) { }
 
-    FlameEntry(void (*f)(), const char* name, const char* desc, int inUse = 1)
-        : CoreOptionEntry(name, desc, inUse)
-        , flame(f) { }
+int FlameEntry::operator()() {
+    (*flame)();
+    return 0;
+}
 
-    int operator()() {
-        (*flame)();
-        return 0;
-    }
-};
+void FlameEntry::execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+    (void)frameBuffer;
+    (void)context;
+
+    (*flame)();
+}
 
 CoreOptionEntry* _flames[] = {
     new FlameEntry(flame_clear, "Clear", "Blank the buffer", 0),

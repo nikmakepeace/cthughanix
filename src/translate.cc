@@ -387,6 +387,13 @@ int TranslateEntry::operator()() {
     return 0;
 }
 
+void TranslateEntry::execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+    (void)frameBuffer;
+    (void)context;
+
+    operator()();
+}
+
 TranslateOption::TranslateOption(int buffer, const char* name)
     : CoreOption(buffer, name, translateEntries)
     , lodCommonTrans(NULL)
@@ -443,7 +450,8 @@ int TranslateOption::openPipe(const char* command) {
     }
     return 0;
 }
-int TranslateOption::operator()() {
+int TranslateOption::prepareCurrentEntry(TranslateEntry*& entry) {
+    entry = NULL;
 
     if ((value < 0) || (value >= getNEntries()))
         return 0;
@@ -536,7 +544,18 @@ int TranslateOption::operator()() {
     if (lodPipe != NULL)
         return 0;
 
-    return (entries[value]->operator()());
+    entry = current;
+    return 0;
+}
+
+int TranslateOption::operator()() {
+    TranslateEntry* entry = NULL;
+    int result = prepareCurrentEntry(entry);
+
+    if (result || entry == NULL)
+        return result;
+
+    return entry->operator()();
 }
 
 const char* TranslateOption::status() {

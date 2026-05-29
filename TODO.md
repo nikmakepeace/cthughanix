@@ -142,15 +142,17 @@
      - `VisualModule`: small interface for one buffer mutation stage.
      - `VisualFrameContext`: read-only per-frame inputs such as `AudioFrame`,
        `AudioAnalysis`, `AcousticContext`, `now`, and `deltaT`.
-   - Current `CthughaBuffer::run()` maps roughly to:
-     - `AudioProcessingStage`
+   - Current visual pipeline state:
+     - `AudioVisualBridge` still owns audio processing/analyzer/autochanger work before
+       visual mutation.
      - `FlashlightStage`
      - `BorderStage`
+     - indexed-buffer begin/end modules
      - `FlameStage`
      - `TranslateStage`
      - `WaveStage`
-     - `PaletteSmoothingStage`
-     - `SwapBuffersStage`
+     - `PaletteStage`
+     - only `ImageStage` remains a null placeholder.
    - Pipeline construction happens once per session, and module refresh/rebuild happens
      when startup settings or `AutoChanger` alter selected visual options.
    - Treat classic `screen` functions carefully:
@@ -158,12 +160,18 @@
        it belongs in the visual pipeline.
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
        it belongs in the display/presentation layer, not the internal visual engine.
-   - First practical slice:
-     - Add `CthughaFrameBuffer`, `VisualFrameContext`, `VisualModule`, and
+   - Completed practical slices:
+     - Added `CthughaFrameBuffer`, `VisualFrameContext`, `VisualModule`, and
        `VisualPipeline` scaffolding.
-     - Make `CthughaBuffer::run()` delegate to the pipeline while using adapters around
-       existing `CoreOptionEntry` modules.
-     - Move individual wave/flame/translate modules off globals incrementally afterward.
+     - Removed the old monolithic `CthughaBuffer::run()` frame choreography.
+     - Added explicit flame, translate, and wave modules that execute selected
+       `FlameEntry`, `TranslateEntry`, and `WaveEntry` objects.
+   - Next practical slice:
+     - Make `VisualDirector` / `VisualPipelineFactory` construct concrete flame,
+       translate, and wave objects, inject framebuffer dependencies, then inject those
+       objects into stages.
+     - Move selection/loading/binding out of stage execution so stages no longer know
+       about `CthughaBuffer::current`.
 
 ## Short-Term Extras
 

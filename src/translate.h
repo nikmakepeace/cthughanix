@@ -9,6 +9,9 @@
 #include "cthugha.h"
 #include "CoreOption.h"
 
+class CthughaFrameBuffer;
+class VisualFrameContext;
+
 class TranslateEntry : public CoreOptionEntry {
 
     int loadLine(FILE* in, int n);
@@ -31,6 +34,7 @@ public:
     }
 
     int operator()(); // do a translation
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context);
 
     static CoreOptionEntry* loaderCmd(FILE*, const char*, const char*, const char*);
     static CoreOptionEntry* loaderTab(FILE*, const char*, const char*, const char*);
@@ -54,6 +58,7 @@ class TranslateOption : public CoreOption {
 public:
     TranslateOption(int buffer, const char* name);
 
+    int prepareCurrentEntry(TranslateEntry*& entry);
     virtual int operator()();
 
     virtual const char* status();

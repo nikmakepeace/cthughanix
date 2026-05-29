@@ -33,23 +33,38 @@ the same facade.
 `AudioVisualBridge::runFrame()` performs sound processing, analysis, acoustic
 state updates, and automatic option changes before visual mutation.
 
-`VisualPipeline::run()` currently wraps the classic `CthughaBuffer::run()`
-transform. The default pipeline stages are:
+`VisualPipeline::run()` executes the current visual modules in order. The
+default pipeline stages are:
 
 ```text
 FlashlightStage
 BorderStage
-BufferTransformStage
-ImageStage
+BufferTransformStage  # expands to begin/end indexed-buffer modules
+ImageStage            # currently null
 FlameStage
 TranslateStage
 WaveStage
 PaletteStage
 ```
 
-The placeholder stages exist so future work can move flame, translate, wave,
-image, and palette work out of the monolithic buffer transform one piece at a
-time.
+In module form, this is currently:
+
+```text
+FlashlightVisualModule
+BorderVisualModule
+BufferFrameBeginModule
+NullVisualStageModule("image")
+FlameStageModule
+TranslateStageModule
+WaveStageModule
+BufferFrameEndModule
+PaletteStageModule
+```
+
+Flame, translate, and wave are real object-executing stages now. They still use
+the legacy `CthughaBuffer` globals to select/bind the active buffer, but they
+call the selected `FlameEntry`, `TranslateEntry`, or `WaveEntry` through
+`execute(frameBuffer, context)`.
 
 ## Where Audio Affects Pixels
 

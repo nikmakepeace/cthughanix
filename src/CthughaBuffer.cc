@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "CthughaBuffer.h"
+#include "CthughaFrameBuffer.h"
 #include "cth_buffer.h"
 #include "translate.h"
 #include "waves.h"
@@ -117,40 +118,9 @@ void CthughaBuffer::initAll() {
         buffers[i].init();
 }
 
-void CthughaBuffer::run() {
-    static int debugReports = 0;
-
-    for (int j = 0; j < nBuffers; j++) {
-        current = buffers + j;
-
-        current->done_translate = 0;
-
-        current->flame();
-        current->translate();
-        current->wave();
-
-        if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
-            int nonzero = 0;
-            int peak = 0;
-            for (int i = 0; i < BUFF_SIZE; i++) {
-                int value = current->activeBuffer[i];
-                if (value != 0)
-                    nonzero++;
-                if (value > peak)
-                    peak = value;
-            }
-            debugReports++;
-            CTH_DEBUG("visual buffer: buffer=%d wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
-                j, current->wave.currentName(), current->waveScale.currentName(),
-                current->flame.currentName(), current->table.currentName(),
-                nonzero, peak, BUFF_SIZE);
-        }
-
-        unsigned char* t = current->activeBuffer;
-        current->activeBuffer = current->passiveBuffer;
-        current->passiveBuffer = t;
-    }
-    current = buffers + nCurrent;
+void CthughaBuffer::bindFrameBuffer(CthughaFrameBuffer& frameBuffer) {
+    frameBuffer.bind(activeBuffer, passiveBuffer, BUFF_WIDTH, BUFF_HEIGHT, BUFF_WIDTH,
+        &currentPalette, &palChanged, &palette, &lastPalette);
 }
 
 void CthughaBuffer::setPalette(const Palette pal) {

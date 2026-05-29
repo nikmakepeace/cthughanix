@@ -5,10 +5,26 @@
 #define __WAVES_H
 
 #include "cthugha.h"
-#include "Option.h"
+#include "CoreOption.h"
+
+class CthughaFrameBuffer;
+class VisualFrameContext;
+
+class WaveEntry : public CoreOptionEntry {
+    void (*wave)();
+
+public:
+    WaveEntry(void (*f)(), const char* name, const char* desc, int inUse = 1);
+
+    int operator()();
+    void execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context);
+};
 
 int init_tables();
 int init_wave();
+
+extern CoreOptionEntry* _waves[];
+extern int _nWaves;
 
 typedef unsigned char pal_table[256]; /* Table for display_wave */
 extern pal_table tables[]; /* Palette-Tables */

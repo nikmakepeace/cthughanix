@@ -9,8 +9,9 @@
 #include "flames.h"
 #include "display.h"
 #include "pcx.h"
-#include "flames.h"
 #include "translate.h"
+
+class CthughaFrameBuffer;
 
 class CthughaBuffer {
 public:
@@ -33,8 +34,7 @@ public:
 
     CthughaBuffer();
 
-    static void run();
-
+    void bindFrameBuffer(CthughaFrameBuffer& frameBuffer);
     void setPalette(const Palette pal);
 
     unsigned char* activeBuffer; /* buffer next on screen */

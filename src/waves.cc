@@ -56,21 +56,23 @@ void wave_none();
 static void (*last_wave_function)() = NULL;
 static int wave_just_started = 1;
 
-class WaveEntry : public CoreOptionEntry {
-public:
-    void (*wave)();
+WaveEntry::WaveEntry(void (*f)(), const char* name, const char* desc, int inUse)
+    : CoreOptionEntry(name, desc, inUse)
+    , wave(f) { }
 
-    WaveEntry(void (*f)(), const char* name, const char* desc, int inUse = 1)
-        : CoreOptionEntry(name, desc, inUse)
-        , wave(f) { }
+int WaveEntry::operator()() {
+    wave_just_started = (last_wave_function != wave);
+    last_wave_function = wave;
+    (*wave)();
+    return 0;
+}
 
-    int operator()() {
-        wave_just_started = (last_wave_function != wave);
-        last_wave_function = wave;
-        (*wave)();
-        return 0;
-    }
-};
+void WaveEntry::execute(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+    (void)frameBuffer;
+    (void)context;
+
+    operator()();
+}
 
 CoreOptionEntry* _waves[] = {
     new WaveEntry(wave_dotHor, "DotHor", "Dots Horizontal"), // 0

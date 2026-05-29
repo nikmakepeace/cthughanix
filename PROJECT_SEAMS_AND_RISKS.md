@@ -99,7 +99,8 @@ Contract:
 - respect `BUFF_WIDTH`, `BUFF_HEIGHT`, and the extra 3-line top/bottom border;
 - coordinate with `done_translate` if the flame folds translation into its own
   loop;
-- return through `CoreOptionEntry::operator()()`.
+- expose execution through `FlameEntry::execute(frameBuffer, context)` while
+  preserving the legacy `CoreOptionEntry::operator()()` path.
 
 ### Add a Compiled-In Wave
 
@@ -107,7 +108,8 @@ Add a function to `src/waves.cc`, then add a `new WaveEntry(...)` in `_waves`.
 
 Wave functions should read sound through `audioFrameProcessedData()` and rolling
 state from `audioAnalysis` / `acousticContext`, then draw directly into
-`active_buffer`.
+`active_buffer`. `WaveStageModule` executes the selected `WaveEntry` through
+`execute(frameBuffer, context)`.
 
 ### Add an Audio Processing Mode
 
@@ -148,10 +150,15 @@ Contract:
 
 Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
-Current reality: the pipeline exists, but `LegacyBufferTransformModule` still
-wraps most classic pixel work by calling `CthughaBuffer::run()`. New stages should
-be introduced one at a time, with attention to ordering relative to flashlight,
-border, flame, translate, wave, swap, and palette smoothing.
+Current reality: flashlight, border, indexed-buffer begin/end, flame,
+translate, wave, and palette smoothing are explicit modules. Flame, translate,
+and wave stages execute selected `FlameEntry`, `TranslateEntry`, and `WaveEntry`
+objects through `execute(frameBuffer, context)`.
+
+The next seam to improve is construction/injection. Stage execution still uses
+the global `CthughaBuffer::buffers` registry and `CthughaBuffer::current` to
+select and bind entries. Future stages should receive already-constructed
+effect objects from `VisualDirector` / `VisualPipelineFactory`.
 
 ### Add a Display Mode
 
@@ -207,15 +214,16 @@ Visual code should use `audioFrameData()` and `audioFrameProcessedData()` so
 file playback, live input, random input, and silence all present the same
 1024-sample frame contract.
 
-### VisualPipeline Is Not Fully Decomposed Yet
+### VisualPipeline Still Uses Legacy Selection And Binding
 
-`VisualPipeline` has explicit modules for flashlight, border, and palette
-smoothing, but the actual flame/translate/wave/swap work is still hidden inside
-`CthughaBuffer::run()`.
+`VisualPipeline` now has explicit modules for flashlight, border, indexed-buffer
+begin/end, flame, translate, wave, and palette smoothing. The former
+`CthughaBuffer::run()` loop has been removed.
 
-Do not assume the pipeline stage names map one-to-one to separate effect
-implementations yet. Several stages are currently `NullVisualStageModule`
-placeholders.
+Do not assume this is full inversion of control yet. The flame/translate/wave
+modules still discover current entries through `CthughaBuffer::current`, and
+still bind the shared `CthughaFrameBuffer` by mutating that global current
+buffer pointer. Only `ImageStage` is currently a null placeholder.
 
 ### Build Wrappers Include `.cc` Files
 
@@ -298,7 +306,8 @@ path is:
 
 1. keep `CoreOption`, `flames`, `waves`, `translate`, palettes, and PCX behavior
    stable;
-2. expose the effect stages through `VisualModule` adapters;
+2. continue moving selection/loading/binding out of stage execution and into
+   pipeline construction/provider objects;
 3. add tests around loaders and deterministic transforms before deep refactors.
 
 ### Configuration and UI
@@ -326,8 +335,9 @@ with safer metadata.
 
 - File playback has a single buffered runtime path now; the riskiest edges are
   playback latency accounting, EOF/drain behavior, and raw PCM option handling.
-- `VisualPipeline` is only partially decomposed; new stages can accidentally run
-  before/after classic work in surprising ways.
+- `VisualPipeline` stage order is explicit now, but the stages still depend on
+  global buffer selection/binding. Refactors can accidentally change which
+  buffer an effect mutates.
 - Many fixed-size string buffers use `sprintf`, `strncpy`, and `strncat` with
   longstanding assumptions.
 - Some code assumes little-endian behavior despite partial big-endian branches.
@@ -357,5 +367,5 @@ with safer metadata.
 - `.cmd` parser and generated command assembly.
 - `.tab` header parser and stretch behavior.
 - `Keymap::parseBinding()` with `src/default.keymap` examples.
-- Flame/translate/wave transforms after they have `VisualModule` adapters or a
-  small harness.
+- Flame/translate/wave transforms through their current `execute()` entry-object
+  paths or a small harness.
