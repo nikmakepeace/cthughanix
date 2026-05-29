@@ -30,14 +30,25 @@ public:
         const VisualFrameContext& context) = 0;
 };
 
+enum VisualStageRunMode {
+    VisualStageDisabled,
+    VisualStageEnabled,
+    // Executes on the next run, then the pipeline changes it to Disabled.
+    VisualStageArmedOnce
+};
+
 class VisualPipeline {
     struct Entry {
+        unsigned int stage;
         VisualModule* module;
         int owned;
+        VisualStageRunMode mode;
 
-        Entry(VisualModule* module_, int owned_)
-            : module(module_)
-            , owned(owned_) { }
+        Entry(unsigned int stage_, VisualModule* module_, int owned_)
+            : stage(stage_)
+            , module(module_)
+            , owned(owned_)
+            , mode(VisualStageDisabled) { }
     };
 
     std::vector<Entry> modules;
@@ -47,7 +58,9 @@ public:
     ~VisualPipeline();
 
     void clear();
-    void add(VisualModule* module, int takeOwnership = 0);
+    void add(unsigned int stage, VisualModule* module, int takeOwnership = 0);
+    int setStageMode(unsigned int stage, VisualStageRunMode mode);
+    VisualStageRunMode stageMode(unsigned int stage) const;
     void refresh();
     void run(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context);
     int size() const;

@@ -15,7 +15,7 @@ void init_flashlight() {
 }
 
 void apply_flashlight(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
-    if (!int(flashlight) || context.acousticContext == 0 || frameBuffer.palette() == 0)
+    if (context.acousticContext == 0 || frameBuffer.palette() == 0)
         return;
 
     int i, j, l;

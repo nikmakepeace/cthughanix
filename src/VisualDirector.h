@@ -33,6 +33,7 @@ public:
 class VisualDirector {
 public:
     VisualPlan planDefaultPipeline() const;
+    void configurePipeline(VisualPipeline& pipeline) const;
 };
 
 extern double paletteSmoothingChance;

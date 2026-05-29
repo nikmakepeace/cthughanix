@@ -234,29 +234,40 @@ VisualPlan VisualDirector::planDefaultPipeline() const {
     return plan;
 }
 
+void VisualDirector::configurePipeline(VisualPipeline& pipeline) const {
+    pipeline.setStageMode(VisualPlan::BufferTransformStage, VisualStageEnabled);
+    pipeline.setStageMode(VisualPlan::FlashlightStage,
+        (int(flashlight) != 0) ? VisualStageEnabled : VisualStageDisabled);
+    pipeline.setStageMode(VisualPlan::BorderStage, VisualStageEnabled);
+    pipeline.setStageMode(VisualPlan::FlameStage, VisualStageEnabled);
+    pipeline.setStageMode(VisualPlan::TranslateStage, VisualStageEnabled);
+    pipeline.setStageMode(VisualPlan::WaveStage, VisualStageEnabled);
+    pipeline.setStageMode(VisualPlan::PaletteStage, VisualStageEnabled);
+}
+
 VisualPipelineFactory::VisualPipelineFactory() { }
 
 VisualPipeline* VisualPipelineFactory::create(const VisualPlan& plan) const {
     VisualPipeline* pipeline = new VisualPipeline();
 
-    if (plan.includes(VisualPlan::FlashlightStage))
-        pipeline->add(new FlashlightVisualModule(), 1);
-    if (plan.includes(VisualPlan::BorderStage))
-        pipeline->add(new BorderVisualModule(), 1);
     if (plan.includes(VisualPlan::BufferTransformStage))
-        pipeline->add(new BufferFrameBeginModule(), 1);
+        pipeline->add(VisualPlan::BufferTransformStage, new BufferFrameBeginModule(), 1);
     if (plan.includes(VisualPlan::ImageStage))
-        pipeline->add(new NullVisualStageModule("image"), 1);
+        pipeline->add(VisualPlan::ImageStage, new NullVisualStageModule("image"), 1);
+    if (plan.includes(VisualPlan::FlashlightStage))
+        pipeline->add(VisualPlan::FlashlightStage, new FlashlightVisualModule(), 1);
+    if (plan.includes(VisualPlan::BorderStage))
+        pipeline->add(VisualPlan::BorderStage, new BorderVisualModule(), 1);
     if (plan.includes(VisualPlan::FlameStage))
-        pipeline->add(new FlameStageModule(), 1);
+        pipeline->add(VisualPlan::FlameStage, new FlameStageModule(), 1);
     if (plan.includes(VisualPlan::TranslateStage))
-        pipeline->add(new TranslateStageModule(), 1);
+        pipeline->add(VisualPlan::TranslateStage, new TranslateStageModule(), 1);
     if (plan.includes(VisualPlan::WaveStage))
-        pipeline->add(new WaveStageModule(), 1);
+        pipeline->add(VisualPlan::WaveStage, new WaveStageModule(), 1);
     if (plan.includes(VisualPlan::BufferTransformStage))
-        pipeline->add(new BufferFrameEndModule(), 1);
+        pipeline->add(VisualPlan::BufferTransformStage, new BufferFrameEndModule(), 1);
     if (plan.includes(VisualPlan::PaletteStage))
-        pipeline->add(new PaletteStageModule(), 1);
+        pipeline->add(VisualPlan::PaletteStage, new PaletteStageModule(), 1);
 
     CTH_TRACE("created pipeline=%p stages=0x%x modules=%d\n", "visual pipeline factory",
         pipeline, plan.stages(), pipeline->size());

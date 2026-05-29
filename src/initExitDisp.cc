@@ -33,6 +33,7 @@
 
 static VisualPipeline* visualPipeline = NULL;
 static VisualPlan visualPlan;
+static VisualDirector visualDirector;
 static CthughaFrameBuffer visualFrameBuffer;
 static AudioVisualBridge* audioVisualBridge = NULL;
 
@@ -40,9 +41,8 @@ static void initVisualPipeline() {
     if (visualPipeline != NULL)
         return;
 
-    VisualDirector director;
     VisualPipelineFactory factory;
-    visualPlan = director.planDefaultPipeline();
+    visualPlan = visualDirector.planDefaultPipeline();
     visualPipeline = factory.create(visualPlan);
 }
 
@@ -94,6 +94,7 @@ static void runVisualPipeline() {
 
     CTH_TRACE("running pipeline=%p modules=%d\n", "visual runtime",
         visualPipeline, visualPipeline ? visualPipeline->size() : 0);
+    visualDirector.configurePipeline(*visualPipeline);
     visualPipeline->run(visualFrameBuffer, context);
 }
 
