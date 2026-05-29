@@ -29,8 +29,10 @@ Keep these files open:
 - `src/AudioAnalyzer.*`: frame analysis and rolling acoustic state.
 - `src/AudioVisualBridge.*`: processing, analysis, and autochanger bridge.
 - `src/AutoChanger.*`: automatic effect changes.
-- `src/VisualPipeline.*`, `src/VisualDirector.*`: visual-stage executor,
-  default stage plan, and pipeline factory.
+- `src/VisualPipeline.*`, `src/VisualPipelineSequence.*`,
+  `src/VisualPipelineFactory.*`, `src/PipelineStageModules.*`,
+  `src/VisualDirector.*`: visual-stage executor, ordering, composition,
+  concrete modules, and policy.
 - `src/CthughaBuffer.*`: classic visual options and raw indexed buffers.
 - `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
   objects used by the visual stages.
@@ -628,7 +630,7 @@ If you want to step through one frame in your editor:
 11. Step into `src/AudioProcessor.cc` for the selected audio processing mode.
 12. Step into `src/AudioAnalyzer.cc::AudioAnalyzer::operator()()`.
 13. Step into `src/AutoChanger.cc::AutoChanger::operator()()`.
-14. Step into `src/VisualDirector.cc::VisualPipelineFactory::create()` to see
+14. Step into `src/VisualPipelineFactory.cc::VisualPipelineFactory::create()` to see
    the current stage ordering.
 15. Step into `src/VisualPipeline.cc::VisualPipeline::run()`.
 16. Step into `src/Flashlight.cc::apply_flashlight()`.
@@ -640,7 +642,7 @@ If you want to step through one frame in your editor:
 20. Step through `WaveStageModule`, then jump through the current `Wave` in
    `src/Wave.cc` into its drawing function in `src/waves.cc`.
 21. Step through `FrameCommitModule` to see the active/passive swap.
-22. Return through `PaletteStageModule` in `src/VisualDirector.cc`, then into
+22. Return through `PaletteStageModule` in `src/PipelineStageModules.cc`, then into
    `src/PaletteTransition.cc` for palette output.
 23. Step into `src/CthughaDisplayX11.cc::operator()()`.
 24. Jump to the current `screen()` function in `src/display.cc`.

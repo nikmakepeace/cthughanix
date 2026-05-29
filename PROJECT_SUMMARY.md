@@ -104,7 +104,8 @@ Audio and visual control are now separated:
 - Audio-to-visual seam: `AudioFrame`, `AudioProcessor`, `AudioAnalyzer`, and
   `AudioVisualBridge`.
 - Visual pipeline seam: `VisualDirector`, `VisualPipelineFactory`,
-  `VisualPipeline`, `VisualModule`, `VisualFrameContext`, and `CthughaBuffer`.
+  `VisualPipelineSequence`, `PipelineStageModules`, `VisualPipeline`,
+  `VisualModule`, `VisualFrameContext`, and `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
   selection, while flame and wave execution now runs through standalone
   `Flame`/`Wave` domain objects and translate still runs through prepared

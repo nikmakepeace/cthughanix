@@ -221,7 +221,7 @@ code reads those rows as boundary data.
 
 ### VisualPipeline Order
 
-`VisualDirector::planDefaultPipeline()` currently includes these stages:
+`VisualDirector::defaultPipelineSequence()` currently includes these stages:
 
 ```text
 ImageStage
@@ -234,8 +234,8 @@ FrameCommitStage
 PaletteStage
 ```
 
-`VisualPipelineFactory::create()` currently expands that plan into this module
-order:
+`VisualPipelineFactory::create()` in `src/VisualPipelineFactory.cc` currently
+expands that sequence into this module order:
 
 ```text
 ImageStageModule

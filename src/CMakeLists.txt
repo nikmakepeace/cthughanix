@@ -25,6 +25,9 @@ set(CTHUGHA_COMMON_SOURCES
     CthughaDisplay.cc
     Border.cc
     VisualPipeline.cc
+    VisualPipelineSequence.cc
+    PipelineStageModules.cc
+    VisualPipelineFactory.cc
     VisualDirector.cc
     keymap.cc
     InterfaceCredits.cc

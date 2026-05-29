@@ -1,0 +1,40 @@
+#include "cthugha.h"
+#include "PipelineStageModules.h"
+#include "VisualPipeline.h"
+#include "VisualPipelineFactory.h"
+
+VisualPipelineFactory::VisualPipelineFactory() { }
+
+VisualPipeline* VisualPipelineFactory::create(const VisualPipelineSequence& sequence) const {
+    VisualPipeline* pipeline = new VisualPipeline();
+
+    pipeline->setStageSequence(sequence.sequence());
+
+    if (sequence.includes(VisualPipelineSequence::ImageStage))
+        pipeline->add(VisualPipelineSequence::ImageStage, new ImageStageModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::FlashlightStage))
+        pipeline->add(VisualPipelineSequence::FlashlightStage, new FlashlightVisualModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::BorderStage))
+        pipeline->add(VisualPipelineSequence::BorderStage, new BorderVisualModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::FlameStage))
+        pipeline->add(VisualPipelineSequence::FlameStage, new FlameStageModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::TranslateStage))
+        pipeline->add(VisualPipelineSequence::TranslateStage, new TranslateStageModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::WaveStage))
+        pipeline->add(VisualPipelineSequence::WaveStage, new WaveStageModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::FrameCommitStage))
+        pipeline->add(VisualPipelineSequence::FrameCommitStage, new FrameCommitModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::PaletteStage))
+        pipeline->add(VisualPipelineSequence::PaletteStage, new PaletteStageModule(), 1);
+
+    CTH_TRACE("created pipeline=%p stages=%d modules=%d\n", "visual pipeline factory",
+        pipeline, int(sequence.sequence().size()), pipeline->size());
+    return pipeline;
+}
+
+void VisualPipelineFactory::refresh(VisualPipeline& pipeline,
+    const VisualPipelineSequence& sequence) const {
+    CTH_TRACE("refreshing pipeline=%p stages=%d modules=%d\n", "visual pipeline factory",
+        &pipeline, int(sequence.sequence().size()), pipeline.size());
+    pipeline.refresh();
+}

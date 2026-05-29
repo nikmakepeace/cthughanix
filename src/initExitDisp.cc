@@ -25,13 +25,15 @@
 #include "Flashlight.h"
 #include "Interface.h"
 #include "VisualDirector.h"
+#include "VisualPipeline.h"
+#include "VisualPipelineFactory.h"
 #include "keymap.h"
 
 #include <unistd.h>
 #include <signal.h>
 
 static VisualPipeline* visualPipeline = NULL;
-static VisualPlan visualPlan;
+static VisualPipelineSequence visualPipelineSequence;
 static VisualDirector visualDirector;
 static AudioVisualBridge* audioVisualBridge = NULL;
 
@@ -40,8 +42,8 @@ static void initVisualPipeline() {
         return;
 
     VisualPipelineFactory factory;
-    visualPlan = visualDirector.planDefaultPipeline();
-    visualPipeline = factory.create(visualPlan);
+    visualPipelineSequence = visualDirector.defaultPipelineSequence();
+    visualPipeline = factory.create(visualPipelineSequence);
 }
 
 static void shutdownVisualPipeline() {
@@ -66,7 +68,7 @@ static void runAudioVisualBridge() {
     if (audioVisualBridge->pipelineRefreshRequested()) {
         initVisualPipeline();
         VisualPipelineFactory factory;
-        factory.refresh(*visualPipeline, visualPlan);
+        factory.refresh(*visualPipeline, visualPipelineSequence);
         audioVisualBridge->clearPipelineRefreshRequest();
     }
 }
