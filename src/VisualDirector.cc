@@ -207,20 +207,19 @@ public:
     }
 };
 
-VisualPlan::VisualPlan()
-    : stagesValue(0) { }
-
-void VisualPlan::include(Stage stage) {
-    stagesValue |= stage;
-}
+VisualPlan::VisualPlan() { }
 
 void VisualPlan::append(Stage stage) {
-    include(stage);
     sequenceValue.push_back(stage);
 }
 
 int VisualPlan::includes(Stage stage) const {
-    return (stagesValue & stage) != 0;
+    for (unsigned int i = 0; i < sequenceValue.size(); i++) {
+        if (sequenceValue[i] == stage)
+            return 1;
+    }
+
+    return 0;
 }
 
 VisualPlan VisualDirector::planDefaultPipeline() const {
@@ -236,7 +235,7 @@ VisualPlan VisualDirector::planDefaultPipeline() const {
     plan.append(VisualPlan::BufferFrameEndStage);
     plan.append(VisualPlan::PaletteStage);
 
-    CTH_TRACE("planned default stages=0x%x\n", "visual director", plan.stages());
+    CTH_TRACE("planned default stages=%d\n", "visual director", int(plan.sequence().size()));
     return plan;
 }
 
@@ -278,13 +277,13 @@ VisualPipeline* VisualPipelineFactory::create(const VisualPlan& plan) const {
     if (plan.includes(VisualPlan::PaletteStage))
         pipeline->add(VisualPlan::PaletteStage, new PaletteStageModule(), 1);
 
-    CTH_TRACE("created pipeline=%p stages=0x%x modules=%d\n", "visual pipeline factory",
-        pipeline, plan.stages(), pipeline->size());
+    CTH_TRACE("created pipeline=%p stages=%d modules=%d\n", "visual pipeline factory",
+        pipeline, int(plan.sequence().size()), pipeline->size());
     return pipeline;
 }
 
 void VisualPipelineFactory::refresh(VisualPipeline& pipeline, const VisualPlan& plan) const {
-    CTH_TRACE("refreshing pipeline=%p stages=0x%x modules=%d\n", "visual pipeline factory",
-        &pipeline, plan.stages(), pipeline.size());
+    CTH_TRACE("refreshing pipeline=%p stages=%d modules=%d\n", "visual pipeline factory",
+        &pipeline, int(plan.sequence().size()), pipeline.size());
     pipeline.refresh();
 }
