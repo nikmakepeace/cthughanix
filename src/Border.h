@@ -11,6 +11,6 @@ class VisualFrameContext;
 extern CoreOption border;
 
 void init_border();
-void apply_border(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context);
+void apply_border(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context, int borderMode);
 
 #endif

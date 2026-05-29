@@ -15,7 +15,7 @@ void init_border() {
     border.add(border_entries, 4);
 }
 
-void apply_border(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
+void apply_border(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context, int borderMode) {
     unsigned char* active = frameBuffer.active();
     if (active == 0)
         return;
@@ -26,7 +26,7 @@ void apply_border(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& con
     unsigned char* top = active - 3 * pitch;
     unsigned char* bottom = active + height * pitch;
 
-    switch (int(border)) {
+    switch (borderMode) {
     case 0:
         memset(bottom, 0, 3 * pitch);
         memset(top, 0, 3 * pitch);

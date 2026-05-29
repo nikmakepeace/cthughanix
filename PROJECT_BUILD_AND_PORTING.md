@@ -293,20 +293,19 @@ Good next steps:
 
 ### Phase 3: Continue The Visual Pipeline Migration
 
-`VisualPipeline` now has explicit begin/end, flame, translate, wave, flashlight,
-border, and palette modules. The old `CthughaBuffer::run()` choreography has
-been removed, and the flame/translate/wave stages call the selected entry
-objects through `execute(frameBuffer, context)`.
+`VisualPipeline` now has explicit begin/end, image, flame, translate, wave,
+flashlight, border, and palette modules. The old `CthughaBuffer::run()`
+choreography has been removed, and `VisualDirector` updates the current stage
+bindings before each pipeline run.
 
-The migration is still incomplete: stage execution still selects effects and
-binds buffers through the legacy `CthughaBuffer::buffers` /
-`CthughaBuffer::current` globals.
+The migration is still incomplete: stage execution still binds buffers through
+the legacy `CthughaBuffer::current` global because classic effect code uses
+`active_buffer` and `passive_buffer` macros.
 
 Good next steps:
 
-- Make `VisualDirector` / `VisualPipelineFactory` construct concrete flame,
-  translate, and wave objects, inject framebuffer dependencies into them, and
-  inject those objects into stages.
+- Move the remaining legacy buffer binding behind explicit framebuffer/provider
+  objects so stage execution no longer mutates `CthughaBuffer::current`.
 - Keep `CthughaFrameBuffer` as the buffer/palette adapter while the old globals
   still exist.
 - Add tests around deterministic visual stages before changing artistic

@@ -93,10 +93,10 @@ Audio and visual control are now separated:
   visual mutation.
 - `VisualPipeline` is the visual-stage executor. Indexed buffer begin/end,
   one-shot PCX image overlay, flashlight, border, flame, translate, wave, and
-  palette smoothing now run as explicit modules. Flame, translate, and wave
-  stages select their current entry objects and call
-  `execute(frameBuffer, context)`, though selection and buffer binding still
-  pass through the legacy `CthughaBuffer` globals.
+  palette smoothing now run as explicit modules. `VisualDirector` updates stage
+  bindings for selected images, per-buffer effects, border mode, and palette
+  state before each run. The modules still bind legacy `CthughaBuffer` globals
+  while executing classic effect code.
 
 ## Highest-Value Seams
 

@@ -111,6 +111,15 @@ VisualStageRunMode VisualPipeline::stageMode(unsigned int stage) const {
     return VisualStageDisabled;
 }
 
+VisualModule* VisualPipeline::stageModule(unsigned int stage) {
+    for (unsigned int i = 0; i < modules.size(); i++) {
+        if (modules[i].stage == stage)
+            return modules[i].module;
+    }
+
+    return 0;
+}
+
 void VisualPipeline::refresh() {
     for (unsigned int i = 0; i < modules.size(); i++)
         modules[i].module->refresh();

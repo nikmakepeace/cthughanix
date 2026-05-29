@@ -341,17 +341,17 @@ PaletteStageModule
 
 Image, flame, translate, and wave are real stages now. `ImageStageModule`
 overlays the selected PCX when `VisualDirector` arms the one-shot image stage.
-Flame, translate, and wave iterate the active `CthughaBuffer` objects, bind the
-shared `CthughaFrameBuffer` adapter to the current buffer, select the current
-effect entry, and call `execute(frameBuffer, context)` on that entry.
+Before each frame, `VisualDirector` updates stage bindings for the selected
+PCX, per-buffer flames, translate providers, waves, border mode, and palette
+state. Flame, translate, and wave modules iterate those bound objects, bind the
+shared `CthughaFrameBuffer` adapter to the relevant legacy buffer, and call the
+entry/provider API they were given.
 
 Important limitation: this is not the final inversion-of-control shape yet.
-Stage execution still uses the global `CthughaBuffer::buffers` registry and
-`CthughaBuffer::current` while selecting and binding entries. The intended next
-shape is for `VisualDirector`/`VisualPipelineFactory` to construct concrete
-flame, translate, and wave objects, inject the framebuffer dependency, then
-inject those objects into stages so stage execution does not know how selection
-or binding happened.
+Stage execution still mutates `CthughaBuffer::current` while binding the
+classic buffers because the old effect functions use `active_buffer` and
+`passive_buffer` macros. Selection now lives in `VisualDirector`; the remaining
+coupling is the legacy buffer binding used to run those effects.
 
 ## 14. Step 4a: Flashlight
 
@@ -393,17 +393,14 @@ ImageStageModule
   overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
-  select current FlameEntry
-  FlameEntry::execute(frameBuffer, context)
+  execute bound FlameEntry objects
 
 TranslateStageModule
-  let TranslateOption prepare/load the current table
-  select current TranslateEntry when ready
-  TranslateEntry::execute(frameBuffer, context)
+  let bound TranslateOption providers prepare/load tables
+  execute TranslateEntry objects when ready
 
 WaveStageModule
-  select current WaveEntry
-  WaveEntry::execute(frameBuffer, context)
+  execute bound WaveEntry objects
 
 BufferFrameEndModule
   emit limited debug summaries

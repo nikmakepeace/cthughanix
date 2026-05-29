@@ -149,15 +149,15 @@ Contract:
 
 Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
-Current reality: flashlight, border, indexed-buffer begin/end, flame,
-translate, wave, and palette smoothing are explicit modules. Flame, translate,
-and wave stages execute selected `FlameEntry`, `TranslateEntry`, and `WaveEntry`
-objects through `execute(frameBuffer, context)`.
+Current reality: flashlight, border, indexed-buffer begin/end, image, flame,
+translate, wave, and palette smoothing are explicit modules. `VisualDirector`
+updates typed stage bindings before each run; flame, translate, and wave stages
+execute the bound `FlameEntry`, `TranslateOption`, and `WaveEntry` objects.
 
-The next seam to improve is construction/injection. Stage execution still uses
-the global `CthughaBuffer::buffers` registry and `CthughaBuffer::current` to
-select and bind entries. Future stages should receive already-constructed
-effect objects from `VisualDirector` / `VisualPipelineFactory`.
+The next seam to improve is the legacy buffer binding. Stage execution still
+sets `CthughaBuffer::current` because classic effect code uses `active_buffer`
+and `passive_buffer` macros, but entry selection no longer happens inside the
+stage modules.
 
 ### Add a Display Mode
 
@@ -304,8 +304,8 @@ path is:
 
 1. keep `CoreOption`, `flames`, `waves`, `translate`, palettes, and PCX behavior
    stable;
-2. continue moving selection/loading/binding out of stage execution and into
-   pipeline construction/provider objects;
+2. continue moving legacy buffer binding out of stage execution and into
+   explicit framebuffer/provider objects;
 3. add tests around loaders and deterministic transforms before deep refactors.
 
 ### Configuration and UI

@@ -65,6 +65,7 @@ public:
     int moveStageAfter(unsigned int stage, unsigned int afterStage);
     int setStageMode(unsigned int stage, VisualStageRunMode mode);
     VisualStageRunMode stageMode(unsigned int stage) const;
+    VisualModule* stageModule(unsigned int stage);
     void refresh();
     void run(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context);
     int size() const;

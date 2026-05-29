@@ -254,16 +254,14 @@ PaletteStageModule
 
 `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
 `WaveStageModule` are real stages. Image overlays the currently selected PCX
-when `VisualDirector` arms the one-shot image stage. Flame, translate, and wave
-select the current `FlameEntry`, `TranslateEntry`, or `WaveEntry` and call
-`execute(frameBuffer, context)` on the object.
+when `VisualDirector` arms the one-shot image stage. Before each frame,
+`VisualDirector` updates bindings for the selected PCX, per-buffer flames,
+translate providers, waves, border mode, and palette state.
 
-Current limitation: the stages still select and bind through the global
-`CthughaBuffer::buffers` registry and `CthughaBuffer::current`. The intended
-next shape is for `VisualDirector`/`VisualPipelineFactory` to construct the
-effect objects, inject framebuffer dependencies into them, and inject those
-objects into stages so stage execution itself does not know about the global
-buffer registry.
+Current limitation: the stages still bind through `CthughaBuffer::current`
+while executing classic effects because those functions use `active_buffer` and
+`passive_buffer` macros. Entry selection is now director-owned; legacy buffer
+binding remains in the modules.
 
 ### Flashlight
 
@@ -299,18 +297,16 @@ ImageStageModule
 
 FlameStageModule
   bind each active buffer
-  select current FlameEntry
-  FlameEntry::execute(frameBuffer, context)
+  execute bound FlameEntry objects
 
 TranslateStageModule
   bind each active buffer
-  ask TranslateOption to prepare/load the current TranslateEntry
+  ask bound TranslateOption providers to prepare/load TranslateEntry objects
   TranslateEntry::execute(frameBuffer, context) when ready
 
 WaveStageModule
   bind each active buffer
-  select current WaveEntry
-  WaveEntry::execute(frameBuffer, context)
+  execute bound WaveEntry objects
 
 BufferFrameEndModule
   log a limited visual-buffer summary

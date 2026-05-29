@@ -37,6 +37,7 @@ class VisualDirector {
     std::vector<int> pcxSelectionByBuffer;
 
     int pcxSelectionChanged();
+    void bindPipelineStages(VisualPipeline& pipeline);
 
 public:
     VisualPlan planDefaultPipeline() const;

@@ -64,9 +64,10 @@ PaletteStageModule
 
 Image, flame, translate, and wave are real object-executing stages now. The
 image stage overlays the selected PCX when `VisualDirector` arms it once.
-Flame, translate, and wave still use the legacy `CthughaBuffer` globals to
-select/bind the active buffer, but they call the selected `FlameEntry`,
-`TranslateEntry`, or `WaveEntry` through `execute(frameBuffer, context)`.
+Before each frame, `VisualDirector` updates the stage bindings for the selected
+PCX, per-buffer flames, translate providers, waves, and palette state. The
+modules still bind the legacy `CthughaBuffer` globals before calling classic
+effect code, but they no longer choose their own entries from `CoreOption`.
 
 ## Where Audio Affects Pixels
 
