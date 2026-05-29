@@ -11,6 +11,15 @@ VisualFrameContext::VisualFrameContext()
 
 VisualModule::~VisualModule() { }
 
+static int findStageIndex(const std::vector<unsigned int>& sequence, unsigned int stage) {
+    for (unsigned int i = 0; i < sequence.size(); i++) {
+        if (sequence[i] == stage)
+            return int(i);
+    }
+
+    return -1;
+}
+
 VisualPipeline::VisualPipeline() { }
 
 VisualPipeline::~VisualPipeline() {
@@ -23,6 +32,7 @@ void VisualPipeline::clear() {
             delete modules[i].module;
     }
     modules.clear();
+    sequence.clear();
 }
 
 void VisualPipeline::add(unsigned int stage, VisualModule* module, int takeOwnership) {
@@ -31,6 +41,49 @@ void VisualPipeline::add(unsigned int stage, VisualModule* module, int takeOwner
     modules.push_back(Entry(stage, module, takeOwnership));
     CTH_TRACE("added stage=0x%x module=%p owned=%d mode=%d size=%d\n",
         "visual pipeline", stage, module, takeOwnership, int(VisualStageDisabled), size());
+}
+
+void VisualPipeline::setStageSequence(const std::vector<unsigned int>& stages) {
+    sequence = stages;
+    CTH_TRACE("set sequence stages=%d\n", "visual pipeline", int(sequence.size()));
+}
+
+int VisualPipeline::moveStageBefore(unsigned int stage, unsigned int beforeStage) {
+    if (stage == beforeStage)
+        return 1;
+
+    int stageIndex = findStageIndex(sequence, stage);
+    int beforeIndex = findStageIndex(sequence, beforeStage);
+    if (stageIndex < 0 || beforeIndex < 0)
+        return 0;
+
+    unsigned int movingStage = sequence[stageIndex];
+    sequence.erase(sequence.begin() + stageIndex);
+    beforeIndex = findStageIndex(sequence, beforeStage);
+    sequence.insert(sequence.begin() + beforeIndex, movingStage);
+
+    CTH_TRACE("moved stage=0x%x before stage=0x%x\n", "visual pipeline",
+        stage, beforeStage);
+    return 1;
+}
+
+int VisualPipeline::moveStageAfter(unsigned int stage, unsigned int afterStage) {
+    if (stage == afterStage)
+        return 1;
+
+    int stageIndex = findStageIndex(sequence, stage);
+    int afterIndex = findStageIndex(sequence, afterStage);
+    if (stageIndex < 0 || afterIndex < 0)
+        return 0;
+
+    unsigned int movingStage = sequence[stageIndex];
+    sequence.erase(sequence.begin() + stageIndex);
+    afterIndex = findStageIndex(sequence, afterStage);
+    sequence.insert(sequence.begin() + afterIndex + 1, movingStage);
+
+    CTH_TRACE("moved stage=0x%x after stage=0x%x\n", "visual pipeline",
+        stage, afterStage);
+    return 1;
 }
 
 int VisualPipeline::setStageMode(unsigned int stage, VisualStageRunMode mode) {
@@ -64,19 +117,25 @@ void VisualPipeline::refresh() {
 }
 
 void VisualPipeline::run(CthughaFrameBuffer& frameBuffer, const VisualFrameContext& context) {
-    for (unsigned int i = 0; i < modules.size(); i++) {
-        if (modules[i].mode == VisualStageDisabled) {
-            CTH_TRACE("skipping disabled stage=0x%x module=%p\n",
-                "visual pipeline", modules[i].stage, modules[i].module);
-            continue;
-        }
+    for (unsigned int stageIndex = 0; stageIndex < sequence.size(); stageIndex++) {
+        unsigned int stage = sequence[stageIndex];
+        for (unsigned int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
+            if (modules[moduleIndex].stage != stage)
+                continue;
 
-        modules[i].module->execute(frameBuffer, context);
+            if (modules[moduleIndex].mode == VisualStageDisabled) {
+                CTH_TRACE("skipping disabled stage=0x%x module=%p\n",
+                    "visual pipeline", modules[moduleIndex].stage, modules[moduleIndex].module);
+                continue;
+            }
 
-        if (modules[i].mode == VisualStageArmedOnce) {
-            CTH_TRACE("disarming one-shot stage=0x%x module=%p\n",
-                "visual pipeline", modules[i].stage, modules[i].module);
-            modules[i].mode = VisualStageDisabled;
+            modules[moduleIndex].module->execute(frameBuffer, context);
+
+            if (modules[moduleIndex].mode == VisualStageArmedOnce) {
+                CTH_TRACE("disarming one-shot stage=0x%x module=%p\n",
+                    "visual pipeline", modules[moduleIndex].stage, modules[moduleIndex].module);
+                modules[moduleIndex].mode = VisualStageDisabled;
+            }
         }
     }
 }

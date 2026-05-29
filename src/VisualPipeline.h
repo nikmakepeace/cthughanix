@@ -52,6 +52,7 @@ class VisualPipeline {
     };
 
     std::vector<Entry> modules;
+    std::vector<unsigned int> sequence;
 
 public:
     VisualPipeline();
@@ -59,6 +60,9 @@ public:
 
     void clear();
     void add(unsigned int stage, VisualModule* module, int takeOwnership = 0);
+    void setStageSequence(const std::vector<unsigned int>& stages);
+    int moveStageBefore(unsigned int stage, unsigned int beforeStage);
+    int moveStageAfter(unsigned int stage, unsigned int afterStage);
     int setStageMode(unsigned int stage, VisualStageRunMode mode);
     VisualStageRunMode stageMode(unsigned int stage) const;
     void refresh();

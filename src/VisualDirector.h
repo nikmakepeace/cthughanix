@@ -10,24 +10,31 @@ class Settings;
 
 class VisualPlan {
     unsigned int stagesValue;
+    std::vector<unsigned int> sequenceValue;
+
 
 public:
+
+    // bitmask of stages included in the plan
     enum Stage {
-        BufferTransformStage = 1 << 0,
-        FlashlightStage = 1 << 1,
-        BorderStage = 1 << 2,
-        ImageStage = 1 << 3,
+        BufferFrameBeginStage = 1 << 0,
+        ImageStage = 1 << 1,
+        FlashlightStage = 1 << 2,
+        BorderStage = 1 << 3,
         FlameStage = 1 << 4,
         TranslateStage = 1 << 5,
         WaveStage = 1 << 6,
-        PaletteStage = 1 << 7
+        BufferFrameEndStage = 1 << 7,
+        PaletteStage = 1 << 8
     };
 
     VisualPlan();
 
     void include(Stage stage);
+    void append(Stage stage);
     int includes(Stage stage) const;
     unsigned int stages() const { return stagesValue; }
+    const std::vector<unsigned int>& sequence() const { return sequenceValue; }
 };
 
 class VisualDirector {
