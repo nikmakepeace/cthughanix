@@ -388,7 +388,7 @@ ImageStageModule
   overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
-  execute bound FlameEntry objects
+  execute bound Flame objects
 
 TranslateStageModule
   let bound TranslateOption providers prepare/load tables
@@ -416,9 +416,11 @@ gives the visualizer memory.
 
 In source:
 
-- entries are registered in `src/flames.cc::_flames`;
-- each entry is a `FlameEntry`;
-- `FlameStageModule` calls `FlameEntry::execute(buffer, context)`;
+- domain flames are registered in `src/Flame.cc::flameCatalog`;
+- `src/flames.cc::_flames` adapts those flames into the current `CoreOption`
+  interface;
+- `FlameStageModule` executes the bound `Flame` objects selected by
+  `VisualDirector`;
 - `init_flames()` precomputes lookup tables such as `divsub`.
 
 Mentally:

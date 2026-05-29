@@ -31,6 +31,7 @@ set(CTHUGHA_COMMON_SOURCES
     joystick.cc
     palettes.cc
     pcx.cc
+    Flame.cc
     flames.cc
     waves.cc
     sound_tables.cc

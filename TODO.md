@@ -164,8 +164,9 @@
      - Added `VisualFrameContext`, `VisualModule`, and `VisualPipeline`
        scaffolding.
      - Removed the old monolithic `CthughaBuffer::run()` frame choreography.
-     - Added explicit flame, translate, and wave modules that execute selected
-       `FlameEntry`, `TranslateEntry`, and `WaveEntry` objects.
+     - Added explicit flame, translate, and wave modules. Flame execution now
+       uses domain `Flame` objects; `FlameEntry` remains only as the current
+       `CoreOption` adapter.
    - Next practical slice:
      - Continue moving selected-buffer lookups behind explicit display/provider
        objects so non-pipeline code no longer has to consult

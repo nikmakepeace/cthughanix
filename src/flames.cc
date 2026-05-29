@@ -8,30 +8,8 @@
 
 CoreOptionEntryList generalFlameEntries;
 
-void flame_clear(CthughaBuffer& buffer);
-void flame_upslow(CthughaBuffer& buffer);
-void flame_upsubtle(CthughaBuffer& buffer);
-void flame_upfast(CthughaBuffer& buffer);
-void flame_leftslow(CthughaBuffer& buffer);
-void flame_leftsubtle(CthughaBuffer& buffer);
-void flame_leftfast(CthughaBuffer& buffer);
-void flame_rightslow(CthughaBuffer& buffer);
-void flame_rightsubtle(CthughaBuffer& buffer);
-void flame_rightfast(CthughaBuffer& buffer);
-void flame_water(CthughaBuffer& buffer);
-void flame_watersubtle(CthughaBuffer& buffer);
-void flame_skyline(CthughaBuffer& buffer);
-void flame_weird(CthughaBuffer& buffer);
-void flame_zzz(CthughaBuffer& buffer);
-void flame_fade(CthughaBuffer& buffer);
-void flame_general_subtle(CthughaBuffer& buffer);
-void flame_general_slow(CthughaBuffer& buffer);
-
 void flame_general_subtle_filter(CthughaBuffer& buffer);
-
 void flame_general_slow_filter(CthughaBuffer& buffer);
-
-void flame_down(CthughaBuffer& buffer);
 
 const char* OptionGeneralFlame::text() const {
     static char str[32];
@@ -44,38 +22,36 @@ const char* OptionGeneralFlame::text() const {
     return str;
 }
 
-FlameEntry::FlameEntry(void (*f)(CthughaBuffer& buffer), const char* name, const char* desc, int inUse)
-    : CoreOptionEntry(name, desc, inUse)
-    , flame(f) { }
+FlameEntry::FlameEntry(const Flame& flame, int inUse)
+    : CoreOptionEntry(flame.name(), flame.description(), inUse)
+    , flameValue(&flame) { }
 
-void FlameEntry::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
-    (void)context;
-
-    (*flame)(buffer);
+const Flame& FlameEntry::flame() const {
+    return *flameValue;
 }
 
 CoreOptionEntry* _flames[] = {
-    new FlameEntry(flame_clear, "Clear", "Blank the buffer", 0),
-    new FlameEntry(flame_upslow, "u-Sl", "Up Slow"),
-    new FlameEntry(flame_upsubtle, "u-Su", "Up Subtle"),
-    new FlameEntry(flame_upfast, "u-Fa", "Up Fast"),
-    new FlameEntry(flame_leftslow, "l-Sl", "Left Slow"),
-    new FlameEntry(flame_leftsubtle, "l-Su", "Left Subtle"),
-    new FlameEntry(flame_leftfast, "l-Fa", "Left Fast"),
-    new FlameEntry(flame_rightslow, "r-Sl", "Right Slow"),
-    new FlameEntry(flame_rightsubtle, "r-Su", "Right Subtle"),
-    new FlameEntry(flame_rightfast, "r-Fa", "Right Fast"),
-    new FlameEntry(flame_water, "Water", "Water"),
-    new FlameEntry(flame_watersubtle, "Wa-s", "Water Subtle"),
-    new FlameEntry(flame_skyline, "Skyline", "Skyline"),
-    new FlameEntry(flame_weird, "Weird", "Weird"),
-    new FlameEntry(flame_zzz, "Zzz", "Zzz"),
-    new FlameEntry(flame_fade, "Fade", "Fade"),
-    new FlameEntry(flame_general_subtle, "GenSubt", "General Subtle"),
-    new FlameEntry(flame_general_slow, "GenSlow", "General Slow"),
-    new FlameEntry(flame_down, "Down", "Falling Down"),
+    new FlameEntry(flameCatalog[0], 0),
+    new FlameEntry(flameCatalog[1]),
+    new FlameEntry(flameCatalog[2]),
+    new FlameEntry(flameCatalog[3]),
+    new FlameEntry(flameCatalog[4]),
+    new FlameEntry(flameCatalog[5]),
+    new FlameEntry(flameCatalog[6]),
+    new FlameEntry(flameCatalog[7]),
+    new FlameEntry(flameCatalog[8]),
+    new FlameEntry(flameCatalog[9]),
+    new FlameEntry(flameCatalog[10]),
+    new FlameEntry(flameCatalog[11]),
+    new FlameEntry(flameCatalog[12]),
+    new FlameEntry(flameCatalog[13]),
+    new FlameEntry(flameCatalog[14]),
+    new FlameEntry(flameCatalog[15]),
+    new FlameEntry(flameCatalog[16]),
+    new FlameEntry(flameCatalog[17]),
+    new FlameEntry(flameCatalog[18]),
 };
-int _nFlames = sizeof(_flames) / sizeof(CoreOptionEntry*);
+int _nFlames = nFlameCatalogEntries;
 
 static int flame_offset[4]; /* table for general flames */
 

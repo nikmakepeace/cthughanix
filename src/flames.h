@@ -3,23 +3,19 @@
 
 #include "cthugha.h"
 #include "CoreOption.h"
-
-class CthughaBuffer;
-class VisualFrameContext;
+#include "Flame.h"
 
 class FlameEntry : public CoreOptionEntry {
-    void (*flame)(CthughaBuffer& buffer);
+    const Flame* flameValue;
 
 public:
-    FlameEntry(void (*f)(CthughaBuffer& buffer), const char* name, const char* desc, int inUse = 1);
+    FlameEntry(const Flame& flame, int inUse = 1);
 
-    void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
+    const Flame& flame() const;
 };
 
 extern CoreOptionEntry* _flames[];
 extern int _nFlames;
-
-int init_flames();
 
 extern CoreOptionEntryList generalFlameEntries;
 

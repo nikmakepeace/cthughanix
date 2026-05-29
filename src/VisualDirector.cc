@@ -2,6 +2,7 @@
 #include "Border.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "Flame.h"
 #include "Flashlight.h"
 #include "VisualDirector.h"
 #include "cth_buffer.h"
@@ -24,11 +25,16 @@ static int activeBufferCount() {
     return min(CthughaBuffer::nBuffers, CthughaBuffer::maxNBuffers);
 }
 
+static const Flame* flameFromOption(CoreOption& option) {
+    FlameEntry* entry = dynamic_cast<FlameEntry*>(option.current());
+    return (entry != 0) ? &entry->flame() : 0;
+}
+
 struct FlameStageBinding {
     CthughaBuffer* buffer;
-    FlameEntry* flame;
+    const Flame* flame;
 
-    FlameStageBinding(CthughaBuffer* buffer_, FlameEntry* flame_)
+    FlameStageBinding(CthughaBuffer* buffer_, const Flame* flame_)
         : buffer(buffer_)
         , flame(flame_) { }
 };
@@ -360,8 +366,7 @@ void VisualDirector::bindPipelineStages(VisualPipeline& pipeline) {
         CthughaBuffer* buffer = CthughaBuffer::buffers + j;
 
         buffers.push_back(buffer);
-        flames.push_back(FlameStageBinding(buffer,
-            static_cast<FlameEntry*>(buffer->flame.current())));
+        flames.push_back(FlameStageBinding(buffer, flameFromOption(buffer->flame)));
         translates.push_back(TranslateStageBinding(buffer, &buffer->translate));
         waves.push_back(WaveStageBinding(buffer,
             static_cast<WaveEntry*>(buffer->wave.current())));

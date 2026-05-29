@@ -90,8 +90,9 @@ Loader: `read_object()` in `src/waves.cc`.
 
 ### Add a Compiled-In 2D Flame
 
-Add a function to `src/flames.cc`, then add a `new FlameEntry(...)` in
-`_flames`.
+Add a function to `src/flames.cc`, then add a `Flame(...)` in
+`src/Flame.cc::flameCatalog`. Until the interface is fully director-driven,
+also add a matching `FlameEntry` adapter in `src/flames.cc::_flames`.
 
 Contract:
 
@@ -99,8 +100,8 @@ Contract:
   `passivePixels()`;
 - respect `BUFF_WIDTH`, `BUFF_HEIGHT`, and the extra 3-line top/bottom border;
 - leave coordinate remapping to the dedicated translate stage;
-- expose execution through `FlameEntry::execute(buffer, context)` while
-  preserving the legacy `CoreOptionEntry::operator()()` path.
+- expose execution through the `Flame` domain object, not through
+  `CoreOptionEntry`.
 
 ### Add a Compiled-In Wave
 
@@ -153,7 +154,7 @@ Implement `VisualModule` and add it through `VisualPipelineFactory`.
 Current reality: flashlight, border, image, flame, translate, wave,
 frame-commit, and palette smoothing are explicit modules. `VisualDirector`
 synchronizes the selected buffer and updates typed stage bindings before each
-run; flame, translate, and wave stages execute the bound `FlameEntry`,
+run; flame, translate, and wave stages execute the bound `Flame`,
 `TranslateOption`, and `WaveEntry` objects.
 
 The next seam to improve is the remaining selected-buffer global. Stage

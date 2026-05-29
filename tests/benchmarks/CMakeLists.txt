@@ -46,6 +46,7 @@ add_executable(visual_effects_bench
     ${CMAKE_SOURCE_DIR}/src/CoreOption.cc
     ${CMAKE_SOURCE_DIR}/src/CoreOptionEntry.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/Flame.cc
     ${CMAKE_SOURCE_DIR}/src/flames.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
     ${CMAKE_SOURCE_DIR}/src/misc.cc

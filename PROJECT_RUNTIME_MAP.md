@@ -291,7 +291,7 @@ ImageStageModule
   overlay the selected PCX when VisualDirector has armed ImageStage once
 
 FlameStageModule
-  pass each active CthughaBuffer into bound FlameEntry objects
+  pass each active CthughaBuffer into bound Flame objects
 
 TranslateStageModule
   ask bound TranslateOption providers to prepare/load TranslateEntry objects

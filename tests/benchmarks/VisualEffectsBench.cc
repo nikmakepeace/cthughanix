@@ -1,7 +1,7 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "Flame.h"
 #include "VisualPipeline.h"
-#include "flames.h"
 #include "imath.h"
 #include "translate.h"
 #include "cth_buffer.h"
@@ -490,7 +490,7 @@ void setCommonCounters(benchmark::State& state) {
     state.SetBytesProcessed((int64_t)state.iterations() * visiblePixels());
 }
 
-static void BM_FlameEntry(benchmark::State& state, FlameEntry* flame,
+static void BM_Flame(benchmark::State& state, const Flame* flame,
     const BufferFixture* fixture) {
     initializeVisualBenchmarks();
 
@@ -542,12 +542,12 @@ void registerVisualBenchmarks() {
     initializeVisualBenchmarks();
     const std::vector<BufferFixture>& allFixtures = fixtures();
 
-    for (int i = 0; i < _nFlames; i++) {
-        FlameEntry* flame = static_cast<FlameEntry*>(_flames[i]);
+    for (int i = 0; i < nFlameCatalogEntries; i++) {
+        const Flame* flame = flameByIndex(i);
         for (size_t f = 0; f < allFixtures.size(); f++) {
             benchmark::RegisterBenchmark(
-                benchmarkName("Flame", flame->Name(), allFixtures[f].name).c_str(),
-                &BM_FlameEntry, flame, &allFixtures[f])
+                benchmarkName("Flame", flame->name(), allFixtures[f].name).c_str(),
+                &BM_Flame, flame, &allFixtures[f])
                 ->Unit(benchmark::kMicrosecond);
         }
     }
