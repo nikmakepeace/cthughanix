@@ -1,8 +1,10 @@
 #ifndef __PIPELINE_STAGE_MODULES_H
 #define __PIPELINE_STAGE_MODULES_H
 
+#include "FramePalette.h"
 #include "PaletteTransition.h"
 #include "VisualPipeline.h"
+#include "VisualPipelineSequence.h"
 
 class Flame;
 class PaletteEntry;
@@ -63,9 +65,12 @@ public:
 };
 
 class FlashlightVisualModule : public VisualModule {
+    FramePalette* framePalette;
+
 public:
     FlashlightVisualModule();
 
+    void setFramePalette(FramePalette* framePalette_);
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
 };
 
@@ -80,14 +85,19 @@ public:
 };
 
 class PaletteStageModule : public VisualModule {
-    PaletteTransition palette;
+    PaletteTransition transition;
+    FramePalette framePaletteValue;
 
 public:
     PaletteStageModule();
 
+    FramePalette& framePalette();
     int needsTarget(PaletteEntry* paletteEntry) const;
-    void setPalette(PaletteEntry* paletteEntry, int frameBudget);
+    void setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
+        const PaletteTransitionStrategy& strategy);
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
 };
+
+FramePalette* framePaletteFromPipeline(VisualPipeline& pipeline);
 
 #endif

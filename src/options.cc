@@ -210,7 +210,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'p':
-        CthughaBuffer::current->palette.setInitialEntry(str);
+        palette.setInitialEntry(str);
         break;
 
     case opt_palette_smoothing:

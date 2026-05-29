@@ -369,14 +369,14 @@ void DisplayDeviceX11::drawPalettePreview() {
 }
 
 void DisplayDeviceX11::updatePalettePreview() {
-    if ((palettePreviewWidget == NULL) || (CthughaBuffer::current == NULL))
+    if (palettePreviewWidget == NULL)
         return;
 
     XWindowAttributes attrs;
     if (!XGetWindowAttributes(xcth_display, XtWindow(palettePreviewWidget), &attrs))
         return;
 
-    int current_palette = CthughaBuffer::current->palette.currentN();
+    int current_palette = palette.currentN();
     int palette_changed = current_palette != palettePreviewPalette;
     int size_changed = (attrs.width != palettePreviewWidth) || (attrs.height != palettePreviewHeight);
     if (!palette_changed && !size_changed)
@@ -396,11 +396,11 @@ void DisplayDeviceX11::updatePalettePreview() {
         palettePreviewPixmap = None;
     }
 
-    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
-    if (palette == NULL)
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if (paletteEntry == NULL)
         return;
 
-    strncpy(palettePreviewMapPath, palette->sourcePath, PATH_MAX);
+    strncpy(palettePreviewMapPath, paletteEntry->sourcePath, PATH_MAX);
     palettePreviewMapPath[PATH_MAX - 1] = '\0';
 
     char png_path[PATH_MAX];
@@ -408,14 +408,14 @@ void DisplayDeviceX11::updatePalettePreview() {
     int png_height = 0;
     std::vector<unsigned char> rgb;
 
-    if (!palette_png_path(palette->sourcePath, palette->Name(), png_path)) {
+    if (!palette_png_path(paletteEntry->sourcePath, paletteEntry->Name(), png_path)) {
         CTH_WARN("Could not find PNG preview for palette `%s' loaded from `%s'.\n",
-            palette->Name(), palette->sourcePath);
+            paletteEntry->Name(), paletteEntry->sourcePath);
         return;
     }
     if (!load_png_rgb(png_path, png_width, png_height, rgb)) {
         CTH_WARN("Could not load PNG preview `%s' for palette `%s'.\n", png_path,
-            palette->Name());
+            paletteEntry->Name());
         return;
     }
 
@@ -465,26 +465,26 @@ void DisplayDeviceX11::setPaletteMetadataStatus(const char* status) {
 
 void DisplayDeviceX11::updatePaletteMetadataEditor() {
     if ((paletteNameTextWidget == NULL) || (paletteSetTextWidget == NULL)
-        || (paletteEnergyTextWidget == NULL) || (CthughaBuffer::current == NULL))
+        || (paletteEnergyTextWidget == NULL))
         return;
 
-    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
-    if (palette == NULL)
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if (paletteEntry == NULL)
         return;
 
-    XtVaSetValues(paletteNameTextWidget, XtNstring, palette->metadataName, NULL);
-    XtVaSetValues(paletteSetTextWidget, XtNstring, palette->metadataSet, NULL);
-    XtVaSetValues(paletteEnergyTextWidget, XtNstring, palette->metadataEnergy, NULL);
-    setPaletteMetadataStatus(palette->sourcePath[0] ? palette->Name() : "read-only");
+    XtVaSetValues(paletteNameTextWidget, XtNstring, paletteEntry->metadataName, NULL);
+    XtVaSetValues(paletteSetTextWidget, XtNstring, paletteEntry->metadataSet, NULL);
+    XtVaSetValues(paletteEnergyTextWidget, XtNstring, paletteEntry->metadataEnergy, NULL);
+    setPaletteMetadataStatus(paletteEntry->sourcePath[0] ? paletteEntry->Name() : "read-only");
 }
 
 int DisplayDeviceX11::savePaletteMetadata() {
     if ((paletteNameTextWidget == NULL) || (paletteSetTextWidget == NULL)
-        || (paletteEnergyTextWidget == NULL) || (CthughaBuffer::current == NULL))
+        || (paletteEnergyTextWidget == NULL))
         return 0;
 
-    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
-    if ((palette == NULL) || (palette->sourcePath[0] == '\0')) {
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if ((paletteEntry == NULL) || (paletteEntry->sourcePath[0] == '\0')) {
         setPaletteMetadataStatus("read-only");
         return 0;
     }
@@ -500,7 +500,7 @@ int DisplayDeviceX11::savePaletteMetadata() {
         return 0;
     }
 
-    PaletteEntry scratch(palette->Name(), "");
+    PaletteEntry scratch(paletteEntry->Name(), "");
     if (name[0])
         scratch.setMetadataName(name);
     if (set[0] && !palette_set_metadata_set(&scratch, set)) {
@@ -512,7 +512,7 @@ int DisplayDeviceX11::savePaletteMetadata() {
         return 0;
     }
 
-    FILE* in = fopen(palette->sourcePath, "rb");
+    FILE* in = fopen(paletteEntry->sourcePath, "rb");
     if (in == NULL) {
         setPaletteMetadataStatus("open failed");
         return 0;
@@ -539,7 +539,7 @@ int DisplayDeviceX11::savePaletteMetadata() {
     }
 
     char tmp_path[PATH_MAX];
-    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", palette->sourcePath);
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", paletteEntry->sourcePath);
     FILE* out = fopen(tmp_path, "wb");
     if (out == NULL) {
         setPaletteMetadataStatus("write failed");
@@ -561,46 +561,43 @@ int DisplayDeviceX11::savePaletteMetadata() {
         setPaletteMetadataStatus("write failed");
         return 0;
     }
-    if (rename(tmp_path, palette->sourcePath) != 0) {
+    if (rename(tmp_path, paletteEntry->sourcePath) != 0) {
         unlink(tmp_path);
         setPaletteMetadataStatus("save failed");
         return 0;
     }
 
-    palette->setMetadataName(scratch.metadataName);
+    paletteEntry->setMetadataName(scratch.metadataName);
     if (scratch.metadataSet[0]) {
-        palette_set_metadata_set(palette, scratch.metadataSet);
+        palette_set_metadata_set(paletteEntry, scratch.metadataSet);
     } else {
-        palette->metadataSet[0] = '\0';
-        palette->metadataSetCount = 0;
+        paletteEntry->metadataSet[0] = '\0';
+        paletteEntry->metadataSetCount = 0;
     }
     if (scratch.metadataEnergy[0]) {
-        palette_set_metadata_energy(palette, scratch.metadataEnergy);
+        palette_set_metadata_energy(paletteEntry, scratch.metadataEnergy);
     } else {
-        palette->metadataEnergy[0] = '\0';
-        palette->metadataEnergyCount = 0;
+        paletteEntry->metadataEnergy[0] = '\0';
+        paletteEntry->metadataEnergyCount = 0;
     }
-    XtVaSetValues(paletteNameTextWidget, XtNstring, palette->metadataName, NULL);
-    XtVaSetValues(paletteSetTextWidget, XtNstring, palette->metadataSet, NULL);
-    XtVaSetValues(paletteEnergyTextWidget, XtNstring, palette->metadataEnergy, NULL);
+    XtVaSetValues(paletteNameTextWidget, XtNstring, paletteEntry->metadataName, NULL);
+    XtVaSetValues(paletteSetTextWidget, XtNstring, paletteEntry->metadataSet, NULL);
+    XtVaSetValues(paletteEnergyTextWidget, XtNstring, paletteEntry->metadataEnergy, NULL);
     setPaletteMetadataStatus("saved");
     return 1;
 }
 
 void DisplayDeviceX11::nextUntaggedPalette() {
-    if (CthughaBuffer::current == NULL)
-        return;
-
-    int n = CthughaBuffer::current->palette.getNEntries();
-    int start = CthughaBuffer::current->palette.currentN();
+    int n = palette.getNEntries();
+    int start = palette.currentN();
     for (int step = 1; step <= n; step++) {
         int candidate = (start + step) % n;
-        PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette[candidate];
-        if ((palette != NULL)
-            && ((palette->metadataName[0] == '\0') || (palette->metadataSetCount == 0)
-                || (palette->metadataEnergyCount == 0))) {
-            CthughaBuffer::current->palette.setValue(candidate);
-            CthughaBuffer::current->palette.change(0, 0);
+        PaletteEntry* paletteEntry = (PaletteEntry*)palette[candidate];
+        if ((paletteEntry != NULL)
+            && ((paletteEntry->metadataName[0] == '\0') || (paletteEntry->metadataSetCount == 0)
+                || (paletteEntry->metadataEnergyCount == 0))) {
+            palette.setValue(candidate);
+            palette.change(0, 0);
             palettePreviewPalette = -1;
             updatePalettePreview();
             setPaletteMetadataStatus("next untagged");
@@ -616,7 +613,7 @@ void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointe
     if (device == NULL)
         return;
 
-    if (CthughaBuffer::current->palette.currentN() != device->palettePreviewPalette) {
+    if (palette.currentN() != device->palettePreviewPalette) {
         device->palettePreviewChangedAt = getTime();
         CTH_WARN("Palette changed too recently; not deleting.\n");
         return;
@@ -627,11 +624,11 @@ void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointe
         return;
     }
 
-    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
-    if ((palette == NULL) || (palette->sourcePath[0] == '\0'))
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if ((paletteEntry == NULL) || (paletteEntry->sourcePath[0] == '\0'))
         return;
 
-    unlink(palette->sourcePath);
+    unlink(paletteEntry->sourcePath);
 }
 
 void DisplayDeviceX11::savePaletteMetadataCB(
@@ -756,7 +753,7 @@ void DisplayDeviceX11::xcth_create_panel() {
     menu[2] = add_menu("Flame", &flame, panel, quit_button, menu[1]);
     menu[3]
         = add_menu("Translation", &CthughaBuffer::current->translate, panel, quit_button, menu[2]);
-    menu[4] = add_menu("Palette", &CthughaBuffer::current->palette, panel, quit_button, menu[3]);
+    menu[4] = add_menu("Palette", &palette, panel, quit_button, menu[3]);
     menu[5] = add_menu("Table", &table, panel, quit_button, menu[4]);
     menu[6] = add_menu("PCX", &CthughaBuffer::current->pcx, panel, quit_button, menu[5]);
     menu[7] = add_menu("Objects", &object, panel, quit_button, menu[6]);

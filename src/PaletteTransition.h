@@ -1,21 +1,45 @@
 #ifndef __PALETTE_TRANSITION_H
 #define __PALETTE_TRANSITION_H
 
-#include "display.h"
+#include "ColorPalette.h"
 
-class CthughaBuffer;
+class FramePalette;
+
+class PaletteTransitionStrategy {
+public:
+    typedef void (*Function)(ColorPalette& current, const ColorPalette& target,
+        int remainingFrames);
+
+private:
+    const char* nameValue;
+    Function functionValue;
+
+public:
+    PaletteTransitionStrategy(const char* name, Function function);
+
+    const char* name() const;
+    void step(ColorPalette& current, const ColorPalette& target, int remainingFrames) const;
+};
 
 class PaletteTransition {
-    Palette targetPalette;
+    ColorPalette currentPalette;
+    ColorPalette targetPalette;
+    const PaletteTransitionStrategy* strategyValue;
     int hasTargetValue;
     int remainingFramesValue;
 
 public:
     PaletteTransition();
 
-    int hasTarget(const Palette& target) const;
-    void achieve(const Palette& target, int frameBudget);
-    void execute(CthughaBuffer& buffer);
+    int hasTarget(const ColorPalette& target) const;
+    void achieve(const ColorPalette& target, int frameBudget,
+        const PaletteTransitionStrategy& strategy);
+    void execute(FramePalette& framePalette);
 };
+
+const PaletteTransitionStrategy& linearPaletteTransitionStrategy();
+const PaletteTransitionStrategy& squaredPaletteTransitionStrategy();
+const PaletteTransitionStrategy& hslPaletteTransitionStrategy();
+const PaletteTransitionStrategy& randomPaletteTransitionStrategy();
 
 #endif

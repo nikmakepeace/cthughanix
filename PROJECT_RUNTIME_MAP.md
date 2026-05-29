@@ -205,11 +205,11 @@ analysis and before visual mutation. Waves normally read
 
 ## Visual Buffer Pipeline
 
-`CthughaBuffer` owns the single classic visual buffer, its selectable effect
-options, and the raw active/passive indexed pixel buffers. It no longer owns
-the per-frame flame/translate/wave choreography; `VisualDirector` configures
-pipeline modules with the currently selected effect entries. Default
-dimensions are:
+`CthughaBuffer` owns the single classic visual buffer, its legacy selectable
+effect-option holders, and the raw active/passive indexed pixel buffers. It no
+longer owns the per-frame flame/translate/wave choreography or the current
+frame palette; `VisualDirector` configures pipeline modules with the currently
+selected effect entries. Default dimensions are:
 
 ```text
 BUFF_WIDTH  = 160
@@ -225,13 +225,13 @@ code reads those rows as boundary data.
 
 ```text
 ImageStage
-FlashlightStage
 BorderStage
 FlameStage
 TranslateStage
 WaveStage
 FrameCommitStage
 PaletteStage
+FlashlightStage
 ```
 
 `VisualPipelineFactory::create()` in `src/VisualPipelineFactory.cc` currently
@@ -239,13 +239,13 @@ expands that sequence into this module order:
 
 ```text
 ImageStageModule
-FlashlightVisualModule
 BorderVisualModule
 FlameStageModule
 TranslateStageModule
 WaveStageModule
 FrameCommitModule
 PaletteStageModule
+FlashlightVisualModule
 ```
 
 `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
@@ -257,15 +257,16 @@ flame, general-flame value, translate provider, wave, and border mode.
 enabled stage.
 
 Current limitation: entry selection is now director-owned and stage execution
-receives an explicit `CthughaBuffer&`, but UI, loading, and display code still
-use `CthughaBuffer::current`.
+receives an explicit `CthughaBuffer&`, but UI and loading code still use
+`CthughaBuffer::current`.
 
 ### Flashlight
 
 `apply_flashlight()` is a palette effect. If the `flashlight` CoreOption is on,
-it copies the current palette, brightens low palette entries according to
-`acousticContext.fire()`, and installs the temporary palette on the visual
-buffer.
+`VisualDirector` enables the flashlight stage. The stage copies the current
+`FramePalette`, brightens low palette entries according to
+`acousticContext.fire()`, and writes the temporary palette back to
+`FramePalette`.
 
 It does not draw pixels into the indexed buffer.
 
@@ -316,17 +317,30 @@ Palette smoothing is separate from the indexed pixel mutation stages.
 
 ### Palette Stage
 
-`VisualDirector` binds the selected palette into `PaletteStageModule`.
+`PaletteOption` is the global CoreOption adapter for loaded palettes.
+`PaletteEntry` wraps a `ColorPalette` plus UI/config metadata, while
+`VisualDirector` binds the selected entry into `PaletteStageModule`.
 `PaletteStageModule` delegates transition mechanics to `PaletteTransition`,
-which moves the output palette toward the target palette over a frame budget.
+which moves the output palette toward the target `ColorPalette` over a frame
+budget.
+The resulting palette and dirty flag live in `FramePalette`, which the display
+device reads when applying the hardware/X11 palette for the frame.
+`PaletteTransition` keeps its own unflashed transition state so flashlight can
+overlay the final frame palette without becoming the starting point for the
+next smoothing step.
 The global `paletteSmoothingChance` controls whether a palette change smooths
 or jumps directly to the new palette.
+When smoothing is used, `VisualDirector` asks `PaletteTransition` to use a
+random named strategy: RGB linear, RGB squared, or HSL interpolation.
 
 Command-line options:
 
 - `--palette-smoothing VALUE`, clamped to `0.0..1.0`;
 - `--no-palette-smoothing`;
 - `--palette-set SET`, which filters palettes by metadata set.
+
+`FlashlightVisualModule` runs after palette smoothing so it brightens the final
+palette output for the frame instead of being diluted by the smoothing step.
 
 ## CoreOption System
 

@@ -4,11 +4,11 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "CthughaDisplay.h"
-#include "CthughaBuffer.h"
 
 #include <ctype.h>
 
 CoreOptionEntryList paletteEntries;
+PaletteOption palette;
 
 int change_palette_imm(int);
 
@@ -265,18 +265,30 @@ static int palette_matches_set_filter(PaletteEntry* palette) {
     return 0;
 }
 
+PaletteOption::PaletteOption()
+    : CoreOption(-1, "palette", paletteEntries) { }
+
+PaletteEntry* PaletteOption::currentPaletteEntry() {
+    return dynamic_cast<PaletteEntry*>(current());
+}
+
+const ColorPalette* PaletteOption::currentPalette() {
+    PaletteEntry* entry = currentPaletteEntry();
+    return (entry != 0) ? &entry->colors() : 0;
+}
+
 void apply_palette_set_filter() {
     int usable = 0;
 
-    if ((CthughaBuffer::current == NULL) || (paletteSetFilterCount == 0))
+    if (paletteSetFilterCount == 0)
         return;
 
-    for (int i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++) {
-        PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette[i];
-        int matches = (palette != NULL) && palette_matches_set_filter(palette);
+    for (int i = 0; i < ::palette.getNEntries(); i++) {
+        PaletteEntry* entry = (PaletteEntry*)::palette[i];
+        int matches = (entry != NULL) && palette_matches_set_filter(entry);
 
-        if (palette != NULL)
-            palette->setUse(matches);
+        if (entry != NULL)
+            entry->setUse(matches);
         if (matches)
             usable++;
     }
@@ -284,8 +296,8 @@ void apply_palette_set_filter() {
     if (usable == 0) {
         CTH_WARN("Palette set filter `%s' matched no palettes; leaving all palettes enabled.\n",
             paletteSetFilterText);
-        for (int i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++)
-            CthughaBuffer::current->palette[i]->setUse(1);
+        for (int i = 0; i < ::palette.getNEntries(); i++)
+            ::palette[i]->setUse(1);
     } else {
         CTH_INFO("  palette set filter `%s': %d palettes enabled\n", paletteSetFilterText, usable);
     }
@@ -361,54 +373,45 @@ int colormapped = 1; /* 0 .. True/Direct color
 int load_palettes() {
     int i, l;
     PaletteEntry* new_pal;
-    Palette* pal;
+    ColorPalette* colors;
 
     CTH_INFO("  loading palettes...\n");
-    CthughaBuffer::current->palette.load(palette_path, "/map/", ".map", read_palette);
+    palette.load(palette_path, "/map/", ".map", read_palette);
 
     /* create one general palette */
     new_pal = new PaletteEntry("general", "");
-    pal = &(new_pal->pal);
+    colors = &new_pal->colors();
     for (i = 0; i < 64; i++) {
-        (*pal)[i][0] = i << 2;
-        (*pal)[i][1] = 0;
-        (*pal)[i][2] = 0;
-
-        (*pal)[i + 64][0] = 0;
-        (*pal)[i + 64][1] = i << 2;
-        (*pal)[i + 64][2] = 0;
-
-        (*pal)[i + 128][0] = 0;
-        (*pal)[i + 128][1] = 0;
-        (*pal)[i + 128][2] = i << 2;
-
-        (*pal)[i + 192][0] = i << 2;
-        (*pal)[i + 192][1] = i << 2;
-        (*pal)[i + 192][2] = i << 2;
+        colors->setColor(i, i << 2, 0, 0);
+        colors->setColor(i + 64, 0, i << 2, 0);
+        colors->setColor(i + 128, 0, 0, i << 2);
+        colors->setColor(i + 192, i << 2, i << 2, i << 2);
     }
-    CthughaBuffer::current->palette.add(new_pal);
+    palette.add(new_pal);
 
-    CTH_INFO("  number of loaded palettes: %d\n", CthughaBuffer::current->palette.getNEntries());
+    CTH_INFO("  number of loaded palettes: %d\n", palette.getNEntries());
     apply_palette_set_filter();
 
     /* brighten up palettes, that are a bit dark */
-    for (i = 0; i < CthughaBuffer::current->palette.getNEntries(); i++) {
-        Palette* pal = &(((PaletteEntry*)CthughaBuffer::current->palette[i])->pal);
+    for (i = 0; i < palette.getNEntries(); i++) {
+        PaletteEntry* entry = (PaletteEntry*)palette[i];
+        ColorPalette& colors = entry->colors();
         int m = 0;
         double P = 0;
 
         for (l = 0; l < 256; l++) {
-            m = max(m, (*pal)[l][0] + (*pal)[l][1] + (*pal)[l][2]);
+            m = max(m, colors.component(l, 0) + colors.component(l, 1)
+                    + colors.component(l, 2));
         }
         if ((m > 0) && (m < 3 * 255)) {
             P = double(3 * 255) / double(m);
             CTH_TRACE("brightening palette %d (%s). Faktor: %0.3f\n", "palette", i,
-                CthughaBuffer::current->palette[i]->Name(), P);
+                palette[i]->Name(), P);
 
             for (l = 0; l < 256; l++) {
-                (*pal)[l][0] = min((int)((double)(*pal)[l][0] * P), 255);
-                (*pal)[l][1] = min((int)((double)(*pal)[l][1] * P), 255);
-                (*pal)[l][2] = min((int)((double)(*pal)[l][2] * P), 255);
+                colors.setComponent(l, 0, int(double(colors.component(l, 0)) * P));
+                colors.setComponent(l, 1, int(double(colors.component(l, 1)) * P));
+                colors.setComponent(l, 2, int(double(colors.component(l, 2)) * P));
             }
         }
     }
@@ -425,14 +428,13 @@ CoreOptionEntry* read_palette(
     FILE* file, const char* name, const char* /*dir*/, const char* total_name) {
     char line[256];
     int i = 0;
-    int j, r, g, b;
+    int r, g, b;
     int line_number = 0;
     bool read_all_entries = true;
     bool in_metadata = true;
-    Palette* pal;
     PaletteEntry* new_pal = new PaletteEntry(name, "");
+    ColorPalette& colors = new_pal->colors();
 
-    pal = &(new_pal->pal);
     strncpy(new_pal->sourcePath, total_name, PATH_MAX);
     new_pal->sourcePath[PATH_MAX - 1] = '\0';
 
@@ -447,8 +449,7 @@ CoreOptionEntry* read_palette(
                 return NULL;
             }
             for (; i < 256; i++) /* fill with black */
-                for (j = 0; j < 3; j++)
-                    (*pal)[i][j] = 0;
+                colors.setColor(i, 0, 0, 0);
             break;
         }
         line_number++;
@@ -482,9 +483,7 @@ CoreOptionEntry* read_palette(
             r = g = b = 0;
         }
 
-        (*pal)[i][0] = r;
-        (*pal)[i][1] = g;
-        (*pal)[i][2] = b;
+        colors.setColor(i, r, g, b);
         i++;
     }
 
@@ -530,7 +529,7 @@ void PaletteEntry::random() {
 
         // copy to real palette
         for (int i = 0; i < 256; i++)
-            pal[i][c] = P[i][c];
+            colors().setComponent(i, c, P[i][c]);
     }
 
     char str[512];
@@ -552,9 +551,11 @@ void PaletteEntry::random() {
         CTH_ERRNO(errno, "Can not open '%s' for random palette.", fname);
         return;
     }
-    fprintf(f, "%d %d %d  Random Palette from Cthugha\n", pal[0][0], pal[0][1], pal[0][2]);
+    fprintf(f, "%d %d %d  Random Palette from Cthugha\n",
+        colors().component(0, 0), colors().component(0, 1), colors().component(0, 2));
     for (int i = 1; i < 256; i++)
-        fprintf(f, "%d %d %d\n", pal[i][0], pal[i][1], pal[i][2]);
+        fprintf(f, "%d %d %d\n",
+            colors().component(i, 0), colors().component(i, 1), colors().component(i, 2));
     fclose(f);
 }
 
@@ -563,9 +564,9 @@ void PaletteEntry::addRandom() {
 
     PaletteEntry* new_pal = new PaletteEntry("", "random");
     new_pal->random();
-    CthughaBuffer::current->palette.add(new_pal);
+    palette.add(new_pal);
 
-    lastRandomPos = CthughaBuffer::current->palette.getNEntries() - 1;
+    lastRandomPos = palette.getNEntries() - 1;
 
 }
 
@@ -573,9 +574,7 @@ void PaletteEntry::Random() {
     if (lastRandomPos == -1)
         addRandom();
     else {
-        ((PaletteEntry*)CthughaBuffer::current->palette[lastRandomPos])->random();
-        //	((PaletteEntry*)CthughaBuffer::current->palette[
-        //	    CthughaBuffer::current->palette.getNEntries()-1 ])->random();
+        ((PaletteEntry*)palette[lastRandomPos])->random();
     }
 
 }

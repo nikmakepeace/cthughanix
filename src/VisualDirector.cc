@@ -6,6 +6,7 @@
 #include "PipelineStageModules.h"
 #include "VisualDirector.h"
 #include "cth_buffer.h"
+#include "display.h"
 #include "flames.h"
 #include "imath.h"
 #include "waves.h"
@@ -62,13 +63,13 @@ VisualPipelineSequence VisualDirector::defaultPipelineSequence() const {
     VisualPipelineSequence sequence;
 
     sequence.append(VisualPipelineSequence::ImageStage);
-    sequence.append(VisualPipelineSequence::FlashlightStage);
     sequence.append(VisualPipelineSequence::BorderStage);
     sequence.append(VisualPipelineSequence::FlameStage);
     sequence.append(VisualPipelineSequence::TranslateStage);
     sequence.append(VisualPipelineSequence::WaveStage);
     sequence.append(VisualPipelineSequence::FrameCommitStage);
     sequence.append(VisualPipelineSequence::PaletteStage);
+    sequence.append(VisualPipelineSequence::FlashlightStage);
 
     CTH_TRACE("default stage sequence stages=%d\n", "visual director",
         int(sequence.sequence().size()));
@@ -134,12 +135,13 @@ void VisualDirector::updatePipelineStages(VisualPipeline& pipeline, CthughaBuffe
 
     PaletteStageModule* paletteModule
         = stageModule<PaletteStageModule>(pipeline, VisualPipelineSequence::PaletteStage);
-    PaletteEntry* currentPalette = static_cast<PaletteEntry*>(buffer.palette.current());
+    PaletteEntry* currentPaletteEntry = palette.currentPaletteEntry();
     if (paletteModule != 0) {
-        int frameBudget = paletteModule->needsTarget(currentPalette)
+        int frameBudget = paletteModule->needsTarget(currentPaletteEntry)
             ? paletteChangeFrameBudget()
             : 0;
-        paletteModule->setPalette(currentPalette, frameBudget);
+        paletteModule->setTargetPalette(currentPaletteEntry, frameBudget,
+            randomPaletteTransitionStrategy());
     }
 }
 

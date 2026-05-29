@@ -406,7 +406,7 @@ public:
             elements[7] = new InterfaceElementCoreOption("Table (b,B)           : %s", &table);
             elements[8] = new InterfaceElementCoreOption("WaveScale (W)         : %s", &waveScale);
             elements[9]
-                = new InterfaceElementCoreOption("Palette (p,P)         : %s", &CthughaBuffer::buffer.palette);
+                = new InterfaceElementCoreOption("Palette (p,P)         : %s", &palette);
             elements[10]
                 = new InterfaceElementCoreOption("PCX (x,X))            : %s", &CthughaBuffer::buffer.pcx);
             elements[11] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &object);
@@ -427,7 +427,7 @@ public:
         O(5) = &wave;
         O(7) = &table;
         O(8) = &waveScale;
-        O(9) = &b.palette;
+        O(9) = &palette;
         O(10) = &b.pcx;
         O(11) = &object;
         O(12) = &flashlight;

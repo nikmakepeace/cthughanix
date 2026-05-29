@@ -146,13 +146,13 @@
      - `AudioVisualBridge` still owns audio processing/analyzer/autochanger work before
        visual mutation.
      - `ImageStage`
-     - `FlashlightStage`
      - `BorderStage`
      - `FlameStage`
      - `TranslateStage`
      - `WaveStage`
      - `FrameCommitStage`
      - `PaletteStage`
+     - `FlashlightStage`
    - Pipeline construction happens once per session, and module refresh/rebuild happens
      when startup settings or `AutoChanger` alter selected visual options.
    - Treat classic `screen` functions carefully:

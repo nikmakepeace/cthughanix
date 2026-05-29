@@ -33,7 +33,9 @@ Keep these files open:
   `src/VisualPipelineFactory.*`, `src/PipelineStageModules.*`,
   `src/VisualDirector.*`: visual-stage executor, ordering, composition,
   concrete modules, and policy.
-- `src/CthughaBuffer.*`: classic visual options and raw indexed buffers.
+- `src/CthughaBuffer.*`: classic visual option holders and raw indexed buffers.
+- `src/ColorPalette.*`, `src/FramePalette.*`, `src/PaletteTransition.*`:
+  palette data, frame palette output, dirty tracking, and palette smoothing.
 - `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
   objects used by the visual stages.
 - `src/display.cc`: 2D display mapping effects.
@@ -165,7 +167,8 @@ in `src/AudioProcessor.cc`.
 ## 6. Concept: CthughaBuffer
 
 `CthughaBuffer` is the classic off-screen indexed-color image that flames and
-waves modify.
+waves modify. It does not own the output palette; the current palette for a
+frame lives in `FramePalette`.
 
 Key fields in `src/CthughaBuffer.h`:
 
@@ -325,13 +328,13 @@ The default pipeline currently has these modules:
 
 ```text
 ImageStageModule
-FlashlightVisualModule
 BorderVisualModule
 FlameStageModule
 TranslateStageModule
 WaveStageModule
 FrameCommitModule
 PaletteStageModule
+FlashlightVisualModule
 ```
 
 Image, flame, translate, and wave are real stages now. `ImageStageModule`
@@ -355,7 +358,7 @@ If `flashlight` is enabled, it:
 
 1. copies the current frame palette;
 2. brightens low palette entries according to `acousticContext.fire()`;
-3. installs that temporary palette on the visual buffer.
+3. writes that temporary palette back to `FramePalette`.
 
 It does not draw pixels.
 
@@ -457,20 +460,30 @@ Those marks become fuel for later frames' flames.
 
 ## 17. Step 4d: Palette Stage
 
-`VisualDirector` binds the selected palette into `PaletteStageModule`, and the
-stage delegates the transition math to `PaletteTransition`. That object stores
-the target palette and remaining frame budget, then writes the current output
-palette into `CthughaBuffer`.
+`PaletteOption` is the global CoreOption adapter for loaded palettes, and each
+`PaletteEntry` wraps a `ColorPalette`. `VisualDirector` binds the selected
+entry into `PaletteStageModule`, and the stage delegates the transition math to
+`PaletteTransition`. That object stores the target palette, remaining frame
+budget, and selected interpolation strategy, then writes the current output
+palette into the stage's bound `FramePalette`.
+Its transition state is separate from `FramePalette`, so the flashlight overlay
+can brighten the displayed palette without feeding back into smoothing.
 
-Palettes are 256 entries of RGB:
+The display boundary still uses the legacy raw palette shape:
 
 ```cpp
 typedef unsigned char Palette[256][3];
 ```
 
+Domain code uses `ColorPalette` around that storage.
+
 The visual buffer stores only 8-bit color indexes. The palette decides what
-those indexes mean on screen. Palette smoothing is why color changes can drift
-rather than snap.
+those indexes mean on screen. `FramePalette::paletteDirty()` tells the display
+device whether that meaning changed. Palette smoothing is why color changes can
+drift rather than snap.
+
+When a palette change smooths, `VisualDirector` chooses one of three named
+strategies at random: RGB linear, RGB squared, or HSL interpolation.
 
 `--palette-smoothing` controls the chance that a palette change smooths instead
 of jumping directly.
@@ -633,17 +646,17 @@ If you want to step through one frame in your editor:
 14. Step into `src/VisualPipelineFactory.cc::VisualPipelineFactory::create()` to see
    the current stage ordering.
 15. Step into `src/VisualPipeline.cc::VisualPipeline::run()`.
-16. Step into `src/Flashlight.cc::apply_flashlight()`.
-17. Step into `src/Border.cc::apply_border()`.
-18. Step through `FlameStageModule`, then jump to the current flame entry in
+16. Step into `src/Border.cc::apply_border()`.
+17. Step through `FlameStageModule`, then jump to the current flame entry in
    `src/flames.cc`.
-19. Step through `TranslateStageModule`; if a table is ready, jump to
+18. Step through `TranslateStageModule`; if a table is ready, jump to
    `src/translate.cc::TranslateEntry::execute()`.
-20. Step through `WaveStageModule`, then jump through the current `Wave` in
+19. Step through `WaveStageModule`, then jump through the current `Wave` in
    `src/Wave.cc` into its drawing function in `src/waves.cc`.
-21. Step through `FrameCommitModule` to see the active/passive swap.
-22. Return through `PaletteStageModule` in `src/PipelineStageModules.cc`, then into
+20. Step through `FrameCommitModule` to see the active/passive swap.
+21. Return through `PaletteStageModule` in `src/PipelineStageModules.cc`, then into
    `src/PaletteTransition.cc` for palette output.
+22. Step into `src/Flashlight.cc::apply_flashlight()` for the palette overlay.
 23. Step into `src/CthughaDisplayX11.cc::operator()()`.
 24. Jump to the current `screen()` function in `src/display.cc`.
 26. Finish in the X11 `DisplayDevice` `postDraw()` path.
@@ -665,13 +678,13 @@ maybe change CoreOptions
 The image layer:
 
 ```text
-brighten palette for flashlight
 fill hidden border rows
 diffuse old pixels with a flame
 warp pixels with translate
 draw fresh audio marks with a wave
 swap buffers
 smooth palette
+brighten palette for flashlight
 map buffer to frontend display
 ```
 

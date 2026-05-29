@@ -24,6 +24,7 @@
 #include "DisplayDevice.h"
 #include "Flashlight.h"
 #include "Interface.h"
+#include "PipelineStageModules.h"
 #include "VisualDirector.h"
 #include "VisualPipeline.h"
 #include "VisualPipelineFactory.h"
@@ -44,6 +45,9 @@ static void initVisualPipeline() {
     VisualPipelineFactory factory;
     visualPipelineSequence = visualDirector.defaultPipelineSequence();
     visualPipeline = factory.create(visualPipelineSequence);
+
+    if (displayDevice != NULL)
+        displayDevice->setFramePalette(framePaletteFromPipeline(*visualPipeline));
 }
 
 static void shutdownVisualPipeline() {

@@ -285,7 +285,7 @@ CoreOptionEntry* read_pcx(
     if ((header.version == 2) || (header.version == 5)) {
         PaletteEntry* new_pal = new PaletteEntry(name, "");
 
-        pal = (unsigned char*)new_pal->pal;
+        pal = (unsigned char*)new_pal->colors().raw();
 
         zcompr = 0; /* palette is not compressed */
         if (getnextbyte() != 12) /* should be 12 */
@@ -294,11 +294,11 @@ CoreOptionEntry* read_pcx(
         for (y = 0; y < 768; y++)
             pal[y] = getnextbyte();
 
-        CthughaBuffer::buffer.palette.add(new_pal);
+        palette.add(new_pal);
 
-        new_pcx->pal = CthughaBuffer::buffer.palette.getNEntries() - 1;
+        new_pcx->pal = palette.getNEntries() - 1;
 
-        CTH_DEBUG("\n    loaded palette %d from PCX", CthughaBuffer::buffer.palette.getNEntries());
+        CTH_DEBUG("\n    loaded palette %d from PCX", palette.getNEntries());
     }
 
     return new_pcx;

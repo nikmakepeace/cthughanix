@@ -7,13 +7,12 @@ VisualPipelineFactory::VisualPipelineFactory() { }
 
 VisualPipeline* VisualPipelineFactory::create(const VisualPipelineSequence& sequence) const {
     VisualPipeline* pipeline = new VisualPipeline();
+    PaletteStageModule* paletteModule = 0;
 
     pipeline->setStageSequence(sequence.sequence());
 
     if (sequence.includes(VisualPipelineSequence::ImageStage))
         pipeline->add(VisualPipelineSequence::ImageStage, new ImageStageModule(), 1);
-    if (sequence.includes(VisualPipelineSequence::FlashlightStage))
-        pipeline->add(VisualPipelineSequence::FlashlightStage, new FlashlightVisualModule(), 1);
     if (sequence.includes(VisualPipelineSequence::BorderStage))
         pipeline->add(VisualPipelineSequence::BorderStage, new BorderVisualModule(), 1);
     if (sequence.includes(VisualPipelineSequence::FlameStage))
@@ -24,8 +23,16 @@ VisualPipeline* VisualPipelineFactory::create(const VisualPipelineSequence& sequ
         pipeline->add(VisualPipelineSequence::WaveStage, new WaveStageModule(), 1);
     if (sequence.includes(VisualPipelineSequence::FrameCommitStage))
         pipeline->add(VisualPipelineSequence::FrameCommitStage, new FrameCommitModule(), 1);
-    if (sequence.includes(VisualPipelineSequence::PaletteStage))
-        pipeline->add(VisualPipelineSequence::PaletteStage, new PaletteStageModule(), 1);
+    if (sequence.includes(VisualPipelineSequence::PaletteStage)) {
+        paletteModule = new PaletteStageModule();
+        pipeline->add(VisualPipelineSequence::PaletteStage, paletteModule, 1);
+    }
+    if (sequence.includes(VisualPipelineSequence::FlashlightStage)) {
+        FlashlightVisualModule* flashlightModule = new FlashlightVisualModule();
+        if (paletteModule != 0)
+            flashlightModule->setFramePalette(&paletteModule->framePalette());
+        pipeline->add(VisualPipelineSequence::FlashlightStage, flashlightModule, 1);
+    }
 
     CTH_TRACE("created pipeline=%p stages=%d modules=%d\n", "visual pipeline factory",
         pipeline, int(sequence.sequence().size()), pipeline->size());

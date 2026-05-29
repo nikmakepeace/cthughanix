@@ -93,7 +93,7 @@ h toggleSave()
 8 saveOrRestore(8)
 9 saveOrRestore(9)
 
-\\  changeAll()
+\ changeAll()
 return changeOne()
 
 S-0 save(0)
@@ -176,6 +176,5 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-
 
 

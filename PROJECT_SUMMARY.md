@@ -54,7 +54,7 @@ deferred suspend handling
 
 ## Current Project Shape
 
-- `src/` contains the application source: 51 top-level `.cc` files and 41
+- `src/` contains the application source: 59 top-level `.cc` files and 49
   top-level headers.
 - `tab/` contains 8 table generator sources, 11 `.cmd` descriptors, and local
   build outputs.
@@ -76,8 +76,8 @@ registry for selectable visual entries. The current active categories include:
 
 - global/display-ish options: `display`, `border`, `flashlight`,
   `sound-processing`, `flame`, `flame-general`, `wave`, `object`,
-  `wave-scale`, and `table`;
-- visual-buffer options: `palette`, `pcx`, and `translate`.
+  `wave-scale`, `table`, and `palette`;
+- visual-buffer option holders: `pcx` and `translate`.
 
 Audio and visual control are now separated:
 
@@ -92,10 +92,12 @@ Audio and visual control are now separated:
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.
 - `VisualPipeline` is the visual-stage executor. One-shot PCX image overlay,
-  flashlight, border, flame, translate, wave, frame commit, and palette
-  smoothing now run as explicit modules. `VisualDirector` updates those modules
+  border, flame, translate, wave, frame commit, palette smoothing, and
+  flashlight now run as explicit modules. `VisualDirector` updates those modules
   with the selected image/effect objects and `VisualPipeline::run()` passes the
   single `CthughaBuffer&` through each enabled stage.
+- `ColorPalette` is the palette data object wrapped by `PaletteEntry`; the
+  display-facing per-frame palette lives in `FramePalette`.
 
 ## Highest-Value Seams
 

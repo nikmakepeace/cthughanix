@@ -157,7 +157,7 @@ InterfaceList interfaceList7("WaveScaling", "Select Wave Scaling", &waveScale);
 
 InterfaceList interfaceList8("Object", "Select 3D Object (for some waves)", &object);
 
-InterfaceList interfaceList9("Palette", "Select Palette", &(CthughaBuffer::buffer.palette));
+InterfaceList interfaceList9("Palette", "Select Palette", &palette);
 
 InterfaceList interfaceListA("PCX", "Select PCX", &(CthughaBuffer::buffer.pcx));
 

@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "DisplayDevice.h"
-#include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "FramePalette.h"
 #include "imath.h"
 
 #if HAVE_NCURSES == 1
@@ -43,14 +43,19 @@ int DisplayDevice::setGlobalPalette() {
         return 1;
     }
 
-    return CthughaBuffer::current->palChanged;
+    return (framePalette != 0) ? framePalette->paletteDirty() : 1;
 }
 
 DisplayDevice::DisplayDevice()
     : textOnScreen(0)
     , darkenPalette(0)
-    , needsFullCopy(1) { }
+    , needsFullCopy(1)
+    , framePalette(0) { }
 DisplayDevice::~DisplayDevice() { }
+
+void DisplayDevice::setFramePalette(FramePalette* framePalette_) {
+    framePalette = framePalette_;
+}
 
 //
 // text

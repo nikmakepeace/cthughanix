@@ -17,11 +17,8 @@ CthughaBuffer CthughaBuffer::buffer;
 CthughaBuffer* CthughaBuffer::current = &CthughaBuffer::buffer;
 
 CthughaBuffer::CthughaBuffer()
-    : palChanged(1)
-    , palette(CthughaBuffer::nInit, "palette", paletteEntries)
-    , pcx(CthughaBuffer::nInit, "pcx")
+    : pcx(CthughaBuffer::nInit, "pcx")
     , translate(CthughaBuffer::nInit, "translate") {
-    memset(currentPalette, 0, sizeof(Palette));
     nInit++;
 }
 
@@ -65,11 +62,6 @@ void CthughaBuffer::initAll() {
 
     // allocate memory for the buffers
     buffer.init();
-}
-
-void CthughaBuffer::setPalette(const Palette pal) {
-    memcpy(currentPalette, pal, sizeof(Palette));
-    palChanged = 1;
 }
 
 void CthughaBuffer::swapBuffers() {

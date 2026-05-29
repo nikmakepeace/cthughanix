@@ -155,8 +155,8 @@ Contract:
 
 Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
-Current reality: flashlight, border, image, flame, translate, wave,
-frame-commit, and palette smoothing are explicit modules. `VisualDirector`
+Current reality: image, border, flame, translate, wave, frame-commit, palette
+smoothing, and flashlight are explicit modules. `VisualDirector`
 updates typed stage objects before each run; `FlameStageModule` owns the
 current `Flame` and general-flame value. `VisualDirector` chooses a runnable
 `Wave`, configures it with wave scale/table/object, and binds only that `Wave`
@@ -221,8 +221,8 @@ file playback, live input, random input, and silence all present the same
 
 ### VisualPipeline Still Uses Legacy Selection And Binding
 
-`VisualPipeline` now has explicit modules for image, flashlight, border, flame,
-translate, wave, frame commit, and palette smoothing. The
+`VisualPipeline` now has explicit modules for image, border, flame, translate,
+wave, frame commit, palette smoothing, and flashlight. The
 former `CthughaBuffer::run()` loop and the temporary frame-buffer binding
 adapter have been removed.
 
@@ -263,7 +263,9 @@ advances until something works.
 
 ### Palette Handling Depends on Frontend Color Mode
 
-`palettes.cc` maintains palette entries and smoothing, but frontend display code
+`palettes.cc` maintains the `PaletteOption` adapter and loaded `PaletteEntry`
+objects. `ColorPalette`, `PaletteTransition`, and `FramePalette` own palette
+data, smoothing, and dirty display output, but frontend display code still
 decides whether to use true palette hardware, pseudo-colors, or expanded
 true-color lookup tables.
 

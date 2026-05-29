@@ -5,6 +5,7 @@
 #include "Flashlight.h"
 #include "PipelineStageModules.h"
 #include "cth_buffer.h"
+#include "display.h"
 #include "pcx.h"
 #include "translate.h"
 #include "waves.h"
@@ -107,12 +108,20 @@ void FrameCommitModule::execute(CthughaBuffer& buffer, const VisualFrameContext&
     buffer.swapBuffers();
 }
 
-FlashlightVisualModule::FlashlightVisualModule() { }
+FlashlightVisualModule::FlashlightVisualModule()
+    : framePalette(0) { }
+
+void FlashlightVisualModule::setFramePalette(FramePalette* framePalette_) {
+    framePalette = framePalette_;
+}
 
 void FlashlightVisualModule::execute(CthughaBuffer& buffer,
     const VisualFrameContext& context) {
+    (void)buffer;
+
     CTH_TRACE("executing flashlight stage\n", "visual pipeline");
-    apply_flashlight(buffer, context);
+    if (framePalette != 0)
+        apply_flashlight(*framePalette, context);
 }
 
 BorderVisualModule::BorderVisualModule()
@@ -129,18 +138,30 @@ void BorderVisualModule::execute(CthughaBuffer& buffer, const VisualFrameContext
 
 PaletteStageModule::PaletteStageModule() { }
 
-int PaletteStageModule::needsTarget(PaletteEntry* paletteEntry) const {
-    return paletteEntry != 0 && !palette.hasTarget(paletteEntry->pal);
+FramePalette& PaletteStageModule::framePalette() {
+    return framePaletteValue;
 }
 
-void PaletteStageModule::setPalette(PaletteEntry* paletteEntry, int frameBudget) {
+int PaletteStageModule::needsTarget(PaletteEntry* paletteEntry) const {
+    return paletteEntry != 0 && !transition.hasTarget(paletteEntry->colors());
+}
+
+void PaletteStageModule::setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
+    const PaletteTransitionStrategy& strategy) {
     if (paletteEntry != 0)
-        palette.achieve(paletteEntry->pal, frameBudget);
+        transition.achieve(paletteEntry->colors(), frameBudget, strategy);
 }
 
 void PaletteStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
     (void)context;
 
     CTH_TRACE("executing palette stage\n", "visual pipeline");
-    palette.execute(buffer);
+    transition.execute(framePaletteValue);
+}
+
+FramePalette* framePaletteFromPipeline(VisualPipeline& pipeline) {
+    PaletteStageModule* paletteModule
+        = dynamic_cast<PaletteStageModule*>(pipeline.stageModule(VisualPipelineSequence::PaletteStage));
+
+    return (paletteModule != 0) ? &paletteModule->framePalette() : 0;
 }

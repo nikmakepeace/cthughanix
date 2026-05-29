@@ -510,7 +510,7 @@ void Keymap::init() {
     static Keymap listKM("list");
 
     Keymap::addList(0,
-#include "default.keymap.str"
+#include <default.keymap.str>
         NULL);
 
     if (keymapFile[0] != '\0')
@@ -534,13 +534,13 @@ ACTION(translateChg) { CthughaBuffer::current->translate.change(int(v), 0); }
 ACTION(soundProcessChg) { audioProcessing.change(int(v)); }
 ACTION(borderChg) { border.change(int(v), 0); }
 ACTION(flashlightChg) { flashlight.change(int(v), 0); }
-ACTION(paletteChg) { CthughaBuffer::current->palette.change(int(v), 0); }
+ACTION(paletteChg) { palette.change(int(v), 0); }
 ACTION(deletePaletteChg) {
-    PaletteEntry* palette = (PaletteEntry*)CthughaBuffer::current->palette.current();
-    if ((palette != NULL) && (palette->sourcePath[0] != '\0'))
-        unlink(palette->sourcePath);
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if ((paletteEntry != NULL) && (paletteEntry->sourcePath[0] != '\0'))
+        unlink(paletteEntry->sourcePath);
 
-    CthughaBuffer::current->palette.change(int(v), 0);
+    palette.change(int(v), 0);
 }
 ACTION(tableChg) { table.change(int(v), 0); }
 ACTION(pcxChg) { CthughaBuffer::current->pcx.change(int(v), 0); }
@@ -556,7 +556,7 @@ ACTION(translate) { CthughaBuffer::current->translate.change(p, 0); }
 ACTION(soundProcess) { audioProcessing.change(p); }
 ACTION(border) { border.change(p, 0); }
 ACTION(flashlight) { flashlight.change(p, 0); }
-ACTION(palette) { CthughaBuffer::current->palette.change(p, 0); }
+ACTION(palette) { palette.change(p, 0); }
 ACTION(table) { table.change(p, 0); }
 ACTION(pcx) { CthughaBuffer::current->pcx.change(p, 0); }
 ACTION(lock) { lock.change(+1); }
@@ -587,9 +587,9 @@ ACTION(setInterface) { Interface::set(p); }
 
 ACTION(randomPalette) {
     PaletteEntry::Random();
-    CthughaBuffer::current->palette.setValue(PaletteEntry::lastRandomPos);
+    palette.setValue(PaletteEntry::lastRandomPos);
 }
 ACTION(newRandomPalette) {
     PaletteEntry::addRandom();
-    CthughaBuffer::current->palette.setValue(PaletteEntry::lastRandomPos);
+    palette.setValue(PaletteEntry::lastRandomPos);
 }

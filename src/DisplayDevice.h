@@ -5,6 +5,8 @@
 
 #include "display.h"
 
+class FramePalette;
+
 //
 //  Stuff about text-display
 //
@@ -44,6 +46,7 @@ public:
     int textOnScreen;
     int darkenPalette; // palette should be darkend
     int needsFullCopy; // Complete image with border must be copied
+    FramePalette* framePalette;
 
     DisplayDevice();
     virtual ~DisplayDevice();
@@ -52,6 +55,7 @@ public:
 
     virtual int printScreen() { return 0; }
 
+    void setFramePalette(FramePalette* framePalette_);
     virtual int setGlobalPalette();
 
     virtual unsigned char* preDraw() { return NULL; } // return buffer to display memory

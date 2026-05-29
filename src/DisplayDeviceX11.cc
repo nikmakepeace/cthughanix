@@ -5,13 +5,13 @@
 
 #include "cthugha.h"
 #include "DisplayDevice.h"
+#include "FramePalette.h"
 #include "cthugha.h"
 #include "display.h"
 #include "disp-sys.h"
 #include "imath.h"
 #include "xcthugha.h"
 #include "keys.h"
-#include "CthughaBuffer.h"
 #include "Interface.h"
 #include "cth_buffer.h"
 #include "CthughaDisplay.h"
@@ -1087,6 +1087,10 @@ int DisplayDeviceX11::setGlobalPalette() {
 
     if (DisplayDevice::setGlobalPalette() == 0)
         return 0;
+    if (framePalette == 0)
+        return 0;
+
+    const Palette& currentPalette = framePalette->currentPalette().raw();
 
     if (textOnScreen) {
         int i, j;
@@ -1100,15 +1104,15 @@ int DisplayDeviceX11::setGlobalPalette() {
                 for (i = 0; i < 128; i++)
                     for (j = 0; j < 3; j++)
                         textPalette[i][j]
-                            = (CthughaBuffer::current->currentPalette[i * 2][j]
-                                  + CthughaBuffer::current->currentPalette[i * 2 + 1][j])
+                            = (currentPalette[i * 2][j]
+                                  + currentPalette[i * 2 + 1][j])
                             >> 2;
             } else {
                 for (i = 0; i < 128; i++)
                     for (j = 0; j < 3; j++)
                         textPalette[i][j]
-                            = (CthughaBuffer::current->currentPalette[i * 2][j]
-                                  + CthughaBuffer::current->currentPalette[i * 2 + 1][j])
+                            = (currentPalette[i * 2][j]
+                                  + currentPalette[i * 2 + 1][j])
                             >> 1;
             }
 
@@ -1131,12 +1135,12 @@ int DisplayDeviceX11::setGlobalPalette() {
             if (darkenPalette) {
                 for (i = 0; i < 256; i++)
                     for (j = 0; j < 3; j++)
-                        textPalette[i][j] = CthughaBuffer::current->currentPalette[i][j] >> 1;
+                        textPalette[i][j] = currentPalette[i][j] >> 1;
 
                 setPalette(textPalette);
 
             } else {
-                setPalette(CthughaBuffer::current->currentPalette);
+                setPalette(currentPalette);
             }
         }
     } else {
@@ -1152,7 +1156,7 @@ int DisplayDeviceX11::setGlobalPalette() {
             }
         }
 
-        setPalette(CthughaBuffer::current->currentPalette);
+        setPalette(currentPalette);
     }
 
     return 0;

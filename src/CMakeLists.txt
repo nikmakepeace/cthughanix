@@ -24,6 +24,7 @@ set(CTHUGHA_COMMON_SOURCES
     AudioAnalyzer.cc
     CthughaDisplay.cc
     Border.cc
+    ColorPalette.cc
     VisualPipeline.cc
     VisualPipelineSequence.cc
     PipelineStageModules.cc
@@ -36,6 +37,7 @@ set(CTHUGHA_COMMON_SOURCES
     pcx.cc
     Flame.cc
     flames.cc
+    FramePalette.cc
     PaletteTransition.cc
     Wave.cc
     waves.cc

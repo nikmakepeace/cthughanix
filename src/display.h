@@ -12,6 +12,7 @@
 #define __DISPLAY_H__
 
 #include "cthugha.h"
+#include "ColorPalette.h"
 #include "CoreOption.h"
 
 /*
@@ -31,17 +32,15 @@ extern int rev_byte_order;
 /*
  *  Stuff about palettes
  */
-typedef unsigned char Palette[256][3]; /* one Palette: 256 entries, each 3 bytes */
-
 const int PALETTE_METADATA_MAX_VALUES = 16;
 const int PALETTE_METADATA_VALUE_SIZE = 64;
 
 extern CoreOptionEntryList paletteEntries;
 
 class PaletteEntry : public CoreOptionEntry {
+    ColorPalette paletteValue;
     void random(); // randomize this palette
 public:
-    Palette pal;
     char sourcePath[PATH_MAX];
     char metadataName[128];
     char metadataSet[256];
@@ -60,6 +59,8 @@ public:
         metadataSetCount = 0;
         metadataEnergyCount = 0;
     }
+    ColorPalette& colors() { return paletteValue; }
+    const ColorPalette& colors() const { return paletteValue; }
     void setMetadataName(const char* value) {
         strncpy(metadataName, value, sizeof(metadataName));
         metadataName[sizeof(metadataName) - 1] = '\0';
@@ -78,8 +79,18 @@ public:
     static void Random(); // re-randomize the last random palette
     static void addRandom(); // add a new random palette
 
-    friend CoreOptionEntry* read_palette(FILE*, const char*, const char*);
+    friend CoreOptionEntry* read_palette(FILE*, const char*, const char*, const char*);
 };
+
+class PaletteOption : public CoreOption {
+public:
+    PaletteOption();
+
+    PaletteEntry* currentPaletteEntry();
+    const ColorPalette* currentPalette();
+};
+
+extern PaletteOption palette;
 
 int load_palettes(); /* initializiation */
 int init_palettes();
