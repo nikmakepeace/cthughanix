@@ -5,6 +5,7 @@
 #include "waves.h"
 #include "display.h"
 #include "CthughaDisplay.h"
+#include "flames.h"
 #include "imath.h"
 
 int BUFF_WIDTH = 160;
@@ -15,50 +16,12 @@ CthughaBuffer CthughaBuffer::buffer;
 
 CthughaBuffer* CthughaBuffer::current = &CthughaBuffer::buffer;
 
-extern CoreOptionEntry* _waves[];
-extern int _nWaves;
-extern CoreOptionEntry* _objects[];
-extern int _nObjects;
-
-CoreOptionEntry* wave_scales[] = { new CoreOptionEntry("scale0", "large"),
-    new CoreOptionEntry("scale1", "medium"), new CoreOptionEntry("scale2", "small") };
-
-CoreOptionEntry* table_entries[] = {
-    new CoreOptionEntry("table0", ""),
-    new CoreOptionEntry("table1", ""),
-    new CoreOptionEntry("table2", ""),
-    new CoreOptionEntry("table3", ""),
-    new CoreOptionEntry("table4", ""),
-    new CoreOptionEntry("table5", ""),
-    new CoreOptionEntry("table6", ""),
-    new CoreOptionEntry("table7", ""),
-    new CoreOptionEntry("table8", ""),
-    new CoreOptionEntry("table9", ""),
-};
-
-static CoreOptionEntryList flameEntries;
-static CoreOptionEntryList waveEntries;
-static CoreOptionEntryList objectEntries;
-static CoreOptionEntryList waveScaleEntries;
-static CoreOptionEntryList tableEntries;
-
 CthughaBuffer::CthughaBuffer()
     : palChanged(1)
-    ,
-
-    //           buffer nr             name
-    flame(CthughaBuffer::nInit, "flame", flameEntries)
     , palette(CthughaBuffer::nInit, "palette", paletteEntries)
     , pcx(CthughaBuffer::nInit, "pcx")
-    , translate(CthughaBuffer::nInit, "translate")
-    , wave(CthughaBuffer::nInit, "wave", waveEntries)
-    , object(CthughaBuffer::nInit, "object", objectEntries)
-    , flameGeneral(CthughaBuffer::nInit)
-    , waveScale(CthughaBuffer::nInit, "wave-scale", waveScaleEntries)
-    , table(CthughaBuffer::nInit, "table", tableEntries)
-    ,
-
-    lastPalette(-1) {
+    , translate(CthughaBuffer::nInit, "translate") {
+    memset(currentPalette, 0, sizeof(Palette));
     nInit++;
 }
 
@@ -83,11 +46,7 @@ void CthughaBuffer::initAll() {
     //
     // add the default entries
     //
-    current->flame.add(_flames, _nFlames);
-    current->wave.add(_waves, _nWaves);
-    current->object.add(_objects, _nObjects);
-    current->waveScale.add(wave_scales, 3);
-    current->table.add(table_entries, 10);
+    flame.add(_flames, _nFlames);
 
     if (init_flames())
         exit(0);

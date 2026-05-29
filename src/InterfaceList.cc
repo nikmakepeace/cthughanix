@@ -6,6 +6,8 @@
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
+#include "flames.h"
+#include "waves.h"
 
 //
 // ERROR:
@@ -140,22 +142,20 @@ int InterfaceList::size = 6;
 
 InterfaceList interfaceList0("Display", "Select Display", &screen);
 
-InterfaceList interfaceList1("Flame", "Select Flame", &(CthughaBuffer::buffer.flame));
+InterfaceList interfaceList1("Flame", "Select Flame", &flame);
 
 InterfaceList interfaceList2("Border", "Select Border of Buffer", &border);
 
 InterfaceList interfaceList3(
     "Translate", "Select Translation Table", &(CthughaBuffer::buffer.translate));
 
-InterfaceList interfaceList4("Wave", "Select Wave", &(CthughaBuffer::buffer.wave));
+InterfaceList interfaceList4("Wave", "Select Wave", &wave);
 
-InterfaceList interfaceList6("Table", "Select Sound Table", &(CthughaBuffer::buffer.table));
+InterfaceList interfaceList6("Table", "Select Sound Table", &table);
 
-InterfaceList interfaceList7(
-    "WaveScaling", "Select Wave Scaling", &(CthughaBuffer::buffer.waveScale));
+InterfaceList interfaceList7("WaveScaling", "Select Wave Scaling", &waveScale);
 
-InterfaceList interfaceList8(
-    "Object", "Select 3D Object (for some waves)", &(CthughaBuffer::buffer.object));
+InterfaceList interfaceList8("Object", "Select 3D Object (for some waves)", &object);
 
 InterfaceList interfaceList9("Palette", "Select Palette", &(CthughaBuffer::buffer.palette));
 

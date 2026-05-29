@@ -2,30 +2,7 @@
 #include "RuntimeFactory.h"
 #include "AudioOptions.h"
 
-#include <string.h>
 #include <unistd.h>
-
-Settings::Settings()
-    : audioInputMode(AIM_DSPIn)
-    , soundDSPMethod(0)
-    , silent(0) {
-    fileName[0] = '\0';
-}
-
-Settings Settings::fromCurrentOptions() {
-    Settings settings;
-
-    settings.audioInputMode = int(::audioInputMode);
-    settings.soundDSPMethod = int(::soundDSPMethod);
-    settings.silent = int(soundSilent);
-    strncpy(settings.fileName, audio_input_file, PATH_MAX);
-    settings.fileName[PATH_MAX - 1] = '\0';
-
-    CTH_TRACE("audio-input-mode=%d sound-dsp-method=%d silent=%d file=`%s'\n", "runtime settings",
-        settings.audioInputMode, settings.soundDSPMethod, settings.silent, settings.fileName);
-
-    return settings;
-}
 
 Environment::Environment()
     : ossInputAvailable(0)

@@ -6,7 +6,6 @@
 #include "cthugha.h"
 #include "CoreOption.h"
 
-#include "flames.h"
 #include "display.h"
 #include "pcx.h"
 #include "translate.h"
@@ -15,18 +14,11 @@ class CthughaBuffer {
 public:
     int palChanged;
 
-    CoreOption flame;
     CoreOption palette;
     OptionPCX pcx;
     TranslateOption translate;
-    CoreOption wave;
-    CoreOption object;
-    OptionGeneralFlame flameGeneral;
-    CoreOption waveScale;
-    CoreOption table;
 
     Palette currentPalette;
-    int lastPalette;
 
     CthughaBuffer();
 

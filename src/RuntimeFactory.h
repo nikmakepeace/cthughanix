@@ -4,20 +4,7 @@
 #define __RUNTIME_FACTORY_H
 
 #include "PcmSourceFactory.h"
-
-#include <limits.h>
-
-class Settings {
-public:
-    int audioInputMode;
-    int soundDSPMethod;
-    int silent;
-    char fileName[PATH_MAX];
-
-    Settings();
-
-    static Settings fromCurrentOptions();
-};
+#include "Settings.h"
 
 class Environment {
 public:

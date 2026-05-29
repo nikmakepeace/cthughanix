@@ -9,7 +9,6 @@
 
 class CthughaBuffer;
 class Environment;
-class Settings;
 
 class VisualPlan {
     std::vector<unsigned int> sequenceValue;

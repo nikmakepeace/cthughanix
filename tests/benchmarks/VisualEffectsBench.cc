@@ -24,11 +24,6 @@
 #define PATH_MAX 4096
 #endif
 
-CoreOptionEntry* _waves[] = { new CoreOptionEntry("none", "No wave") };
-int _nWaves = sizeof(_waves) / sizeof(CoreOptionEntry*);
-CoreOptionEntry* _objects[] = { new CoreOptionEntry("none", "No object") };
-int _nObjects = sizeof(_objects) / sizeof(CoreOptionEntry*);
-
 CoreOptionEntryList paletteEntries;
 CoreOptionEntryList pcxEntries;
 

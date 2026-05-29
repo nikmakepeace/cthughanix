@@ -10,6 +10,8 @@
 #include "AudioProcessor.h"
 #include "Border.h"
 #include "Flashlight.h"
+#include "flames.h"
+#include "waves.h"
 
 #include <ctype.h>
 #include <signal.h>
@@ -390,25 +392,24 @@ public:
         nElements = 13;
         elements = new InterfaceElement*[nElements];
 
-        CthughaBuffer& b = CthughaBuffer::buffer;
-
         {
             elements[0] = new InterfaceElementCoreOption("Display (d,D)         : %s", &screen);
-            elements[1] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &b.flame);
+            elements[1] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &flame);
             elements[2]
-                = new InterfaceElementCoreOption("General Flame (g)     : %s", &b.flameGeneral);
+                = new InterfaceElementCoreOption("General Flame (g)     : %s", &flameGeneral);
             elements[3] = new InterfaceElementCoreOption("Border (=)            : %s", &border);
             elements[4]
-                = new InterfaceElementCoreOption("Translate (t,T)       : %s", &b.translate);
-            elements[5] = new InterfaceElementCoreOption("Wave (w)              : %s", &b.wave);
+                = new InterfaceElementCoreOption("Translate (t,T)       : %s", &CthughaBuffer::buffer.translate);
+            elements[5] = new InterfaceElementCoreOption("Wave (w)              : %s", &wave);
             elements[6]
                 = new InterfaceElementOption("Sound Processing (m,M): %s", &audioProcessing);
-            elements[7] = new InterfaceElementCoreOption("Table (b,B)           : %s", &b.table);
-            elements[8]
-                = new InterfaceElementCoreOption("WaveScale (W)         : %s", &b.waveScale);
-            elements[9] = new InterfaceElementCoreOption("Palette (p,P)         : %s", &b.palette);
-            elements[10] = new InterfaceElementCoreOption("PCX (x,X))            : %s", &b.pcx);
-            elements[11] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &b.object);
+            elements[7] = new InterfaceElementCoreOption("Table (b,B)           : %s", &table);
+            elements[8] = new InterfaceElementCoreOption("WaveScale (W)         : %s", &waveScale);
+            elements[9]
+                = new InterfaceElementCoreOption("Palette (p,P)         : %s", &CthughaBuffer::buffer.palette);
+            elements[10]
+                = new InterfaceElementCoreOption("PCX (x,X))            : %s", &CthughaBuffer::buffer.pcx);
+            elements[11] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &object);
             elements[12]
                 = new InterfaceElementCoreOption("Flashlight (s)        : %s", &flashlight);
         }
@@ -419,16 +420,16 @@ public:
 #define O(i)                                                                                       \
     ((InterfaceElementOption*)elements[i])->opt                                                    \
         = ((InterfaceElementCoreOption*)elements[i])->coreOpt
-        O(1) = &b.flame;
-        O(2) = &b.flameGeneral;
+        O(1) = &flame;
+        O(2) = &flameGeneral;
         O(3) = &border;
         O(4) = &b.translate;
-        O(5) = &b.wave;
-        O(7) = &b.table;
-        O(8) = &b.waveScale;
+        O(5) = &wave;
+        O(7) = &table;
+        O(8) = &waveScale;
         O(9) = &b.palette;
         O(10) = &b.pcx;
-        O(11) = &b.object;
+        O(11) = &object;
         O(12) = &flashlight;
     }
     void doKey(int key) {

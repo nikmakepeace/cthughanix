@@ -91,8 +91,9 @@ Loader: `read_object()` in `src/waves.cc`.
 ### Add a Compiled-In 2D Flame
 
 Add a function to `src/flames.cc`, then add a `Flame(...)` in
-`src/Flame.cc::flameCatalog`. Until the interface is fully director-driven,
-also add a matching `FlameEntry` adapter in `src/flames.cc::_flames`.
+`src/Flame.cc::flameCatalog`. Also add a matching `FlameEntry` adapter in
+`src/flames.cc::_flames` so the `FlameOption` can expose it to keymap/UI/config
+selection.
 
 Contract:
 
@@ -105,12 +106,15 @@ Contract:
 
 ### Add a Compiled-In Wave
 
-Add a function to `src/waves.cc`, then add a `new WaveEntry(...)` in `_waves`.
+Add a drawing function to `src/waves.cc`, declare it in `src/Wave.cc`, and add
+it to `waveCatalog`. Add or adjust the corresponding `WaveEntry` adapter only
+if the UI/CoreOption list needs a different in-use flag.
 
 Wave functions should read sound through `audioFrameProcessedData()` and rolling
-state from `audioAnalysis` / `acousticContext`, then draw directly into
-the buffer's active pixels. `WaveStageModule` executes the selected `WaveEntry`
-through `execute(buffer, context)`.
+state from `audioAnalysis` / `acousticContext`, read selected scale/table/object
+values from `WaveRuntime`, then draw directly into the buffer's active pixels.
+`WaveStageModule` executes the selected `Wave` through
+`execute(buffer, context, runtime)`.
 
 ### Add an Audio Processing Mode
 
@@ -153,9 +157,11 @@ Implement `VisualModule` and add it through `VisualPipelineFactory`.
 
 Current reality: flashlight, border, image, flame, translate, wave,
 frame-commit, and palette smoothing are explicit modules. `VisualDirector`
-updates typed stage objects before each run; flame, translate, and wave stages
-execute the selected `Flame`, `TranslateOption`, and `WaveEntry` objects against
-the `CthughaBuffer&` passed through the pipeline.
+updates typed stage objects before each run; `FlameStageModule` owns the
+current `Flame` and general-flame value. `VisualDirector` chooses a runnable
+`Wave`, configures it with wave scale/table/object, and binds only that `Wave`
+into `WaveStageModule`. The stages execute selected `Flame`, `TranslateOption`,
+and `Wave` objects against the `CthughaBuffer&` passed through the pipeline.
 
 The next seam to improve is the remaining compatibility global. Stage entries
 now receive explicit `CthughaBuffer&` objects and entry selection no longer
@@ -359,5 +365,6 @@ with safer metadata.
 - `.cmd` parser and generated command assembly.
 - `.tab` header parser and stretch behavior.
 - `Keymap::parseBinding()` with `src/default.keymap` examples.
-- Flame/translate/wave transforms through their current `execute()` entry-object
-  paths or a small harness.
+- Flame and wave transforms through their domain-object `execute()` paths,
+  translate transforms through prepared `TranslateEntry` paths, or all three
+  through a small harness.

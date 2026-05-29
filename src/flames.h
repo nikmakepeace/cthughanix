@@ -14,17 +14,28 @@ public:
     const Flame& flame() const;
 };
 
+class FlameOption : public CoreOption {
+public:
+    FlameOption();
+
+    const Flame* currentFlame();
+};
+
+extern FlameOption flame;
+
+class GeneralFlameOption : public CoreOption {
+public:
+    GeneralFlameOption();
+
+    virtual void change(const char* to, int doSave = 1);
+    virtual void change(int by, int doSave = 1);
+    virtual void changeRandom(int doSave = 1);
+    virtual const char* text() const;
+};
+
+extern GeneralFlameOption flameGeneral;
+
 extern CoreOptionEntry* _flames[];
 extern int _nFlames;
-
-extern CoreOptionEntryList generalFlameEntries;
-
-class OptionGeneralFlame : public CoreOption {
-public:
-    OptionGeneralFlame(int buffer)
-        : CoreOption(buffer, "flame-general", generalFlameEntries) { }
-
-    const char* text() const;
-};
 
 #endif

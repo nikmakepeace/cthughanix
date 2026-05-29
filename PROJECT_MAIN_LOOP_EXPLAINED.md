@@ -21,6 +21,7 @@ frontend event loop
 Keep these files open:
 
 - `src/initExitDisp.cc`: startup and `run()`.
+- `src/Settings.*`: snapshots current audio options.
 - `src/AudioRuntime.*`: audio source/output lifecycle.
 - `src/RuntimeFactory.*`, `src/PcmSourceFactory.*`: audio strategy selection.
 - `src/AudioFrame.*`: facade for the current 1024-sample visual audio frame.
@@ -141,19 +142,20 @@ Examples:
 - `border`
 - `flashlight`
 
-The legacy call pattern is:
+The old display loop called selected `CoreOptionEntry::operator()()` objects
+directly. The visual pipeline is now one step more explicit for the internal
+image stages: `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`,
+and `WaveStageModule` render the current domain objects through stage-specific
+APIs.
 
-```cpp
-current->flame();
-current->wave();
-screen();
-```
+Flame selection is no longer buffer-owned. `src/flames.cc` exposes global
+`FlameOption` and `GeneralFlameOption` objects, and `VisualDirector` injects
+their current values into `FlameStageModule`.
 
-Those calls invoke the currently selected `CoreOptionEntry::operator()()`, not a
-hard-coded function. The visual pipeline is now one step more explicit for the
-internal image stages: `ImageStageModule`, `FlameStageModule`,
-`TranslateStageModule`, and `WaveStageModule` select or render the current
-entry object through stage-specific APIs.
+Wave selection is no longer buffer-owned either. `src/waves.cc` exposes the
+global wave option state used by UI/keymap/config code, while `src/Wave.cc`
+defines the standalone `Wave` catalog. `VisualDirector` injects the selected
+`Wave`, wave scale, table, and object into `WaveStageModule`.
 
 `sound-processing` is adjacent but now implemented by `AudioProcessingOption`
 in `src/AudioProcessor.cc`.
@@ -333,14 +335,15 @@ PaletteStageModule
 Image, flame, translate, and wave are real stages now. `ImageStageModule`
 overlays the selected PCX when `VisualDirector` arms the one-shot image stage.
 Before each frame, `VisualDirector` updates the modules with the selected PCX,
-flame, translate provider, wave, and border mode. The pipeline then passes the
-same `CthughaBuffer&` through each enabled module.
+selected flame, general-flame value, translate provider, wave, and border mode.
+The pipeline then passes the same `CthughaBuffer&` through each enabled module.
 
 Important limitation: this is not the final inversion-of-control shape yet.
-Selection now lives in `VisualDirector`, and the pipeline effect path no longer
-uses the old active/passive macros or a frame-buffer binding adapter. The
-remaining coupling is the `CthughaBuffer::current` compatibility pointer used
-by UI, loading, and display code around the pipeline.
+`VisualDirector` now injects selected values into stage modules, and the
+pipeline effect path no longer uses the old active/passive macros or a
+frame-buffer binding adapter. The remaining coupling is the
+`CthughaBuffer::current` compatibility pointer used by UI, loading, and display
+code around the pipeline.
 
 ## 14. Step 4a: Flashlight
 
@@ -386,7 +389,7 @@ TranslateStageModule
   execute TranslateEntry objects when ready
 
 WaveStageModule
-  execute bound WaveEntry objects
+  execute the selected Wave with the current scale, table, and object
 
 FrameCommitModule
   emit limited debug summaries
@@ -409,7 +412,7 @@ In source:
 
 - domain flames are registered in `src/Flame.cc::flameCatalog`;
 - `src/flames.cc::_flames` adapts those flames into the current `CoreOption`
-  interface;
+  interface through the global `FlameOption`;
 - `FlameStageModule` executes the bound `Flame` objects selected by
   `VisualDirector`;
 - `init_flames()` precomputes lookup tables such as `divsub`.
@@ -443,17 +446,19 @@ dedicated pipeline stage.
 A wave is the fresh drawing seeded by current sound.
 
 Wave functions read `audioFrameProcessedData()`, `audioAnalysis`,
-`acousticContext`, `waveScale`, and `table`, then draw points, vertical lines,
-horizontal lines, spikes, Lissajous shapes, lightning, objects, spirals, and
-other geometry into the buffer's active pixels. `WaveStageModule` calls the
-selected `WaveEntry::execute(buffer, context)`.
+`acousticContext`, and their injected `WaveRuntime`, then draw points, vertical
+lines, horizontal lines, spikes, Lissajous shapes, lightning, objects, spirals,
+and other geometry into the buffer's active pixels. `WaveStageModule` calls the
+selected `Wave::execute(buffer, context, runtime)`.
 
 Those marks become fuel for later frames' flames.
 
 ## 17. Step 4d: Palette Stage
 
-`PaletteStageModule` moves the current palette toward the selected palette over
-time.
+`VisualDirector` binds the selected palette into `PaletteStageModule`, and the
+stage delegates the transition math to `PaletteTransition`. That object stores
+the target palette and remaining frame budget, then writes the current output
+palette into `CthughaBuffer`.
 
 Palettes are 256 entries of RGB:
 
@@ -632,10 +637,11 @@ If you want to step through one frame in your editor:
    `src/flames.cc`.
 19. Step through `TranslateStageModule`; if a table is ready, jump to
    `src/translate.cc::TranslateEntry::execute()`.
-20. Step through `WaveStageModule`, then jump to the current wave entry in
-   `src/waves.cc`.
+20. Step through `WaveStageModule`, then jump through the current `Wave` in
+   `src/Wave.cc` into its drawing function in `src/waves.cc`.
 21. Step through `FrameCommitModule` to see the active/passive swap.
-22. Return through `PaletteStageModule` in `src/VisualDirector.cc`.
+22. Return through `PaletteStageModule` in `src/VisualDirector.cc`, then into
+   `src/PaletteTransition.cc` for palette output.
 23. Step into `src/CthughaDisplayX11.cc::operator()()`.
 24. Jump to the current `screen()` function in `src/display.cc`.
 26. Finish in the X11 `DisplayDevice` `postDraw()` path.

@@ -251,9 +251,10 @@ PaletteStageModule
 `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
 `WaveStageModule` are real stages. Image overlays the current PCX when
 `VisualDirector` arms the one-shot image stage. Before each frame,
-`VisualDirector` updates the stage modules with the selected PCX, flame,
-translate provider, wave, and border mode. `VisualPipeline::run()` then passes
-the same `CthughaBuffer&` through each enabled stage.
+`VisualDirector` updates the stage modules with the selected PCX, selected
+flame, general-flame value, translate provider, wave, and border mode.
+`VisualPipeline::run()` then passes the same `CthughaBuffer&` through each
+enabled stage.
 
 Current limitation: entry selection is now director-owned and stage execution
 receives an explicit `CthughaBuffer&`, but UI, loading, and display code still
@@ -296,7 +297,7 @@ TranslateStageModule
   TranslateEntry::execute(buffer, context) when ready
 
 WaveStageModule
-  execute the selected WaveEntry against the frame buffer
+  execute the selected Wave against the frame buffer
 
 FrameCommitModule
   log a limited visual-buffer summary
@@ -315,9 +316,11 @@ Palette smoothing is separate from the indexed pixel mutation stages.
 
 ### Palette Stage
 
-`PaletteStageModule` moves the current palette toward the selected palette. The
-global `paletteSmoothingChance` controls whether a palette change smooths or
-jumps directly to the new palette.
+`VisualDirector` binds the selected palette into `PaletteStageModule`.
+`PaletteStageModule` delegates transition mechanics to `PaletteTransition`,
+which moves the output palette toward the target palette over a frame budget.
+The global `paletteSmoothingChance` controls whether a palette change smooths
+or jumps directly to the new palette.
 
 Command-line options:
 

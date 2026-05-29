@@ -6,6 +6,7 @@ set(CTHUGHA_COMMON_SOURCES
     Audio.cc
     AudioFrame.cc
     AudioRuntime.cc
+    Settings.cc
     RuntimeFactory.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc
@@ -32,6 +33,8 @@ set(CTHUGHA_COMMON_SOURCES
     pcx.cc
     Flame.cc
     flames.cc
+    PaletteTransition.cc
+    Wave.cc
     waves.cc
     sound_tables.cc
     translate.cc

@@ -2,7 +2,7 @@
 
 ## general source files
 GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
-	Audio.cc AudioFrame.cc AudioRuntime.cc RuntimeFactory.cc		\
+	Audio.cc AudioFrame.cc AudioRuntime.cc Settings.cc RuntimeFactory.cc		\
 	PcmSourceFactory.cc AudioVisualBridge.cc			\
 	Mixer.cc CDPlayer.cc imath.cc AudioSystem.cc IniFiles.cc		\
 	Interface.cc info_title_usage.cc disp-ncurses.cc		\
@@ -14,7 +14,7 @@ GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 
 DISPSRC = $(GENSRC)							\
 	palettes.cc pcx.cc			\
-	Flame.cc flames.cc waves.cc sound_tables.cc	\
+	Flame.cc flames.cc PaletteTransition.cc Wave.cc waves.cc sound_tables.cc	\
 	translate.cc 	 AudioProcessor.cc \
 	CthughaBuffer.cc initExitDisp.cc	\
 	Flashlight.cc  InterfaceHelp.cc 
@@ -35,7 +35,7 @@ tabinfo_SOURCES = tabinfo.cc
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       RuntimeFactory.h  PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VisualPipeline.h VisualDirector.h Flame.h flames.h          pcx.h		\
+	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       Settings.h RuntimeFactory.h  PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VisualPipeline.h VisualDirector.h Flame.h flames.h PaletteTransition.h Wave.h          pcx.h		\
         CDPlayer.h        Mixer.h  \
 	CoreOption.h      AudioProcessor.h    Border.h          Flashlight.h      imath.h           tab_header.h	\
 	CthughaBuffer.h   information.h     translate.h	\

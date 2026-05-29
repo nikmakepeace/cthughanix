@@ -12,6 +12,8 @@
 #include "Border.h"
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
+#include "flames.h"
+#include "waves.h"
 #include "imath.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
@@ -523,11 +525,11 @@ ACTION(quit) { cthugha_close++; }
 
 ACTION(screenChg) { screen.change(int(v), 0); }
 ACTION(zoomChg) { zoom.change(int(v)); }
-ACTION(flameChg) { CthughaBuffer::current->flame.change(int(v), 0); }
-ACTION(flameGeneral) { CthughaBuffer::current->flameGeneral.changeRandom(); }
-ACTION(waveChg) { CthughaBuffer::current->wave.change(int(v), 0); }
-ACTION(waveScaleChg) { CthughaBuffer::current->waveScale.change(int(v), 0); }
-ACTION(objectChg) { CthughaBuffer::current->object.change(int(v), 0); }
+ACTION(flameChg) { flame.change(int(v), 0); }
+ACTION(flameGeneral) { flameGeneral.changeRandom(); }
+ACTION(waveChg) { wave.change(int(v), 0); }
+ACTION(waveScaleChg) { waveScale.change(int(v), 0); }
+ACTION(objectChg) { object.change(int(v), 0); }
 ACTION(translateChg) { CthughaBuffer::current->translate.change(int(v), 0); }
 ACTION(soundProcessChg) { audioProcessing.change(int(v)); }
 ACTION(borderChg) { border.change(int(v), 0); }
@@ -540,22 +542,22 @@ ACTION(deletePaletteChg) {
 
     CthughaBuffer::current->palette.change(int(v), 0);
 }
-ACTION(tableChg) { CthughaBuffer::current->table.change(int(v), 0); }
+ACTION(tableChg) { table.change(int(v), 0); }
 ACTION(pcxChg) { CthughaBuffer::current->pcx.change(int(v), 0); }
 ACTION(lockChg) { lock.change(+1); }
 
 ACTION(screen) { screen.change(p, 0); }
 ACTION(zoom) { zoom.change(p); }
-ACTION(flame) { CthughaBuffer::current->flame.change(p, 0); }
-ACTION(wave) { CthughaBuffer::current->wave.change(p, 0); }
-ACTION(waveScale) { CthughaBuffer::current->waveScale.change(p, 0); }
-ACTION(object) { CthughaBuffer::current->object.change(p, 0); }
+ACTION(flame) { flame.change(p, 0); }
+ACTION(wave) { wave.change(p, 0); }
+ACTION(waveScale) { waveScale.change(p, 0); }
+ACTION(object) { object.change(p, 0); }
 ACTION(translate) { CthughaBuffer::current->translate.change(p, 0); }
 ACTION(soundProcess) { audioProcessing.change(p); }
 ACTION(border) { border.change(p, 0); }
 ACTION(flashlight) { flashlight.change(p, 0); }
 ACTION(palette) { CthughaBuffer::current->palette.change(p, 0); }
-ACTION(table) { CthughaBuffer::current->table.change(p, 0); }
+ACTION(table) { table.change(p, 0); }
 ACTION(pcx) { CthughaBuffer::current->pcx.change(p, 0); }
 ACTION(lock) { lock.change(+1); }
 

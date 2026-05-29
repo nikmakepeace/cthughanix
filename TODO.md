@@ -165,8 +165,13 @@
        scaffolding.
      - Removed the old monolithic `CthughaBuffer::run()` frame choreography.
      - Added explicit flame, translate, and wave modules. Flame execution now
-       uses domain `Flame` objects; `FlameEntry` remains only as the current
-       `CoreOption` adapter.
+       uses domain `Flame` objects; `FlameEntry` remains only as the global
+       `FlameOption`/`CoreOption` adapter, and `FlameStageModule` owns the
+       current general-flame value.
+     - Wave execution now uses domain `Wave` objects; `WaveEntry` remains only
+       as the global `WaveOption`/`CoreOption` adapter. `VisualDirector` now
+       chooses a runnable wave, configures it with scale/table/object, and
+       binds only the selected wave into `WaveStageModule`.
    - Next practical slice:
      - Continue moving `CthughaBuffer::current` lookups behind explicit
        display/provider objects.

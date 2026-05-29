@@ -4,8 +4,10 @@
 #include "CthughaDisplay.h"
 #include "Flame.h"
 #include "Flashlight.h"
+#include "PaletteTransition.h"
 #include "VisualDirector.h"
 #include "cth_buffer.h"
+#include "flames.h"
 #include "imath.h"
 #include "waves.h"
 
@@ -15,14 +17,43 @@ static CthughaBuffer* currentBuffer() {
     return CthughaBuffer::current;
 }
 
-static const Flame* flameFromOption(CoreOption& option) {
-    FlameEntry* entry = dynamic_cast<FlameEntry*>(option.current());
-    return (entry != 0) ? &entry->flame() : 0;
-}
-
 template <class Module>
 static Module* stageModule(VisualPipeline& pipeline, VisualPlan::Stage stage) {
     return dynamic_cast<Module*>(pipeline.stageModule(stage));
+}
+
+static Wave* selectRunnableWave(const WaveConfig& config) {
+    int nEntries = wave.getNEntries();
+
+    for (int i = 0; i < nEntries; i++) {
+        Wave* selectedWave = wave.currentWave();
+        if (selectedWave == 0 || selectedWave->canRun(config))
+            return selectedWave;
+
+        wave.change(+1, 0);
+    }
+
+    return 0;
+}
+
+static int paletteSmoothingFrameBudget() {
+    const int PALETTE_SMOOTH_SECONDS = 2;
+    int fps = 60;
+
+    if (cthughaDisplay != 0 && cthughaDisplay->fps > 0)
+        fps = cthughaDisplay->fps;
+
+    return max(fps * PALETTE_SMOOTH_SECONDS, 1);
+}
+
+static int paletteChangeFrameBudget() {
+    if (paletteSmoothingChance <= 0.0)
+        return 0;
+
+    if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance)
+        return 0;
+
+    return paletteSmoothingFrameBudget();
 }
 
 class ImageStageModule : public VisualModule {
@@ -47,20 +78,26 @@ public:
 
 class FlameStageModule : public VisualModule {
     const Flame* flame;
+    int generalFlame;
 
 public:
     FlameStageModule()
-        : flame(0) { }
+        : flame(0)
+        , generalFlame(0) { }
 
     void setFlame(const Flame* flame_) {
         flame = flame_;
+    }
+
+    void setGeneralFlame(int generalFlame_) {
+        generalFlame = generalFlame_;
     }
 
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing flame stage\n", "visual pipeline");
 
         if (flame != 0)
-            flame->execute(buffer, context);
+            flame->execute(buffer, context, generalFlame);
     }
 };
 
@@ -86,26 +123,33 @@ public:
 };
 
 class WaveStageModule : public VisualModule {
-    WaveEntry* wave;
+    Wave* currentWave;
 
 public:
     WaveStageModule()
-        : wave(0) { }
+        : currentWave(0) { }
 
-    void setWave(WaveEntry* wave_) {
-        wave = wave_;
+    void setWave(Wave* wave_) {
+        currentWave = wave_;
     }
 
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         CTH_TRACE("executing wave stage\n", "visual pipeline");
-        if (wave != NULL)
-            wave->execute(buffer, context);
+        if (currentWave != NULL)
+            currentWave->execute(buffer, context);
     }
 };
 
 class FrameCommitModule : public VisualModule {
+    const char* flameName;
+
 public:
-    FrameCommitModule() { }
+    FrameCommitModule()
+        : flameName("unknown") { }
+
+    void setFlameName(const char* flameName_) {
+        flameName = (flameName_ != 0) ? flameName_ : "unknown";
+    }
 
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         (void)context;
@@ -125,10 +169,10 @@ public:
             }
             debugReports++;
             CTH_DEBUG("visual buffer: wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
-                buffer.wave.currentName(),
-                buffer.waveScale.currentName(),
-                buffer.flame.currentName(),
-                buffer.table.currentName(),
+                wave.currentName(),
+                waveScale.currentName(),
+                flameName,
+                table.currentName(),
                 nonzero, peak, BUFF_SIZE);
         }
 
@@ -164,52 +208,25 @@ public:
 };
 
 class PaletteStageModule : public VisualModule {
+    PaletteTransition palette;
+
 public:
     PaletteStageModule() { }
+
+    int needsTarget(PaletteEntry* paletteEntry) const {
+        return paletteEntry != 0 && !palette.hasTarget(paletteEntry->pal);
+    }
+
+    void setPalette(PaletteEntry* paletteEntry, int frameBudget) {
+        if (paletteEntry != 0)
+            palette.achieve(paletteEntry->pal, frameBudget);
+    }
 
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
         (void)context;
 
-        int selectedPalette = buffer.palette.currentN();
-        if ((buffer.lastPalette == selectedPalette) && (buffer.palChanged == 0))
-            return;
-
-        Palette* desiredPalette = &(((PaletteEntry*)buffer.palette.current())->pal);
-
-        if (buffer.lastPalette != selectedPalette) {
-            buffer.lastPalette = selectedPalette;
-            if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance) {
-                // Skip smoothing, jump directly to the new palette (DOS behaviour).
-                memcpy(buffer.currentPalette, *desiredPalette, sizeof(Palette));
-                buffer.palChanged = 1;
-                return;
-            }
-        }
-
-        const int PALETTE_CHANNEL_RANGE = 256;
-        const int PALETTE_SMOOTH_SECONDS = 2;
-
-        static int oldMaxChange = 1;
-        int maxChange = (cthughaDisplay->fps > 0)
-            ? max(int((double)(PALETTE_CHANNEL_RANGE / PALETTE_SMOOTH_SECONDS) / cthughaDisplay->fps), 1)
-            : oldMaxChange;
-        oldMaxChange = maxChange;
-
-        buffer.palChanged = 256 * 3;
-        for (int i = 0; i < 256; i++) {
-            for (int j = 0; j < 3; j++) {
-                int d = (*desiredPalette)[i][j] - buffer.currentPalette[i][j];
-                if (d == 0)
-                    buffer.palChanged--;
-                else {
-                    if (d < -maxChange)
-                        d = -maxChange;
-                    else if (d > maxChange)
-                        d = maxChange;
-                    buffer.currentPalette[i][j] += d;
-                }
-            }
-        }
+        CTH_TRACE("executing palette stage\n", "visual pipeline");
+        palette.execute(buffer);
     }
 };
 
@@ -270,10 +287,13 @@ void VisualDirector::updatePipelineStages(VisualPipeline& pipeline, CthughaBuffe
     if (imageModule != 0)
         imageModule->setImage(static_cast<PCXEntry*>(buffer.pcx.current()));
 
+    const Flame* currentFlame = flame.currentFlame();
     FlameStageModule* flameModule
         = stageModule<FlameStageModule>(pipeline, VisualPlan::FlameStage);
-    if (flameModule != 0)
-        flameModule->setFlame(flameFromOption(buffer.flame));
+    if (flameModule != 0) {
+        flameModule->setFlame(currentFlame);
+        flameModule->setGeneralFlame(int(flameGeneral));
+    }
 
     TranslateStageModule* translateModule
         = stageModule<TranslateStageModule>(pipeline, VisualPlan::TranslateStage);
@@ -282,13 +302,34 @@ void VisualDirector::updatePipelineStages(VisualPipeline& pipeline, CthughaBuffe
 
     WaveStageModule* waveModule
         = stageModule<WaveStageModule>(pipeline, VisualPlan::WaveStage);
-    if (waveModule != 0)
-        waveModule->setWave(static_cast<WaveEntry*>(buffer.wave.current()));
+    if (waveModule != 0) {
+        WaveConfig waveConfig(int(waveScale), int(table), currentWaveObject(),
+            BUFF_WIDTH, BUFF_HEIGHT);
+        Wave* currentWave = selectRunnableWave(waveConfig);
+        if (currentWave != 0)
+            currentWave->configure(waveConfig);
+        waveModule->setWave(currentWave);
+    }
 
     BorderVisualModule* borderModule
         = stageModule<BorderVisualModule>(pipeline, VisualPlan::BorderStage);
     if (borderModule != 0)
         borderModule->setBorderMode(int(border));
+
+    FrameCommitModule* frameCommitModule
+        = stageModule<FrameCommitModule>(pipeline, VisualPlan::FrameCommitStage);
+    if (frameCommitModule != 0)
+        frameCommitModule->setFlameName((currentFlame != 0) ? currentFlame->name() : "unknown");
+
+    PaletteStageModule* paletteModule
+        = stageModule<PaletteStageModule>(pipeline, VisualPlan::PaletteStage);
+    PaletteEntry* currentPalette = static_cast<PaletteEntry*>(buffer.palette.current());
+    if (paletteModule != 0) {
+        int frameBudget = paletteModule->needsTarget(currentPalette)
+            ? paletteChangeFrameBudget()
+            : 0;
+        paletteModule->setPalette(currentPalette, frameBudget);
+    }
 }
 
 CthughaBuffer* VisualDirector::configurePipeline(VisualPipeline& pipeline) {

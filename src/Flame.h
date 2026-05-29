@@ -6,7 +6,7 @@ class VisualFrameContext;
 
 class Flame {
 public:
-    typedef void (*Function)(CthughaBuffer& buffer);
+    typedef void (*Function)(CthughaBuffer& buffer, int generalFlame);
 
 private:
     Function functionValue;
@@ -18,7 +18,8 @@ public:
 
     const char* name() const;
     const char* description() const;
-    void execute(CthughaBuffer& buffer, const VisualFrameContext& context) const;
+    void execute(CthughaBuffer& buffer, const VisualFrameContext& context,
+        int generalFlame = 0) const;
 };
 
 extern const Flame flameCatalog[];

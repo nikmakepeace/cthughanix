@@ -16,6 +16,7 @@
 #include "AudioProcessor.h"
 #include "Border.h"
 #include "Flashlight.h"
+#include "flames.h"
 #include "DisplayDevice.h"
 #include "AudioAnalyzer.h"
 #include "VisualDirector.h"
@@ -185,7 +186,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'f':
-        CthughaBuffer::current->flame.setInitialEntry(str);
+        flame.setInitialEntry(str);
         break;
 
     case opt_border:
@@ -197,15 +198,15 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'w':
-        CthughaBuffer::current->wave.setInitialEntry(str);
+        wave.setInitialEntry(str);
         break;
 
     case opt_wave_scale:
-        CthughaBuffer::current->waveScale.setInitialEntry(str);
+        waveScale.setInitialEntry(str);
         break;
 
     case 'o':
-        CthughaBuffer::current->object.setInitialEntry(str);
+        object.setInitialEntry(str);
         break;
 
     case 'p':
@@ -239,7 +240,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'a':
-        CthughaBuffer::current->table.setInitialEntry(str);
+        table.setInitialEntry(str);
         break;
 
     case 'm':

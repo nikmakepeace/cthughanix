@@ -567,7 +567,6 @@ void PaletteEntry::addRandom() {
 
     lastRandomPos = CthughaBuffer::current->palette.getNEntries() - 1;
 
-    CthughaBuffer::current->lastPalette = -1; // force redraw
 }
 
 void PaletteEntry::Random() {
@@ -579,5 +578,4 @@ void PaletteEntry::Random() {
         //	    CthughaBuffer::current->palette.getNEntries()-1 ])->random();
     }
 
-    CthughaBuffer::current->lastPalette = -1; // force redraw
 }

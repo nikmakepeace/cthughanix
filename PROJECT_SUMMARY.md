@@ -75,9 +75,9 @@ The classic visual domain still revolves around `CoreOption`, the runtime
 registry for selectable visual entries. The current active categories include:
 
 - global/display-ish options: `display`, `border`, `flashlight`,
-  `sound-processing`;
-- visual-buffer options: `flame`, `palette`, `pcx`, `translate`, `wave`, `object`,
-  `flame-general`, `wave-scale`, and `table`.
+  `sound-processing`, `flame`, `flame-general`, `wave`, `object`,
+  `wave-scale`, and `table`;
+- visual-buffer options: `palette`, `pcx`, and `translate`.
 
 Audio and visual control are now separated:
 
@@ -105,9 +105,10 @@ Audio and visual control are now separated:
   `AudioVisualBridge`.
 - Visual pipeline seam: `VisualDirector`, `VisualPipelineFactory`,
   `VisualPipeline`, `VisualModule`, `VisualFrameContext`, and `CthughaBuffer`.
-- Classic visual effect seam: `CoreOptionEntry` / `CoreOptionEntryList`, with
-  flame, translate, and wave entries now receiving explicit `CthughaBuffer&`
-  objects during pipeline execution.
+- Classic visual effect seam: `CoreOption` still drives UI/keymap/config
+  selection, while flame and wave execution now runs through standalone
+  `Flame`/`Wave` domain objects and translate still runs through prepared
+  `TranslateEntry` objects.
 - Display frontend seam: `DisplayDevice` plus the X11 `CthughaDisplay`
   subclass.
 - Asset seams: `.map` palettes, `.pcx`/`.pcx.gz` images, `.cmd` table

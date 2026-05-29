@@ -1,24 +1,24 @@
 #include "Flame.h"
 
-void flame_clear(CthughaBuffer& buffer);
-void flame_upslow(CthughaBuffer& buffer);
-void flame_upsubtle(CthughaBuffer& buffer);
-void flame_upfast(CthughaBuffer& buffer);
-void flame_leftslow(CthughaBuffer& buffer);
-void flame_leftsubtle(CthughaBuffer& buffer);
-void flame_leftfast(CthughaBuffer& buffer);
-void flame_rightslow(CthughaBuffer& buffer);
-void flame_rightsubtle(CthughaBuffer& buffer);
-void flame_rightfast(CthughaBuffer& buffer);
-void flame_water(CthughaBuffer& buffer);
-void flame_watersubtle(CthughaBuffer& buffer);
-void flame_skyline(CthughaBuffer& buffer);
-void flame_weird(CthughaBuffer& buffer);
-void flame_zzz(CthughaBuffer& buffer);
-void flame_fade(CthughaBuffer& buffer);
-void flame_general_subtle(CthughaBuffer& buffer);
-void flame_general_slow(CthughaBuffer& buffer);
-void flame_down(CthughaBuffer& buffer);
+void flame_clear(CthughaBuffer& buffer, int generalFlame);
+void flame_upslow(CthughaBuffer& buffer, int generalFlame);
+void flame_upsubtle(CthughaBuffer& buffer, int generalFlame);
+void flame_upfast(CthughaBuffer& buffer, int generalFlame);
+void flame_leftslow(CthughaBuffer& buffer, int generalFlame);
+void flame_leftsubtle(CthughaBuffer& buffer, int generalFlame);
+void flame_leftfast(CthughaBuffer& buffer, int generalFlame);
+void flame_rightslow(CthughaBuffer& buffer, int generalFlame);
+void flame_rightsubtle(CthughaBuffer& buffer, int generalFlame);
+void flame_rightfast(CthughaBuffer& buffer, int generalFlame);
+void flame_water(CthughaBuffer& buffer, int generalFlame);
+void flame_watersubtle(CthughaBuffer& buffer, int generalFlame);
+void flame_skyline(CthughaBuffer& buffer, int generalFlame);
+void flame_weird(CthughaBuffer& buffer, int generalFlame);
+void flame_zzz(CthughaBuffer& buffer, int generalFlame);
+void flame_fade(CthughaBuffer& buffer, int generalFlame);
+void flame_general_subtle(CthughaBuffer& buffer, int generalFlame);
+void flame_general_slow(CthughaBuffer& buffer, int generalFlame);
+void flame_down(CthughaBuffer& buffer, int generalFlame);
 
 Flame::Flame(Function function, const char* name, const char* description)
     : functionValue(function)
@@ -33,11 +33,12 @@ const char* Flame::description() const {
     return descriptionValue;
 }
 
-void Flame::execute(CthughaBuffer& buffer, const VisualFrameContext& context) const {
+void Flame::execute(CthughaBuffer& buffer, const VisualFrameContext& context,
+    int generalFlame) const {
     (void)context;
 
     if (functionValue != 0)
-        (*functionValue)(buffer);
+        (*functionValue)(buffer, generalFlame);
 }
 
 const Flame flameCatalog[] = {

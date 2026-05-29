@@ -51,6 +51,7 @@ There is no current server-mode source entry point in `src/`.
 ### Runtime and Composition
 
 - `src/cthugha.h`: global platform config, logging, timing helpers, and `run()`.
+- `src/Settings.*`: snapshots current audio options for runtime composition.
 - `src/AudioRuntime.*`: owns the active audio runtime lifecycle.
 - `src/RuntimeFactory.*`: chooses audio input/output strategy from settings and
   detected environment.
@@ -64,9 +65,9 @@ There is no current server-mode source entry point in `src/`.
   default stage plan, and pipeline factory.
 ### Legacy Visual Core
 
-- `src/CthughaBuffer.*`: single classic visual buffer, option instances, and
-  raw indexed active/passive pixel buffers. Per-frame flame/translate/wave/swap
-  choreography now lives in visual pipeline modules.
+- `src/CthughaBuffer.*`: single classic visual buffer, buffer-local option
+  instances, and raw indexed active/passive pixel buffers. Per-frame
+  flame/translate/wave/swap choreography now lives in visual pipeline modules.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
@@ -98,8 +99,11 @@ files.
 
 ### 2D Visual Effects
 
-- `src/flames.*`: decay/propagation feedback functions over the previous frame.
-- `src/waves.*`: waveform, beat, object, and geometry drawing functions.
+- `src/flames.*`: decay/propagation feedback functions over the previous frame
+  plus the global flame selection option.
+- `src/Wave.*`: standalone wave domain catalog.
+- `src/waves.*`: waveform, beat, object, and geometry drawing functions plus
+  the global wave selection options.
 - `src/sound_tables.cc`: 10 built-in wave color lookup tables.
 - `src/translate.*`: translation-table loading and per-pixel remapping.
 - `src/Flashlight.*`: palette-brightening visual stage.
