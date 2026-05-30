@@ -223,7 +223,7 @@ void PaletteTransition::execute(FramePalette& framePalette) {
     }
 
     if (currentPalette.equals(targetPalette)) {
-        framePalette.clearPaletteDirty();
+        framePalette.setPalette(currentPalette);
         return;
     }
 
