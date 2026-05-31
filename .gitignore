@@ -62,8 +62,8 @@ core.*
 /doc/Makefile.in
 /src/Makefile
 /src/Makefile.in
-/tab/Makefile
-/tab/Makefile.in
+/resources/tab/Makefile
+/resources/tab/Makefile.in
 
 # CMake build output
 /CMakeCache.txt
@@ -83,14 +83,14 @@ core.*
 /src/cthugha-server
 /src/tabheader
 /src/tabinfo
-/tab/cmdRead
-/tab/cmd_bighalfwheel
-/tab/cmd_downspiral
-/tab/cmd_gentable
-/tab/cmd_huricn
-/tab/cmd_randswirls
-/tab/cmd_smoke
-/tab/cmd_space
+/resources/tab/cmdRead
+/resources/tab/cmd_bighalfwheel
+/resources/tab/cmd_downspiral
+/resources/tab/cmd_gentable
+/resources/tab/cmd_huricn
+/resources/tab/cmd_randswirls
+/resources/tab/cmd_smoke
+/resources/tab/cmd_space
 
 # Generated project files
 /src/default.keymap.str
@@ -139,8 +139,6 @@ CVS/
 !tests/fixtures/audio/
 !tests/fixtures/audio/*.wav
 
-# compiled object files
-/obj/*.obj
 __pycache__/
 
 # customised ini file

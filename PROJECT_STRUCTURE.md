@@ -5,9 +5,11 @@
 ```text
 .
 |-- src/                 application source and frontend-specific source files
-|-- tab/                 translation-table generators and .cmd descriptors
-|-- map/                 256-color palette maps and PNG palette previews
-|-- pcx/                 indexed image assets: PCX, PCX.GZ, and indexed PNG
+|-- resources/           runtime resources loaded by the visual pipeline
+|   |-- tab/             translation-table generators and .cmd descriptors
+|   |-- map/             256-color palette maps and PNG palette previews
+|   |-- img/             indexed image assets: PCX, PCX.GZ, and indexed PNG
+|   `-- obj/             external 3D line object assets
 |-- doc/                 original Texinfo/manual/manpage documentation
 |-- tests/headers/       header/source self-containment check harness
 |-- tools/               small asset-generation helpers
@@ -28,10 +30,10 @@
 `project-docs/` contains short compatibility pointers to the authoritative root
 `PROJECT_*.md` files.
 
-The tree contains local build artifacts in `src/`, `tab/`, `doc/`, and
-`tests/headers/build/`. Some stale object files refer to code that is no longer
-present, such as old server/network objects; do not treat every `.o` as evidence
-of a current source module.
+The tree contains local build artifacts in `src/`, `resources/tab/`, `doc/`,
+and `tests/headers/build/`. Some stale object files refer to code that is no
+longer present, such as old server/network objects; do not treat every `.o` as
+evidence of a current source module.
 
 ## Source Layout
 
@@ -43,8 +45,8 @@ boundary.
 - `src/initExitDisp.cc`: graphical frontend entry point and shared per-frame
   scheduler.
 - `src/tabheader.cc`, `src/tabinfo.cc`: installed translation-table utilities.
-- `tab/cmd_*.c`, `tab/cmdRead.cc`: translation-table generator/reader tools used
-  by `.cmd` descriptors.
+- `resources/tab/cmd_*.c`, `resources/tab/cmdRead.cc`: translation-table
+  generator/reader tools used by `.cmd` descriptors.
 
 There is no current server-mode source entry point in `src/`.
 
@@ -160,7 +162,7 @@ Current CMake targets:
 | `xcthugha` | X11 visualizer | Built from `CTHUGHA_COMMON_SOURCES`, X11 key/options wrappers, `display.cc`, and X11 display device/display classes. |
 | `tabheader` | Add/emit `.tab` headers | Built from `src/tabheader.cc`. |
 | `tabinfo` | Inspect `.tab` headers | Built from `src/tabinfo.cc`. |
-| `cmd_huricn`, `cmd_smoke`, `cmd_space`, `cmd_gentable`, `cmd_bighalfwheel`, `cmd_downspiral`, `cmd_randswirls`, `cmdRead` | Translation-table helpers | Built under `tab/` when `CTH_BUILD_TAB_TOOLS=ON`. |
+| `cmd_huricn`, `cmd_smoke`, `cmd_space`, `cmd_gentable`, `cmd_bighalfwheel`, `cmd_downspiral`, `cmd_randswirls`, `cmdRead` | Translation-table helpers | Built under `resources/tab/` when `CTH_BUILD_TAB_TOOLS=ON`. |
 
 ### Autotools
 
@@ -188,25 +190,26 @@ files directly after defining a macro, for example `xwin_options.cc` defines
 
 ## Asset Directories
 
-### `map/`
+### `resources/map/`
 
 Contains 100 `.map` palettes. Format: up to 256 RGB rows, with optional
 metadata lines before the RGB data. Supported metadata keys include `name`,
 `set`, and `energy`. Loader: `src/palettes.cc`.
 
-`map/png/` contains 23 palette preview PNGs. These are installed by CMake when
-the directory exists, but the visualizer's palette loader uses `.map` files.
+`resources/map/png/` contains 23 palette preview PNGs. These are installed by
+CMake when the directory exists, but the visualizer's palette loader uses `.map`
+files.
 
 Search path:
 
 ```text
 ./
-./map/
+./resources/map/
 CTH_LIBDIR/map/
 --path DIR -> DIR/map/
 ```
 
-### `pcx/`
+### `resources/img/`
 
 Contains the classic indexed image assets. Existing content is 12 PCX files:
 6 plain `.pcx` files and 6 `.pcx.gz` copies. The image option now also accepts
@@ -219,12 +222,12 @@ Search path:
 
 ```text
 ./
-./pcx/
-CTH_LIBDIR/pcx/
---path DIR -> DIR/pcx/
+./resources/img/
+CTH_LIBDIR/img/
+--path DIR -> DIR/img/
 ```
 
-### `tab/`
+### `resources/tab/`
 
 Contains 11 `.cmd` descriptors and 8 generator/reader source programs. `.cmd`
 files are text descriptors:
@@ -243,20 +246,19 @@ Search path:
 
 ```text
 ./
-./tab/
+./resources/tab/
 CTH_LIBDIR/tab/WIDTHxHEIGHT/
 CTH_LIBDIR/tab/
 --path DIR -> DIR/tab/
 ```
 
-### `obj/`
+### `resources/obj/`
 
-No root `obj/` asset directory is present as a maintained content directory,
-but `src/waves.cc` can load `.obj` line objects from:
+`src/waves.cc` can load `.obj` line objects from:
 
 ```text
 ./
-./obj/
+./resources/obj/
 CTH_LIBDIR/obj/
 --path DIR -> DIR/obj/
 ```

@@ -372,7 +372,7 @@ Set the font to use when displaying text messages.
 @table @code
 @item -E, --path LIB_DIR
 Specifies an additional directory where to search for tab, map and
-pcx-files. Cthugha also searches for an ini file
+image files. Cthugha also searches for an ini file
 @code{LIB_DIR/cthugha.ini}.
 
 

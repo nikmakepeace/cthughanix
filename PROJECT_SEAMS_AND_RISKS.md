@@ -4,7 +4,7 @@
 
 ### Add a Palette
 
-Drop a `.map` file into `map/`, the current directory, installed
+Drop a `.map` file into `resources/map/`, the current directory, installed
 `CTH_LIBDIR/map/`, or `--path DIR/map/`.
 
 Format is up to 256 RGB rows:
@@ -39,8 +39,8 @@ enabled.
 
 ### Add an Indexed Image
 
-Drop `.pcx`, `.pcx.gz`, indexed `.png`, or `.png.gz` into `pcx/`, current
-directory, installed `CTH_LIBDIR/pcx/`, or `--path DIR/pcx/`.
+Drop `.pcx`, `.pcx.gz`, indexed `.png`, or `.png.gz` into `resources/img/`,
+current directory, installed `CTH_LIBDIR/img/`, or `--path DIR/img/`.
 
 Loaders: `src/pcx.cc` and `src/png.cc`.
 
@@ -51,7 +51,7 @@ clips the selected `IndexedImage` into the active visual buffer when armed.
 
 ### Add a Translation Effect Without Recompiling
 
-Add a `.cmd` descriptor and a generator program under `tab/`.
+Add a `.cmd` descriptor and a generator program under `resources/tab/`.
 
 Descriptor format:
 
@@ -78,8 +78,7 @@ If table dimensions do not match the active buffer, stretching can be enabled.
 
 ### Add a 3D Line Object
 
-The code supports external `.obj` line objects, though this snapshot does not
-maintain a root `obj/` asset directory.
+External `.obj` line objects live under `resources/obj/`.
 
 Format:
 

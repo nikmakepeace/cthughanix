@@ -10,7 +10,7 @@ static CoreOptionEntryList& imageEntries() {
     return entries;
 }
 
-static const char* imagePath[] = { "./", "./pcx/", CTH_LIBDIR "/pcx/", "" };
+static const char* imagePath[] = { "./", "./resources/img/", CTH_LIBDIR "/img/", "" };
 
 struct ImageFileFormat {
     const char* extension;
@@ -158,7 +158,7 @@ int ImageOption::loadImages() {
 
     for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
          format++) {
-        result |= load(imagePath, "/pcx/", format->extension, format->loader);
+        result |= load(imagePath, "/img/", format->extension, format->loader);
     }
 
     return result;

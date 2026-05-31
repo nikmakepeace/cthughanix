@@ -14,7 +14,7 @@
 #include <ctype.h>
 
 char extra_lib_path[PATH_MAX] = ""; /* extra path to search for
-                                       pcx, tab, map and ini */
+                                       image, tab, map and ini */
 char ini_file_override[PATH_MAX] = "";
 
 FILE* ini_file = NULL; /* the currently open ini-file */

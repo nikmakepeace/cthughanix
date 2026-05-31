@@ -45,9 +45,9 @@
 #include <time.h>
 #include <stdint.h>
 
-#include "../src/cthugha.h"
-#include "../src/cth_buffer.h"
-#include "../src/imath.h"
+#include "../../src/cthugha.h"
+#include "../../src/cth_buffer.h"
+#include "../../src/imath.h"
 
 int BUFF_WIDTH;
 int BUFF_HEIGHT;

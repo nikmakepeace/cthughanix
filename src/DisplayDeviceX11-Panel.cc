@@ -283,7 +283,7 @@ static int palette_png_path(const char* map_path, const char* palette_name, char
     const char* slash;
 
     if ((map_path == NULL) || (map_path[0] == '\0')) {
-        snprintf(png_path, PATH_MAX, "map/png/%s.png", palette_name);
+        snprintf(png_path, PATH_MAX, "resources/map/png/%s.png", palette_name);
         return access(png_path, R_OK) == 0;
     }
 
@@ -308,11 +308,11 @@ static int palette_png_path(const char* map_path, const char* palette_name, char
     if (access(png_path, R_OK) == 0)
         return 1;
 
-    snprintf(png_path, PATH_MAX, "map/png/%s.png", stem);
+    snprintf(png_path, PATH_MAX, "resources/map/png/%s.png", stem);
     if (access(png_path, R_OK) == 0)
         return 1;
 
-    snprintf(png_path, PATH_MAX, "map/png/%s.png", palette_name);
+    snprintf(png_path, PATH_MAX, "resources/map/png/%s.png", palette_name);
     return access(png_path, R_OK) == 0;
 }
 

@@ -15,7 +15,7 @@ CMakeLists.txt
 cmake/config.h.in
 cmake/generate_keymap.cmake
 src/CMakeLists.txt
-tab/CMakeLists.txt
+resources/tab/CMakeLists.txt
 ```
 
 The autotools files are:
@@ -27,8 +27,8 @@ Makefile.am
 Makefile
 src/Makefile.am
 src/Makefile
-tab/Makefile.am
-tab/Makefile
+resources/tab/Makefile.am
+resources/tab/Makefile
 doc/Makefile.am
 doc/Makefile
 config.h
@@ -49,19 +49,20 @@ The populated `build/` directory currently contains:
 - `build/src/xcthugha`
 - `build/src/tabheader`
 - `build/src/tabinfo`
-- `build/tab/cmd_huricn`
-- `build/tab/cmd_smoke`
-- `build/tab/cmd_space`
-- `build/tab/cmd_gentable`
-- `build/tab/cmd_bighalfwheel`
-- `build/tab/cmd_downspiral`
-- `build/tab/cmd_randswirls`
-- `build/tab/cmdRead`
+- `build/resources/tab/cmd_huricn`
+- `build/resources/tab/cmd_smoke`
+- `build/resources/tab/cmd_space`
+- `build/resources/tab/cmd_gentable`
+- `build/resources/tab/cmd_bighalfwheel`
+- `build/resources/tab/cmd_downspiral`
+- `build/resources/tab/cmd_randswirls`
+- `build/resources/tab/cmdRead`
 
 Major CMake options:
 
 - `CTH_BUILD_X11`: build the X11 frontend. Default: `ON`.
-- `CTH_BUILD_TAB_TOOLS`: build/install `tab/cmd_*` helper tools. Default: `ON`.
+- `CTH_BUILD_TAB_TOOLS`: build/install `resources/tab/cmd_*` helper tools.
+  Default: `ON`.
 - `CTH_ENABLE_PULSE`: enable PulseAudio/PipeWire-Pulse output when
   `libpulse-simple` is available. Default: `ON`.
 - `CTH_ENABLE_DSP`: enable OSS `/dev/dsp` support when soundcard headers are
@@ -95,13 +96,14 @@ The old build still uses:
 
 - `configure.in`
 - generated `configure`
-- generated `Makefile`, `src/Makefile`, `tab/Makefile`, and `doc/Makefile`
-- `Makefile.am` files in root, `src/`, `tab/`, and `doc/`
+- generated `Makefile`, `src/Makefile`, `resources/tab/Makefile`, and
+  `doc/Makefile`
+- `Makefile.am` files in root, `src/`, `resources/tab/`, and `doc/`
 
 Root `Makefile.am` recurses into:
 
 ```text
-src tab
+src resources/tab
 ```
 
 and adds `doc` only when the generated `BUILD_DOCS` conditional is true.
@@ -234,8 +236,8 @@ local logging path rather than adding a new one.
   for X11-specific options and key handling.
 - CMake generates `default.keymap.str` under `build/src/`; in-tree builds
   may generate `src/default.keymap.str`.
-- Local object files in `src/` and `tab/` are not authoritative. Check source
-  lists in `CMakeLists.txt` and `Makefile.am`.
+- Local object files in `src/` and `resources/tab/` are not authoritative.
+  Check source lists in `CMakeLists.txt` and `Makefile.am`.
 
 ## Porting Strategy
 

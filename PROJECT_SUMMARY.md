@@ -8,8 +8,9 @@ written.
 
 The current reference application target is `xcthugha`, the X11 frontend. The
 modern CMake build produces `xcthugha`, `tabheader`, `tabinfo`, and the
-translation-table generator programs under `tab/`. The old autotools build files
-are still present and currently select `xcthugha`, `tabheader`, and `tabinfo`.
+translation-table generator programs under `resources/tab/`. The old autotools
+build files are still present and currently select `xcthugha`, `tabheader`, and
+`tabinfo`.
 The old SVGAlib and OpenGL frontend paths have been removed. The old sound
 server/network sources are no longer present; only stale object files from
 previous builds remain in `src/`.
@@ -56,19 +57,19 @@ deferred suspend handling
 
 - `src/` contains the application source: 59 top-level `.cc` files and 49
   top-level headers.
-- `tab/` contains 8 table generator sources, 11 `.cmd` descriptors, and local
-  build outputs.
-- `map/` contains 100 `.map` palettes and `map/png/` contains 23 palette preview
-  PNGs.
-- `pcx/` contains classic indexed image assets: currently 6 plain `.pcx` files
-  and 6 gzip-compressed copies. The same loader path now accepts indexed PNGs,
-  including `.png.gz`.
+- `resources/tab/` contains 8 table generator sources, 11 `.cmd` descriptors,
+  and local build outputs.
+- `resources/map/` contains 100 `.map` palettes and `resources/map/png/`
+  contains 23 palette preview PNGs.
+- `resources/img/` contains classic indexed image assets: currently 6 plain
+  `.pcx` files and 6 gzip-compressed copies. The same loader path now accepts
+  indexed PNGs, including `.png.gz`.
 - `external/minimp3/` is the embedded MP3 decoder used by the modern audio path.
 - `external/cthugha-js/` is a separate JavaScript port/reference tree.
 - `tests/headers/` contains the current local verification script for checking
   source/header self-containment.
 - `build/` is a populated CMake build directory and currently contains built
-  `xcthugha`, `tabheader`, `tabinfo`, and `tab/cmd_*` binaries.
+  `xcthugha`, `tabheader`, `tabinfo`, and `resources/tab/cmd_*` binaries.
 
 ## Architectural Center
 

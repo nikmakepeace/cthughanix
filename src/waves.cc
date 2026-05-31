@@ -373,7 +373,7 @@ static int object_wave_needs_configuration(WaveRuntime& runtime) {
     return runtime.needsConfiguration();
 }
 
-static const char* object_path[] = { "./", "./obj/", CTH_LIBDIR "/obj/", "" };
+static const char* object_path[] = { "./", "./resources/obj/", CTH_LIBDIR "/obj/", "" };
 
 class ObjectEntry : public CoreOptionEntry {
 public:

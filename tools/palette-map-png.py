@@ -283,8 +283,11 @@ def main():
     parser.add_argument(
         "inputs",
         nargs="*",
-        default=["map"],
-        help="palette .map/.png files or directories containing them (default: map)",
+        default=["resources/map"],
+        help=(
+            "palette .map/.png files or directories containing them "
+            "(default: resources/map)"
+        ),
     )
     parser.add_argument(
         "-o",

@@ -24,7 +24,7 @@ static CoreOptionEntry* _trans[] = { new TranslateEntry("none", "No Translate") 
 static CoreOptionEntryList translateEntries(_trans, 1);
 
 char lib_size[512];
-static const char* translate_path[] = { "./", "./tab/", lib_size, CTH_LIBDIR "/tab/", "" };
+static const char* translate_path[] = { "./", "./resources/tab/", lib_size, CTH_LIBDIR "/tab/", "" };
 
 /*
  * Initialize the translate-tables.

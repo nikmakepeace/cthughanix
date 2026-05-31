@@ -136,7 +136,7 @@ configure_file(
 add_subdirectory(src)
 
 if(CTH_BUILD_TAB_TOOLS)
-    add_subdirectory(tab)
+    add_subdirectory(resources/tab)
 endif()
 
 if(CTH_BUILD_BENCHMARKS)
@@ -145,12 +145,14 @@ if(CTH_BUILD_BENCHMARKS)
     add_subdirectory(tests/benchmarks)
 endif()
 
-install(DIRECTORY pcx/ DESTINATION ${CTH_DATA_DIR}/pcx)
-install(DIRECTORY map/ DESTINATION ${CTH_DATA_DIR}/map
+install(DIRECTORY resources/img/ DESTINATION ${CTH_DATA_DIR}/img)
+install(DIRECTORY resources/map/ DESTINATION ${CTH_DATA_DIR}/map
         FILES_MATCHING PATTERN "*.map")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/map/png")
-    install(DIRECTORY map/png/ DESTINATION ${CTH_DATA_DIR}/map/png)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/map/png")
+    install(DIRECTORY resources/map/png/ DESTINATION ${CTH_DATA_DIR}/map/png)
 endif()
+install(DIRECTORY resources/obj/ DESTINATION ${CTH_DATA_DIR}/obj
+        FILES_MATCHING PATTERN "*.obj")
 
 message(STATUS "")
 message(STATUS "CthughaNix modern CMake summary")

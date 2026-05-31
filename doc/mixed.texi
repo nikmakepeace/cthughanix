@@ -53,17 +53,17 @@ whole screen.
 @section Pathes
 
 Cthugha will search in the following directories for translation tables,
-palette files and pcx images:
+palette files and images:
 
 @enumerate
 @item Current directory for all 3 kinds of files
-@item @code{./tab}, @code{./map} and @code{./pcx}
+@item @code{./resources/tab}, @code{./resources/map} and @code{./resources/img}
 @item In @code{@value{INSTLIB}/tab/BUFF_WIDTHxBUFF_HEIGHT} for
 translation tables
 @item @code{@value{INSTLIB}/tab}, @*
 @code{@value{INSTLIB}/map} and @*
-@code{@value{INSTLIB}/pcx}
-@item @code{LIB_DIR/tab}, @code{LIB_DIR/map} and @code{LIB_DIR/pcx}.
+@code{@value{INSTLIB}/img}
+@item @code{LIB_DIR/tab}, @code{LIB_DIR/map} and @code{LIB_DIR/img}.
 Where @code{LIB_DIR} is specified by the parameter @code{--path} and
 BUFF_WIDTHxBUFF_HEIGHT is the size of the buffer in dezimal (e.g. 320x200).
 @end enumerate
@@ -291,7 +291,6 @@ you for private use. I think about putting the whole thing under the GNU
 public license.
 
 @end itemize
-
 
 
 

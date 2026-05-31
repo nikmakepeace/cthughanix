@@ -182,7 +182,7 @@ void usage() {
     PH("");
     PH("General options:");
     PH(" -E, --path LIBDIR   An extra searchpath for map, image and tab-files");
-    PH("                     cthugha searches in LIBDIR/map, LIBDIR/pcx and LIBDIR/tab");
+    PH("                     cthugha searches in LIBDIR/map, LIBDIR/img and LIBDIR/tab");
     PH(" --ini-file FILE     Read settings from FILE instead of default ini files");
     PH(" --keymap KEYMAP     Load keyboard definitions from KEYMAP file");
     PH(" --dbl-load          Allow double loading of palettes, images, translations");

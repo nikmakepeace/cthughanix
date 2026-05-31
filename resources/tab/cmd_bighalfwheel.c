@@ -17,8 +17,8 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include "../src/cthugha.h"
-#include "../src/cth_buffer.h"
+#include "../../src/cthugha.h"
+#include "../../src/cth_buffer.h"
 
 int BUFF_WIDTH;
 int BUFF_HEIGHT;

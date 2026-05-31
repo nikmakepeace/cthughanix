@@ -266,7 +266,7 @@ AC_DEFINE_UNQUOTED([DEV_CDROM],	["${dev_cdrom}"], [dev-cdrom])
 AC_DEFINE_UNQUOTED([WITH_MIXER],	 [${with_mixer}], [with mixer])
 AC_DEFINE_UNQUOTED([DEV_MIXER], 	["${dev_mixer}"], [dev mixer])
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile tab/Makefile)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile resources/tab/Makefile)
 
 
 echo 

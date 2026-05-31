@@ -1,28 +1,32 @@
 ## -*- Makefile -*-
 
-SUBDIRS = src tab
+SUBDIRS = src resources/tab
 if BUILD_DOCS
 SUBDIRS += doc
 endif
-DIST_SUBDIRS = src tab doc
+DIST_SUBDIRS = src resources/tab doc
 
 EXTRA_DIST = cthugha-L.lsm Makefile.pre  cthugha.ini.eg tga2jpeg \
 	external/minimp3/LICENSE external/minimp3/minimp3.h external/minimp3/minimp3_ex.h
 
 dist-hook:
 	cp Makefile.pre $(distdir)/Makefile
-	ln -s ../pcx $(distdir)/pcx
-	ln -s ../map $(distdir)/map
+	mkdir -p $(distdir)/resources
+	ln -s ../../resources/img $(distdir)/resources/img
+	ln -s ../../resources/map $(distdir)/resources/map
+	ln -s ../../resources/obj $(distdir)/resources/obj
 # ln -s ../precompiled $(distdir)/precompiled
 
 
-## install the pcx and palette
+## install image, palette, and object resources
 install-data-local: ${noinst_PROGRAMS} ${noinst_DATA}
-	${INSTALL} -d ${pkglibdir}/pcx
+	${INSTALL} -d ${pkglibdir}/img
 	${INSTALL} -d ${pkglibdir}/map
-	-cp pcx/* ${pkglibdir}/pcx
-	-cp map/*.map ${pkglibdir}/map
-	-if test -d map/png; then ${INSTALL} -d ${pkglibdir}/map/png; cp map/png/* ${pkglibdir}/map/png; fi
+	${INSTALL} -d ${pkglibdir}/obj
+	-cp resources/img/* ${pkglibdir}/img
+	-cp resources/map/*.map ${pkglibdir}/map
+	-cp resources/obj/*.obj ${pkglibdir}/obj
+	-if test -d resources/map/png; then ${INSTALL} -d ${pkglibdir}/map/png; cp resources/map/png/* ${pkglibdir}/map/png; fi
 
 
 AUTOMAKE_OPTIONS = foreign
