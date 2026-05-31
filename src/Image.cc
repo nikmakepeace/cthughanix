@@ -14,12 +14,24 @@ static const char* imagePath[] = { "./", "./resources/img/", CTH_LIBDIR "/img/",
 
 struct ImageFileFormat {
     const char* extension;
-    CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*);
+    CoreOptionContextLoader loader;
 };
 
+static CoreOptionEntry* loadPcxImage(FILE* file, const char* name, const char* dir,
+    const char* totalName, void* context) {
+    return read_pcx_image(file, name, dir, totalName,
+        *static_cast<const ImageLoadTarget*>(context));
+}
+
+static CoreOptionEntry* loadPngImage(FILE* file, const char* name, const char* dir,
+    const char* totalName, void* context) {
+    return read_png_image(file, name, dir, totalName,
+        *static_cast<const ImageLoadTarget*>(context));
+}
+
 static const ImageFileFormat imageFileFormats[] = {
-    { ".pcx", read_pcx_image },
-    { ".png", read_png_image },
+    { ".pcx", loadPcxImage },
+    { ".png", loadPngImage },
     { 0, 0 }
 };
 
@@ -153,12 +165,13 @@ const IndexedImage* ImageOption::currentImage() {
     return (entry != 0) ? entry->image() : 0;
 }
 
-int ImageOption::loadImages() {
+int ImageOption::loadImages(int targetWidth, int targetHeight) {
     int result = 0;
+    ImageLoadTarget target(targetWidth, targetHeight);
 
     for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
          format++) {
-        result |= load(imagePath, "/img/", format->extension, format->loader);
+        result |= load(imagePath, "/img/", format->extension, format->loader, &target);
     }
 
     return result;

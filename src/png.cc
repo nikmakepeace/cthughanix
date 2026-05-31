@@ -1,6 +1,5 @@
 #include "cthugha.h"
 #include "cth_buffer.h"
-#include "CthughaBuffer.h"
 #include "Image.h"
 #include "png.h"
 
@@ -124,7 +123,8 @@ static unsigned char indexedPngPixel(const unsigned char* row, int x, int bitDep
 }
 
 CoreOptionEntry* read_png_image(
-    FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/) {
+    FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/,
+    const ImageLoadTarget& target) {
     static const unsigned char pngSignature[8] = {
         137, 80, 78, 71, 13, 10, 26, 10
     };
@@ -244,10 +244,9 @@ CoreOptionEntry* read_png_image(
         return NULL;
     }
 
-    CthughaBuffer& buffer = *CthughaBuffer::current;
-    if ((width > buffer.width()) || (height > buffer.height())) {
+    if ((width > target.width) || (height > target.height)) {
         CTH_WARN("PNG `%s' is %dx%d, larger than buffer %dx%d; image will be cropped.\n",
-            name, width, height, buffer.width(), buffer.height());
+            name, width, height, target.width, target.height);
     }
 
     int rowBytes = pngScanlineBytes(width, bitDepth);

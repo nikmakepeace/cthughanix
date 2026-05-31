@@ -134,11 +134,11 @@ int nElementsAudio = sizeof(elementsAudio) / sizeof(InterfaceElement*);
 
 Interface interfaceAudio("sound", "Audio Interface", NULL, elementsAudio, nElementsAudio);
 
-int init_sound() {
+int init_sound(int visualMaxDimension) {
     if (audioRuntimeIsInitialized())
         return 0;
 
-    audioRuntimeInit(1);
+    audioRuntimeInit(1, visualMaxDimension);
     return 0;
 }
 

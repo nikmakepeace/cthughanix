@@ -25,7 +25,7 @@ public:
     static const char* strategyName(AudioSourceStrategy strategy);
 
     AudioSourceStrategy selectAudioSourceStrategy(const Settings& settings) const;
-    PcmSource* create(const Settings& settings) const;
+    PcmSource* create(const Settings& settings, int visualMaxDimension) const;
 };
 
 #endif

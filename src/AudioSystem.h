@@ -3,7 +3,7 @@
 #ifndef __AUDIO_SYSTEM_H
 #define __AUDIO_SYSTEM_H
 
-int init_sound();
+int init_sound(int visualMaxDimension);
 int exit_sound();
 
 #endif

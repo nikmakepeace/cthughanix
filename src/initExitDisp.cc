@@ -128,7 +128,7 @@ void sig_tty_stop(int) {
 void sig_tty_cont(int) {
     CTH_INFO("Continuing...\n");
 
-    init_sound();
+    init_sound(CthughaBuffer::buffer.maxDimension());
 
     signal(SIGTSTP, sig_tty_stop);
 
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     }
 
     CTH_INFO("Initializing the sound device...\n");
-    init_sound();
+    init_sound(CthughaBuffer::buffer.maxDimension());
 
     CTH_INFO("Initializing CD player...\n");
     cdPlayer = new CDPlayer;

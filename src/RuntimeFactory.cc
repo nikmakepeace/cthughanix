@@ -28,11 +28,14 @@ Environment Environment::detect() {
     return environment;
 }
 
-RuntimeFactory::RuntimeFactory(const Settings& settings_, const Environment& environment_)
+RuntimeFactory::RuntimeFactory(const Settings& settings_, const Environment& environment_,
+    int visualMaxDimension_)
     : settings(settings_)
-    , environment(environment_) {
-    CTH_DEBUG("runtime factory: created with audio-input-mode=%d sound-dsp-method=%d silent=%d oss-input=%d oss-output=%d pulse-output=%d\n",
+    , environment(environment_)
+    , visualMaxDimension(visualMaxDimension_) {
+    CTH_DEBUG("runtime factory: created with audio-input-mode=%d sound-dsp-method=%d silent=%d visual-max-dimension=%d oss-input=%d oss-output=%d pulse-output=%d\n",
         settings.audioInputMode, settings.soundDSPMethod, settings.silent,
+        visualMaxDimension,
         environment.ossInputAvailable, environment.ossOutputAvailable,
         environment.pulseOutputAvailable);
 }
@@ -67,7 +70,7 @@ AudioInput* RuntimeFactory::createAudioInput() const {
         return NULL;
     }
 
-    PcmSource* source = pcmSourceFactory.create(settings);
+    PcmSource* source = pcmSourceFactory.create(settings, visualMaxDimension);
     if (source != NULL) {
         CTH_DEBUG("    audio input strategy: selected AudioInput with source strategy=%s\n",
             PcmSourceFactory::strategyName(sourceStrategy));
@@ -113,7 +116,7 @@ AudioOutput* RuntimeFactory::createAudioOutput() const {
     if (environment.ossOutputAvailable) {
         CTH_DEBUG("    audio output strategy: trying OSS DSP output with method %d\n",
             settings.soundDSPMethod);
-        AudioDSPOutput* dsp = new AudioDSPOutput(settings.soundDSPMethod);
+        AudioDSPOutput* dsp = new AudioDSPOutput(settings.soundDSPMethod, visualMaxDimension);
         if (dsp->isOpen()) {
             CTH_DEBUG("    audio output strategy: selected AudioDSPOutput method=%d\n",
                 settings.soundDSPMethod);
@@ -136,7 +139,8 @@ AudioInputProcessor* RuntimeFactory::createAudioProcessor() const {
         if (settings.audioInputMode == AIM_DSPIn) {
             CTH_WARN("Can not use requested sound input. Using random noise.\n");
             CTH_DEBUG("    audio input strategy: falling back to RandomNoisePcmSource after null input\n");
-            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()));
+            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()),
+                visualMaxDimension);
         }
         return NULL;
     }
@@ -147,10 +151,11 @@ AudioInputProcessor* RuntimeFactory::createAudioProcessor() const {
         if (settings.audioInputMode == AIM_DSPIn) {
             CTH_WARN("Can not use requested sound input. Using random noise.\n");
             CTH_DEBUG("    audio input strategy: falling back to RandomNoisePcmSource after input error\n");
-            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()));
+            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()),
+                visualMaxDimension);
         }
         return NULL;
     }
 
-    return new AudioInputProcessor(input);
+    return new AudioInputProcessor(input, visualMaxDimension);
 }

@@ -6,6 +6,15 @@
 
 class CthughaBuffer;
 
+struct ImageLoadTarget {
+    int width;
+    int height;
+
+    ImageLoadTarget(int width_, int height_)
+        : width(width_)
+        , height(height_) { }
+};
+
 class IndexedImage {
     char* nameValue;
     unsigned char* pixelsValue;
@@ -80,7 +89,7 @@ public:
 
     ImageEntry* currentImageEntry();
     const IndexedImage* currentImage();
-    int loadImages();
+    int loadImages(int targetWidth, int targetHeight);
 };
 
 #endif

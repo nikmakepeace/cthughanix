@@ -374,9 +374,9 @@ static void audioRuntimeAnnounceComplete() {
     cthugha_close++;
 }
 
-void audioRuntimeInit(int initializeInputControls) {
-    CTH_DEBUG("audio runtime: init requested initialize-input-controls=%d\n",
-        initializeInputControls);
+void audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
+    CTH_DEBUG("audio runtime: init requested initialize-input-controls=%d visual-max-dimension=%d\n",
+        initializeInputControls, visualMaxDimension);
 
     if (audioRuntimeIsInitialized()) {
         CTH_DEBUG("audio runtime: init skipped because audio is already installed\n");
@@ -385,7 +385,7 @@ void audioRuntimeInit(int initializeInputControls) {
 
     Settings settings = Settings::fromCurrentOptions();
     Environment environment = Environment::detect();
-    RuntimeFactory runtimeFactory(settings, environment);
+    RuntimeFactory runtimeFactory(settings, environment, visualMaxDimension);
     AudioSourceStrategy sourceStrategy = runtimeFactory.selectAudioSourceStrategy();
     audioRuntimeInputFinished.store(0);
     audioRuntimeComplete.store(0);

@@ -68,13 +68,13 @@ AudioSourceStrategy PcmSourceFactory::selectAudioSourceStrategy(const Settings& 
     return strategy;
 }
 
-PcmSource* PcmSourceFactory::create(const Settings& settings) const {
+PcmSource* PcmSourceFactory::create(const Settings& settings, int visualMaxDimension) const {
     AudioSourceStrategy strategy = selectAudioSourceStrategy(settings);
 
     switch (strategy) {
     case ASS_LineIn:
         CTH_DEBUG("    pcm source strategy: creating DspPcmSource\n");
-        return new DspPcmSource();
+        return new DspPcmSource(visualMaxDimension);
 
     case ASS_Random:
         CTH_DEBUG("    pcm source strategy: creating RandomNoisePcmSource\n");

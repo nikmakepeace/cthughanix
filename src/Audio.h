@@ -107,6 +107,7 @@ public:
 class AudioDSPOutput : public AudioOutput {
     int handle;
     int method;
+    int sampleWindow;
 
     void setFragment();
     void setChannels();
@@ -119,7 +120,7 @@ protected:
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
-    AudioDSPOutput(int method);
+    AudioDSPOutput(int method, int visualMaxDimension);
     virtual ~AudioDSPOutput();
 
     virtual int write(const void* buffer, int size);
@@ -321,7 +322,7 @@ public:
     char2* data;
     char2 dataProc[1024];
 
-    AudioInputProcessor(AudioInput* input, int takeOwnership = 1);
+    AudioInputProcessor(AudioInput* input, int visualMaxDimension, int takeOwnership = 1);
     ~AudioInputProcessor();
 
     AudioInput* audioInput() { return input; }
@@ -344,7 +345,7 @@ class DspPcmSource : public PcmSource {
     void init();
 
 public:
-    DspPcmSource();
+    DspPcmSource(int visualMaxDimension);
     virtual ~DspPcmSource();
 
     virtual int read(char* dst, int rawSize, int samplesRequested);

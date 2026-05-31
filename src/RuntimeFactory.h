@@ -20,10 +20,12 @@ public:
 class RuntimeFactory {
     Settings settings;
     Environment environment;
+    int visualMaxDimension;
     PcmSourceFactory pcmSourceFactory;
 
 public:
-    RuntimeFactory(const Settings& settings, const Environment& environment);
+    RuntimeFactory(const Settings& settings, const Environment& environment,
+        int visualMaxDimension);
 
     AudioInput* createAudioInput() const;
     AudioOutput* createAudioOutput() const;

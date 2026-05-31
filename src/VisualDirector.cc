@@ -105,7 +105,8 @@ int VisualDirector::loadImages() {
         return 0;
 
     CTH_INFO("  loading image files...\n");
-    int result = images.loadImages();
+    CthughaBuffer& targetBuffer = CthughaBuffer::buffer;
+    int result = images.loadImages(targetBuffer.width(), targetBuffer.height());
     CTH_INFO("  number of loaded image files: %d\n", images.getNEntries());
 
     return result;

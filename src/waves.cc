@@ -352,7 +352,18 @@ static void init_wave_options() {
  */
 
 /*****************************************************************************/
-extern int Bsine[MAX_BUFF_WIDTH];
+static int Bsine[MAX_BUFF_WIDTH]; /* sine in 1/current buffer width */
+static int BsineWidth = 0;
+
+static void prepareBsine(CthughaBuffer& buffer) {
+    if (BsineWidth == buffer.width())
+        return;
+
+    BsineWidth = buffer.width();
+    for (int i = 0; i < BsineWidth; i++)
+        Bsine[i] = (int)(128 * sin((float)i / ((float)BsineWidth) * 2.0 * M_PI));
+}
+
 static void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c);
 
 OptionOnOff use_objects("use-objects", 1); /* use 3-D objects */
@@ -1279,6 +1290,7 @@ void wave_pete0(CthughaBuffer& buffer, WaveRuntime& runtime) { /* FireFlies */
 void wave_pete1(CthughaBuffer& buffer, WaveRuntime& runtime) {
     int tmp, x, left = 0, right = 0;
 
+    prepareBsine(buffer);
     prepareSoundData(buffer.width(), 0);
 
     for (x = 0; x < buffer.width(); x++) {
@@ -1446,6 +1458,7 @@ void wave_fract2(CthughaBuffer& buffer, WaveRuntime& runtime) { /* Zippy 2 */
 void wave_test(CthughaBuffer& buffer, WaveRuntime& runtime) { /* Test */
     int temp, x, left = 0, right = 0;
 
+    prepareBsine(buffer);
     prepareSoundData(buffer.width(), 0);
 
     for (x = 0; x < buffer.width(); x++) {

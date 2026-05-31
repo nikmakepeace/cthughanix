@@ -4,10 +4,6 @@
 #include "imath.h"
 #include "cth_buffer.h"
 
-#ifndef CTH_AUDIO_FRAME_NO_RUNTIME
-#include "CthughaBuffer.h"
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -133,12 +129,11 @@ static unsigned int readUnsigned16Be(const unsigned char* p) {
     return ((unsigned int)p[0] << 8) | (unsigned int)p[1];
 }
 
-static int audioVisualMaxDimension() {
-#ifdef CTH_AUDIO_FRAME_NO_RUNTIME
-    return 160;
-#else
-    return CthughaBuffer::current->maxDimension();
-#endif
+static int audioSampleWindowForVisualMaxDimension(int visualMaxDimension) {
+    if (visualMaxDimension < 1)
+        visualMaxDimension = 160;
+
+    return 1 << ilog2(visualMaxDimension);
 }
 
 static int audioPcmPeak(const char* data, int samples) {
@@ -1022,9 +1017,10 @@ void AudioPulseOutput::pulseUnderflow() { }
 
 #if WITH_DSP == 1
 
-AudioDSPOutput::AudioDSPOutput(int method_)
+AudioDSPOutput::AudioDSPOutput(int method_, int visualMaxDimension)
     : handle(-1)
-    , method(method_) {
+    , method(method_)
+    , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
     init();
 }
 
@@ -1144,7 +1140,6 @@ void AudioDSPOutput::init() {
 
     switch (method) {
     case 0: {
-        int sampleWindow = 1 << ilog2(audioVisualMaxDimension());
         CTH_INFO("   Using sound method 0 - optimal fragment size\n");
         soundDSPFragmentSize.setValue(ilog2(sampleWindow) - 1);
         setFragment();
@@ -1237,9 +1232,10 @@ AudioDSPOutput::~AudioDSPOutput() {
 
 #else
 
-AudioDSPOutput::AudioDSPOutput(int method_)
+AudioDSPOutput::AudioDSPOutput(int method_, int visualMaxDimension)
     : handle(-1)
-    , method(method_) {
+    , method(method_)
+    , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
     CTH_DEBUG("    audio output strategy: OSS DSP unavailable because support is not compiled in\n");
     CTH_DEBUG("audio dsp output: unavailable method=%d\n", method);
 }
@@ -2162,14 +2158,15 @@ void RandomNoisePcmSource::rewind() {
     v2 = 0;
 }
 
-AudioInputProcessor::AudioInputProcessor(AudioInput* input_, int takeOwnership)
+AudioInputProcessor::AudioInputProcessor(AudioInput* input_, int visualMaxDimension,
+    int takeOwnership)
     : input(input_)
     , inputOwned(takeOwnership)
     , tmpData(NULL)
     , tmpSize(0)
     , rawSize(0)
     , bytesPerSample(0) {
-    size = 1 << ilog2(audioVisualMaxDimension());
+    size = audioSampleWindowForVisualMaxDimension(visualMaxDimension);
     data = new char2[1024];
     memset(data, 0, 1024 * sizeof(char2));
     memset(dataProc, 0, 1024 * sizeof(char2));
@@ -2317,12 +2314,12 @@ void AudioInputProcessor::convert(char2* dst, void* src, int n) {
 
 #if WITH_DSP == 1
 
-DspPcmSource::DspPcmSource()
+DspPcmSource::DspPcmSource(int visualMaxDimension)
     : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
-    , sampleWindow(1 << ilog2(audioVisualMaxDimension())) {
+    , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
     init();
 }
 
@@ -2642,12 +2639,12 @@ DspPcmSource::~DspPcmSource() {
 
 #else
 
-DspPcmSource::DspPcmSource()
+DspPcmSource::DspPcmSource(int visualMaxDimension)
     : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
-    , sampleWindow(0) {
+    , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
     CTH_ERROR("DSP device was disabled at compile time.\n");
     error = 1;
 }

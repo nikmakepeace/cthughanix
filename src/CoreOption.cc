@@ -522,7 +522,7 @@ int CoreOption::hasExtension(const char* name, const char* extension) {
 }
 
 CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char* dir,
-    CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*)) {
+    CoreOptionLoader loader) {
 
     int compressed = isCompressed(total_name);
     FILE* file;
@@ -566,8 +566,53 @@ CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char
     }
 }
 
+CoreOptionEntry* CoreOption::load(const char* name, char* total_name, const char* dir,
+    CoreOptionContextLoader loader, void* context) {
+
+    int compressed = isCompressed(total_name);
+    FILE* file;
+
+    if (compressed) {
+        /* open with 'gzip' - through pipe */
+        char cmd[PATH_MAX];
+
+        CTH_DEBUG("uncompressing and ");
+
+        sprintf(cmd, "gzip -cd \"%s\"", total_name);
+
+        file = popen(cmd, "r");
+
+    } else {
+        /* normal open - as file */
+        file = fopen(total_name, "r");
+    }
+
+    CTH_DEBUG("loading: %s", total_name);
+
+    /* now do the loading */
+    if (file != NULL) {
+        CoreOptionEntry* entry;
+
+        /* file was openen successfully  - now read it */
+        if ((entry = (*loader)(file, name, dir, total_name, context)) != NULL) {
+            CTH_DEBUG(" ... OK\n");
+        }
+
+        if (compressed)
+            pclose(file); /* close pipe */
+        else
+            fclose(file); /* close file */
+
+        return entry;
+
+    } else { /* file/pipe could not be opened */
+        CTH_DEBUG(" ... x\n");
+        return NULL;
+    }
+}
+
 void CoreOption::loadDir(const char* dir, const char* extension,
-    CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*)) {
+    CoreOptionLoader loader) {
     char total_name[PATH_MAX];
     char feat_name[PATH_MAX];
     DIR* directory;
@@ -641,8 +686,83 @@ void CoreOption::loadDir(const char* dir, const char* extension,
     }
 }
 
+void CoreOption::loadDir(const char* dir, const char* extension,
+    CoreOptionContextLoader loader, void* context) {
+    char total_name[PATH_MAX];
+    char feat_name[PATH_MAX];
+    DIR* directory;
+    struct dirent* entry;
+    CoreOptionEntry* fe;
+    char** names = NULL;
+    int nNames = 0;
+    int maxNames = 0;
+
+    if ((directory = opendir(dir)) != NULL) {
+        while ((entry = readdir(directory)) != NULL) {
+            if (!hasExtension(entry->d_name, extension))
+                continue;
+
+            if (nNames >= maxNames) {
+                int newMaxNames = maxNames ? maxNames * 2 : 32;
+                char** newNames = (char**)realloc(names, newMaxNames * sizeof(char*));
+                if (newNames == NULL) {
+                    CTH_ERRNO(errno, "Can not allocate feature filename list.");
+                    break;
+                }
+                names = newNames;
+                maxNames = newMaxNames;
+            }
+
+            names[nNames] = new char[strlen(entry->d_name) + 1];
+            strcpy(names[nNames], entry->d_name);
+            nNames++;
+        }
+        closedir(directory);
+
+        qsort(names, nNames, sizeof(char*), compareFeatureFileNames);
+
+        for (int i = 0; i < nNames; i++) {
+            /* create real filename */
+            snprintf(total_name, PATH_MAX, "%s%s", dir, names[i]);
+
+            CTH_DEBUG("    ");
+
+            /* feature name only goes till first occurence of extension */
+            strncpy(feat_name, names[i], PATH_MAX);
+            feat_name[PATH_MAX - 1] = '\0';
+            for (char* pos = feat_name; *pos != '\0'; pos++) {
+                if (strncasecmp(pos, extension, strlen(extension)) == 0) {
+                    *pos = '\0';
+                    break;
+                }
+            }
+
+            if (feat_name[0] == '\0') {
+                CTH_DEBUG("skipping empty feature name: %s\n", total_name);
+                delete[] names[i];
+                continue;
+            }
+
+            /*
+             * Plain and compressed files share the same feature name:
+             * `foo.pcx' and `foo.pcx.gz' both become `foo'. This also
+             * applies to other asset extensions such as `foo.png'. Without
+             * --dbl-load, the alphabetically first filename wins and later
+             * duplicates are skipped.
+             */
+            if (!int(double_load) && defined(feat_name)) {
+                CTH_DEBUG("already loaded: %s\n", total_name);
+            } else if ((fe = load(feat_name, total_name, dir, loader, context)) != NULL)
+                add(fe);
+
+            delete[] names[i];
+        }
+        free(names);
+    }
+}
+
 int CoreOption::load(const char* searchPath[], const char* extraPath, const char* extension,
-    CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*)) {
+    CoreOptionLoader loader) {
     int path;
     char extra_path_dir[PATH_MAX];
 
@@ -657,6 +777,27 @@ int CoreOption::load(const char* searchPath[], const char* extraPath, const char
         strncpy(extra_path_dir, extra_lib_path, PATH_MAX);
         strncat(extra_path_dir, extraPath, PATH_MAX);
         loadDir(extra_path_dir, extension, loader);
+    }
+
+    return 0;
+}
+
+int CoreOption::load(const char* searchPath[], const char* extraPath, const char* extension,
+    CoreOptionContextLoader loader, void* context) {
+    int path;
+    char extra_path_dir[PATH_MAX];
+
+    /* load normal search path */
+    path = 0;
+    while (searchPath[path][0] != '\0') {
+        loadDir(searchPath[path], extension, loader, context);
+        path++;
+    }
+    /* load from extra path */
+    if (extra_lib_path[0] != '\0') {
+        strncpy(extra_path_dir, extra_lib_path, PATH_MAX);
+        strncat(extra_path_dir, extraPath, PATH_MAX);
+        loadDir(extra_path_dir, extension, loader, context);
     }
 
     return 0;
