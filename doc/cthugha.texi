@@ -125,7 +125,7 @@ DOCUMENTATION
 @menu
 * Hotkeys::             Saving settings to hotkeys
 * Screen Saver::        Running @code{xcthugha} as a screen saver
-* Pathes::              Where Cthugha searches for tab, map, pcx files
+* Pathes::              Where Cthugha searches for tab, map, image files
 * Other OS::            Cthugha for DOS, PowerMac, Win95
 * Rules::               If you want to modify the source
 * Tips::                "Quer durch den Gemuesegarten"
@@ -183,9 +183,8 @@ A parameter controlling the size of some the waves.
 @item Palette
 What colors to use for this buffer.
 
-@item PCX
-The next image that will be used (displayed sometimes). This feature is
-not working very well.
+@item Image
+The next image that will be injected into the visual mix.
 
 @item Flashlight
 Change the palette based on beats. 
@@ -298,7 +297,7 @@ d   flame(2)
 * General Stuff::       General Technical Information
 * Palette Files::       How to specify what colors Cthugha should use
 * Translation Tables::  Specify almost any effect
-* PCX Files::           Display some extra images
+* PCX Files::           Classic PCX image file support
 @end menu
 
 @include technical.texi

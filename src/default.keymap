@@ -24,7 +24,7 @@ F14  setInterface(table)
 F15  setInterface(waveScaling)
 F16  setInterface(object)
 F17  setInterface(palette)
-F18  setInterface(pcx)
+F18  setInterface(image)
 F19  setInterface(flashlight)
 
 Left  prevInterface()
@@ -65,8 +65,8 @@ p paletteChg(+1)
 P paletteChg(-1)
 b tableChg(+1)
 B tableChg(-1)
-x pcxChg(+1)
-X pcxChg(-1)
+x imageChg(+1)
+X imageChg(-1)
 l lockChg()
 L lockChg()
 
@@ -176,5 +176,4 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-
 

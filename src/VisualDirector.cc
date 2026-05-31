@@ -42,7 +42,7 @@ static int paletteChangeFrameBudget() {
 }
 
 VisualDirector::VisualDirector()
-    : images(0, "pcx")
+    : images(0, "image")
     , imagePlacementStrategy()
     , scene(0)
     , pipeline(0)

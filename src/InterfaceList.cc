@@ -166,6 +166,6 @@ InterfaceList interfaceList8("Object", "Select 3D Object (for some waves)", &obj
 
 InterfaceList interfaceList9("Palette", "Select Palette", &palette);
 
-InterfaceList interfaceListA("PCX", "Select Image", &(visualDirector().imageOption()));
+InterfaceList interfaceListA("Image", "Select Image", &(visualDirector().imageOption()));
 
 InterfaceList interfaceListB("Flashlight", "Select Flashlight", &flashlight);

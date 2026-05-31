@@ -11,7 +11,7 @@
 # OPTIONS is any of the long options accepted by Cthugha
 #	  use 'cthugha --help', or take a look in the documentation
 #	  to get a list
-# FEATURE is one of: wave, flame, display, palette, pcx, translate
+# FEATURE is one of: wave, flame, display, palette, image, translate
 # BNR	  is a buffer number
 # NAME	  is the name of one of the features
 #

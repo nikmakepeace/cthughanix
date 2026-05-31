@@ -271,8 +271,11 @@ Once a translation table is loaded, it is kept in memory, so
 each translation
 table is loaded only once. This can save a lot of time when starting Cthugha.
 
-@item -X, --no-pcx
-Disable usage of PCX image files. 
+@item --images
+Enable usage of indexed image files. This is the default.
+
+@item --no-images
+Disable usage of indexed image files.
 
 @item --no-object
 Do not load 3D objects (wire frames) used by some wave functions.
@@ -381,7 +384,7 @@ Load extra keyboard bindings from @code{KEYMAP}.
 
 
 @item --dbl-load
-Allow loading of 2 or more palettes, translation tables or PCX images with
+Allow loading of 2 or more palettes, translation tables or indexed images with
 the same name. 
 
 @item --prt-file FILE

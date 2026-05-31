@@ -539,7 +539,7 @@ ACTION(flashlightChg) { sceneCommandsForLegacyCallbacks()->changeFlashlight(int(
 ACTION(paletteChg) { sceneCommandsForLegacyCallbacks()->changePalette(int(v)); }
 ACTION(deletePaletteChg) { sceneCommandsForLegacyCallbacks()->deletePaletteAndChange(int(v)); }
 ACTION(tableChg) { sceneCommandsForLegacyCallbacks()->changeTable(int(v)); }
-ACTION(pcxChg) { sceneCommandsForLegacyCallbacks()->changeImage(int(v)); }
+ACTION(imageChg) { sceneCommandsForLegacyCallbacks()->changeImage(int(v)); }
 ACTION(lockChg) { lock.change(+1); }
 
 ACTION(screen) { screen.change(p, 0); }
@@ -554,7 +554,7 @@ ACTION(border) { sceneCommandsForLegacyCallbacks()->changeBorder(p); }
 ACTION(flashlight) { sceneCommandsForLegacyCallbacks()->changeFlashlight(p); }
 ACTION(palette) { sceneCommandsForLegacyCallbacks()->changePalette(p); }
 ACTION(table) { sceneCommandsForLegacyCallbacks()->changeTable(p); }
-ACTION(pcx) { sceneCommandsForLegacyCallbacks()->changeImage(p); }
+ACTION(image) { sceneCommandsForLegacyCallbacks()->changeImage(p); }
 ACTION(lock) { lock.change(+1); }
 
 ACTION(writeIni) { write_ini(); } // when net-sound: re-sent request to server

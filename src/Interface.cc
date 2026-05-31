@@ -189,7 +189,7 @@ static const char* InterfaceList[] = { "Help", // F1
 
     "display", // F9
     "flame", "border", "translate", "wave", "table", "waveScaling", "object",
-    "palette", "pcx", "flashlight", "Help", NULL };
+    "palette", "image", "flashlight", "Help", NULL };
 
 ACTION(nextInterface) {
     for (const char** N = InterfaceList; *N != NULL; N++)

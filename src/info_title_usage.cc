@@ -138,7 +138,8 @@ void usage() {
     PH(" --load-on-demand    Load translation tables only when needed", transLoadOnDemand.text());
     PH(" --load-late         Load translation tables when Cthugha is running",
         transLoadLate.text());
-    PH(" -X, --no-pcx        Disable indexed image files");
+    PH(" --images            Enable indexed image files (default)");
+    PH(" --no-images         Disable indexed image files");
     PH(" --palette-smoothing F  Chance palette changes smooth, 0..1", "1");
     PH(" --no-palette-smoothing Disable palette smoothing");
     PH(" --no-object         Disable 3-D objects");
@@ -157,7 +158,7 @@ void usage() {
     PH(" --palette-set SETS  Enable palettes matching one of the named sets");
     PH(" -m, --sound-processing N  Start with sound processing N");
     PH(" -a, --table N       Start with table N (how palette is used in wave)");
-    PH(" -P, --pcx N         Start with image N");
+    PH(" --image N           Start with image N");
     PH("Display options:");
     PH(" -D, --disp-mode MODE    Set graphics mode (window size)");
     for (int i = 0; i < nScreenSizes; i++) {

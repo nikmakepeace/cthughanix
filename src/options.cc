@@ -65,8 +65,9 @@ enum option_nr {
     opt_pulse_latency_ms,
     opt_audio_output_dump,
     opt_ini_file,
-    opt_use_pcx,
-    opt_no_pcx,
+    opt_image,
+    opt_images,
+    opt_no_images,
 };
 
 struct option long_options[] = {
@@ -136,8 +137,8 @@ struct option long_options[] = {
 
 // display options
     { "disp-mode", 1, 0, 'D' }, { "palette", 1, 0, 'p' }, { "display", 1, 0, 'd' },
-    { "pcx", 1, 0, 'P' }, { "use-pcx", 0, 0, opt_use_pcx },
-    { "no-pcx", 0, 0, opt_no_pcx },
+    { "image", 1, 0, opt_image }, { "images", 0, 0, opt_images },
+    { "no-images", 0, 0, opt_no_images },
     { "palette-smoothing", 1, 0, opt_palette_smoothing },
     { "no-palette-smoothing", 0, 0, opt_no_palette_smoothing },
     { "palette-set", 1, 0, opt_palette_set },
@@ -237,7 +238,7 @@ int do_param(int c, int value, char* str) {
         screen.setInitialEntry(str);
         break;
 
-    case 'P':
+    case opt_image:
         visualDirector().imageOption().setInitialEntry(str);
         break;
 
@@ -355,15 +356,11 @@ int do_param(int c, int value, char* str) {
         AutoChanger::loadSilenceStrings(str);
         break;
 
-    case 'X': /* disable PCX */
-        visualDirector().setImageLoadingEnabled(0);
-        break;
-
-    case opt_use_pcx:
+    case opt_images:
         visualDirector().setImageLoadingEnabled(1);
         break;
 
-    case opt_no_pcx:
+    case opt_no_images:
         visualDirector().setImageLoadingEnabled(0);
         break;
 
@@ -558,8 +555,8 @@ int get_params(int argc, char* argv[]) {
     optind = optindsave; /* start again at first opt */
 
     while ((c = getopt_long(argc, argv,
-                "21v:L:M:C:c:xP:E:?S:"
-                "f:w:d:p:t:o:q:T:R:D:a:m:XlQ:s"
+                "21v:L:M:C:c:xE:?S:"
+                "f:w:d:p:t:o:q:T:R:D:a:m:lQ:s"
                 ,
                 long_options, &option_index))
         != -1) {
