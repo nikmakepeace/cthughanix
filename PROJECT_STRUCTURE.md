@@ -116,7 +116,7 @@ files.
   palette handling.
 - `src/Image.*`: indexed image domain objects, placement, and image option adapter.
 - `src/pcx.*`: PCX decode/encode support for indexed images.
-- `src/PngImageCodec.cc`: indexed PNG decode support for indexed images.
+- `src/png.*`: indexed PNG decode support for indexed images.
 - `src/Screenshot.*`: screenshot filename state.
 
 ### Display Frontends
@@ -211,7 +211,7 @@ CTH_LIBDIR/map/
 Contains the classic indexed image assets. Existing content is 12 PCX files:
 6 plain `.pcx` files and 6 `.pcx.gz` copies. The image option now also accepts
 indexed `.png` and `.png.gz` files from the same locations. PCX loading lives in
-`src/pcx.cc`; indexed PNG loading lives in `src/PngImageCodec.cc`. Compressed
+`src/pcx.cc`; indexed PNG loading lives in `src/png.cc`. Compressed
 files still go through `CoreOption::load`, which can read `.gz` by spawning
 `gzip -cd`.
 

@@ -27,7 +27,6 @@ set(CTHUGHA_COMMON_SOURCES
     Border.cc
     ColorPalette.cc
     Image.cc
-    PngImageCodec.cc
     VisualPipeline.cc
     VisualPipelineSequence.cc
     PipelineStageModules.cc
@@ -38,6 +37,7 @@ set(CTHUGHA_COMMON_SOURCES
     InterfaceList.cc
     palettes.cc
     pcx.cc
+    png.cc
     Flame.cc
     flames.cc
     FramePalette.cc

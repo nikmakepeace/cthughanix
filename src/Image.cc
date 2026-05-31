@@ -1,11 +1,8 @@
 #include "Image.h"
 #include "cthugha.h"
 #include "imath.h"
-
-CoreOptionEntry* read_pcx_image(FILE* file, const char* name, const char* dir,
-    const char* totalName);
-CoreOptionEntry* read_png_image(FILE* file, const char* name, const char* dir,
-    const char* totalName);
+#include "pcx.h"
+#include "png.h"
 
 static CoreOptionEntryList& imageEntries() {
     static ImageEntry none("none", "");
@@ -14,6 +11,17 @@ static CoreOptionEntryList& imageEntries() {
 }
 
 static const char* imagePath[] = { "./", "./pcx/", CTH_LIBDIR "/pcx/", "" };
+
+struct ImageFileFormat {
+    const char* extension;
+    CoreOptionEntry* (*loader)(FILE*, const char*, const char*, const char*);
+};
+
+static const ImageFileFormat imageFileFormats[] = {
+    { ".pcx", read_pcx_image },
+    { ".png", read_png_image },
+    { 0, 0 }
+};
 
 static int chooseImageLeft(int imageSize, int bufferSize) {
     if (imageSize <= 0 || bufferSize <= 0)
@@ -148,8 +156,10 @@ const IndexedImage* ImageOption::currentImage() {
 int ImageOption::loadImages() {
     int result = 0;
 
-    result |= load(imagePath, "/pcx/", ".pcx", read_pcx_image);
-    result |= load(imagePath, "/pcx/", ".png", read_png_image);
+    for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
+         format++) {
+        result |= load(imagePath, "/pcx/", format->extension, format->loader);
+    }
 
     return result;
 }

@@ -1,6 +1,7 @@
-#include "Image.h"
 #include "cthugha.h"
 #include "cth_buffer.h"
+#include "Image.h"
+#include "png.h"
 
 #include <vector>
 #include <zlib.h>
@@ -12,18 +13,26 @@ static unsigned int readPngUint32(const unsigned char* bytes) {
         | (unsigned int)bytes[3];
 }
 
-static int readPngBytes(FILE* file, unsigned char* bytes, size_t size) {
-    return fread(bytes, 1, size, file) == size;
-}
+class PngByteReader {
+    FILE* file;
 
-static int appendPngBytes(FILE* file, std::vector<unsigned char>& bytes, size_t size) {
-    if (size == 0)
-        return 1;
+public:
+    PngByteReader(FILE* file_)
+        : file(file_) { }
 
-    size_t offset = bytes.size();
-    bytes.resize(offset + size);
-    return readPngBytes(file, &bytes[offset], size);
-}
+    int readBytes(unsigned char* bytes, size_t size) {
+        return fread(bytes, 1, size, file) == size;
+    }
+
+    int appendBytes(std::vector<unsigned char>& bytes, size_t size) {
+        if (size == 0)
+            return 1;
+
+        size_t offset = bytes.size();
+        bytes.resize(offset + size);
+        return readBytes(&bytes[offset], size);
+    }
+};
 
 static int pngScanlineBytes(int width, int bitDepth) {
     return (width * bitDepth + 7) / 8;
@@ -114,7 +123,7 @@ static unsigned char indexedPngPixel(const unsigned char* row, int x, int bitDep
 }
 
 CoreOptionEntry* read_png_image(
-    FILE* file, const char* name, const char* /* dir */, const char* /* totalName */) {
+    FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/) {
     static const unsigned char pngSignature[8] = {
         137, 80, 78, 71, 13, 10, 26, 10
     };
@@ -131,12 +140,13 @@ CoreOptionEntry* read_png_image(
     int sawEnd = 0;
     ColorPalette* sourcePalette = new ColorPalette();
     std::vector<unsigned char> idat;
+    PngByteReader reader(file);
 
-    if (!readPngBytes(file, signature, sizeof(signature))
+    if (!reader.readBytes(signature, sizeof(signature))
         || memcmp(signature, pngSignature, sizeof(signature)) != 0) {
         CTH_ERROR("Illegal PNG signature in file: %s\n", name);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     while (!sawEnd) {
@@ -144,30 +154,30 @@ CoreOptionEntry* read_png_image(
         unsigned char type[4];
         unsigned char crc[4];
 
-        if (!readPngBytes(file, lengthBytes, sizeof(lengthBytes)))
+        if (!reader.readBytes(lengthBytes, sizeof(lengthBytes)))
             break;
-        if (!readPngBytes(file, type, sizeof(type)))
+        if (!reader.readBytes(type, sizeof(type)))
             break;
 
         unsigned int length = readPngUint32(lengthBytes);
         if (length > 64U * 1024U * 1024U) {
             CTH_ERROR("PNG chunk too large in file: %s\n", name);
             delete sourcePalette;
-            return 0;
+            return NULL;
         }
 
         std::vector<unsigned char> data;
-        if (!appendPngBytes(file, data, length) || !readPngBytes(file, crc, sizeof(crc))) {
+        if (!reader.appendBytes(data, length) || !reader.readBytes(crc, sizeof(crc))) {
             CTH_ERROR("Can't read PNG chunk in file: %s\n", name);
             delete sourcePalette;
-            return 0;
+            return NULL;
         }
 
         if (memcmp(type, "IHDR", 4) == 0) {
             if (length != 13) {
                 CTH_ERROR("Illegal PNG header length in file: %s\n", name);
                 delete sourcePalette;
-                return 0;
+                return NULL;
             }
 
             width = (int)readPngUint32(&data[0]);
@@ -185,7 +195,7 @@ CoreOptionEntry* read_png_image(
             if (length == 0 || (length % 3) != 0 || length > 768) {
                 CTH_ERROR("Illegal PNG palette length in file: %s\n", name);
                 delete sourcePalette;
-                return 0;
+                return NULL;
             }
 
             sourcePalette->clear();
@@ -204,33 +214,33 @@ CoreOptionEntry* read_png_image(
     if (!sawHeader || !sawEnd || !sawPalette || idat.empty()) {
         CTH_ERROR("Incomplete indexed PNG file: %s\n", name);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     if (colorType != 3) {
         CTH_ERROR("PNG `%s' is color type %d; only indexed PNG is supported.\n",
             name, colorType);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     if (bitDepth != 1 && bitDepth != 2 && bitDepth != 4 && bitDepth != 8) {
         CTH_ERROR("PNG `%s' has unsupported indexed bit depth %d.\n", name, bitDepth);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     if (compressionMethod != 0 || filterMethod != 0 || interlaceMethod != 0) {
         CTH_ERROR("PNG `%s' uses unsupported compression/filter/interlace settings.\n", name);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     if (width <= 0 || height <= 0
         || ((unsigned long long)width * (unsigned long long)height > 1024ULL * 1024ULL * 64ULL)) {
         CTH_ERROR("PNG `%s' has unsupported dimensions %dx%d.\n", name, width, height);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     if ((width > BUFF_WIDTH) || (height > BUFF_HEIGHT)) {
@@ -245,14 +255,14 @@ CoreOptionEntry* read_png_image(
     if (zlibResult != Z_OK || filteredSize != (uLongf)((rowBytes + 1) * height)) {
         CTH_ERROR("Can not inflate PNG image data in file: %s\n", name);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     std::vector<unsigned char> packedPixels;
     if (!unfilterPngImage(filtered, packedPixels, width, height, bitDepth)) {
         CTH_ERROR("Can not unfilter PNG image data in file: %s\n", name);
         delete sourcePalette;
-        return 0;
+        return NULL;
     }
 
     IndexedImage* image = new IndexedImage(name, width, height);

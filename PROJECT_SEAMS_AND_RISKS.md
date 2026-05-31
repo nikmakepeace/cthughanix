@@ -42,7 +42,7 @@ enabled.
 Drop `.pcx`, `.pcx.gz`, indexed `.png`, or `.png.gz` into `pcx/`, current
 directory, installed `CTH_LIBDIR/pcx/`, or `--path DIR/pcx/`.
 
-Loaders: `src/pcx.cc` and `src/PngImageCodec.cc`.
+Loaders: `src/pcx.cc` and `src/png.cc`.
 
 Image files become entries in the image option owned by `VisualDirector`.
 PCX/PNG source palettes are retained with the image entry for future policy, but
