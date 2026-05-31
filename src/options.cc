@@ -196,7 +196,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 't':
-        CthughaBuffer::current->translate.setInitialEntry(str);
+        CthughaBuffer::buffer.translate.setInitialEntry(str);
         break;
 
     case 'w':

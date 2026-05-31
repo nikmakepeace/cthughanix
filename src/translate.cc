@@ -38,16 +38,16 @@ int init_translate() {
         if (transLoadLate)
             transLoadOnDemand.setValue(1);
 
-        CthughaBuffer& buffer = *CthughaBuffer::current;
+        CthughaBuffer& buffer = CthughaBuffer::buffer;
         sprintf(lib_size, CTH_LIBDIR "/tab/%dx%d/", buffer.width(), buffer.height());
 
-        CthughaBuffer::current->translate.load(
+        buffer.translate.load(
             translate_path, "/tab/", ".cmd", TranslateEntry::loaderCmd);
-        CthughaBuffer::current->translate.load(
+        buffer.translate.load(
             translate_path, "/tab/", ".tab", TranslateEntry::loaderTab);
 
         CTH_INFO("  number of loaded translates: %d\n",
-            CthughaBuffer::current->translate.getNEntries());
+            buffer.translate.getNEntries());
     }
 
     return 0;
@@ -448,13 +448,13 @@ int TranslateOption::openPipe(const char* command) {
     }
     return 0;
 }
-int TranslateOption::prepareCurrentEntry(TranslateEntry*& entry) {
+int TranslateOption::prepareEntry(int index, TranslateEntry*& entry) {
     entry = NULL;
 
-    if ((value < 0) || (value >= getNEntries()))
+    if ((index < 0) || (index >= getNEntries()))
         return 0;
 
-    TranslateEntry* current = (TranslateEntry*)(entries[value]);
+    TranslateEntry* current = (TranslateEntry*)(entries[index]);
 
     //
     // do load on demand
@@ -469,8 +469,8 @@ int TranslateOption::prepareCurrentEntry(TranslateEntry*& entry) {
     }
 
     // check for currently loading translation table
-    if (value != lodCurrent) {
-        lodCurrent = value;
+    if (index != lodCurrent) {
+        lodCurrent = index;
 
         if (lodPipe != NULL) {
             if (lodPID > 0) {

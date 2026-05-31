@@ -1,0 +1,332 @@
+#include "cthugha.h"
+#include "Scene.h"
+#include "Border.h"
+#include "CthughaBuffer.h"
+#include "Flashlight.h"
+#include "Image.h"
+#include "display.h"
+#include "flames.h"
+#include "translate.h"
+#include "waves.h"
+
+#include <unistd.h>
+
+static SceneCommands* legacySceneCommands = 0;
+
+SceneSettings::SceneSettings()
+    : flame(0)
+    , generalFlame(0)
+    , wave(0)
+    , waveConfig()
+    , translate(0)
+    , translateIndex(0)
+    , palette(0)
+    , paletteIndex(0)
+    , borderMode(0)
+    , flashlightEnabled(0)
+    , flameName("unknown")
+    , generalFlameName("unknown")
+    , waveName("unknown")
+    , waveScaleName("unknown")
+    , tableName("unknown")
+    , translationName("unknown")
+    , paletteName("unknown")
+    , objectName("unknown")
+    , borderName("unknown")
+    , flashlightName("unknown") { }
+
+SceneCue::SceneCue()
+    : type(SceneCueInjectImage)
+    , id(0)
+    , image(0) { }
+
+SceneCue SceneCue::injectImage(const IndexedImage* image_) {
+    SceneCue cue;
+    cue.type = SceneCueInjectImage;
+    cue.image = image_;
+    return cue;
+}
+
+void SceneObserver::sceneCue(Scene& scene, const SceneCue& cue) {
+    (void)scene;
+    (void)cue;
+}
+
+Scene::Scene()
+    : settingsValue()
+    , versionValue(0)
+    , cueVersionValue(0) { }
+
+const SceneSettings& Scene::settings() const {
+    return settingsValue;
+}
+
+unsigned int Scene::version() const {
+    return versionValue;
+}
+
+unsigned int Scene::compareSettings(const SceneSettings& settings) const {
+    unsigned int changes = SceneNoChange;
+
+    if ((settingsValue.flame != settings.flame)
+        || (settingsValue.generalFlame != settings.generalFlame))
+        changes |= SceneFlameChanged;
+
+    if ((settingsValue.wave != settings.wave)
+        || !settingsValue.waveConfig.sameAs(settings.waveConfig))
+        changes |= SceneWaveChanged;
+
+    if ((settingsValue.translate != settings.translate)
+        || (settingsValue.translateIndex != settings.translateIndex))
+        changes |= SceneTranslationChanged;
+
+    if ((settingsValue.palette != settings.palette)
+        || (settingsValue.paletteIndex != settings.paletteIndex))
+        changes |= ScenePaletteChanged;
+
+    if (settingsValue.borderMode != settings.borderMode)
+        changes |= SceneBorderChanged;
+
+    if (settingsValue.flashlightEnabled != settings.flashlightEnabled)
+        changes |= SceneFlashlightChanged;
+
+    return changes;
+}
+
+void Scene::setSettings(const SceneSettings& settings, unsigned int forcedChanges) {
+    unsigned int changes = compareSettings(settings) | forcedChanges;
+    if (changes == SceneNoChange)
+        return;
+
+    settingsValue = settings;
+    versionValue++;
+
+    std::vector<SceneObserver*> snapshot = observers;
+    for (unsigned int i = 0; i < snapshot.size(); i++)
+        snapshot[i]->sceneChanged(*this, changes);
+}
+
+void Scene::emitCue(SceneCue cue) {
+    cue.id = ++cueVersionValue;
+
+    std::vector<SceneObserver*> snapshot = observers;
+    for (unsigned int i = 0; i < snapshot.size(); i++)
+        snapshot[i]->sceneCue(*this, cue);
+}
+
+void Scene::emitImageCue(const IndexedImage* image) {
+    if (image != 0)
+        emitCue(SceneCue::injectImage(image));
+}
+
+void Scene::addObserver(SceneObserver& observer) {
+    for (unsigned int i = 0; i < observers.size(); i++)
+        if (observers[i] == &observer)
+            return;
+    observers.push_back(&observer);
+}
+
+void Scene::removeObserver(SceneObserver& observer) {
+    for (std::vector<SceneObserver*>::iterator it = observers.begin(); it != observers.end();
+         ++it) {
+        if (*it == &observer) {
+            observers.erase(it);
+            return;
+        }
+    }
+}
+
+SceneCommands::SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_)
+    : scene(scene_)
+    , buffer(buffer_)
+    , images(images_) { }
+
+Wave* SceneCommands::selectRunnableWave(const WaveConfig& config) {
+    int nEntries = wave.getNEntries();
+
+    for (int i = 0; i < nEntries; i++) {
+        Wave* selectedWave = wave.currentWave();
+        if (selectedWave == 0 || selectedWave->canRun(config))
+            return selectedWave;
+
+        wave.change(+1, 0);
+    }
+
+    return 0;
+}
+
+SceneSettings SceneCommands::settingsFromOptions() {
+    SceneSettings settings;
+
+    settings.flame = flame.currentFlame();
+    settings.generalFlame = int(flameGeneral);
+    settings.flameName = (settings.flame != 0) ? settings.flame->name() : "unknown";
+    settings.generalFlameName = flameGeneral.text();
+
+    settings.waveConfig = WaveConfig(int(waveScale), int(table), currentWaveObject(),
+        buffer.width(), buffer.height());
+    settings.wave = selectRunnableWave(settings.waveConfig);
+    settings.waveName = (settings.wave != 0) ? settings.wave->name() : "unknown";
+    settings.waveScaleName = waveScale.currentName();
+    settings.tableName = table.currentName();
+    settings.objectName = object.currentName();
+
+    settings.translate = &buffer.translate;
+    settings.translateIndex = buffer.translate.currentN();
+    settings.translationName = buffer.translate.currentName();
+
+    settings.palette = palette.currentPaletteEntry();
+    settings.paletteIndex = palette.currentN();
+    settings.paletteName = palette.currentName();
+
+    settings.borderMode = int(border);
+    settings.flashlightEnabled = int(flashlight) != 0;
+    settings.borderName = border.currentName();
+    settings.flashlightName = flashlight.currentName();
+
+    return settings;
+}
+
+void SceneCommands::syncFromOptions(unsigned int forcedChanges) {
+    scene.setSettings(settingsFromOptions(), forcedChanges);
+}
+
+void SceneCommands::emitImageCue() {
+    scene.emitImageCue(images.currentImage());
+}
+
+void SceneCommands::syncFromOptionsAndMaybeCueImage(
+    const CoreOption& option, unsigned int forcedChanges) {
+    syncFromOptions(forcedChanges);
+    if (&option == &images)
+        emitImageCue();
+}
+
+void SceneCommands::initializeFromOptions() {
+    syncFromOptions(SceneAllChanged);
+    emitImageCue();
+}
+
+void SceneCommands::refreshFromOptions(unsigned int forcedChanges) {
+    syncFromOptions(forcedChanges);
+}
+
+int SceneCommands::isSceneOption(const CoreOption& option) const {
+    return (&option == &flame)
+        || (&option == &flameGeneral)
+        || (&option == &wave)
+        || (&option == &waveScale)
+        || (&option == &object)
+        || (&option == &buffer.translate)
+        || (&option == &border)
+        || (&option == &flashlight)
+        || (&option == &palette)
+        || (&option == &table)
+        || (&option == &images);
+}
+
+void SceneCommands::change(CoreOption& option, int by, int doSave) {
+    option.change(by, doSave);
+    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
+}
+
+void SceneCommands::change(CoreOption& option, const char* to, int doSave) {
+    option.change(to, doSave);
+    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
+}
+
+void SceneCommands::activate(CoreOption& option, int index) {
+    if ((index < 0) || (index >= option.getNEntries()))
+        return;
+
+    option[index]->setUse(1);
+    option.setValue(index);
+    option.change(0, 0);
+    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
+}
+
+void SceneCommands::changeFlame(int by) { change(flame, by, 0); }
+void SceneCommands::changeFlame(const char* to) { change(flame, to, 0); }
+
+void SceneCommands::changeGeneralFlame() {
+    flameGeneral.changeRandom();
+    syncFromOptions(SceneFlameChanged);
+}
+
+void SceneCommands::changeWave(int by) { change(wave, by, 0); }
+void SceneCommands::changeWave(const char* to) { change(wave, to, 0); }
+void SceneCommands::changeWaveScale(int by) { change(waveScale, by, 0); }
+void SceneCommands::changeWaveScale(const char* to) { change(waveScale, to, 0); }
+void SceneCommands::changeObject(int by) { change(object, by, 0); }
+void SceneCommands::changeObject(const char* to) { change(object, to, 0); }
+void SceneCommands::changeTranslation(int by) { change(buffer.translate, by, 0); }
+void SceneCommands::changeTranslation(const char* to) { change(buffer.translate, to, 0); }
+void SceneCommands::changeBorder(int by) { change(border, by, 0); }
+void SceneCommands::changeBorder(const char* to) { change(border, to, 0); }
+void SceneCommands::changeFlashlight(int by) { change(flashlight, by, 0); }
+void SceneCommands::changeFlashlight(const char* to) { change(flashlight, to, 0); }
+void SceneCommands::changePalette(int by) { change(palette, by, 0); }
+void SceneCommands::changePalette(const char* to) { change(palette, to, 0); }
+
+void SceneCommands::deletePaletteAndChange(int by) {
+    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    if ((paletteEntry != 0) && (paletteEntry->sourcePath[0] != '\0'))
+        unlink(paletteEntry->sourcePath);
+
+    palette.change(by, 0);
+    syncFromOptions(ScenePaletteChanged);
+}
+
+void SceneCommands::randomPalette() {
+    PaletteEntry::Random();
+    palette.setValue(PaletteEntry::lastRandomPos);
+    syncFromOptions(ScenePaletteChanged);
+}
+
+void SceneCommands::addRandomPalette() {
+    PaletteEntry::addRandom();
+    palette.setValue(PaletteEntry::lastRandomPos);
+    syncFromOptions(ScenePaletteChanged);
+}
+
+void SceneCommands::changeTable(int by) { change(table, by, 0); }
+void SceneCommands::changeTable(const char* to) { change(table, to, 0); }
+void SceneCommands::changeImage(int by) { change(images, by, 0); }
+void SceneCommands::changeImage(const char* to) { change(images, to, 0); }
+
+void SceneCommands::changeAll() {
+    CoreOption::changeAll();
+    syncFromOptions(SceneAllChanged);
+    emitImageCue();
+}
+
+void SceneCommands::changeOne() {
+    CoreOption* changedOption = CoreOption::changeOne();
+    syncFromOptions(SceneNoChange);
+    if (changedOption == &images)
+        emitImageCue();
+}
+
+void SceneCommands::restore() {
+    CoreOption::restore();
+    syncFromOptions(SceneAllChanged);
+    emitImageCue();
+}
+
+void SceneCommands::restore(int from) {
+    CoreOption::restore(from);
+    syncFromOptions(SceneAllChanged);
+    emitImageCue();
+}
+
+void SceneCommands::save(int to) {
+    CoreOption::save(to);
+}
+
+void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands) {
+    legacySceneCommands = commands;
+}
+
+SceneCommands* sceneCommandsForLegacyCallbacks() {
+    return legacySceneCommands;
+}

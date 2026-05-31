@@ -8,6 +8,7 @@ set(CTHUGHA_COMMON_SOURCES
     AudioRuntime.cc
     Settings.cc
     RuntimeFactory.cc
+    Scene.cc
     Screenshot.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc

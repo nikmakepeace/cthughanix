@@ -236,7 +236,7 @@ int CoreOption::optNr(const char* n) {
 //
 // change randomly one of the features
 //
-void CoreOption::changeOne() {
+CoreOption* CoreOption::changeOne() {
 
     CoreOption* o;
     do {
@@ -248,10 +248,13 @@ void CoreOption::changeOne() {
         }
         if (o == NULL) {
             CTH_ERROR("internal error: Something very strange happend. %d/%d\n", n, nCoreOptions);
-            return;
+            return 0;
         }
     } while (o->buffer >= visualBufferCount);
+    if (o->lock)
+        return 0;
     o->changeRandom(1);
+    return o;
 }
 
 //

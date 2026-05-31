@@ -18,6 +18,7 @@
 #include "imath.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
+#include "Scene.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -526,71 +527,63 @@ ACTION(quit) { cthugha_close++; }
 
 ACTION(screenChg) { screen.change(int(v), 0); }
 ACTION(zoomChg) { zoom.change(int(v)); }
-ACTION(flameChg) { flame.change(int(v), 0); }
-ACTION(flameGeneral) { flameGeneral.changeRandom(); }
-ACTION(waveChg) { wave.change(int(v), 0); }
-ACTION(waveScaleChg) { waveScale.change(int(v), 0); }
-ACTION(objectChg) { object.change(int(v), 0); }
-ACTION(translateChg) { CthughaBuffer::current->translate.change(int(v), 0); }
+ACTION(flameChg) { sceneCommandsForLegacyCallbacks()->changeFlame(int(v)); }
+ACTION(flameGeneral) { sceneCommandsForLegacyCallbacks()->changeGeneralFlame(); }
+ACTION(waveChg) { sceneCommandsForLegacyCallbacks()->changeWave(int(v)); }
+ACTION(waveScaleChg) { sceneCommandsForLegacyCallbacks()->changeWaveScale(int(v)); }
+ACTION(objectChg) { sceneCommandsForLegacyCallbacks()->changeObject(int(v)); }
+ACTION(translateChg) { sceneCommandsForLegacyCallbacks()->changeTranslation(int(v)); }
 ACTION(soundProcessChg) { audioProcessing.change(int(v)); }
-ACTION(borderChg) { border.change(int(v), 0); }
-ACTION(flashlightChg) { flashlight.change(int(v), 0); }
-ACTION(paletteChg) { palette.change(int(v), 0); }
-ACTION(deletePaletteChg) {
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
-    if ((paletteEntry != NULL) && (paletteEntry->sourcePath[0] != '\0'))
-        unlink(paletteEntry->sourcePath);
-
-    palette.change(int(v), 0);
-}
-ACTION(tableChg) { table.change(int(v), 0); }
-ACTION(pcxChg) { visualDirector().imageOption().change(int(v), 0); }
+ACTION(borderChg) { sceneCommandsForLegacyCallbacks()->changeBorder(int(v)); }
+ACTION(flashlightChg) { sceneCommandsForLegacyCallbacks()->changeFlashlight(int(v)); }
+ACTION(paletteChg) { sceneCommandsForLegacyCallbacks()->changePalette(int(v)); }
+ACTION(deletePaletteChg) { sceneCommandsForLegacyCallbacks()->deletePaletteAndChange(int(v)); }
+ACTION(tableChg) { sceneCommandsForLegacyCallbacks()->changeTable(int(v)); }
+ACTION(pcxChg) { sceneCommandsForLegacyCallbacks()->changeImage(int(v)); }
 ACTION(lockChg) { lock.change(+1); }
 
 ACTION(screen) { screen.change(p, 0); }
 ACTION(zoom) { zoom.change(p); }
-ACTION(flame) { flame.change(p, 0); }
-ACTION(wave) { wave.change(p, 0); }
-ACTION(waveScale) { waveScale.change(p, 0); }
-ACTION(object) { object.change(p, 0); }
-ACTION(translate) { CthughaBuffer::current->translate.change(p, 0); }
+ACTION(flame) { sceneCommandsForLegacyCallbacks()->changeFlame(p); }
+ACTION(wave) { sceneCommandsForLegacyCallbacks()->changeWave(p); }
+ACTION(waveScale) { sceneCommandsForLegacyCallbacks()->changeWaveScale(p); }
+ACTION(object) { sceneCommandsForLegacyCallbacks()->changeObject(p); }
+ACTION(translate) { sceneCommandsForLegacyCallbacks()->changeTranslation(p); }
 ACTION(soundProcess) { audioProcessing.change(p); }
-ACTION(border) { border.change(p, 0); }
-ACTION(flashlight) { flashlight.change(p, 0); }
-ACTION(palette) { palette.change(p, 0); }
-ACTION(table) { table.change(p, 0); }
-ACTION(pcx) { visualDirector().imageOption().change(p, 0); }
+ACTION(border) { sceneCommandsForLegacyCallbacks()->changeBorder(p); }
+ACTION(flashlight) { sceneCommandsForLegacyCallbacks()->changeFlashlight(p); }
+ACTION(palette) { sceneCommandsForLegacyCallbacks()->changePalette(p); }
+ACTION(table) { sceneCommandsForLegacyCallbacks()->changeTable(p); }
+ACTION(pcx) { sceneCommandsForLegacyCallbacks()->changeImage(p); }
 ACTION(lock) { lock.change(+1); }
 
 ACTION(writeIni) { write_ini(); } // when net-sound: re-sent request to server
 ACTION(soundReset) { audioFrameChange(); }
 ACTION(printScreen) { displayDevice->printScreen(); }
 
-ACTION(restore) { CoreOption::restore(); }
+ACTION(restore) { sceneCommandsForLegacyCallbacks()->restore(); }
 ACTION(toggleSave) { Interface::saveToHot = 1 - Interface::saveToHot; }
-ACTION(save) { CoreOption::save(int(v)); }
+ACTION(save) { sceneCommandsForLegacyCallbacks()->save(int(v)); }
 ACTION(saveOrRestore) {
     if (Interface::saveToHot) {
-        CoreOption::save(int(v));
+        sceneCommandsForLegacyCallbacks()->save(int(v));
         Interface::saveToHot = 0;
     } else {
-        CoreOption::restore(int(v));
+        sceneCommandsForLegacyCallbacks()->restore(int(v));
     }
 }
 
 ACTION(toggleStatus) { Interface::showStatus = 1 - Interface::showStatus; }
 
-ACTION(changeAll) { CoreOption::changeAll(); }
-ACTION(changeOne) { CoreOption::changeOne(); }
+ACTION(changeAll) { sceneCommandsForLegacyCallbacks()->changeAll(); }
+ACTION(changeOne) { sceneCommandsForLegacyCallbacks()->changeOne(); }
 
 ACTION(credits) { Interface::set("credits"); }
 ACTION(setInterface) { Interface::set(p); }
 
 ACTION(randomPalette) {
-    PaletteEntry::Random();
-    palette.setValue(PaletteEntry::lastRandomPos);
+    sceneCommandsForLegacyCallbacks()->randomPalette();
 }
 ACTION(newRandomPalette) {
-    PaletteEntry::addRandom();
-    palette.setValue(PaletteEntry::lastRandomPos);
+    sceneCommandsForLegacyCallbacks()->addRandomPalette();
 }

@@ -8,10 +8,11 @@
 #include "keys.h"
 #include "CthughaBuffer.h"
 #include "Interface.h"
+#include "Image.h"
 #include "cth_buffer.h"
 #include "CthughaDisplay.h"
 #include "flames.h"
-#include "VisualDirector.h"
+#include "Scene.h"
 #include "waves.h"
 
 #include <unistd.h>
@@ -57,8 +58,12 @@ void DisplayDeviceX11::menuCB(Widget /*item*/, XtPointer data, XtPointer /*data2
     menu_data_t* d = (menu_data_t*)data;
 
     if (d->opt != 0) {
-        d->opt->setValue(d->pos);
-        d->opt->change(0, 0);
+        if (d->sceneCommands != 0) {
+            d->sceneCommands->activate(*d->opt, d->pos);
+        } else {
+            d->opt->setValue(d->pos);
+            d->opt->change(0, 0);
+        }
     }
 }
 
@@ -377,7 +382,7 @@ void DisplayDeviceX11::updatePalettePreview() {
     if (!XGetWindowAttributes(xcth_display, XtWindow(palettePreviewWidget), &attrs))
         return;
 
-    int current_palette = palette.currentN();
+    int current_palette = scene.settings().paletteIndex;
     int palette_changed = current_palette != palettePreviewPalette;
     int size_changed = (attrs.width != palettePreviewWidth) || (attrs.height != palettePreviewHeight);
     if (!palette_changed && !size_changed)
@@ -397,7 +402,7 @@ void DisplayDeviceX11::updatePalettePreview() {
         palettePreviewPixmap = None;
     }
 
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    PaletteEntry* paletteEntry = scene.settings().palette;
     if (paletteEntry == NULL)
         return;
 
@@ -469,7 +474,7 @@ void DisplayDeviceX11::updatePaletteMetadataEditor() {
         || (paletteEnergyTextWidget == NULL))
         return;
 
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    PaletteEntry* paletteEntry = scene.settings().palette;
     if (paletteEntry == NULL)
         return;
 
@@ -484,7 +489,7 @@ int DisplayDeviceX11::savePaletteMetadata() {
         || (paletteEnergyTextWidget == NULL))
         return 0;
 
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    PaletteEntry* paletteEntry = scene.settings().palette;
     if ((paletteEntry == NULL) || (paletteEntry->sourcePath[0] == '\0')) {
         setPaletteMetadataStatus("read-only");
         return 0;
@@ -590,15 +595,14 @@ int DisplayDeviceX11::savePaletteMetadata() {
 
 void DisplayDeviceX11::nextUntaggedPalette() {
     int n = palette.getNEntries();
-    int start = palette.currentN();
+    int start = scene.settings().paletteIndex;
     for (int step = 1; step <= n; step++) {
         int candidate = (start + step) % n;
         PaletteEntry* paletteEntry = (PaletteEntry*)palette[candidate];
         if ((paletteEntry != NULL)
             && ((paletteEntry->metadataName[0] == '\0') || (paletteEntry->metadataSetCount == 0)
                 || (paletteEntry->metadataEnergyCount == 0))) {
-            palette.setValue(candidate);
-            palette.change(0, 0);
+            sceneCommands.activate(palette, candidate);
             palettePreviewPalette = -1;
             updatePalettePreview();
             setPaletteMetadataStatus("next untagged");
@@ -614,7 +618,7 @@ void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointe
     if (device == NULL)
         return;
 
-    if (palette.currentN() != device->palettePreviewPalette) {
+    if (device->scene.settings().paletteIndex != device->palettePreviewPalette) {
         device->palettePreviewChangedAt = getTime();
         CTH_WARN("Palette changed too recently; not deleting.\n");
         return;
@@ -625,7 +629,7 @@ void DisplayDeviceX11::deletePaletteCB(Widget /*item*/, XtPointer data, XtPointe
         return;
     }
 
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
+    PaletteEntry* paletteEntry = device->scene.settings().palette;
     if ((paletteEntry == NULL) || (paletteEntry->sourcePath[0] == '\0'))
         return;
 
@@ -711,6 +715,7 @@ Widget DisplayDeviceX11::add_menu(
         menu_data_t* md = new menu_data_t;
         const char* label = (*what)[i]->Desc()[0] ? (*what)[i]->Desc() : (*what)[i]->Name();
 
+        md->sceneCommands = &sceneCommands;
         md->opt = what;
         md->pos = i;
 
@@ -752,11 +757,10 @@ void DisplayDeviceX11::xcth_create_panel() {
     menu[0] = add_menu("Display", &::screen, panel, quit_button, NULL);
     menu[1] = add_menu("Wave", &wave, panel, quit_button, menu[0]);
     menu[2] = add_menu("Flame", &flame, panel, quit_button, menu[1]);
-    menu[3]
-        = add_menu("Translation", &CthughaBuffer::current->translate, panel, quit_button, menu[2]);
+    menu[3] = add_menu("Translation", &CthughaBuffer::buffer.translate, panel, quit_button, menu[2]);
     menu[4] = add_menu("Palette", &palette, panel, quit_button, menu[3]);
     menu[5] = add_menu("Table", &table, panel, quit_button, menu[4]);
-    menu[6] = add_menu("Image", &visualDirector().imageOption(), panel, quit_button, menu[5]);
+    menu[6] = add_menu("Image", &sceneCommands.imageOption(), panel, quit_button, menu[5]);
     menu[7] = add_menu("Objects", &object, panel, quit_button, menu[6]);
 
     // create the panelText Widget

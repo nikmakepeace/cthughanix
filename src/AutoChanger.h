@@ -20,7 +20,10 @@ extern OptionInt changeFireLevel;
 extern OptionOnOff lock; /* change automatically */
 extern OptionOnOff change_little; /* only change one options */
 
+class SceneCommands;
+
 class AutoChanger {
+    SceneCommands& sceneCommands;
 
     int quietSince;
     int waitTime;
@@ -30,7 +33,7 @@ class AutoChanger {
     static int nSilenceStrings;
 
 public:
-    AutoChanger();
+    AutoChanger(SceneCommands& sceneCommands_);
     ~AutoChanger();
     static void loadSilenceStrings(const char* fname);
 

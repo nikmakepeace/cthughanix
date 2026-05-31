@@ -8,9 +8,7 @@
 #include "VisualDirector.h"
 #include "cth_buffer.h"
 #include "display.h"
-#include "flames.h"
 #include "imath.h"
-#include "waves.h"
 
 double paletteSmoothingChance = 1.0;
 
@@ -21,20 +19,6 @@ static CthughaBuffer* currentBuffer() {
 template <class Module>
 static Module* stageModule(VisualPipeline& pipeline, VisualPipelineSequence::Stage stage) {
     return dynamic_cast<Module*>(pipeline.stageModule(stage));
-}
-
-static Wave* selectRunnableWave(const WaveConfig& config) {
-    int nEntries = wave.getNEntries();
-
-    for (int i = 0; i < nEntries; i++) {
-        Wave* selectedWave = wave.currentWave();
-        if (selectedWave == 0 || selectedWave->canRun(config))
-            return selectedWave;
-
-        wave.change(+1, 0);
-    }
-
-    return 0;
 }
 
 static int paletteSmoothingFrameBudget() {
@@ -60,8 +44,19 @@ static int paletteChangeFrameBudget() {
 VisualDirector::VisualDirector()
     : images(0, "pcx")
     , imagePlacementStrategy()
-    , imageLoadingEnabledValue(1)
-    , lastImageSelection(-1) { }
+    , scene(0)
+    , pipeline(0)
+    , buffer(0)
+    , pendingSceneChanges(SceneAllChanged)
+    , pendingImageCue(0)
+    , pendingImageCueId(0)
+    , appliedImageCueId(0)
+    , imageLoadingEnabledValue(1) { }
+
+VisualDirector::~VisualDirector() {
+    if (scene != 0)
+        scene->removeObserver(*this);
+}
 
 VisualDirector& visualDirector() {
     static VisualDirector director;
@@ -70,6 +65,31 @@ VisualDirector& visualDirector() {
 
 ImageOption& VisualDirector::imageOption() {
     return images;
+}
+
+void VisualDirector::bindScene(Scene& scene_) {
+    if (scene == &scene_)
+        return;
+
+    if (scene != 0)
+        scene->removeObserver(*this);
+
+    scene = &scene_;
+    scene->addObserver(*this);
+    pendingSceneChanges |= SceneAllChanged;
+}
+
+void VisualDirector::unbindScene() {
+    if (scene != 0)
+        scene->removeObserver(*this);
+
+    scene = 0;
+    pipeline = 0;
+    buffer = 0;
+    pendingSceneChanges = SceneAllChanged;
+    pendingImageCue = 0;
+    pendingImageCueId = 0;
+    appliedImageCueId = 0;
 }
 
 int VisualDirector::imageLoadingEnabled() const {
@@ -108,99 +128,127 @@ VisualPipelineSequence VisualDirector::defaultPipelineSequence() const {
     return sequence;
 }
 
-int VisualDirector::imageSelectionChanged() const {
-    return lastImageSelection != images.currentN();
-}
-
-void VisualDirector::markImageSelectionSeen() {
-    lastImageSelection = images.currentN();
-}
-
 void VisualDirector::syncCurrentBuffer() {
     CthughaBuffer::current = &CthughaBuffer::buffer;
 }
 
-void VisualDirector::updatePipelineStages(VisualPipeline& pipeline, CthughaBuffer& buffer) {
-    ImageStageModule* imageModule
-        = stageModule<ImageStageModule>(pipeline, VisualPipelineSequence::ImageStage);
-    if (imageModule != 0) {
-        const IndexedImage* currentImage = images.currentImage();
-        imageModule->setImage(currentImage);
-        if (imageSelectionChanged() && currentImage != 0) {
-            imageModule->setPlacement(imagePlacementStrategy.choose(*currentImage,
-                buffer.width(), buffer.height()));
-            imageModule->setOverlayPassiveBuffer(1);
-        }
-    }
+void VisualDirector::applySceneToPipeline(unsigned int changes) {
+    if (scene == 0 || pipeline == 0 || buffer == 0)
+        return;
 
-    const Flame* currentFlame = flame.currentFlame();
+    const SceneSettings& settings = scene->settings();
+
     FlameStageModule* flameModule
-        = stageModule<FlameStageModule>(pipeline, VisualPipelineSequence::FlameStage);
+        = stageModule<FlameStageModule>(*pipeline, VisualPipelineSequence::FlameStage);
     if (flameModule != 0) {
-        flameModule->setFlame(currentFlame);
-        flameModule->setGeneralFlame(int(flameGeneral));
+        flameModule->setFlame(settings.flame);
+        flameModule->setGeneralFlame(settings.generalFlame);
     }
 
     TranslateStageModule* translateModule
-        = stageModule<TranslateStageModule>(pipeline, VisualPipelineSequence::TranslateStage);
+        = stageModule<TranslateStageModule>(*pipeline, VisualPipelineSequence::TranslateStage);
     if (translateModule != 0)
-        translateModule->setTranslateProvider(&buffer.translate);
+        translateModule->setTranslate(settings.translate, settings.translateIndex);
 
     WaveStageModule* waveModule
-        = stageModule<WaveStageModule>(pipeline, VisualPipelineSequence::WaveStage);
+        = stageModule<WaveStageModule>(*pipeline, VisualPipelineSequence::WaveStage);
     if (waveModule != 0) {
-        WaveConfig waveConfig(int(waveScale), int(table), currentWaveObject(),
-            buffer.width(), buffer.height());
-        Wave* currentWave = selectRunnableWave(waveConfig);
-        if (currentWave != 0)
-            currentWave->configure(waveConfig);
-        waveModule->setWave(currentWave);
+        if (settings.wave != 0)
+            settings.wave->configure(settings.waveConfig);
+        waveModule->setWave(settings.wave);
     }
 
     BorderVisualModule* borderModule
-        = stageModule<BorderVisualModule>(pipeline, VisualPipelineSequence::BorderStage);
+        = stageModule<BorderVisualModule>(*pipeline, VisualPipelineSequence::BorderStage);
     if (borderModule != 0)
-        borderModule->setBorderMode(int(border));
+        borderModule->setBorderMode(settings.borderMode);
 
     FrameCommitModule* frameCommitModule
-        = stageModule<FrameCommitModule>(pipeline, VisualPipelineSequence::FrameCommitStage);
+        = stageModule<FrameCommitModule>(*pipeline, VisualPipelineSequence::FrameCommitStage);
     if (frameCommitModule != 0)
-        frameCommitModule->setFlameName((currentFlame != 0) ? currentFlame->name() : "unknown");
+        frameCommitModule->setSceneNames(settings.flameName, settings.waveName,
+            settings.waveScaleName, settings.tableName);
 
     PaletteStageModule* paletteModule
-        = stageModule<PaletteStageModule>(pipeline, VisualPipelineSequence::PaletteStage);
-    PaletteEntry* currentPaletteEntry = palette.currentPaletteEntry();
+        = stageModule<PaletteStageModule>(*pipeline, VisualPipelineSequence::PaletteStage);
     if (paletteModule != 0) {
-        int frameBudget = paletteModule->needsTarget(currentPaletteEntry)
+        int frameBudget = paletteModule->needsTarget(settings.palette)
             ? paletteChangeFrameBudget()
             : 0;
-        paletteModule->setTargetPalette(currentPaletteEntry, frameBudget,
+        paletteModule->setTargetPalette(settings.palette, frameBudget,
             randomPaletteTransitionStrategy());
+    }
+
+    pipeline->setStageMode(VisualPipelineSequence::FlashlightStage,
+        settings.flashlightEnabled ? VisualStageEnabled : VisualStageDisabled);
+    pipeline->setStageMode(VisualPipelineSequence::BorderStage, VisualStageEnabled);
+    pipeline->setStageMode(VisualPipelineSequence::FlameStage, VisualStageEnabled);
+    pipeline->setStageMode(VisualPipelineSequence::TranslateStage, VisualStageEnabled);
+    pipeline->setStageMode(VisualPipelineSequence::WaveStage, VisualStageEnabled);
+    pipeline->setStageMode(VisualPipelineSequence::FrameCommitStage, VisualStageEnabled);
+    pipeline->setStageMode(VisualPipelineSequence::PaletteStage, VisualStageEnabled);
+}
+
+void VisualDirector::applyPendingImageCue() {
+    if (pipeline == 0 || buffer == 0 || pendingImageCue == 0
+        || pendingImageCueId == appliedImageCueId)
+        return;
+
+    ImageStageModule* imageModule
+        = stageModule<ImageStageModule>(*pipeline, VisualPipelineSequence::ImageStage);
+    if (imageModule == 0)
+        return;
+
+    imageModule->setImage(pendingImageCue);
+    imageModule->setPlacement(imagePlacementStrategy.choose(*pendingImageCue,
+        buffer->width(), buffer->height()));
+    imageModule->setOverlayPassiveBuffer(1);
+    pipeline->setStageMode(VisualPipelineSequence::ImageStage, VisualStageArmedOnce);
+
+    appliedImageCueId = pendingImageCueId;
+    pendingImageCue = 0;
+}
+
+void VisualDirector::sceneChanged(Scene& scene_, unsigned int changes) {
+    (void)scene_;
+
+    pendingSceneChanges |= changes;
+    if (pipeline != 0 && buffer != 0) {
+        applySceneToPipeline(pendingSceneChanges);
+        pendingSceneChanges = SceneNoChange;
     }
 }
 
-CthughaBuffer* VisualDirector::configurePipeline(VisualPipeline& pipeline) {
+void VisualDirector::sceneCue(Scene& scene_, const SceneCue& cue) {
+    (void)scene_;
+
+    if (cue.type == SceneCueInjectImage) {
+        pendingImageCue = cue.image;
+        pendingImageCueId = cue.id;
+        applyPendingImageCue();
+    }
+}
+
+CthughaBuffer* VisualDirector::configurePipeline(VisualPipeline& pipeline_) {
     syncCurrentBuffer();
-    CthughaBuffer* buffer = currentBuffer();
-    if (buffer == 0)
+    CthughaBuffer* current = currentBuffer();
+    if (current == 0)
         return 0;
 
-    updatePipelineStages(pipeline, *buffer);
+    if (pipeline != &pipeline_) {
+        pipeline = &pipeline_;
+        pendingSceneChanges |= SceneAllChanged;
+    }
+    if (buffer != current) {
+        buffer = current;
+        pendingSceneChanges |= SceneAllChanged;
+    }
 
-    int selectedImageChanged = imageSelectionChanged();
-    const IndexedImage* selectedImage = images.currentImage();
-    if (selectedImageChanged && selectedImage != 0)
-        pipeline.setStageMode(VisualPipelineSequence::ImageStage, VisualStageArmedOnce);
-    if (selectedImageChanged)
-        markImageSelectionSeen();
-    pipeline.setStageMode(VisualPipelineSequence::FlashlightStage,
-        (int(flashlight) != 0) ? VisualStageEnabled : VisualStageDisabled);
-    pipeline.setStageMode(VisualPipelineSequence::BorderStage, VisualStageEnabled);
-    pipeline.setStageMode(VisualPipelineSequence::FlameStage, VisualStageEnabled);
-    pipeline.setStageMode(VisualPipelineSequence::TranslateStage, VisualStageEnabled);
-    pipeline.setStageMode(VisualPipelineSequence::WaveStage, VisualStageEnabled);
-    pipeline.setStageMode(VisualPipelineSequence::FrameCommitStage, VisualStageEnabled);
-    pipeline.setStageMode(VisualPipelineSequence::PaletteStage, VisualStageEnabled);
+    if (pendingSceneChanges != SceneNoChange) {
+        applySceneToPipeline(pendingSceneChanges);
+        pendingSceneChanges = SceneNoChange;
+    }
+    applyPendingImageCue();
 
-    return buffer;
+    return current;
 }

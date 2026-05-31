@@ -6,6 +6,7 @@
 #include "display.h"
 #include "options.h"
 #include "CthughaBuffer.h"
+#include "Scene.h"
 
 OptionTime changeQuiet("quiet-change", 150); /* change after quiet-pause (1.5 sec) */
 
@@ -24,8 +25,9 @@ OptionOnOff change_little("little", 0); /* only change one options */
 
 AutoChanger* autoChanger = NULL;
 
-AutoChanger::AutoChanger()
-    : quietSince(0)
+AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
+    : sceneCommands(sceneCommands_)
+    , quietSince(0)
     , lastChange(0) {
 
     if (changeWaitRandom <= 0)
@@ -97,9 +99,9 @@ void AutoChanger::operator()() {
 void AutoChanger::change() {
 
     if (int(change_little)) {
-        CoreOption::changeOne();
+        sceneCommands.changeOne();
     } else {
-        CoreOption::changeAll();
+        sceneCommands.changeAll();
     }
 }
 

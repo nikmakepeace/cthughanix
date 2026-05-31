@@ -6,6 +6,7 @@
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
+#include "Scene.h"
 #include "VisualDirector.h"
 #include "flames.h"
 #include "waves.h"
@@ -110,8 +111,13 @@ ACTION(activate) {
         return;
 
     currentCoreOption->entries[Interface::current->sel]->use.change("on");
-    currentCoreOption->setValue(Interface::current->sel);
-    currentCoreOption->change(0, 0);
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (sceneCommands != NULL && sceneCommands->isSceneOption(*currentCoreOption)) {
+        sceneCommands->activate(*currentCoreOption, Interface::current->sel);
+    } else {
+        currentCoreOption->setValue(Interface::current->sel);
+        currentCoreOption->change(0, 0);
+    }
 }
 
 #if 0

@@ -178,7 +178,7 @@ public:
         CTH_ERROR("internal error. wrong change called for option `%s'.\n", name());
     }
 
-    static void changeOne();
+    static CoreOption* changeOne();
     static void changeAll();
 
     virtual const char* text() const;

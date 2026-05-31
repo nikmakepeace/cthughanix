@@ -25,6 +25,7 @@
 #include "Flashlight.h"
 #include "Interface.h"
 #include "PipelineStageModules.h"
+#include "Scene.h"
 #include "VisualDirector.h"
 #include "VisualPipeline.h"
 #include "VisualPipelineFactory.h"
@@ -36,6 +37,28 @@
 static VisualPipeline* visualPipeline = NULL;
 static VisualPipelineSequence visualPipelineSequence;
 static AudioVisualBridge* audioVisualBridge = NULL;
+static Scene* scene = NULL;
+static SceneCommands* sceneCommands = NULL;
+
+static void initSceneRuntime() {
+    if (scene != NULL)
+        return;
+
+    scene = new Scene;
+    visualDirector().bindScene(*scene);
+    sceneCommands = new SceneCommands(*scene, CthughaBuffer::buffer,
+        visualDirector().imageOption());
+    bindSceneCommandsForLegacyCallbacks(sceneCommands);
+}
+
+static void shutdownSceneRuntime() {
+    bindSceneCommandsForLegacyCallbacks(NULL);
+    visualDirector().unbindScene();
+    delete sceneCommands;
+    sceneCommands = NULL;
+    delete scene;
+    scene = NULL;
+}
 
 static void initVisualPipeline() {
     if (visualPipeline != NULL)
@@ -56,7 +79,7 @@ static void shutdownVisualPipeline() {
 
 static void initAudioVisualBridge() {
     if (audioVisualBridge == NULL)
-        audioVisualBridge = new AudioVisualBridge;
+        audioVisualBridge = new AudioVisualBridge(sceneCommands);
 }
 
 static void shutdownAudioVisualBridge() {
@@ -119,6 +142,7 @@ void deleter() {
     audioRuntimeShutdown();
     delete cdPlayer;
     shutdownVisualPipeline();
+    shutdownSceneRuntime();
 }
 
 int main(int argc, char* argv[]) {
@@ -128,6 +152,8 @@ int main(int argc, char* argv[]) {
 
     if (get_pre_params(argc, argv))
         return 1;
+
+    initSceneRuntime();
 
     if (cth_init(&argc, argv))
         return 1;
@@ -160,12 +186,13 @@ int main(int argc, char* argv[]) {
     init_flashlight();
 
     CTH_INFO("Initializing display...\n");
-    newDisplayDevice();
+    newDisplayDevice(*scene, *sceneCommands);
     newCthughaDisplay();
 
     CTH_INFO("Setting initial core options...\n");
     CoreOption::changeToInitial();
     audioProcessing.changeToInitial();
+    sceneCommands->initializeFromOptions();
 
     CTH_INFO("Initializing interface...\n");
     Interface::set("main");

@@ -10,6 +10,7 @@
 #include "AudioProcessor.h"
 #include "Border.h"
 #include "Flashlight.h"
+#include "Scene.h"
 #include "VisualDirector.h"
 #include "flames.h"
 #include "waves.h"
@@ -117,7 +118,11 @@ ACTION(chgValue1) {
         return;
 
     int step = int(v * currentOptionInterfaceElement->inc1);
-    if (currentCoreOption)
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (currentCoreOption && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentCoreOption))
+        sceneCommands->change(*currentCoreOption, step, 0);
+    else if (currentCoreOption)
         currentCoreOption->change(step, 0);
     else if (currentOption)
         currentOption->change(step);
@@ -127,7 +132,11 @@ ACTION(chgValue2) {
         return;
 
     int step = int(v * currentOptionInterfaceElement->inc2);
-    if (currentCoreOption)
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (currentCoreOption && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentCoreOption))
+        sceneCommands->change(*currentCoreOption, step, 0);
+    else if (currentCoreOption)
         currentCoreOption->change(step, 0);
     else if (currentOption)
         currentOption->change(step);
@@ -137,7 +146,11 @@ ACTION(chgValue3) {
         return;
 
     int step = int(v * currentOptionInterfaceElement->inc3);
-    if (currentCoreOption)
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (currentCoreOption && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentCoreOption))
+        sceneCommands->change(*currentCoreOption, step, 0);
+    else if (currentCoreOption)
         currentCoreOption->change(step, 0);
     else if (currentOption)
         currentOption->change(step);
@@ -149,7 +162,12 @@ ACTION(setValue) {
     char str[128];
     sprintf(str, "%d", int(v * currentOptionInterfaceElement->inc1));
 
-    if (currentCoreOption) {
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (currentCoreOption && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentCoreOption)) {
+        sceneCommands->change(*currentCoreOption, str, 0);
+        sceneCommands->change(*currentCoreOption, 0, 0);
+    } else if (currentCoreOption) {
         currentCoreOption->change(str, 0);
         currentCoreOption->change(0, 0);
     } else if (currentOption) {
@@ -212,7 +230,7 @@ void Interface::display() {
         static char str[512];
         sprintf(str, "%s%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
             (autoChanger != NULL) ? autoChanger->status() : "",
-            (CthughaBuffer::current != NULL) ? CthughaBuffer::current->translate.status() : "");
+            CthughaBuffer::buffer.translate.status());
 
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
     }
@@ -330,6 +348,72 @@ ACTION(lockElement) {
         currentCoreOption->lock.change(+1);
 }
 
+enum SceneOptionText {
+    SceneOptionFlame,
+    SceneOptionGeneralFlame,
+    SceneOptionBorder,
+    SceneOptionTranslate,
+    SceneOptionWave,
+    SceneOptionTable,
+    SceneOptionWaveScale,
+    SceneOptionPalette,
+    SceneOptionObject,
+    SceneOptionFlashlight
+};
+
+static const char* sceneOptionText(SceneOptionText field, CoreOption* fallback) {
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (sceneCommands == NULL)
+        return fallback->text();
+
+    const SceneSettings& settings = sceneCommands->sceneState().settings();
+    switch (field) {
+    case SceneOptionFlame:
+        return settings.flameName;
+    case SceneOptionGeneralFlame:
+        return settings.generalFlameName;
+    case SceneOptionBorder:
+        return settings.borderName;
+    case SceneOptionTranslate:
+        return settings.translationName;
+    case SceneOptionWave:
+        return settings.waveName;
+    case SceneOptionTable:
+        return settings.tableName;
+    case SceneOptionWaveScale:
+        return settings.waveScaleName;
+    case SceneOptionPalette:
+        return settings.paletteName;
+    case SceneOptionObject:
+        return settings.objectName;
+    case SceneOptionFlashlight:
+        return settings.flashlightName;
+    }
+
+    return fallback->text();
+}
+
+class InterfaceElementSceneCoreOption : public InterfaceElementCoreOption {
+    SceneOptionText sceneText;
+
+public:
+    InterfaceElementSceneCoreOption(const char* t, CoreOption* o, SceneOptionText sceneText_)
+        : InterfaceElementCoreOption(t, o)
+        , sceneText(sceneText_) { }
+
+    virtual const char* text(int selected) {
+        static char strRet[512];
+        char fmt[512];
+        char in[512];
+
+        sprintf(fmt, "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+        sprintf(in, str, sceneOptionText(sceneText, coreOpt));
+        sprintf(strRet, fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
+
+        return strRet;
+    }
+};
+
 void ErrorMessages::addMessage(const char* text) {
     if (nMsgs == 128) {
         CTH_ERROR("too many errors: %s\n", text);
@@ -395,25 +479,35 @@ public:
 
         {
             elements[0] = new InterfaceElementCoreOption("Display (d,D)         : %s", &screen);
-            elements[1] = new InterfaceElementCoreOption("Flame (f,F)           : %s", &flame);
+            elements[1] = new InterfaceElementSceneCoreOption("Flame (f,F)           : %s",
+                &flame, SceneOptionFlame);
             elements[2]
-                = new InterfaceElementCoreOption("General Flame (g)     : %s", &flameGeneral);
-            elements[3] = new InterfaceElementCoreOption("Border (=)            : %s", &border);
+                = new InterfaceElementSceneCoreOption("General Flame (g)     : %s",
+                    &flameGeneral, SceneOptionGeneralFlame);
+            elements[3] = new InterfaceElementSceneCoreOption("Border (=)            : %s",
+                &border, SceneOptionBorder);
             elements[4]
-                = new InterfaceElementCoreOption("Translate (t,T)       : %s", &CthughaBuffer::buffer.translate);
-            elements[5] = new InterfaceElementCoreOption("Wave (w)              : %s", &wave);
+                = new InterfaceElementSceneCoreOption("Translate (t,T)       : %s",
+                    &CthughaBuffer::buffer.translate, SceneOptionTranslate);
+            elements[5] = new InterfaceElementSceneCoreOption("Wave (w)              : %s",
+                &wave, SceneOptionWave);
             elements[6]
                 = new InterfaceElementOption("Sound Processing (m,M): %s", &audioProcessing);
-            elements[7] = new InterfaceElementCoreOption("Table (b,B)           : %s", &table);
-            elements[8] = new InterfaceElementCoreOption("WaveScale (W)         : %s", &waveScale);
+            elements[7] = new InterfaceElementSceneCoreOption("Table (b,B)           : %s",
+                &table, SceneOptionTable);
+            elements[8] = new InterfaceElementSceneCoreOption("WaveScale (W)         : %s",
+                &waveScale, SceneOptionWaveScale);
             elements[9]
-                = new InterfaceElementCoreOption("Palette (p,P)         : %s", &palette);
+                = new InterfaceElementSceneCoreOption("Palette (p,P)         : %s",
+                    &palette, SceneOptionPalette);
             elements[10]
                 = new InterfaceElementCoreOption("Image (x,X))          : %s",
                     &visualDirector().imageOption());
-            elements[11] = new InterfaceElementCoreOption("3D-Object (j,J)       : %s", &object);
+            elements[11] = new InterfaceElementSceneCoreOption("3D-Object (j,J)       : %s",
+                &object, SceneOptionObject);
             elements[12]
-                = new InterfaceElementCoreOption("Flashlight (s)        : %s", &flashlight);
+                = new InterfaceElementSceneCoreOption("Flashlight (s)        : %s",
+                    &flashlight, SceneOptionFlashlight);
         }
     }
 

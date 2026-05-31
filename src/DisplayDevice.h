@@ -6,6 +6,8 @@
 #include "display.h"
 
 class FramePalette;
+class Scene;
+class SceneCommands;
 
 //
 //  Stuff about text-display
@@ -75,6 +77,6 @@ public:
 
 extern DisplayDevice* displayDevice;
 
-extern void newDisplayDevice();
+extern void newDisplayDevice(Scene& scene, SceneCommands& sceneCommands);
 
 #endif

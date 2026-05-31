@@ -40,16 +40,17 @@ public:
 
 class TranslateStageModule : public VisualModule {
     TranslateOption* translate;
+    int translateIndex;
 
 public:
     TranslateStageModule();
 
-    void setTranslateProvider(TranslateOption* translate_);
+    void setTranslate(TranslateOption* translate_, int translateIndex_);
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
 };
 
 class WaveStageModule : public VisualModule {
-    Wave* currentWave;
+    Wave* wave;
 
 public:
     WaveStageModule();
@@ -60,11 +61,15 @@ public:
 
 class FrameCommitModule : public VisualModule {
     const char* flameName;
+    const char* waveName;
+    const char* waveScaleName;
+    const char* tableName;
 
 public:
     FrameCommitModule();
 
-    void setFlameName(const char* flameName_);
+    void setSceneNames(const char* flameName_, const char* waveName_,
+        const char* waveScaleName_, const char* tableName_);
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
 };
 

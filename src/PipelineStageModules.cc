@@ -8,7 +8,7 @@
 #include "cth_buffer.h"
 #include "display.h"
 #include "translate.h"
-#include "waves.h"
+#include "Wave.h"
 
 ImageStageModule::ImageStageModule()
     : image(0)
@@ -79,39 +79,48 @@ void FlameStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& 
 }
 
 TranslateStageModule::TranslateStageModule()
-    : translate(0) { }
+    : translate(0)
+    , translateIndex(0) { }
 
-void TranslateStageModule::setTranslateProvider(TranslateOption* translate_) {
+void TranslateStageModule::setTranslate(TranslateOption* translate_, int translateIndex_) {
     translate = translate_;
+    translateIndex = translateIndex_;
 }
 
 void TranslateStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
     CTH_TRACE("executing translate stage\n", "visual pipeline");
     TranslateEntry* entry = NULL;
     if (translate != 0
-        && translate->prepareCurrentEntry(entry) == 0
+        && translate->prepareEntry(translateIndex, entry) == 0
         && entry != NULL)
         entry->execute(buffer, context);
 }
 
 WaveStageModule::WaveStageModule()
-    : currentWave(0) { }
+    : wave(0) { }
 
 void WaveStageModule::setWave(Wave* wave_) {
-    currentWave = wave_;
+    wave = wave_;
 }
 
 void WaveStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
     CTH_TRACE("executing wave stage\n", "visual pipeline");
-    if (currentWave != NULL)
-        currentWave->execute(buffer, context);
+    if (wave != NULL)
+        wave->execute(buffer, context);
 }
 
 FrameCommitModule::FrameCommitModule()
-    : flameName("unknown") { }
+    : flameName("unknown")
+    , waveName("unknown")
+    , waveScaleName("unknown")
+    , tableName("unknown") { }
 
-void FrameCommitModule::setFlameName(const char* flameName_) {
+void FrameCommitModule::setSceneNames(const char* flameName_, const char* waveName_,
+    const char* waveScaleName_, const char* tableName_) {
     flameName = (flameName_ != 0) ? flameName_ : "unknown";
+    waveName = (waveName_ != 0) ? waveName_ : "unknown";
+    waveScaleName = (waveScaleName_ != 0) ? waveScaleName_ : "unknown";
+    tableName = (tableName_ != 0) ? tableName_ : "unknown";
 }
 
 void FrameCommitModule::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
@@ -132,10 +141,10 @@ void FrameCommitModule::execute(CthughaBuffer& buffer, const VisualFrameContext&
         }
         debugReports++;
         CTH_DEBUG("visual buffer: wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
-            wave.currentName(),
-            waveScale.currentName(),
+            waveName,
+            waveScaleName,
             flameName,
-            table.currentName(),
+            tableName,
             nonzero, peak, buffer.size());
     }
 

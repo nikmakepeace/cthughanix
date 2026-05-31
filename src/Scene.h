@@ -1,0 +1,168 @@
+// Current visual scene state and mutation commands.
+
+#ifndef __SCENE_H
+#define __SCENE_H
+
+#include "Wave.h"
+
+#include <vector>
+
+class CoreOption;
+class CthughaBuffer;
+class Flame;
+class ImageOption;
+class IndexedImage;
+class PaletteEntry;
+class TranslateOption;
+class Wave;
+
+enum SceneChange {
+    SceneNoChange = 0,
+    SceneFlameChanged = 1 << 0,
+    SceneWaveChanged = 1 << 1,
+    SceneTranslationChanged = 1 << 2,
+    ScenePaletteChanged = 1 << 3,
+    SceneBorderChanged = 1 << 4,
+    SceneFlashlightChanged = 1 << 5,
+    SceneAllChanged = 0x7fffffff
+};
+
+enum SceneCueType {
+    SceneCueInjectImage
+};
+
+class SceneSettings {
+public:
+    const Flame* flame;
+    int generalFlame;
+
+    Wave* wave;
+    WaveConfig waveConfig;
+
+    TranslateOption* translate;
+    int translateIndex;
+
+    PaletteEntry* palette;
+    int paletteIndex;
+
+    int borderMode;
+    int flashlightEnabled;
+
+    const char* flameName;
+    const char* generalFlameName;
+    const char* waveName;
+    const char* waveScaleName;
+    const char* tableName;
+    const char* translationName;
+    const char* paletteName;
+    const char* objectName;
+    const char* borderName;
+    const char* flashlightName;
+
+    SceneSettings();
+};
+
+class SceneCue {
+public:
+    SceneCueType type;
+    unsigned int id;
+    const IndexedImage* image;
+
+    SceneCue();
+    static SceneCue injectImage(const IndexedImage* image_);
+};
+
+class Scene;
+
+class SceneObserver {
+public:
+    virtual ~SceneObserver() { }
+    virtual void sceneChanged(Scene& scene, unsigned int changes) = 0;
+    virtual void sceneCue(Scene& scene, const SceneCue& cue);
+};
+
+class Scene {
+    SceneSettings settingsValue;
+    unsigned int versionValue;
+    unsigned int cueVersionValue;
+    std::vector<SceneObserver*> observers;
+
+    unsigned int compareSettings(const SceneSettings& settings) const;
+
+public:
+    Scene();
+
+    const SceneSettings& settings() const;
+    unsigned int version() const;
+
+    void setSettings(const SceneSettings& settings, unsigned int forcedChanges = 0);
+    void emitCue(SceneCue cue);
+    void emitImageCue(const IndexedImage* image);
+
+    void addObserver(SceneObserver& observer);
+    void removeObserver(SceneObserver& observer);
+};
+
+class SceneCommands {
+    Scene& scene;
+    CthughaBuffer& buffer;
+    ImageOption& images;
+
+    SceneSettings settingsFromOptions();
+    Wave* selectRunnableWave(const WaveConfig& config);
+    void syncFromOptions(unsigned int forcedChanges);
+    void emitImageCue();
+    void syncFromOptionsAndMaybeCueImage(const CoreOption& option, unsigned int forcedChanges);
+
+public:
+    SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_);
+
+    Scene& sceneState() { return scene; }
+    const Scene& sceneState() const { return scene; }
+
+    ImageOption& imageOption() { return images; }
+
+    void initializeFromOptions();
+    void refreshFromOptions(unsigned int forcedChanges = 0);
+
+    int isSceneOption(const CoreOption& option) const;
+    void change(CoreOption& option, int by, int doSave = 0);
+    void change(CoreOption& option, const char* to, int doSave = 0);
+    void activate(CoreOption& option, int index);
+
+    void changeFlame(int by);
+    void changeFlame(const char* to);
+    void changeGeneralFlame();
+    void changeWave(int by);
+    void changeWave(const char* to);
+    void changeWaveScale(int by);
+    void changeWaveScale(const char* to);
+    void changeObject(int by);
+    void changeObject(const char* to);
+    void changeTranslation(int by);
+    void changeTranslation(const char* to);
+    void changeBorder(int by);
+    void changeBorder(const char* to);
+    void changeFlashlight(int by);
+    void changeFlashlight(const char* to);
+    void changePalette(int by);
+    void changePalette(const char* to);
+    void deletePaletteAndChange(int by);
+    void randomPalette();
+    void addRandomPalette();
+    void changeTable(int by);
+    void changeTable(const char* to);
+    void changeImage(int by);
+    void changeImage(const char* to);
+
+    void changeAll();
+    void changeOne();
+    void restore();
+    void restore(int from);
+    void save(int to);
+};
+
+void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands);
+SceneCommands* sceneCommandsForLegacyCallbacks();
+
+#endif

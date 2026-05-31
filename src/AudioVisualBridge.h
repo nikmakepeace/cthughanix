@@ -6,11 +6,14 @@
 #ifndef __AUDIO_VISUAL_BRIDGE_H
 #define __AUDIO_VISUAL_BRIDGE_H
 
+class SceneCommands;
+
 class AudioVisualBridge {
     int pipelineRefreshRequestedValue;
+    SceneCommands* sceneCommands;
 
 public:
-    AudioVisualBridge();
+    AudioVisualBridge(SceneCommands* sceneCommands_ = 0);
     ~AudioVisualBridge();
 
     void runFrame();

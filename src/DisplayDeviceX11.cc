@@ -6,6 +6,7 @@
 #include "cthugha.h"
 #include "DisplayDevice.h"
 #include "FramePalette.h"
+#include "Scene.h"
 #include "cthugha.h"
 #include "display.h"
 #include "disp-sys.h"
@@ -344,8 +345,10 @@ void DisplayDeviceX11::freeFont() {
     font = NULL;
 }
 
-DisplayDeviceX11::DisplayDeviceX11()
+DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_)
     : DisplayDevice()
+    , scene(scene_)
+    , sceneCommands(sceneCommands_)
     ,
 
     visual(NULL)
@@ -1219,7 +1222,9 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
     }
 }
 
-void newDisplayDevice() { displayDevice = new DisplayDeviceX11(); }
+void newDisplayDevice(Scene& scene, SceneCommands& sceneCommands) {
+    displayDevice = new DisplayDeviceX11(scene, sceneCommands);
+}
 
 #if HAVE_XPM_H
 #include <xpm.h>

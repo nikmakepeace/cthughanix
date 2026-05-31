@@ -21,7 +21,13 @@ extern char xcth_font[];
 
 #include "DisplayDevice.h"
 
+class Scene;
+class SceneCommands;
+
 class DisplayDeviceX11 : public DisplayDevice {
+    Scene& scene;
+    SceneCommands& sceneCommands;
+
 protected:
     Visual* visual;
     int screen;
@@ -111,6 +117,7 @@ protected:
 
     // control panel stuff
     typedef struct {
+        SceneCommands* sceneCommands;
         CoreOption* opt;
         int pos;
     } menu_data_t;
@@ -132,7 +139,7 @@ protected:
     void xcth_create_panel();
 
 public:
-    DisplayDeviceX11();
+    DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_);
     virtual ~DisplayDeviceX11();
 
     void mainLoop();

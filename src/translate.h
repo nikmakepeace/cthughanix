@@ -58,7 +58,7 @@ class TranslateOption : public CoreOption {
 public:
     TranslateOption(int buffer, const char* name);
 
-    int prepareCurrentEntry(TranslateEntry*& entry);
+    int prepareEntry(int index, TranslateEntry*& entry);
 
     virtual const char* status();
 };
