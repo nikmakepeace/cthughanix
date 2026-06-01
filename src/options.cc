@@ -36,7 +36,7 @@ enum option_nr {
     opt_mixer,
     opt_msg_time,
     opt_prt_file,
-    opt_fire_level,
+    opt_cumulative_fire_level,
     opt_min_noise,
     opt_listen,
     opt_wave_scale,
@@ -117,7 +117,7 @@ struct option long_options[] = {
     { "min-time", 1, 0, 'T' }, { "random-time", 1, 0, 'R' },
     { "msg-time", 1, 0, opt_msg_time }, { "quiet-time", 1, 0, 'Q' },
     { "quiet-file", 1, 0, 'q' }, { "min-noise", 1, 0, opt_min_noise },
-    { "fire-level", 1, 0, opt_fire_level },
+    { "cumulative-fire-level", 1, 0, opt_cumulative_fire_level },
 
 // Core Options
     { "flashlight", 0, 0, opt_flashlight }, { "no-flashlight", 0, 0, opt_no_flashlight },
@@ -340,8 +340,8 @@ int do_param(int c, int value, char* str) {
         changeMsgTime.change(str);
         break;
 
-    case opt_fire_level:
-        changeFireLevel.change(str);
+    case opt_cumulative_fire_level:
+        changeCumulativeFireLevel.change(str);
         break;
 
     case opt_min_noise:

@@ -72,58 +72,58 @@ static AudioFrame* currentAudioFrame() {
 }
 
 void AudioProcessor::none(AudioFrame& frame) {
-    none(frame.data, frame.processed);
+    none(frame.raw, frame.processedWaveData);
 }
 
 void AudioProcessor::filter1(AudioFrame& frame) {
-    filter1(frame.data, frame.processed);
+    filter1(frame.raw, frame.processedWaveData);
 }
 
 void AudioProcessor::filter2(AudioFrame& frame) {
-    filter2(frame.data, frame.processed);
+    filter2(frame.raw, frame.processedWaveData);
 }
 
 void AudioProcessor::fft(AudioFrame& frame) {
-    fft(frame.data, frame.processed);
+    fft(frame.raw, frame.processedWaveData);
 }
 
-void AudioProcessor::none(char2* data, char2* processed) {
-    memcpy(processed, data, 1024 * sizeof(char2));
+void AudioProcessor::none(char2* raw, char2* processedWaveData) {
+    memcpy(processedWaveData, raw, 1024 * sizeof(char2));
 }
 
-void AudioProcessor::filter1(char2* data, char2* processed) {
-    memcpy(processed, data, 1024 * sizeof(char2));
+void AudioProcessor::filter1(char2* raw, char2* processedWaveData) {
+    memcpy(processedWaveData, raw, 1024 * sizeof(char2));
 
-    int temp = processed[0][1];
-    int temp2 = processed[0][0];
+    int temp = processedWaveData[0][1];
+    int temp2 = processedWaveData[0][0];
     for (int x = 1; x < 1024; x++) {
-        if ((processed[x][1] - temp) > 10)
-            processed[x][1] = temp + 10;
-        else if ((processed[x][1] - temp) < -10)
-            processed[x][1] = temp - 10;
+        if ((processedWaveData[x][1] - temp) > 10)
+            processedWaveData[x][1] = temp + 10;
+        else if ((processedWaveData[x][1] - temp) < -10)
+            processedWaveData[x][1] = temp - 10;
 
-        if ((processed[x][0] - temp2) > 10)
-            processed[x][0] = temp2 + 10;
-        else if ((processed[x][0] - temp2) < -10)
-            processed[x][0] = temp2 - 10;
+        if ((processedWaveData[x][0] - temp2) > 10)
+            processedWaveData[x][0] = temp2 + 10;
+        else if ((processedWaveData[x][0] - temp2) < -10)
+            processedWaveData[x][0] = temp2 - 10;
 
-        temp = processed[x][1];
-        temp2 = processed[x][0];
+        temp = processedWaveData[x][1];
+        temp2 = processedWaveData[x][0];
     }
 }
 
-void AudioProcessor::filter2(char2* data, char2* processed) {
-    int temp = data[0][1];
-    int temp2 = data[0][0];
+void AudioProcessor::filter2(char2* raw, char2* processedWaveData) {
+    int temp = raw[0][1];
+    int temp2 = raw[0][0];
     for (int x = 1; x < 1024; x++) {
-        processed[x][1] = processed[x - 1][1] + (data[x][1] - temp) / 16;
-        processed[x][0] = processed[x - 1][0] + (data[x][0] - temp2) / 16;
-        temp2 = processed[x][0];
-        temp = processed[x][1];
+        processedWaveData[x][1] = processedWaveData[x - 1][1] + (raw[x][1] - temp) / 16;
+        processedWaveData[x][0] = processedWaveData[x - 1][0] + (raw[x][0] - temp2) / 16;
+        temp2 = processedWaveData[x][0];
+        temp = processedWaveData[x][1];
     }
 }
 
-void AudioProcessor::fft(char2* data, char2* processed) {
+void AudioProcessor::fft(char2* raw, char2* processedWaveData) {
     int h, k;
     int p;
     int z, zp;
@@ -132,7 +132,7 @@ void AudioProcessor::fft(char2* data, char2* processed) {
     initAudioProcessorFft();
 
     for (k = 0; k < 1024; k++)
-        c[k] = complex(data[k][0], data[k][1]);
+        c[k] = complex(raw[k][0], raw[k][1]);
 
     /* the algorithm I use here is from:
      *
@@ -161,8 +161,8 @@ void AudioProcessor::fft(char2* data, char2* processed) {
 
     float a = 2.0 / sqrt(1024);
     for (k = 0; k < 1024; k++) {
-        processed[audioProcessorR[k]][0] = int(c[k].real() * a);
-        processed[audioProcessorR[k]][1] = int(c[k].imag() * a);
+        processedWaveData[audioProcessorR[k]][0] = int(c[k].real() * a);
+        processedWaveData[audioProcessorR[k]][1] = int(c[k].imag() * a);
     }
 }
 
@@ -175,7 +175,7 @@ public:
         if (currentAudioFrame())
             audioFrameProcessor.fft(*currentAudioFrame());
         else
-            audioFrameProcessor.fft(audioFrameData(), audioFrameProcessedData());
+            audioFrameProcessor.fft(audioFrameRawData(), audioFrameProcessedWaveData());
         return 0;
     }
 };
@@ -189,7 +189,7 @@ public:
         if (currentAudioFrame())
             audioFrameProcessor.filter1(*currentAudioFrame());
         else
-            audioFrameProcessor.filter1(audioFrameData(), audioFrameProcessedData());
+            audioFrameProcessor.filter1(audioFrameRawData(), audioFrameProcessedWaveData());
         return 0;
     }
 };
@@ -203,7 +203,7 @@ public:
         if (currentAudioFrame())
             audioFrameProcessor.filter2(*currentAudioFrame());
         else
-            audioFrameProcessor.filter2(audioFrameData(), audioFrameProcessedData());
+            audioFrameProcessor.filter2(audioFrameRawData(), audioFrameProcessedWaveData());
         return 0;
     }
 };
@@ -217,7 +217,7 @@ public:
         if (currentAudioFrame())
             audioFrameProcessor.none(*currentAudioFrame());
         else
-            audioFrameProcessor.none(audioFrameData(), audioFrameProcessedData());
+            audioFrameProcessor.none(audioFrameRawData(), audioFrameProcessedWaveData());
         return 0;
     }
 };

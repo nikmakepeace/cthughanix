@@ -34,12 +34,12 @@ void apply_border(CthughaBuffer& buffer, const VisualFrameContext& context, int 
         break;
     case 1:
         for (int i = 0; i < 3; i++) {
-            memcpy(top + i * pitch, audioFrameData(), width);
-            memcpy(bottom + i * pitch, audioFrameData(), width);
+            memcpy(top + i * pitch, audioFrameRawData(), width);
+            memcpy(bottom + i * pitch, audioFrameRawData(), width);
         }
         break;
     case 2: {
-        int amplitude = (context.audioAnalysis != 0) ? context.audioAnalysis->amplitude : 0;
+        int amplitude = (context.audioMetrics != 0) ? context.audioMetrics->amplitude : 0;
         memset(bottom, amplitude, 3 * pitch);
         memset(top, amplitude, 3 * pitch);
         break;

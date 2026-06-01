@@ -16,8 +16,8 @@ CDPlayer::operator()()
 
 Audio is exposed to the visual engine through `AudioFrame`:
 
-- `audioFrameData()` returns the current raw 1024-sample stereo window.
-- `audioFrameProcessedData()` returns the selected `sound-processing` output.
+- `audioFrameRawData()` returns the current raw 1024-sample stereo window.
+- `audioFrameProcessedWaveData()` returns the selected `sound-processing` output.
 - `audioFrameCurrent()` returns the full frame object, including
   `centerSample`.
 
@@ -73,12 +73,12 @@ and palette state. That compatibility detail cannot be affected by stage order.
 - `src/AudioProcessor.cc` creates processed sample data for waves/effects.
 - `src/AudioAnalyzer.cc` computes amplitude, channel balance, and noisy/silent
   state.
-- `src/AudioVisualBridge.cc` updates `AcousticContext`, which drives fire-level
+- `src/AudioVisualBridge.cc` updates `AcousticContext`, which drives cumulative-fire-level
   effects and `AutoChanger`.
 - `src/Border.cc` can copy raw audio into the hidden border rows used by flame
   diffusion.
 - `src/waves.cc` draws waveform and object effects from
-  `audioFrameProcessedData()`.
+  `audioFrameProcessedWaveData()`.
 - `src/Flashlight.cc` brightens palette entries from acoustic fire events.
 
 The safest rule for new visual code: read audio through `AudioFrame`, not from a

@@ -528,7 +528,7 @@ int screen_bent() {
 
     prepare_3d(256);
 
-    h = h * 0.95 + (min((2 * audioAnalysis.amplitude), 120)) * 0.05;
+    h = h * 0.95 + (min((2 * audioMetrics.amplitude), 120)) * 0.05;
 
     for (i = visualBuffer().width(); i != 0; i--) {
         height[i] = (int)(h * sin(t) * sin((double)(i) / (double)visualBuffer().width() * 3.0 * M_PI)) + 128;
@@ -628,7 +628,7 @@ int screen_zick() {
     }
 
     for (i = visualBuffer().height(); i != 0; i--) {
-        zicks[i] = ((audioFrameProcessedData()[i][0]) + ZICK_SMOOTH * zicks[i]) / (ZICK_SMOOTH + 1);
+        zicks[i] = ((audioFrameProcessedWaveData()[i][0]) + ZICK_SMOOTH * zicks[i]) / (ZICK_SMOOTH + 1);
         d = (d + zicks[i]) / 2;
         if (d == 0) {
             memcpy(scrn, src, visualBuffer().width());

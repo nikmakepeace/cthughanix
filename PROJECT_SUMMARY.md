@@ -89,7 +89,7 @@ Audio and visual control are now separated:
   processed 1024-sample window.
 - `AudioProcessor` implements `none`, `Filter1`, `Filter2`, and `FFT` for the
   `sound-processing` option.
-- `AudioAnalyzer` produces frame-local `AudioAnalysis`; `AcousticContext` keeps
+- `AudioAnalyzer` produces frame-local `AudioMetrics`; `AcousticContext` keeps
   rolling intensity/fire state for effects and automatic changes.
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.

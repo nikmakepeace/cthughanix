@@ -324,7 +324,7 @@ static void BM_AudioProcessor_None(benchmark::State& state) {
 
     for (auto _ : state) {
         processor.none(frame);
-        benchmark::DoNotOptimize(frame.processed);
+        benchmark::DoNotOptimize(frame.processedWaveData);
         benchmark::ClobberMemory();
     }
 }
@@ -336,7 +336,7 @@ static void BM_AudioProcessor_Filter1(benchmark::State& state) {
 
     for (auto _ : state) {
         processor.filter1(frame);
-        benchmark::DoNotOptimize(frame.processed);
+        benchmark::DoNotOptimize(frame.processedWaveData);
         benchmark::ClobberMemory();
     }
 }
@@ -348,7 +348,7 @@ static void BM_AudioProcessor_Filter2(benchmark::State& state) {
 
     for (auto _ : state) {
         processor.filter2(frame);
-        benchmark::DoNotOptimize(frame.processed);
+        benchmark::DoNotOptimize(frame.processedWaveData);
         benchmark::ClobberMemory();
     }
 }
@@ -360,7 +360,7 @@ static void BM_AudioProcessor_FFT(benchmark::State& state) {
 
     for (auto _ : state) {
         processor.fft(frame);
-        benchmark::DoNotOptimize(frame.processed);
+        benchmark::DoNotOptimize(frame.processedWaveData);
         benchmark::ClobberMemory();
     }
 }
@@ -370,18 +370,18 @@ static void BM_AudioAnalyzer_Analyze1024(benchmark::State& state) {
     fillFrameFromFixture(frame);
 
     for (auto _ : state) {
-        AudioAnalysis analysis = audioAnalyzer.analyze(frame.data);
-        benchmark::DoNotOptimize(analysis.amplitude);
+        AudioMetrics metrics = audioAnalyzer.analyze(frame.raw);
+        benchmark::DoNotOptimize(metrics.amplitude);
     }
 }
 
 static void BM_AcousticContext_Update(benchmark::State& state) {
     AudioFrame frame;
     fillFrameFromFixture(frame);
-    AudioAnalysis analysis = audioAnalyzer.analyze(frame.data);
+    AudioMetrics metrics = audioAnalyzer.analyze(frame.raw);
 
     for (auto _ : state) {
-        acousticContext.update(analysis);
+        acousticContext.update(metrics);
         benchmark::DoNotOptimize(acousticContext.intensity());
     }
 }
@@ -396,8 +396,8 @@ static void BM_AudioVisualBridge_RunFrameNone(benchmark::State& state) {
 
     for (auto _ : state) {
         bridge.runFrame();
-        benchmark::DoNotOptimize(frame.processed);
-        benchmark::DoNotOptimize(audioAnalysis.amplitude);
+        benchmark::DoNotOptimize(frame.processedWaveData);
+        benchmark::DoNotOptimize(audioMetrics.amplitude);
         benchmark::ClobberMemory();
     }
 
@@ -442,8 +442,8 @@ static void BM_EndToEnd_Process10msWavToNullOutputToBridgeNone(benchmark::State&
         bridge.runFrame();
 
         totalSamples += samples;
-        benchmark::DoNotOptimize(frame.processed);
-        benchmark::DoNotOptimize(audioAnalysis.amplitude);
+        benchmark::DoNotOptimize(frame.processedWaveData);
+        benchmark::DoNotOptimize(audioMetrics.amplitude);
         benchmark::ClobberMemory();
     }
 

@@ -240,7 +240,7 @@ void Interface::display() {
             TEXT_COLOR_NORMAL);
     }
 
-    if (audioAnalysis.noisy) {
+    if (audioMetrics.noisy) {
         silenceMsg = NULL;
     } else if ((silenceMsg != NULL) && (nElements == 0))
         displayDevice->print(silenceMsg, silenceLine, 'c', TEXT_COLOR_NORMAL);
@@ -545,7 +545,7 @@ InterfaceElement* elementsOption[] = {
     new InterfaceElementOption("Quiet change time        : %10s", &changeQuiet, 10, 50, 100),
     new InterfaceElementOption("Time before silence Msg. : %10s", &changeMsgTime, 10, 50, 100),
     new InterfaceElementOption("Minimal noise level      : %10s", &sound_minnoise, 1, 10, 255),
-    new InterfaceElementOption("Fire level               : %10s", &changeFireLevel, 10, 50, 100),
+    new InterfaceElementOption("Cumulative fire level    : %10s", &changeCumulativeFireLevel, 10, 50, 100),
     new InterfaceElementOption("Little changes only      : %10s", &change_little),
     new InterfaceElementOption("Lock                     : %10s", &lock),
 };

@@ -122,27 +122,27 @@ static void init_wave_options() {
  * - Does: plots left/right channel dots across the width, with height driven by
  *   each resampled sample value.
  * - Colours: tableColor(runtime, sample), so sample value selects a table entry.
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_dotVert
  * - Entry: DotVert (Dots Vertical)
  * - Does: plots left/right channel dots down the screen, displaced left/right
  *   from the center by sample value.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedWaveData().
  *
  * wave_lineHor
  * - Entry: LineHor (Lines Horizontal)
  * - Does: draws connected horizontal-scan oscilloscope traces, split into left
  *   and right halves.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_lineVert
  * - Entry: LineVert (Lines Vertical)
  * - Does: draws connected vertical traces, one channel to each side of center.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedWaveData().
  *
  * wave_spike
  * - Entry: Spike (Spikes)
@@ -150,104 +150,104 @@ static void init_wave_options() {
  *   channels split across the screen.
  * - Colours: tableColor(runtime, height), so colour follows distance up the spike rather
  *   than the original sample value.
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_spikeH
  * - Entry: SpikeH (Spikes Hollow)
  * - Does: draws only the moving outline of spike heights.
  * - Colours: tableColor(runtime, scaled absolute amplitude).
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_buff9
  * - Entry: Walking (Walking)
  * - Does: draws two vertical traces around a horizontally walking center
  *   column.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedWaveData().
  *
  * wave_buff10
  * - Entry: Falling (Falling)
  * - Does: writes channel sample dots into a row that advances downward.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(2 * MID_X) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(2 * MID_X) from audioFrameProcessedWaveData().
  *
  * wave_buff11
  * - Entry: Lissa (Lissa)
  * - Does: draws a Lissajous-style point cloud, using right channel for x and
  *   left channel for y.
  * - Colours: tableColor(runtime, left sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_buff14
  * - Entry: LineX (Line X)
  * - Does: draws two horizontal traces with different center offsets.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(BOTTOM) from audioFrameProcessedWaveData().
  *
  * wave_buff15
  * - Entry: Light1 (Lightning 1)
  * - Does: draws jagged lightning paths for each channel.
  * - Colours: raw palette index 255 for every segment.
- * - Sound: prepareSoundData(BOTTOM, 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(BOTTOM, 0) from audioFrameProcessedWaveData().
  *
  * wave_buff16
  * - Entry: Light2 (Lightning 2)
  * - Does: draws a second jagged lightning variant with gentler sample scaling.
  * - Colours: raw palette index 255 for every segment.
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_pete0
  * - Entry: Pete0 (FireFlies)
  * - Does: draws two drifting point clusters whose offsets wander with the
  *   first few samples.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_pete1
  * - Entry: Pete1 (Pete)
  * - Does: draws two sine-shaped rows scaled by average channel energy.
  * - Colours: tableColor(runtime, signed sample).
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_pete2
  * - Entry: Pete2 (Dot VS sine)
  * - Does: plots vertical dots displaced by sample, one channel on each side.
  * - Colours: tableColor(runtime, sine[sample]), so colour uses a sine lookup of the sample.
- * - Sound: prepareSoundData(buffer.height()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.height()) from audioFrameProcessedWaveData().
  *
  * wave_fract1
  * - Entry: Fract1 (Zippy 1)
  * - Does: walks two persistent points around the buffer using half-sized
  *   differences between neighboring samples.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_fract2
  * - Entry: Fract2 (Zippy 2)
  * - Does: like Fract1, but uses full sample differences for a sharper walk.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_test
  * - Entry: Test (Test)
  * - Does: draws sine-shaped rows scaled by average channel energy, similar to
  *   Pete1 but with unsigned colour lookup.
  * - Colours: tableColor(runtime, sample + 128).
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_aaron
  * - Entry: Aaron (Rings of Fire)
  * - Does: draws two moving ring/rosette point sets when the buffer is large
  *   enough, otherwise advances to the next wave.
  * - Colours: tableColor(runtime, sample).
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData().
  *
  * wave_wire1
  * - Entry: Wire1 (Wire frame 1)
  * - Does: rotates the selected object; each edge endpoint can scale
  *   independently, giving a fractured audio-reactive wireframe.
  * - Colours: one startup-random value per wave lifetime, drawn as tableColor(runtime, col).
- * - Sound: directly averages slices of audioFrameProcessedData() per object edge.
+ * - Sound: directly averages slices of audioFrameProcessedWaveData() per object edge.
  *
  * wave_wire1dot5
  * - Entry: Wire1dot5 (Wire frame 1.5)
@@ -255,14 +255,14 @@ static void init_wave_options() {
  *   axis with one frame-wide audio scale.
  * - Colours: one startup-random value per wave lifetime, drawn as tableColor(runtime, col).
  * - Sound: wire_sound_scale() averages all 1024 samples from
- *   audioFrameProcessedData().
+ *   audioFrameProcessedWaveData().
  *
  * wave_wire1dot55
  * - Entry: Wire1dot55 (Wire frame 1.55)
  * - Does: Wire1dot5 plus a precessing rotation axis.
  * - Colours: one startup-random value per wave lifetime, drawn as tableColor(runtime, col).
  * - Sound: wire_sound_scale() averages all 1024 samples from
- *   audioFrameProcessedData().
+ *   audioFrameProcessedWaveData().
  *
  * wave_wire1dot6
  * - Entry: Wire1dot6 (Wire frame 1.6)
@@ -270,7 +270,7 @@ static void init_wave_options() {
  *   according to a stable audio slice.
  * - Colours: one startup-random value per wave lifetime, drawn as tableColor(runtime, col).
  * - Sound: vertex_sound_stretch() hashes object-space vertices into small
- *   slices of audioFrameProcessedData().
+ *   slices of audioFrameProcessedWaveData().
  *
  * wave_wire2
  * - Entry: Wire2 (Wire frame 2)
@@ -290,26 +290,26 @@ static void init_wave_options() {
  * - Does: draws one horizontal trace from the left-minus-right channel
  *   difference.
  * - Colours: tableColor(runtime, left - right + 128).
- * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData(buffer.width(), 0) from audioFrameProcessedWaveData().
  *
  * wave_spiral
  * - Entry: Spiral (Spirograph)
  * - Does: draws a changing spirograph from center using current amplitude.
  * - Colours: one cycling value per frame, drawn as tableColor(runtime, col).
- * - Sound: audioAnalysis.amplitude, amplitudeLeft, and amplitudeRight shape
- *   the curve; acousticContext.fire() counts down to the next random twist count.
+ * - Sound: audioMetrics.amplitude, amplitudeLeft, and amplitudeRight shape
+ *   the curve; runtime.fire() counts down to the next random twist count.
  *
  * wave_pyro
  * - Entry: Pyro (Fire works)
  * - Does: launches and animates bouncing firework streaks on fire events.
  * - Colours: one random value per firework, drawn as tableColor(runtime, col).
- * - Sound: acousticContext.fire() controls launch and vertical velocity.
+ * - Sound: runtime.fire() controls launch and vertical velocity.
  *
  * wave_warp
  * - Entry: Warp (Space warp)
  * - Does: launches expanding rotating radial rings on fire events.
  * - Colours: one random value per ring, drawn as tableColor(runtime, col).
- * - Sound: acousticContext.fire() controls ring speed, trail count, and rotation.
+ * - Sound: runtime.fire() controls ring speed, trail count, and rotation.
  *
  * wave_laser
  * - Entry: Laser (Laser)
@@ -317,26 +317,26 @@ static void init_wave_options() {
  *   sample differences.
  * - Colours: table-mapped channel intensity, so louder samples use higher
  *   palette table entries.
- * - Sound: prepareSoundData((buffer.width() / 10) + 1, 0) from audioFrameProcessedData().
+ * - Sound: prepareSoundData((buffer.width() / 10) + 1, 0) from audioFrameProcessedWaveData().
  *
  * wave_corner
  * - Entry: Corner (Corner)
  * - Does: on fire events, draws a bright corner/axis shape from a moving point.
  * - Colours: raw fading palette indices 255 >> i.
- * - Sound: acousticContext.fire() controls movement and thickness, then is cleared.
+ * - Sound: runtime.fire() controls movement and thickness, then is consumed locally.
  *
  * wave_jump
  * - Entry: Jump (Jumping points)
  * - Does: per-column points jump away from the vertical center with inertia.
  * - Colours: raw palette index 255.
- * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedData(); left and
+ * - Sound: prepareSoundData(buffer.width()) from audioFrameProcessedWaveData(); left and
  *   right samples are summed per column.
  *
  * wave_sticks
  * - Entry: Sticks (Random sticks)
  * - Does: draws random line segments across the buffer on fire events.
  * - Colours: raw random palette index Random(256), bypassing the table.
- * - Sound: acousticContext.fire() controls how many sticks are drawn.
+ * - Sound: runtime.fire() controls how many sticks are drawn.
  *
  * wave_grid
  * - Entry: Grid (Diagnostic grid)
@@ -656,8 +656,8 @@ static double vertex_sound_stretch(int x, int y, int z) {
 
     for (i = 0; i < samples; i++) {
         int sample = (slice + i) & 1023;
-        sound += abs(audioFrameProcessedData()[sample][0]);
-        sound += abs(audioFrameProcessedData()[sample][1]);
+        sound += abs(audioFrameProcessedWaveData()[sample][0]);
+        sound += abs(audioFrameProcessedWaveData()[sample][1]);
     }
 
     double amp = (double)sound / (double)(samples * 2 * 128);
@@ -730,8 +730,8 @@ static double wire_sound_scale(double screenScale) {
     int sound = 0;
 
     for (i = 0; i < 1024; i++) {
-        sound += abs(audioFrameProcessedData()[i][0]);
-        sound += abs(audioFrameProcessedData()[i][1]);
+        sound += abs(audioFrameProcessedWaveData()[i][0]);
+        sound += abs(audioFrameProcessedWaveData()[i][1]);
     }
 
     return screenScale * (0.60 + 1.40 * ((double)sound / (double)(1024 * 2 * 128)));
@@ -904,8 +904,8 @@ void prepareSoundData(int n, int add = 128) {
     int s = (1024 << 16) / n;
 
     for (int i = 0; i < n; i++) {
-        data[i][0] = audioFrameProcessedData()[p >> 16][0] + add;
-        data[i][1] = audioFrameProcessedData()[p >> 16][1] + add;
+        data[i][0] = audioFrameProcessedWaveData()[p >> 16][0] + add;
+        data[i][1] = audioFrameProcessedWaveData()[p >> 16][1] + add;
 
         p += s;
     }
@@ -1641,8 +1641,8 @@ void wave_wire1(CthughaBuffer& buffer, WaveRuntime& runtime) {
         sampleCount = max(1024 / frame.n, 1);
         for (j = 0; j < sampleCount; j++) {
             int sample = min(i * sampleCount + j, 1023);
-            s[0] += abs(audioFrameProcessedData()[sample][0]);
-            s[1] += abs(audioFrameProcessedData()[sample][1]);
+            s[0] += abs(audioFrameProcessedWaveData()[sample][0]);
+            s[1] += abs(audioFrameProcessedWaveData()[sample][1]);
         }
 
         scale0 = frame.screenScale * (0.60 + 1.40 * ((double)s[0] / (double)(sampleCount * 128)));
@@ -2220,7 +2220,7 @@ void wave_spiral(CthughaBuffer& buffer, WaveRuntime& runtime) {
         state.loops = 2 + abs(rand() % 8);
     }
 
-    if (acousticContext.fire())
+    if (runtime.fire())
         state.loopcount--;
 
 
@@ -2228,9 +2228,9 @@ void wave_spiral(CthughaBuffer& buffer, WaveRuntime& runtime) {
     cx = buffer.width() / 2;
     cy = buffer.height() / 2;
 
-    amp = audioAnalysis.amplitude;
-    int al = audioAnalysis.amplitudeLeft;
-    int ar = audioAnalysis.amplitudeRight;
+    amp = audioMetrics.amplitude;
+    int al = audioMetrics.amplitudeLeft;
+    int ar = audioMetrics.amplitudeRight;
 
     /* convert to float now instead of every time it gets used */
     a = (double)amp * mx / 256.0 / 128.0;
@@ -2335,8 +2335,8 @@ void wave_pyro(CthughaBuffer& buffer, WaveRuntime& runtime) {
                 state.theWorks[i].dur = -1;
             }
 
-        } else if (acousticContext.fire()) {
-            int fire = acousticContext.fire();
+        } else if (runtime.fire()) {
+            int fire = runtime.fire();
 
             /* maintain a maximum attack value for scaling purposes */
             if (fire * 4 > state.maxA)
@@ -2353,7 +2353,7 @@ void wave_pyro(CthughaBuffer& buffer, WaveRuntime& runtime) {
             state.theWorks[i].xv = (rand() % 20) - 10;
             state.theWorks[i].yv = -(fire * state.maxV / (state.maxA / 4));
             state.theWorks[i].col = rand() % 256;
-            acousticContext.setFire(fire * 2 / 3);
+            runtime.scaleFire(2, 3);
         }
 
     /* test rocket exploded, reset */
@@ -2424,8 +2424,8 @@ void wave_warp(CthughaBuffer& buffer, WaveRuntime& runtime) {
             if (state.theWarps[i].r > state.maxRad || state.theWarps[i].r < 0)
                 state.theWarps[i].r = -1;
 
-        } else if (acousticContext.fire()) {
-            int fire = acousticContext.fire();
+        } else if (runtime.fire()) {
+            int fire = runtime.fire();
 
             /* maintain a maximum attack value for scaling purposes*/
             if (fire * 4 > state.maxA)
@@ -2443,8 +2443,7 @@ void wave_warp(CthughaBuffer& buffer, WaveRuntime& runtime) {
             state.theWarps[i].omg = (rand() % 16 - 8) * fire * 4 / state.maxA;
             state.theWarps[i].col = rand() % 256;
             state.theWarps[i].rgrav = rand() % 2;
-            acousticContext.resetFire();
-            /*				acousticContext.setFire(fire * 2 / 3); */
+            runtime.consumeFire();
         }
 }
 
@@ -2494,9 +2493,9 @@ void wave_corner(CthughaBuffer& buffer, WaveRuntime& runtime) {
     };
     State& state = runtime.state<State>();
 
-    if (acousticContext.fire()) {
+    if (runtime.fire()) {
         int i, j, t;
-        int fire = acousticContext.fire();
+        int fire = runtime.fire();
 
         state.x = (state.x + (rand() % fire)) % (buffer.width() - 16) + 8;
         state.y = (state.y + (rand() % fire)) % (buffer.height() - 16) + 8;
@@ -2530,7 +2529,7 @@ void wave_corner(CthughaBuffer& buffer, WaveRuntime& runtime) {
         }
     }
 
-    acousticContext.resetFire();
+    runtime.consumeFire();
 }
 
 // by Deischi
@@ -2576,7 +2575,7 @@ void wave_jump(CthughaBuffer& buffer, WaveRuntime& runtime) {
 /* Writes raw random palette indices, Random(256). */
 void wave_sticks(CthughaBuffer& buffer, WaveRuntime& runtime) {
 
-    int n = acousticContext.fire() >> runtime.waveScale;
+    int n = runtime.fire() >> runtime.waveScale;
     for (int i = 0; i < n; i++) {
         draw_line(buffer, Random(buffer.width()), Random(buffer.height()), Random(buffer.width()), Random(buffer.height()),
             Random(256));

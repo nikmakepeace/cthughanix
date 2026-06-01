@@ -253,8 +253,8 @@ Good next steps:
 - Add an ALSA/PipeWire-native input/output path through these interfaces.
 - Add targeted tests for raw PCM, EOF/drain handling, and latency-driven visual
   sample selection.
-- Keep visual code reading through `audioFrameData()` and
-  `audioFrameProcessedData()`.
+- Keep visual code reading through `audioFrameRawData()` and
+  `audioFrameProcessedWaveData()`.
 
 ### Phase 3: Continue The Visual Pipeline Migration
 

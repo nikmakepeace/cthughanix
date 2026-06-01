@@ -48,7 +48,7 @@ audioFrameTick()
 
 AudioVisualBridge::runFrame()
   applies selected sound-processing mode
-  analyzes raw audio into AudioAnalysis
+  analyzes raw audio into AudioMetrics
   updates AcousticContext
   runs AutoChanger
 
@@ -157,8 +157,8 @@ explicitly disabled.
 Visual and UI code should use the facade in `src/AudioFrame.cc`:
 
 ```text
-audioFrameData()
-audioFrameProcessedData()
+audioFrameRawData()
+audioFrameProcessedWaveData()
 audioFrameCurrent()
 audioFrameTick()
 audioFrameChange()
@@ -176,7 +176,7 @@ The `sound-processing` option is implemented by `src/AudioProcessor.cc`.
 
 Built-in entries:
 
-- `none`: copy raw audio to processed audio.
+- `none`: copy raw audio to processed wave data.
 - `Filter1`: slope-limit sharp sample jumps.
 - `Filter2`: low-pass-ish smoothing.
 - `FFT`: custom 1024-sample FFT using left/right channels as real/imaginary
@@ -184,11 +184,11 @@ Built-in entries:
 
 `AudioVisualBridge::runFrame()` calls `audioProcessing.process()` before
 analysis and before visual mutation. Waves normally read
-`audioFrameProcessedData()`.
+`audioFrameProcessedWaveData()`.
 
 ### Analysis and Acoustic Context
 
-`AudioAnalyzer::operator()()` computes frame-local `AudioAnalysis`:
+`AudioAnalyzer::operator()()` computes frame-local `AudioMetrics`:
 
 - `amplitude`;
 - `amplitudeLeft`;
@@ -199,10 +199,10 @@ analysis and before visual mutation. Waves normally read
 
 - `intensity()`: smoothed normalized amplitude;
 - `fire()`: emitted when a rising attack ends;
-- `fireLevel()`: accumulated fire used by `AutoChanger`.
+- `cumulativeFireLevel()`: accumulated fire used by `AutoChanger`.
 
-`AutoChanger` uses `audioAnalysis.noisy` for silence handling and
-`acousticContext.fireLevel()` for fire-driven option changes.
+`AutoChanger` uses `audioMetrics.noisy` for silence handling and
+`acousticContext.cumulativeFireLevel()` for fire-driven option changes.
 
 ## Visual Buffer Pipeline
 

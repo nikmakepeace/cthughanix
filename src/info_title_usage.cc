@@ -121,7 +121,7 @@ void usage() {
     PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text());
     PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE");
     PH(" --min-noise N       Set level for quiet sound", sound_minnoise.text());
-    PH(" --fire-level N      Set firelevel for change to N", changeFireLevel.text());
+    PH(" --cumulative-fire-level N      Set cumulative fire threshold to N", changeCumulativeFireLevel.text());
     PH("");
 
     PH("General CoreOptions (\"Buffer\" options):");

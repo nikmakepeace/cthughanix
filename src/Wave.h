@@ -60,15 +60,20 @@ public:
 class WaveRuntime {
     int needsConfigurationValue;
     WaveState& stateValue;
+    int fireBudgetValue;
 
 public:
     int waveScale;
     int table;
     WObject* object;
 
-    WaveRuntime(const WaveConfig& config, int needsConfiguration_, WaveState& state_);
+    WaveRuntime(const WaveConfig& config, int needsConfiguration_, WaveState& state_,
+        int fireBudget);
 
     int needsConfiguration() const;
+    int fire() const;
+    void consumeFire();
+    void scaleFire(int numerator, int denominator);
 
     template <class T>
     T& state() {

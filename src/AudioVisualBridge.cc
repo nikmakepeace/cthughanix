@@ -33,12 +33,12 @@ void AudioVisualBridge::runFrame() {
     double processed = CTH_LOG_ENABLED(CTH_LOG_TRACE) ? getTime() : 0.0;
 
     if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
-        AudioAnalysis processedAnalysis = audioAnalyzer.analyze(audioFrameProcessedData());
+        AudioMetrics processedMetrics = audioAnalyzer.analyze(audioFrameProcessedWaveData());
         debugReports++;
-        CTH_DEBUG("processed audio: mode=%s amplitude=%d left=%d right=%d noisy=%d\n",
-            audioProcessing.text(), processedAnalysis.amplitude,
-            processedAnalysis.amplitudeLeft, processedAnalysis.amplitudeRight,
-            processedAnalysis.noisy);
+        CTH_DEBUG("processed wave audio: mode=%s amplitude=%d left=%d right=%d noisy=%d\n",
+            audioProcessing.text(), processedMetrics.amplitude,
+            processedMetrics.amplitudeLeft, processedMetrics.amplitudeRight,
+            processedMetrics.noisy);
     }
 
     audioAnalyzer();

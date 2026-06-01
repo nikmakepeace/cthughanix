@@ -10,13 +10,13 @@
 
 extern OptionInt sound_minnoise; /* quiet is below this */
 
-struct AudioAnalysis {
+struct AudioMetrics {
     int amplitude;
     int amplitudeLeft;
     int amplitudeRight;
     int noisy;
 
-    AudioAnalysis();
+    AudioMetrics();
 };
 
 class AcousticContext {
@@ -24,30 +24,28 @@ class AcousticContext {
     int lastAmplitudeValue;
     int attackLevelValue;
     int fireValue;
-    int fireLevelValue;
+    int cumulativeFireLevelValue;
 
 public:
     AcousticContext();
 
-    void update(const AudioAnalysis& analysis);
+    void update(const AudioMetrics& metrics);
     double intensity() const;
     int fire() const;
-    int fireLevel() const;
-    void setFire(int fire);
-    void resetFire();
-    void resetFireLevel();
+    int cumulativeFireLevel() const;
+    void resetCumulativeFireLevel();
 };
 
 class AudioAnalyzer {
 public:
     AudioAnalyzer();
 
-    AudioAnalysis analyze(const char2* frame);
+    AudioMetrics analyze(const char2* frame);
     void operator()();
 };
 
 extern AudioAnalyzer audioAnalyzer;
-extern AudioAnalysis audioAnalysis;
+extern AudioMetrics audioMetrics;
 extern AcousticContext acousticContext;
 
 #endif

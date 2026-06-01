@@ -107,6 +107,10 @@ void TranslationCatalog::generateAll(int width, int height,
     }
 }
 
+/*
+ * Ported from cmd_bighalfwheel.c.
+ * Source provenance: minor Linux/cthugha-L changes by Harald Deischinger.
+ */
 class BigHalfWheelTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -164,6 +168,10 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_downspiral.c.
+ * Source provenance: minor Linux/cthugha-L changes by Harald Deischinger.
+ */
 class DownSpiralTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -216,6 +224,12 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_gentable.c, based on mkgentable.
+ * Source provenance: Cthugha - Audio Seeded Image Processing;
+ * Zaph, Digital Aasvogel Group, Torps Productions 1993-1994.
+ * Linux/cthugha-L changes by Harald Deischinger.
+ */
 class GenericSpiralTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -293,6 +307,12 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_huricn.c, based on mkhuricn.
+ * Source provenance: hurricane translation table by Ofer Faigon,
+ * September 1994, ofer@brm.co.il / oferf@itexjct.jct.ac.il.
+ * Linux/cthugha-L changes by Harald Deischinger.
+ */
 class HurricaneTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -347,6 +367,10 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_randswirls.c.
+ * Source provenance: minor Linux/cthugha-L changes by Harald Deischinger.
+ */
 class RandomSwirlsTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -427,6 +451,12 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_smoke.c, based on mksmoke.
+ * Source provenance: smoke translation table by Ofer Faigon,
+ * September 1994, ofer@brm.co.il / oferf@itexjct.jct.ac.il.
+ * Linux/cthugha-L changes by Harald Deischinger.
+ */
 class SmokeTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,
@@ -454,6 +484,12 @@ public:
     }
 };
 
+/*
+ * Ported from cmd_space.c, based on mkspace.
+ * Source provenance: space-flight translation table by Ofer Faigon,
+ * September 1994, ofer@brm.co.il / oferf@itexjct.jct.ac.il.
+ * Linux/cthugha-L changes by Harald Deischinger.
+ */
 class SpaceTranslateGenerator : public TranslateGenerator {
 public:
     void generate(const TranslateGenerationTarget& target,

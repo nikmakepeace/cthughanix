@@ -12,8 +12,8 @@ class AudioFrame {
 public:
     long long centerSample;
     int samples;
-    char2 data[1024];
-    char2 processed[1024];
+    char2 raw[1024];
+    char2 processedWaveData[1024];
 
     AudioFrame();
 
@@ -24,8 +24,8 @@ void audioFrameTick();
 void audioFrameChange();
 
 AudioFrame* audioFrameCurrent();
-char2* audioFrameData();
-char2* audioFrameProcessedData();
+char2* audioFrameRawData();
+char2* audioFrameProcessedWaveData();
 int audioFrameBroadcastBytes();
 
 #ifdef CTH_AUDIO_FRAME_TEST_OVERRIDE

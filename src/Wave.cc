@@ -1,4 +1,5 @@
 #include "Wave.h"
+#include "VisualPipeline.h"
 
 void wave_dotHor(CthughaBuffer& buffer, WaveRuntime& runtime);
 void wave_dotVert(CthughaBuffer& buffer, WaveRuntime& runtime);
@@ -73,15 +74,32 @@ int WaveConfig::sameAs(const WaveConfig& other) const {
         && bufferHeight == other.bufferHeight;
 }
 
-WaveRuntime::WaveRuntime(const WaveConfig& config, int needsConfiguration_, WaveState& state_)
+WaveRuntime::WaveRuntime(const WaveConfig& config, int needsConfiguration_,
+    WaveState& state_, int fireBudget)
     : needsConfigurationValue(needsConfiguration_)
     , stateValue(state_)
+    , fireBudgetValue(fireBudget)
     , waveScale(config.waveScale)
     , table(config.table)
     , object(config.object) { }
 
 int WaveRuntime::needsConfiguration() const {
     return needsConfigurationValue;
+}
+
+int WaveRuntime::fire() const {
+    return fireBudgetValue;
+}
+
+void WaveRuntime::consumeFire() {
+    fireBudgetValue = 0;
+}
+
+void WaveRuntime::scaleFire(int numerator, int denominator) {
+    if (denominator == 0)
+        fireBudgetValue = 0;
+    else
+        fireBudgetValue = fireBudgetValue * numerator / denominator;
 }
 
 Wave::Wave(Function function, const char* name, const char* description,
@@ -112,10 +130,10 @@ void Wave::configure(const WaveConfig& config) {
 }
 
 void Wave::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
-    (void)context;
-
     if (functionValue != 0) {
-        WaveRuntime runtime(configValue, needsConfigurationValue, stateValue);
+        int fireBudget = (context.acousticContext != 0) ? context.acousticContext->fire() : 0;
+        WaveRuntime runtime(configValue, needsConfigurationValue, stateValue,
+            fireBudget);
         needsConfigurationValue = 0;
         (*functionValue)(buffer, runtime);
     }

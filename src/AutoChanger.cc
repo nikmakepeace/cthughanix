@@ -18,7 +18,7 @@ OptionTime changeMsgTime("change-msg-time", 500); /* max. quiet interval (5 sec)
 OptionTime changeWaitMin("min-time", 300); /* min time between change (3 sec) */
 OptionTime changeWaitRandom("random-time", 1100); /* extra random wait-time (11 sec) */
 
-OptionInt changeFireLevel("fire-level", 1000);
+OptionInt changeCumulativeFireLevel("cumulative-fire-level", 1000);
 
 OptionOnOff lock("lock", 0); /* change automatically */
 OptionOnOff change_little("little", 0); /* only change one options */
@@ -54,12 +54,12 @@ void AutoChanger::operator()() {
 
     /* get time since last sound */
     int quiet_length = now - quietSince;
-    if (audioAnalysis.noisy)
+    if (audioMetrics.noisy)
         quietSince = now;
 
     /* Check for long quietness */
     if (int(changeMsgTime)) {
-        if (!audioAnalysis.noisy && (quiet_length > int(changeMsgTime))) {
+        if (!audioMetrics.noisy && (quiet_length > int(changeMsgTime))) {
             quietSince = now; // start quiet-length again
 
             silenceMessage();
@@ -71,17 +71,17 @@ void AutoChanger::operator()() {
 
     /* Check for interrupted silence (like the pause btw. 2 tracks on a CD) */
     if (int(changeQuiet))
-        if (audioAnalysis.noisy && (quiet_length > int(changeQuiet))) {
+        if (audioMetrics.noisy && (quiet_length > int(changeQuiet))) {
             change();
             return;
         }
 
     /* Check for enough fire to change */
-    if (int(changeFireLevel))
-        if (acousticContext.fireLevel() > int(changeFireLevel)) {
-            CTH_DEBUG("autochange: fire threshold reached fireLevel=%d threshold=%d\n",
-                acousticContext.fireLevel(), int(changeFireLevel));
-            acousticContext.resetFireLevel();
+    if (int(changeCumulativeFireLevel))
+        if (acousticContext.cumulativeFireLevel() > int(changeCumulativeFireLevel)) {
+            CTH_DEBUG("autochange: cumulativeFireLevel threshold reached level=%d threshold=%d\n",
+                acousticContext.cumulativeFireLevel(), int(changeCumulativeFireLevel));
+            acousticContext.resetCumulativeFireLevel();
             change();
             return;
         }
@@ -191,7 +191,7 @@ const char* AutoChanger::status() {
         int now = gettime();
 
         sprintf(txt, "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 100.0,
-            changeFireLevel - acousticContext.fireLevel(),
+            changeCumulativeFireLevel - acousticContext.cumulativeFireLevel(),
             double(changeQuiet - (now - quietSince)) / 100.0);
     }
 

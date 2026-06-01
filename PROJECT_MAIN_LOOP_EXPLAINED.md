@@ -74,7 +74,7 @@ displayDevice->mainLoop()
 
 Read this as "build long-lived singletons, then hand control to the selected
 frontend." The code is C++, but ownership is still mostly global:
-`displayDevice`, `cthughaDisplay`, `cdPlayer`, `autoChanger`, `audioAnalysis`,
+`displayDevice`, `cthughaDisplay`, `cdPlayer`, `autoChanger`, `audioMetrics`,
 and `acousticContext`.
 
 ## 2. The Frontend Loop Calls `run()`
@@ -114,15 +114,15 @@ It contains:
 ```cpp
 long long centerSample;
 int samples;
-char2 data[1024];
-char2 processed[1024];
+char2 raw[1024];
+char2 processedWaveData[1024];
 ```
 
 Use these functions instead of coupling visual code to a concrete input path:
 
 ```cpp
-audioFrameData();
-audioFrameProcessedData();
+audioFrameRawData();
+audioFrameProcessedWaveData();
 audioFrameCurrent();
 ```
 
@@ -162,7 +162,8 @@ defines the standalone `Wave` catalog. `VisualDirector` injects the selected
 `Wave`, wave scale, table, and object into `WaveStageModule`.
 
 `sound-processing` is adjacent but now implemented by `AudioProcessingOption`
-in `src/AudioProcessor.cc`.
+in `src/AudioProcessor.cc`. It is selected by command-line/ini option and by
+the `m/M` key actions; it is not part of AutoChanger's CoreOption rotation.
 
 ## 6. Concept: CthughaBuffer
 
@@ -231,7 +232,7 @@ PcmSource -> AudioInput -> AudioInputProcessor
 ```
 
 The result is always exposed as a 1024-sample signed 8-bit stereo visual frame
-through `audioFrameData()`.
+through `audioFrameRawData()`.
 
 ## 9. Step 3: AudioVisualBridge
 
@@ -256,29 +257,29 @@ does not yet set that flag itself.
 
 Built-in modes:
 
-- `none`: copy raw frame data to processed frame data.
+- `none`: copy raw frame data to processed wave data.
 - `Filter1`: slope-limit sharp sample jumps.
 - `Filter2`: low-pass-ish smoothing.
 - `FFT`: transform the 1024-sample stereo window and write FFT bins into the
-  processed frame.
+  processed wave data.
 
-Waves normally use `audioFrameProcessedData()`.
+Waves normally use `audioFrameProcessedWaveData()`.
 
 ## 11. Step 3b: Analyze Audio
 
 `audioAnalyzer()` calls `AudioAnalyzer::operator()()` in `src/AudioAnalyzer.cc`.
 
-It computes `audioAnalysis`:
+It computes `audioMetrics`:
 
 - `amplitudeLeft` and `amplitudeRight`: RMS-like amplitude for each channel.
 - `amplitude`: average amplitude.
 - `noisy`: whether either side is above `min-noise`.
 
-Then `acousticContext.update(audioAnalysis)` maintains rolling state:
+Then `acousticContext.update(audioMetrics)` maintains rolling state:
 
 - `intensity()`: smoothed normalized amplitude.
 - `fire()`: attack event emitted when rising amplitude begins to fall.
-- `fireLevel()`: accumulated fire used by automatic changing.
+- `cumulativeFireLevel()`: accumulated fire used by automatic changing.
 
 "Fire" here is not the visual flame. It is the analysis term for a detected
 attack/beat.
@@ -291,7 +292,7 @@ It decides whether to change visual options automatically:
 
 - If sound has been quiet long enough, it may show a silence message.
 - If silence ends after a quiet gap, it can trigger a change.
-- If `acousticContext.fireLevel()` exceeds `fire-level`, it can trigger a
+- If `acousticContext.cumulativeFireLevel()` exceeds `cumulative-fire-level`, it can trigger a
   change.
 - If enough time has passed, it can trigger a change.
 
@@ -319,7 +320,7 @@ visualPipeline->run(buffer, context);
 The context contains:
 
 - current `AudioFrame`, when the native file pipeline has one;
-- `AudioAnalysis`;
+- `AudioMetrics`;
 - `AcousticContext`;
 - `now`;
 - `deltaT`.
@@ -450,7 +451,7 @@ dedicated pipeline stage.
 
 A wave is the fresh drawing seeded by current sound.
 
-Wave functions read `audioFrameProcessedData()`, `audioAnalysis`,
+Wave functions read `audioFrameProcessedWaveData()`, `audioMetrics`,
 `acousticContext`, and their injected `WaveRuntime`, then draw points, vertical
 lines, horizontal lines, spikes, Lissajous shapes, lightning, objects, spirals,
 and other geometry into the buffer's active pixels. `WaveStageModule` calls the
@@ -670,7 +671,7 @@ The sound/control layer:
 ```text
 advance audio source/output
 publish a 1024-sample visual frame
-process raw audio into processed audio
+process raw audio into processed wave data
 compute amplitude/fire/silence
 maybe change CoreOptions
 ```

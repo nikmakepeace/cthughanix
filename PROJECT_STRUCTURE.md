@@ -73,7 +73,7 @@ There is no current server-mode source entry point in `src/`.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
-- `src/AutoChanger.*`: automatic option changes based on silence, fire level,
+- `src/AutoChanger.*`: automatic option changes based on silence, cumulative fire level,
   and elapsed time.
 - `src/imath.*`: integer math tables/helpers used by visual code.
 - `src/misc.cc`: logging helpers, time helpers, and `systemf()`.

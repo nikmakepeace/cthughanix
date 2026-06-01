@@ -1533,9 +1533,9 @@ void AudioFrameBuilder::build(AudioFrame& frame, const AudioBuffer& buffer, long
         return;
     }
 
-    convert(frame.data + sampleOffset,
+    convert(frame.raw + sampleOffset,
         rawData + pcmBytesForSamples(sampleOffset, bytesPerSample), samplesRead);
-    memcpy(frame.processed, frame.data, sizeof(frame.processed));
+    memcpy(frame.processedWaveData, frame.raw, sizeof(frame.processedWaveData));
     frame.samples = sampleOffset + samplesRead;
 
     CTH_TRACE("built frame center-sample=%lld start-sample=%lld samples=%d raw-bytes=%d\n", "audio frame builder",

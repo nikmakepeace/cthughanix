@@ -3,7 +3,7 @@
 
 VisualFrameContext::VisualFrameContext()
     : audioFrame(0)
-    , audioAnalysis(0)
+    , audioMetrics(0)
     , acousticContext(0)
     , now(0.0)
     , deltaT(0.0) { }

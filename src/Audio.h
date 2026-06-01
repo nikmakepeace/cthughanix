@@ -299,10 +299,10 @@ public:
     void filter2(AudioFrame& frame);
     void fft(AudioFrame& frame);
 
-    void none(char2* data, char2* processed);
-    void filter1(char2* data, char2* processed);
-    void filter2(char2* data, char2* processed);
-    void fft(char2* data, char2* processed);
+    void none(char2* raw, char2* processedWaveData);
+    void filter1(char2* raw, char2* processedWaveData);
+    void filter2(char2* raw, char2* processedWaveData);
+    void fft(char2* raw, char2* processedWaveData);
 };
 
 class AudioInputProcessor {

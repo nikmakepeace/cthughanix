@@ -5,8 +5,8 @@
 #include "AudioRuntime.h"
 #endif
 
-static char2 silentAudioFrameData[1024];
-static char2 silentAudioFrameProcessedData[1024];
+static char2 silentAudioFrameRawData[1024];
+static char2 silentAudioFrameProcessedWaveData[1024];
 
 #ifdef CTH_AUDIO_FRAME_TEST_OVERRIDE
 static AudioFrame* testAudioFrameOverride = NULL;
@@ -23,8 +23,8 @@ AudioFrame::AudioFrame() {
 void AudioFrame::clear() {
     centerSample = 0;
     samples = 0;
-    memset(data, 0, sizeof(data));
-    memset(processed, 0, sizeof(processed));
+    memset(raw, 0, sizeof(raw));
+    memset(processedWaveData, 0, sizeof(processedWaveData));
 }
 
 void audioFrameTick() {
@@ -56,36 +56,36 @@ AudioFrame* audioFrameCurrent() {
 #endif
 }
 
-char2* audioFrameData() {
+char2* audioFrameRawData() {
 #ifdef CTH_AUDIO_FRAME_TEST_OVERRIDE
     if (testAudioFrameOverride != NULL)
-        return testAudioFrameOverride->data;
+        return testAudioFrameOverride->raw;
 #endif
 #ifndef CTH_AUDIO_FRAME_NO_RUNTIME
     if (audioRuntimeCurrentFrame())
-        return audioRuntimeCurrentFrame()->data;
+        return audioRuntimeCurrentFrame()->raw;
 
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->data;
 #endif
 
-    return silentAudioFrameData;
+    return silentAudioFrameRawData;
 }
 
-char2* audioFrameProcessedData() {
+char2* audioFrameProcessedWaveData() {
 #ifdef CTH_AUDIO_FRAME_TEST_OVERRIDE
     if (testAudioFrameOverride != NULL)
-        return testAudioFrameOverride->processed;
+        return testAudioFrameOverride->processedWaveData;
 #endif
 #ifndef CTH_AUDIO_FRAME_NO_RUNTIME
     if (audioRuntimeCurrentFrame())
-        return audioRuntimeCurrentFrame()->processed;
+        return audioRuntimeCurrentFrame()->processedWaveData;
 
     if (audioRuntimeProcessor())
         return audioRuntimeProcessor()->dataProc;
 #endif
 
-    return silentAudioFrameProcessedData;
+    return silentAudioFrameProcessedWaveData;
 }
 
 int audioFrameBroadcastBytes() {

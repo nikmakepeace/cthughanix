@@ -93,8 +93,8 @@ Add a drawing function to `src/waves.cc`, declare it in `src/Wave.cc`, and add
 it to `waveCatalog`. Add or adjust the corresponding `WaveEntry` adapter only
 if the UI/CoreOption list needs a different in-use flag.
 
-Wave functions should read sound through `audioFrameProcessedData()` and rolling
-state from `audioAnalysis` / `acousticContext`, read selected scale/table/object
+Wave functions should read sound through `audioFrameProcessedWaveData()` and rolling
+state from `audioMetrics` / `acousticContext`, read selected scale/table/object
 values from `WaveRuntime`, then draw directly into the buffer's active pixels.
 `WaveStageModule` executes the selected `Wave` through
 `execute(buffer, context, runtime)`.
@@ -106,8 +106,8 @@ Add a `CoreOptionEntry` subclass in `src/AudioProcessor.cc` and register it in
 
 Contract:
 
-- read `audioFrameData()` or the active `AudioFrame`;
-- write all of `audioFrameProcessedData()` or the frame's `processed` buffer;
+- read `audioFrameRawData()` or the active `AudioFrame`;
+- write all of `audioFrameProcessedWaveData()` or the frame's `processedWaveData` buffer;
 - keep output as 1024 signed 8-bit stereo sample pairs.
 
 ### Add a PCM Source
@@ -182,7 +182,7 @@ This is still a large seam because many globals (`disp_size`, `bypp`,
 Subsystems communicate mainly through globals:
 
 - `cthughaDisplay`, `displayDevice`, `cdPlayer`, `autoChanger`;
-- `audioAnalysis`, `acousticContext`;
+- `audioMetrics`, `acousticContext`;
 - `BUFF_WIDTH`, `BUFF_HEIGHT`;
 - `CthughaBuffer::current`;
 - `screen`;
@@ -198,7 +198,7 @@ The current audio system can use:
 - `AudioRuntime`/`PcmSource`/`AudioOutput` for file playback;
 - `AudioInputProcessor` for rolling live/random input.
 
-Visual code should use `audioFrameData()` and `audioFrameProcessedData()` so
+Visual code should use `audioFrameRawData()` and `audioFrameProcessedWaveData()` so
 file playback, live input, random input, and silence all present the same
 1024-sample frame contract.
 

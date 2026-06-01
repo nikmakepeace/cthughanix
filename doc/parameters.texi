@@ -234,7 +234,7 @@ If a line in @code{FILE} starts with a @code{@@} then Cthugha runs
 Set the level under which a sound is consider to be silent.
 
 
-@item --fire-level N
+@item --cumulative-fire-level N
 This controls how often the display is changed on beats. Lower values
 let the screen change more often.
 

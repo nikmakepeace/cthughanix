@@ -507,7 +507,7 @@ int write_ini() {
         "#\n");
     putini(changeWaitMin);
     putini(changeWaitRandom);
-    putini(changeFireLevel);
+    putini(changeCumulativeFireLevel);
     putini(changeQuiet);
     putini(changeMsgTime);
 

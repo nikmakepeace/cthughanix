@@ -66,8 +66,8 @@
      - DOS checks whether the min/max audio range exceeds `peaklevel`; after
        `peakframes` such hits, it exits the current dwell early.
      - Nix accumulates rising RMS amplitude into `attackLevel`, emits `fire` when the
-       amplitude starts to decline, accumulates `fireLevel`, then changes when that
-       crosses `fire-level`.
+       amplitude starts to decline, accumulates `cumulativeFireLevel`, then changes when that
+       crosses `cumulative-fire-level`.
    - Candidate triggers and policies:
      - Onset/attack energy for kick, snare, sharp entrances, and drops.
      - Sustained loudness for intense sections, normalized enough to avoid constant
@@ -129,7 +129,7 @@
        border storage, active/passive buffers, and swap/pixel access.
      - `CthughaBuffer` should be state, not choreography; it should not run or write
        itself.
-     - The engine consumes pre-processed audio through a stable per-frame context:
+     - The engine consumes processed wave data through a stable per-frame context:
        raw `AudioFrame`, FFT/spectrum data, future frequency bands/features, and
        `AcousticContext`.
    - Proposed objects:
@@ -141,7 +141,7 @@
      - `VisualPipeline`: long-lived ordered executor for visual modules.
      - `VisualModule`: small interface for one buffer mutation stage.
      - `VisualFrameContext`: read-only per-frame inputs such as `AudioFrame`,
-       `AudioAnalysis`, `AcousticContext`, `now`, and `deltaT`.
+       `AudioMetrics`, `AcousticContext`, `now`, and `deltaT`.
    - Current visual pipeline state:
      - `AudioVisualBridge` still owns audio processing/analyzer/autochanger work before
        visual mutation.
