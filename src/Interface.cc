@@ -180,9 +180,6 @@ ACTION(setValue) {
 static const char* InterfaceList[] = { "Help", // F1
     "CoreOptions", // F2
     "Options", // F3
-#if WITH_CDROM == 1
-    "CD", // F4
-#endif
     "sound", // F5
     "mixer", // F6
     "playList", // F7

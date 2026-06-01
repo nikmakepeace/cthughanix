@@ -13,7 +13,6 @@ set(CTHUGHA_COMMON_SOURCES
     PcmSourceFactory.cc
     AudioVisualBridge.cc
     Mixer.cc
-    CDPlayer.cc
     imath.cc
     AudioSystem.cc
     IniFiles.cc

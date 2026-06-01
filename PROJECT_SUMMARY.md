@@ -35,7 +35,6 @@ audioFrameTick()
 AudioVisualBridge::runFrame()
 VideoFilterchain::run()
 CthughaDisplay::operator()()  # when the frontend asks run() to draw
-CDPlayer::operator()()
 deferred suspend handling
 ```
 
@@ -54,7 +53,7 @@ deferred suspend handling
 
 ## Current Project Shape
 
-- `src/` contains the application source: 63 top-level `.cc` files and 55
+- `src/` contains the application source: 62 top-level `.cc` files and 54
   top-level headers.
 - Built-in translation generators live in `src/TranslateGenerator.*`.
 - `resources/map/` contains 100 `.map` palettes and `resources/map/png/`
@@ -136,7 +135,7 @@ Both completed successfully in this workspace. A direct attempt to run
 initialization before it can print help.
 
 The project is portable in a transitional sense, not yet a modern clean-room
-port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer, CD-ROM
-ioctl, shell-based asset helpers, and many global singletons. Audio and visual
+port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer,
+shell-based asset helpers, and many global singletons. Audio and visual
 work are split through explicit seams, and flame/translate/wave execution runs
 through filterchain stages, but the classic engine is still stateful and global.

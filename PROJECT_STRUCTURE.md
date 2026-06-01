@@ -94,7 +94,6 @@ There is no current server-mode source entry point in `src/`.
 - `src/PcmSourceFactory.*`: maps settings and file names to line input, random
   noise, WAV, MP3, or raw PCM sources.
 - `src/Mixer.*`: OSS mixer integration.
-- `src/CDPlayer.*`: CD-ROM ioctl integration when compiled in.
 
 Old analyzer/processor/server/network audio source files are not current source
 files.

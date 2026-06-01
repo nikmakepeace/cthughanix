@@ -6,7 +6,6 @@
 #include "display.h"
 #include "AudioOptions.h"
 #include "Mixer.h"
-#include "CDPlayer.h"
 #include "keys.h"
 #include "waves.h"
 #include "cth_buffer.h"
@@ -46,7 +45,6 @@ enum option_nr {
     opt_sound_format,
     opt_dev_dsp,
     opt_dev_mixer,
-    opt_dev_cd,
     opt_border,
     opt_test,
     opt_zoom,
@@ -96,20 +94,10 @@ struct option long_options[] = {
     // Play/exec options
     { "loop", 0, &audioInputLoop, 1 }, { "no-loop", 0, &audioInputLoop, 0 },
 
-// CD options
-#if WITH_CDROM == 1
-    { "dev-cd", 1, 0, opt_dev_cd }, { "cd-stop", 0, &cd_stop_on_exit.value, 1 },
-    { "no-cd-stop", 0, &cd_stop_on_exit.value, 0 }, { "cd-random", 0, &cd_randomplay.value, 1 },
-    { "no-cd-random", 0, &cd_randomplay.value, 0 },
-    { "cd-loop", 0, &cd_loop.value, 1 }, { "no-cd-loop", 0, &cd_loop.value, 0 },
-    { "cd-eject", 0, &cd_eject_on_end.value, 1 },
-    { "no-cd-eject", 0, &cd_eject_on_end.value, 0 }, { "track", 1, 0, 'c' },
-#endif
-
 // Mixer options
 #if WITH_MIXER == 1
     { "dev-mixer", 1, 0, opt_dev_mixer }, { "mixer", 1, 0, opt_mixer }, { "line", 1, 0, 'L' },
-    { "mic", 1, 0, 'M' }, { "cd", 1, 0, 'C' },
+    { "mic", 1, 0, 'M' },
 #endif
 
 // auto changer options
@@ -297,10 +285,6 @@ int do_param(int c, int value, char* str) {
     case 'M': /* Mic as input */
         mixer_initial_volume("mic", value | (value << 8));
         break;
-    case 'C': /* CD as input */
-        mixer_initial_volume("cd", value | (value << 8));
-        break;
-
     case opt_mixer: {
         char name[100];
         char* p;
@@ -312,12 +296,6 @@ int do_param(int c, int value, char* str) {
         mixer_initial_volume(name, vol);
         break;
     }
-
-#if WITH_CDROM == 1
-    case 'c': /* with cd starting at track */
-        cd_first_track.change(str);
-        break;
-#endif
 
     case 'x': /* debug mode */
         audioInputMode.setValue(AIM_Random);
@@ -470,11 +448,6 @@ int do_param(int c, int value, char* str) {
         break;
 #endif
 
-#if WITH_CDROM == 1
-    case opt_dev_cd:
-        strncpy(dev_cd, str, PATH_MAX);
-        break;
-#endif
 #if WITH_MIXER == 1
     case opt_dev_mixer:
         strncpy(dev_mixer, str, PATH_MAX);
@@ -554,7 +527,7 @@ int get_params(int argc, char* argv[]) {
     optind = optindsave; /* start again at first opt */
 
     while ((c = getopt_long(argc, argv,
-                "21v:L:M:C:c:xE:?S:"
+                "21v:L:M:xE:?S:"
                 "f:w:d:p:t:o:q:T:R:D:a:m:lQ:s"
                 ,
                 long_options, &option_index))

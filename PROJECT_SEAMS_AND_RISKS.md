@@ -182,7 +182,7 @@ This is still a large seam because many globals (`disp_size`, `bypp`,
 
 Subsystems communicate mainly through globals:
 
-- `cthughaDisplay`, `displayDevice`, `cdPlayer`, `autoChanger`;
+- `cthughaDisplay`, `displayDevice`, `autoChanger`;
 - `audioMetrics`, `acousticContext`;
 - `BUFF_WIDTH`, `BUFF_HEIGHT`;
 - `CthughaBuffer::current`;
@@ -270,8 +270,8 @@ added to CMake first.
 
 ### Sound
 
-OSS `/dev/dsp`, OSS mixer, and CD-ROM ioctl code remain obsolete runtime
-interfaces. The best replacement seam is the modern audio composition model:
+OSS `/dev/dsp` and OSS mixer code remain obsolete runtime interfaces. The best
+replacement seam is the modern audio composition model:
 
 - `PcmSource` for input/decoding;
 - `AudioOutput` for playback;

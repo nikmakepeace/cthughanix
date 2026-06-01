@@ -9,12 +9,6 @@
 
 // #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
-/* check if CDROM header file is available, if not disable the cdrom */
-#if !defined(HAVE_LINUX_CDROM_H) && !defined(HAVE_SYS_CDROM_H)
-#undef WITH_CDROM
-#define WITH_CDROM 0
-#endif
-
 /* check if soundcard header file is available, if not disable DSP and Mixer */
 #if !defined(HAVE_LINUX_SOUNDCARD_H) && !defined(HAVE_SYS_SOUNDCARD_H)
 #undef WITH_DSP

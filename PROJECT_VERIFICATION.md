@@ -54,6 +54,6 @@ source names or removed extension instructions.
 ## Remaining Risk Areas
 
 - Live input still depends on OSS-compatible `/dev/dsp` support.
-- Mixer and CD controls still use old Unix/Linux ioctls.
+- Mixer controls still use old Unix/Linux ioctls.
 - Visual effects still rely heavily on global indexed-buffer state.
 - Compressed indexed-image loading can still spawn helper commands.

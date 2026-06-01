@@ -33,10 +33,6 @@ void skipSpace(const char*& str) {
 static int keymapFeatureValue(const char* name, int& known) {
     known = 1;
 
-#ifdef WITH_CDROM
-    if (strcasecmp(name, "WITH_CDROM") == 0)
-        return WITH_CDROM;
-#endif
 #ifdef WITH_DSP
     if (strcasecmp(name, "WITH_DSP") == 0)
         return WITH_DSP;
@@ -501,9 +497,6 @@ void Keymap::init() {
     static Keymap defaultKM("default");
     static Keymap mainKM("main");
     static Keymap helpKM("Help");
-#if WITH_CDROM == 1
-    static Keymap CDKM("CD");
-#endif
     static Keymap soundKM("sound");
     static Keymap serverKM("server");
     static Keymap playListKM("playList");

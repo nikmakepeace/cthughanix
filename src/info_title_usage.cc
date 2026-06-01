@@ -3,7 +3,6 @@
 #include "AudioOptions.h"
 #include "Mixer.h"
 #include "DisplayDevice.h"
-#include "CDPlayer.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "AudioAnalyzer.h"
@@ -91,24 +90,12 @@ void usage() {
 
     PH("");
 
-#if WITH_CDROM == 1
-    PH("CD options:");
-    PH(" --dev-cd DEV        Set the CD device to DEV", dev_cd);
-    PH(" --cd-stop           Stops CD on exit (if selected as input)", cd_stop_on_exit.text());
-    PH(" --cd-random         Play tracks in random order", cd_randomplay.text());
-    PH(" --cd-loop           Start again after all tracks are played", cd_loop.text());
-    PH(" --cd-eject          Eject CD at end", cd_eject_on_end.text());
-    PH(" -c, --track N       Use CD as input and start playing track N", cd_first_track.text());
-    PH("");
-#endif
-
 #if WITH_MIXER == 1
     PH("Mixer options:");
     PH(" --dev-mixer DEV     Set the mixer device to DEV", dev_mixer);
     PH(" --mixer DEV:VOL     Set mixer device DEV to volume VOL");
     PH(" -L, --line VOL      Use Line In as input with volume VOL");
     PH(" -M, --mic VOL       Use Mic as input with volume VOL");
-    PH(" -C, --cd VOL        Use CD as input with volume VOL");
     PH("");
 #endif
 

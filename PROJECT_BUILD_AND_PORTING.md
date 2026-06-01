@@ -52,8 +52,6 @@ Major CMake options:
   `libpulse-simple` is available. Default: `ON`.
 - `CTH_ENABLE_DSP`: enable OSS `/dev/dsp` support when soundcard headers are
   available. Default: `ON`.
-- `CTH_ENABLE_CDROM`: enable CD-ROM controls when headers are available.
-  Default: `OFF`.
 - `CTH_ENABLE_MIXER`: enable OSS mixer controls when soundcard headers are
   available. Default: `ON`.
 - `CTH_ENABLE_MINIMP3`: enable embedded minimp3 decoding. Default: `ON`.
@@ -68,7 +66,6 @@ Current CMake cache/config state in `build/`:
 - Pulse output: enabled and found.
 - OSS DSP input/output: enabled.
 - OSS mixer: enabled.
-- CD-ROM controls: disabled by CMake option.
 - minimp3 decoder: enabled.
 - XPM screenshots: enabled.
 - C compiler: `/usr/bin/cc`.
@@ -103,7 +100,6 @@ Major `configure.in` options:
 - `--disable-xwin`: skip the X11 target.
 - `--with-dsp=DEV` / `--without-dsp`: OSS DSP.
 - `--without-pulse`: disable PulseAudio-compatible output.
-- `--with-cdrom=DEV` / `--without-cdrom`: CD-ROM ioctl support.
 - `--with-mixer=DEV` / `--without-mixer`: OSS mixer.
 - `--with-arch=ARCH`: old CPU optimization selection.
 
@@ -119,7 +115,6 @@ Current generated autotools config state from `config.h` and generated
 Makefiles:
 
 - `WITH_DSP`, `WITH_MIXER`, `WITH_PULSE`, and `WITH_MINIMP3` are enabled.
-- `WITH_CDROM` is enabled in the autotools `config.h`.
 - `USE_XPM` is enabled.
 - `PACKAGE` is `cthughanix`, and `pkglibdir` is `$(libdir)/cthughanix`.
 - `TARGETS` is `xcthugha`.
@@ -155,7 +150,6 @@ Audio and media:
 - optional PulseAudio-compatible output via `libpulse-simple`;
 - optional OSS `/dev/dsp`;
 - optional OSS mixer ioctls;
-- optional Linux/Unix CD-ROM ioctls;
 
 ## Verified Commands
 

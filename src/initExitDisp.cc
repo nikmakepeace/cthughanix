@@ -20,7 +20,6 @@
 #include "Option.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
-#include "CDPlayer.h"
 #include "DisplayDevice.h"
 #include "Flashlight.h"
 #include "Interface.h"
@@ -145,8 +144,6 @@ void deleter() {
     delete displayDevice;
     displayDevice = NULL;
     audioRuntimeShutdown();
-    delete cdPlayer;
-    cdPlayer = NULL;
     shutdownVideoFilterchain();
     shutdownSceneRuntime();
 }
@@ -180,9 +177,6 @@ int main(int argc, char* argv[]) {
 
     CTH_INFO("Initializing the sound device...\n");
     init_sound(CthughaBuffer::buffer.maxDimension());
-
-    CTH_INFO("Initializing CD player...\n");
-    cdPlayer = new CDPlayer;
 
     CTH_INFO("Initializing cthugha Buffer...\n");
     CthughaBuffer::initAll();
@@ -249,10 +243,9 @@ void run(int doDisplay) {
     if (cthughaDisplay)
         cthughaDisplay->observeVisualLatency(visualEnd - visualStart);
 
-    (*cdPlayer)();
     if (traceFrameTiming) {
         frameTiming[6] = getTime();
-        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f bridge=%.3f buffer=%.3f display=%.3f cd=%.3f do-display=%d\n",
+        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f bridge=%.3f buffer=%.3f display=%.3f do-display=%d\n",
             "frame timing",
             (frameTiming[6] - frameTiming[0]) * 1000.0,
             (frameTiming[1] - frameTiming[0]) * 1000.0,
@@ -260,7 +253,6 @@ void run(int doDisplay) {
             (frameTiming[3] - frameTiming[2]) * 1000.0,
             (frameTiming[4] - frameTiming[3]) * 1000.0,
             (frameTiming[5] - frameTiming[4]) * 1000.0,
-            (frameTiming[6] - frameTiming[5]) * 1000.0,
             doDisplay);
     }
 

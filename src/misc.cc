@@ -11,7 +11,6 @@
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
-#include "CDPlayer.h"
 
 #include <errno.h>
 

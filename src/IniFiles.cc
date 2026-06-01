@@ -4,7 +4,6 @@
 #include "translate.h"
 #include "information.h"
 #include "display.h"
-#include "CDPlayer.h"
 #include "keys.h"
 #include "AutoChanger.h"
 #include "AudioProcessor.h"

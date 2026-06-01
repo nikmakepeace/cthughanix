@@ -59,7 +59,6 @@ get_params()
 title()
 init_imath()
 init_sound()
-new CDPlayer
 CthughaBuffer::initAll()
 init_border()
 init_flashlight()
@@ -75,8 +74,8 @@ displayDevice->mainLoop()
 
 Read this as "build long-lived singletons, then hand control to the selected
 frontend." The code is C++, but ownership is still mostly global:
-`displayDevice`, `cthughaDisplay`, `cdPlayer`, `autoChanger`, `audioMetrics`,
-and `acousticContext`.
+`displayDevice`, `cthughaDisplay`, `autoChanger`, `audioMetrics`, and
+`acousticContext`.
 
 ## 2. The Frontend Loop Calls `run()`
 
@@ -100,7 +99,6 @@ runAudioVisualBridge()
 runVideoFilterchain()
 if (doDisplay)
     (*cthughaDisplay)()
-(*cdPlayer)()
 pause/suspend handling
 ```
 
@@ -567,15 +565,7 @@ CthughaBuffer passive pixels
   -> X11 screen
 ```
 
-## 21. Step 6: CDPlayer
-
-`(*cdPlayer)()` updates CD-ROM/player state after drawing. The CD player is
-separate from the current audio frame; it controls playback devices when CD
-support is compiled in.
-
-See `src/CDPlayer.*`.
-
-## 22. Step 7: Suspend Handling
+## 21. Step 6: Suspend Handling
 
 At the end of `run()`, the code checks `cthugha_pause`.
 

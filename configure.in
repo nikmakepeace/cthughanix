@@ -45,17 +45,6 @@ esac],
 [with_pulse=1])
 
 
-dnl /dev/cdrom
-AC_ARG_WITH(cdrom,
-[  --with-cdrom=DEV        set the CDROM device to DEV (yes=/dev/cdrom)
-  --without-cdrom         do not use the CDROM device (same as --with-cdrom=no)],
-[case "${withval}" in
- yes) with_cdrom=1 ;;
-  no) with_cdrom=0 ;;
-   *) with_cdrom=1 dev_cdrom=${withval} ;;
-esac],
-[with_cdrom=1 dev_cdrom="/dev/cdrom"])
-
 dnl /dev/mixer
 AC_ARG_WITH(mixer,
 [  --with-mixer=DEV        set the Mixer device to DEV (yes=/dev/mixer)
@@ -162,7 +151,7 @@ dnl the following test gives a warning, ignore it
 AC_C_BIGENDIAN
 
 AC_CHECK_HEADERS(fcntl.h sys/ioctl.h unistd.h)
-AC_CHECK_HEADERS(linux/cdrom.h sys/cdrom.h linux/soundcard.h sys/soundcard.h)
+AC_CHECK_HEADERS(linux/soundcard.h sys/soundcard.h)
 dnl try to find at least one (n)curses.h
 AC_CHECK_HEADERS(ncurses.h curses.h ncurses/ncurses.h ncurses/curses.h)
 
@@ -247,8 +236,6 @@ AC_DEFINE_UNQUOTED([WITH_DSP], 	 [${with_dsp}], [with DPS device])
 AC_DEFINE_UNQUOTED([DEV_DSP],	 ["${dev_dsp}"],[DPS device])
 AC_DEFINE_UNQUOTED([WITH_PULSE], 	 [${with_pulse}], [with PulseAudio-compatible output])
 AC_DEFINE_UNQUOTED([WITH_MINIMP3], 	 [1], [with embedded minimp3 decoding])
-AC_DEFINE_UNQUOTED([WITH_CDROM],	 [${with_cdrom}], [cdrom])
-AC_DEFINE_UNQUOTED([DEV_CDROM],	["${dev_cdrom}"], [dev-cdrom])
 AC_DEFINE_UNQUOTED([WITH_MIXER],	 [${with_mixer}], [with mixer])
 AC_DEFINE_UNQUOTED([DEV_MIXER], 	["${dev_mixer}"], [dev mixer])
 
@@ -278,11 +265,6 @@ else
 	echo "Pulse output   : disabled"
 fi
 echo "MP3 decoder    : embedded minimp3"
-if test x$with_cdrom = x1; then
-	echo "CDROM device   : ${dev_cdrom}"
-else
-	echo "CDROM device   : disabled"
-fi
 if test x$with_mixer = x1; then
 	echo "Mixer device   : ${dev_mixer}"
 else

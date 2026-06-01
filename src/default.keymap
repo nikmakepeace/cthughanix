@@ -7,9 +7,6 @@ O   setInterface(Options)
 F1  setInterface(Help)
 F2  setInterface(CoreOptions)
 F3  setInterface(Options)
-#if WITH_CDROM == 1
-F4  setInterface(CD)
-#endif
 F5  setInterface(sound)
 F6  setInterface(mixer)
 F7  setInterface(playList)
@@ -116,19 +113,6 @@ down scrollDown()
 F1   setInterface(main)
 
 
-#if WITH_CDROM == 1
-#keymap CD
-F4 setInterface(main)
-7 CDnext(-1)
-9 CDnext(+1)
-4 CDfast(-15)
-6 CDfast(+15)
-8 CDpause()
-5 CDstop()
-2 CDcloseEject()
-#endif
-
-
 #keymap Sound
 F5 setInterface(main)
 
@@ -176,4 +160,3 @@ Return setInterface(main) activate()
 
 # only used for thinning palettes out
 k deletePaletteChg(+1)
-

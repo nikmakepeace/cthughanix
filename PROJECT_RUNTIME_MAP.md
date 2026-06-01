@@ -16,7 +16,6 @@ main(argc, argv)
   atexit(deleter)
   init_ncurses() if requested
   init_sound()
-  new CDPlayer()
   CthughaBuffer::initAll()
   init_border()
   init_flashlight()
@@ -57,9 +56,6 @@ VideoFilterchain::run()
 
 CthughaDisplay::operator()()
   frontend-specific display composition, when doDisplay is true
-
-CDPlayer::operator()()
-  updates CD playback state
 
 pause/suspend handling
 ```
@@ -406,7 +402,6 @@ Keymap contexts include:
 - `default`;
 - `main`;
 - `Help`;
-- `CD`;
 - `sound`;
 - `Options`;
 - `CoreOptions`;
@@ -417,8 +412,7 @@ Keymap contexts include:
 - `flashlight`.
 
 Actions are registered by static `ACTION(name)` objects in `keymap.cc`,
-`Interface.cc`, `InterfaceHelp.cc`, `InterfaceList.cc`, `CDPlayer.cc`, and
-related modules.
+`Interface.cc`, `InterfaceHelp.cc`, `InterfaceList.cc`, and related modules.
 
 ## Configuration Flow
 
