@@ -812,8 +812,8 @@ void putpixel_cut(CthughaBuffer& buffer, int x, int y, int val) {
 }
 
 void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c) {
-    register int lx, ly, dx, dy;
-    register int i, j, k;
+    int lx, ly, dx, dy;
+    int i, j, k;
 
     if (x1 < 0)
         x1 = 0;
@@ -1702,7 +1702,7 @@ void wave_aaron(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
     }
 
     if ((buffer.height() > 128) && (buffer.width() >= 256)) {
-        register int tmp, i, sx, sy;
+        int tmp, i, sx, sy;
 
         PreparedWaveSamples sound(context, buffer.width());
 
@@ -1755,7 +1755,7 @@ void wave_aaron(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
 /* Line horizontal long diff */
 /* Writes table-mapped stereo-difference indices, tableColor(runtime, left - right + 128). */
 void wave_lineHLdiff(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRuntime& runtime) {
-    register int x, tmp;
+    int x, tmp;
     struct State {
         int last;
         State()
