@@ -9,7 +9,7 @@
 class SceneCommands;
 
 class AudioVisualBridge {
-    int pipelineRefreshRequestedValue;
+    int filterchainRefreshRequestedValue;
     SceneCommands* sceneCommands;
 
 public:
@@ -17,8 +17,8 @@ public:
     ~AudioVisualBridge();
 
     void runFrame();
-    int pipelineRefreshRequested() const { return pipelineRefreshRequestedValue; }
-    void clearPipelineRefreshRequest() { pipelineRefreshRequestedValue = 0; }
+    int filterchainRefreshRequested() const { return filterchainRefreshRequestedValue; }
+    void clearFilterchainRefreshRequest() { filterchainRefreshRequestedValue = 0; }
 };
 
 #endif

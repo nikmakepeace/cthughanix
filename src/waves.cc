@@ -7,7 +7,7 @@
 #include "disp-sys.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 
 #include <math.h>
 

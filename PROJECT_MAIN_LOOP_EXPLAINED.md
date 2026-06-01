@@ -12,7 +12,7 @@ frontend event loop
       -> publish frame time
       -> advance audio runtime and current AudioFrame
       -> process/analyze audio and maybe auto-change options
-      -> run visual pipeline stages over the indexed visual buffers
+      -> run video filterchain stages over the indexed visual buffers
       -> draw current passive buffer to the frontend
       -> update CD state
       -> handle deferred suspend
@@ -29,10 +29,10 @@ Keep these files open:
 - `src/AudioAnalyzer.*`: frame analysis and rolling acoustic state.
 - `src/AudioVisualBridge.*`: processing, analysis, and autochanger bridge.
 - `src/AutoChanger.*`: automatic effect changes.
-- `src/VideoPipeline.*`, `src/VideoPipelineSequence.*`,
-  `src/VideoPipelineFactory.*`, `src/PipelineStageModules.*`,
+- `src/VideoFilterchain.*`, `src/VideoFilterchainSequence.*`,
+  `src/VideoFilterchainFactory.*`, `src/VideoFilters.*`,
   `src/VideoDirector.*`: visual-stage executor, ordering, composition,
-  concrete modules, and policy.
+  concrete filters, and policy.
 - `src/CthughaBuffer.*`: classic visual buffer dimensions and raw indexed
   active/passive buffers.
 - `src/ColorPalette.*`, `src/FramePalette.*`, `src/PaletteTransition.*`:
@@ -97,7 +97,7 @@ The core scheduler is short and worth reading directly:
 cthughaDisplay->nextFrame()
 audioFrameTick()
 runAudioVisualBridge()
-runVideoPipeline()
+runVideoFilterchain()
 if (doDisplay)
     (*cthughaDisplay)()
 (*cdPlayer)()
@@ -147,18 +147,18 @@ Examples:
 - `border`
 - `flashlight`
 
-The visual pipeline uses explicit internal image stages:
-`ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
-`WaveStageModule` render the current domain objects through stage-specific APIs.
+The video filterchain uses explicit internal image stages:
+`ImageFilter`, `FlameFilter`, `TranslateFilter`, and
+`WaveFilter` render the current domain objects through stage-specific APIs.
 
 Flame selection lives in global `FlameOption` and `GeneralFlameOption` objects
 from `src/flames.cc`; `VideoDirector` injects their current values into
-`FlameStageModule`.
+`FlameFilter`.
 
 Wave selection lives in the global wave option state exposed by `src/waves.cc`
 for UI/keymap/config code, while `src/Wave.cc` defines the standalone `Wave`
 catalog. `VideoDirector` injects the selected `Wave`, wave scale, table, and
-object into `WaveStageModule`.
+object into `WaveFilter`.
 
 `sound-processing` is adjacent and implemented by `AudioProcessingOption` in
 `src/AudioProcessor.cc`. It is selected by command-line/ini option and by the
@@ -177,11 +177,11 @@ unsigned char* activeBuffer;
 unsigned char* passiveBuffer;
 ```
 
-During the visual pipeline's indexed-buffer stages:
+During the video filterchain's indexed-buffer stages:
 
 - `activeBuffer` is the buffer being written for the next finished image.
 - `passiveBuffer` is the previous/current finished image.
-- `FrameCommitModule` swaps the pointers after flame, translate, and wave
+- `FrameCommitFilter` swaps the pointers after flame, translate, and wave
   stages have run.
 - Display code reads the buffer's passive pixels, so after the swap it sees
   the newly completed frame.
@@ -207,7 +207,7 @@ It:
 - updates FPS accounting;
 - enforces `maxFPS` by sleeping if needed.
 
-This gives later modules a consistent frame timestamp.
+This gives later filters a consistent frame timestamp.
 
 ## 8. Step 2: Advance Audio
 
@@ -246,8 +246,8 @@ audioAnalyzer()
 autoChanger()
 ```
 
-It also contains a future pipeline-refresh flag. The current code can ask
-`VideoPipelineFactory` to refresh the existing pipeline, although the bridge
+It also contains a future filterchain-refresh flag. The current code can ask
+`VideoFilterchainFactory` to refresh the existing filterchain, although the bridge
 does not yet set that flag itself.
 
 ## 10. Step 3a: Sound Processing
@@ -306,14 +306,14 @@ CoreOption::changeAll()
 So the autochanger does not directly know about specific flame or wave
 functions. It asks the CoreOption system to move current selections.
 
-## 13. Step 4: VideoPipeline
+## 13. Step 4: VideoFilterchain
 
-`runVideoPipeline()` initializes the default visual pipeline if needed, builds
-a `VideoFrameContext`, lets `VideoDirector` update the current stage objects,
+`runVideoFilterchain()` initializes the default video filterchain if needed, builds
+a `VideoFrameContext`, lets `VideoDirector` update the current filter objects,
 and calls:
 
 ```cpp
-videoPipeline->run(buffer, context);
+videoFilterchain->run(buffer, context);
 ```
 
 The context contains:
@@ -324,30 +324,30 @@ The context contains:
 - `now`;
 - `deltaT`.
 
-The default pipeline currently has these modules:
+The default filterchain currently has these filters:
 
 ```text
-ImageStageModule
-BorderVideoModule
-FlameStageModule
-TranslateStageModule
-WaveStageModule
-FrameCommitModule
-PaletteStageModule
-FlashlightVideoModule
+ImageFilter
+BorderFilter
+FlameFilter
+TranslateFilter
+WaveFilter
+FrameCommitFilter
+PaletteFilter
+FlashlightFilter
 ```
 
-Image, flame, translate, and wave are explicit stages. `ImageStageModule`
+Image, flame, translate, and wave are explicit stages. `ImageFilter`
 overlays the selected `IndexedImage` when `VideoDirector` arms the one-shot
 image stage. PCX and indexed PNG files are decoded into that shared image
 domain object before the frame loop. Before each frame, `VideoDirector`
-updates the modules with the selected image, flame, general-flame value,
+updates the filters with the selected image, flame, general-flame value,
 translation table, wave, border mode, palette target, and flashlight mode. The
-pipeline then wraps the current buffer, frame context, and display palette in a
-`VideoFrame` and passes that frame through each enabled module.
+filterchain then wraps the current buffer, frame context, and display palette in a
+`VideoFrame` and passes that frame through each enabled filter.
 
 Important limitation: this is not the final inversion-of-control shape yet.
-`VideoDirector` injects selected values into stage modules. Display code still
+`VideoDirector` injects selected values into stage filters. Display code still
 reads `CthughaBuffer::current` as a compatibility pointer when mapping the
 finished passive buffer to the frontend.
 
@@ -380,29 +380,29 @@ diffusion.
 
 ## 16. Step 4c: Indexed Buffer Mutation Stages
 
-The indexed-buffer mutation path is implemented as pipeline modules. The
+The indexed-buffer mutation path is implemented as filterchain filters. The
 logical order for a frame is:
 
 ```text
-ImageStageModule
+ImageFilter
   overlay the selected IndexedImage when VideoDirector has armed ImageStage once
 
-FlameStageModule
+FlameFilter
   execute bound Flame objects
 
-TranslateStageModule
+TranslateFilter
   execute the bound Translate object
 
-WaveStageModule
+WaveFilter
   execute the selected Wave with the current scale, table, and object
 
-FrameCommitModule
+FrameCommitFilter
   emit limited debug summaries
   swap(activeBuffer, passiveBuffer)
 ```
 
-This order matters. `VideoPipeline::run()` passes one explicit `VideoFrame`
-through each enabled module in sequence.
+This order matters. `VideoFilterchain::run()` passes one explicit `VideoFrame`
+through each enabled filter in sequence.
 
 ### What Is A Flame?
 
@@ -417,7 +417,7 @@ In source:
 - domain flames are registered in `src/Flame.cc::flameCatalog`;
 - `src/flames.cc::_flames` adapts those flames into the current `CoreOption`
   interface through the global `FlameOption`;
-- `FlameStageModule` executes the bound `Flame` objects selected by
+- `FlameFilter` executes the bound `Flame` objects selected by
   `VideoDirector`;
 - `init_flames()` precomputes lookup tables such as `divsub`.
 
@@ -439,7 +439,7 @@ dst_pixel[i] = src_pixel[translation_table[i]]
 Loading is in `src/translate.cc::init_translate()`. Built-in
 `TranslateGenerator` catalog entries generate tables in-process. By the time the
 visualizer runs, selected translations are ready tables. `VideoDirector` passes
-the selected table into the translate stage, whose module owns the runtime
+the selected table into the translate stage, whose filter owns the runtime
 `Translate` executor.
 Flame and translation are separate stages; translate owns coordinate remapping.
 
@@ -450,7 +450,7 @@ A wave is the fresh drawing seeded by current sound.
 Wave functions read `audioFrameProcessedWaveData()`, `audioMetrics`,
 `acousticContext`, and their injected `WaveRuntime`, then draw points, vertical
 lines, horizontal lines, spikes, Lissajous shapes, lightning, objects, spirals,
-and other geometry into the buffer's active pixels. `WaveStageModule` calls the
+and other geometry into the buffer's active pixels. `WaveFilter` calls the
 selected `Wave::execute(buffer, context, runtime)`.
 
 Those marks become fuel for later frames' flames.
@@ -459,7 +459,7 @@ Those marks become fuel for later frames' flames.
 
 `PaletteOption` is the global CoreOption adapter for loaded palettes, and each
 `PaletteEntry` wraps a `ColorPalette`. `VideoDirector` binds the selected
-entry into `PaletteStageModule`, and the stage delegates the transition math to
+entry into `PaletteFilter`, and the stage delegates the transition math to
 `PaletteTransition`. That object stores the target palette, remaining frame
 budget, and selected interpolation strategy, then writes the current output
 palette into the stage's bound `FramePalette`.
@@ -640,18 +640,18 @@ If you want to step through one frame in your editor:
 11. Step into `src/AudioProcessor.cc` for the selected audio processing mode.
 12. Step into `src/AudioAnalyzer.cc::AudioAnalyzer::operator()()`.
 13. Step into `src/AutoChanger.cc::AutoChanger::operator()()`.
-14. Step into `src/VideoPipelineFactory.cc::VideoPipelineFactory::create()` to see
+14. Step into `src/VideoFilterchainFactory.cc::VideoFilterchainFactory::create()` to see
    the current stage ordering.
-15. Step into `src/VideoPipeline.cc::VideoPipeline::run()`.
+15. Step into `src/VideoFilterchain.cc::VideoFilterchain::run()`.
 16. Step into `src/Border.cc::apply_border()`.
-17. Step through `FlameStageModule`, then jump to the current flame entry in
+17. Step through `FlameFilter`, then jump to the current flame entry in
    `src/flames.cc`.
-18. Step through `TranslateStageModule`, then jump to
+18. Step through `TranslateFilter`, then jump to
    `src/translate.cc::Translate::execute()`.
-19. Step through `WaveStageModule`, then jump through the current `Wave` in
+19. Step through `WaveFilter`, then jump through the current `Wave` in
    `src/Wave.cc` into its drawing function in `src/waves.cc`.
-20. Step through `FrameCommitModule` to see the active/passive swap.
-21. Return through `PaletteStageModule` in `src/PipelineStageModules.cc`, then into
+20. Step through `FrameCommitFilter` to see the active/passive swap.
+21. Return through `PaletteFilter` in `src/VideoFilters.cc`, then into
    `src/PaletteTransition.cc` for palette output.
 22. Step into `src/Flashlight.cc::apply_flashlight()` for the palette overlay.
 23. Step into `src/CthughaDisplayX11.cc::operator()()`.

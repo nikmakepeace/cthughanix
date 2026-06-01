@@ -179,7 +179,7 @@ FlameLookupTables::FlameLookupTables() {
 }
 
 /*
- * Flame tables are owned by FlameStageModule.  This startup hook remains while
+ * Flame tables are owned by FlameFilter.  This startup hook remains while
  * the surrounding initialization sequence still calls it.
  */
 int init_flames() {
@@ -253,7 +253,7 @@ void flame_upslow(CthughaBuffer& buffer, const VideoFrameContext& context, Flame
  * Does: a subtler upward flame using the general four-sample filter.
  * How: sets general offsets to lower-left, lower, lower-right, and two rows
  * down, then runs the general subtle implementation.  Translation runs later
- * as its own pipeline stage.
+ * as its own filterchain stage.
  * Sound/border: bottom border rows affect the lower-neighbor samples.
  */
 void flame_upsubtle(CthughaBuffer& buffer, const VideoFrameContext& context, FlameRuntime& runtime) {
@@ -315,7 +315,7 @@ void flame_leftslow(CthughaBuffer& buffer, const VideoFrameContext& context, Fla
  * Does: a subtler leftward/downwind flame using the general filter.
  * How: sets general offsets to right, below, below-right, and two rows down,
  * then runs the general subtle implementation.  Translation runs later as its
- * own pipeline stage.
+ * own filterchain stage.
  * Sound/border: bottom border rows influence the lower offsets.
  */
 void flame_leftsubtle(CthughaBuffer& buffer, const VideoFrameContext& context, FlameRuntime& runtime) {
@@ -378,7 +378,7 @@ void flame_rightslow(CthughaBuffer& buffer, const VideoFrameContext& context, Fl
  * Does: a subtler rightward/downwind flame using the general filter.
  * How: sets general offsets to left, below-left, below, and two rows down,
  * then runs the general subtle implementation.  Translation runs later as its
- * own pipeline stage.
+ * own filterchain stage.
  * Sound/border: bottom border rows influence the lower offsets.
  */
 void flame_rightsubtle(CthughaBuffer& buffer, const VideoFrameContext& context, FlameRuntime& runtime) {
@@ -583,7 +583,7 @@ void flame_fade(CthughaBuffer& buffer, const VideoFrameContext& context, FlameRu
  * Does: configurable subtle four-neighbor flame.
  * How: decodes flameGeneral into four neighbor offsets plus a shared shift,
  * then runs the packed four-pixel filter.  Translation runs later as its own
- * pipeline stage.
+ * filterchain stage.
  * Sound/border: depends on the selected offsets; any offset crossing top or
  * bottom can use the hidden border rows.
  */
@@ -649,7 +649,7 @@ void flame_general_subtle_filter(CthughaBuffer& buffer,
  * Does: configurable four-neighbor flame, written as the simpler byte-by-byte
  * reference path.
  * How: decodes flameGeneral into offsets and runs the byte-by-byte filter.
- * Translation runs later as its own pipeline stage.
+ * Translation runs later as its own filterchain stage.
  * Sound/border: depends on the selected offsets; any offset crossing top or
  * bottom can use the hidden border rows.
  */

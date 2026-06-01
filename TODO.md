@@ -119,7 +119,7 @@
    - Use SDL to cover Wayland/X11/fullscreen/input for modern users before considering a
      native Wayland implementation.
 
-11. Refactor the internal visual engine pipeline.
+11. Refactor the internal video engine filterchain.
    - Keep this scoped to internal visual-buffer operations, not audio source selection or
      display presentation.
    - Target responsibilities:
@@ -132,7 +132,7 @@
      - The engine consumes processed wave data through a stable per-frame context:
        raw `AudioFrame`, FFT/spectrum data, future frequency bands/features, and
        `AcousticContext`.
-   - Current visual pipeline state:
+   - Current video filterchain state:
      - `AudioVisualBridge` still owns audio processing/analyzer/autochanger work before
        visual mutation.
      - `ImageStage`
@@ -143,17 +143,17 @@
      - `FrameCommitStage`
      - `PaletteStage`
      - `FlashlightStage`
-   - `VideoDirector` updates stage modules with the selected image, flame,
+   - `VideoDirector` updates stage filters with the selected image, flame,
      general-flame value, translation table, wave config, border mode, palette
      target, and flashlight mode.
-   - `VideoPipeline::run()` passes one explicit `VideoFrame` through each
-     enabled module. The frame carries the current `CthughaBuffer`,
+   - `VideoFilterchain::run()` passes one explicit `VideoFrame` through each
+     enabled filter. The frame carries the current `CthughaBuffer`,
      `VideoFrameContext`, and display `FramePalette`.
    - The display path still uses `CthughaBuffer::current` for buffer geometry
      and passive-pixel reads.
    - Treat classic `screen` functions carefully:
      - If a screen function mutates the internal indexed frame as an artistic transform,
-       it belongs in the visual pipeline.
+       it belongs in the video filterchain.
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
        it belongs in the display/presentation layer, not the internal visual engine.
    - Next practical slice:

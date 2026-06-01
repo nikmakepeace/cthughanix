@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 
 VideoFrameContext::VideoFrameContext()
     : audioFrame(0)
@@ -10,7 +10,7 @@ VideoFrameContext::VideoFrameContext()
     , now(0.0)
     , deltaT(0.0) { }
 
-VideoModule::~VideoModule() { }
+VideoFilter::~VideoFilter() { }
 
 VideoFrame::VideoFrame(CthughaBuffer& buffer_, const VideoFrameContext& context_,
     FramePalette* framePalette_)
@@ -43,37 +43,37 @@ static int findStageIndex(const std::vector<unsigned int>& sequence, unsigned in
     return -1;
 }
 
-VideoPipeline::VideoPipeline()
+VideoFilterchain::VideoFilterchain()
     : framePaletteValue(0) { }
 
-VideoPipeline::~VideoPipeline() {
+VideoFilterchain::~VideoFilterchain() {
     clear();
 }
 
-void VideoPipeline::clear() {
-    for (unsigned int i = 0; i < modules.size(); i++) {
-        if (modules[i].owned)
-            delete modules[i].module;
+void VideoFilterchain::clear() {
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].owned)
+            delete filters[i].filter;
     }
-    modules.clear();
+    filters.clear();
     sequence.clear();
     framePaletteValue = 0;
 }
 
-void VideoPipeline::add(unsigned int stage, VideoModule* module, int takeOwnership) {
-    if (module == 0)
+void VideoFilterchain::add(unsigned int stage, VideoFilter* filter, int takeOwnership) {
+    if (filter == 0)
         return;
-    modules.push_back(Entry(stage, module, takeOwnership));
-    CTH_DEBUG("visual pipeline: added stage=%u module=%p owned=%d mode=%d size=%d\n",
-        stage, module, takeOwnership, int(VideoStageDisabled), size());
+    filters.push_back(Entry(stage, filter, takeOwnership));
+    CTH_DEBUG("video filterchain: added stage=%u filter=%p owned=%d mode=%d size=%d\n",
+        stage, filter, takeOwnership, int(VideoFilterDisabled), size());
 }
 
-void VideoPipeline::setStageSequence(const std::vector<unsigned int>& stages) {
+void VideoFilterchain::setStageSequence(const std::vector<unsigned int>& stages) {
     sequence = stages;
-    CTH_DEBUG("visual pipeline: set sequence stages=%d\n", int(sequence.size()));
+    CTH_DEBUG("video filterchain: set sequence stages=%d\n", int(sequence.size()));
 }
 
-int VideoPipeline::moveStageBefore(unsigned int stage, unsigned int beforeStage) {
+int VideoFilterchain::moveStageBefore(unsigned int stage, unsigned int beforeStage) {
     if (stage == beforeStage)
         return 1;
 
@@ -87,12 +87,12 @@ int VideoPipeline::moveStageBefore(unsigned int stage, unsigned int beforeStage)
     beforeIndex = findStageIndex(sequence, beforeStage);
     sequence.insert(sequence.begin() + beforeIndex, movingStage);
 
-    CTH_DEBUG("visual pipeline: moved stage=%u before stage=%u\n",
+    CTH_DEBUG("video filterchain: moved stage=%u before stage=%u\n",
         stage, beforeStage);
     return 1;
 }
 
-int VideoPipeline::moveStageAfter(unsigned int stage, unsigned int afterStage) {
+int VideoFilterchain::moveStageAfter(unsigned int stage, unsigned int afterStage) {
     if (stage == afterStage)
         return 1;
 
@@ -106,84 +106,84 @@ int VideoPipeline::moveStageAfter(unsigned int stage, unsigned int afterStage) {
     afterIndex = findStageIndex(sequence, afterStage);
     sequence.insert(sequence.begin() + afterIndex + 1, movingStage);
 
-    CTH_DEBUG("visual pipeline: moved stage=%u after stage=%u\n",
+    CTH_DEBUG("video filterchain: moved stage=%u after stage=%u\n",
         stage, afterStage);
     return 1;
 }
 
-int VideoPipeline::setStageMode(unsigned int stage, VideoStageRunMode mode) {
+int VideoFilterchain::setStageMode(unsigned int stage, VideoFilterRunMode mode) {
     int matched = 0;
 
-    for (unsigned int i = 0; i < modules.size(); i++) {
-        if (modules[i].stage == stage) {
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].stage == stage) {
             matched++;
-            if (modules[i].mode != mode)
-                modules[i].mode = mode;
+            if (filters[i].mode != mode)
+                filters[i].mode = mode;
         }
     }
 
-    CTH_TRACE("set stage=%u mode=%d entries=%d\n", "visual pipeline",
+    CTH_TRACE("set stage=%u mode=%d entries=%d\n", "video filterchain",
         stage, int(mode), matched);
     return matched;
 }
 
-VideoStageRunMode VideoPipeline::stageMode(unsigned int stage) const {
-    for (unsigned int i = 0; i < modules.size(); i++) {
-        if (modules[i].stage == stage)
-            return modules[i].mode;
+VideoFilterRunMode VideoFilterchain::stageMode(unsigned int stage) const {
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].stage == stage)
+            return filters[i].mode;
     }
 
-    return VideoStageDisabled;
+    return VideoFilterDisabled;
 }
 
-VideoModule* VideoPipeline::stageModule(unsigned int stage) {
-    for (unsigned int i = 0; i < modules.size(); i++) {
-        if (modules[i].stage == stage)
-            return modules[i].module;
+VideoFilter* VideoFilterchain::stageFilter(unsigned int stage) {
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].stage == stage)
+            return filters[i].filter;
     }
 
     return 0;
 }
 
-void VideoPipeline::setFramePalette(FramePalette* framePalette) {
+void VideoFilterchain::setFramePalette(FramePalette* framePalette) {
     framePaletteValue = framePalette;
 }
 
-FramePalette* VideoPipeline::framePalette() const {
+FramePalette* VideoFilterchain::framePalette() const {
     return framePaletteValue;
 }
 
-void VideoPipeline::refresh() {
-    for (unsigned int i = 0; i < modules.size(); i++)
-        modules[i].module->refresh();
+void VideoFilterchain::refresh() {
+    for (unsigned int i = 0; i < filters.size(); i++)
+        filters[i].filter->refresh();
 }
 
-void VideoPipeline::run(CthughaBuffer& buffer, const VideoFrameContext& context) {
+void VideoFilterchain::run(CthughaBuffer& buffer, const VideoFrameContext& context) {
     VideoFrame frame(buffer, context, framePaletteValue);
 
     for (unsigned int stageIndex = 0; stageIndex < sequence.size(); stageIndex++) {
         unsigned int stage = sequence[stageIndex];
-        for (unsigned int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
-            if (modules[moduleIndex].stage != stage)
+        for (unsigned int filterIndex = 0; filterIndex < filters.size(); filterIndex++) {
+            if (filters[filterIndex].stage != stage)
                 continue;
 
-            if (modules[moduleIndex].mode == VideoStageDisabled) {
-                CTH_TRACE("skipping disabled stage=%u module=%p\n",
-                    "visual pipeline", modules[moduleIndex].stage, modules[moduleIndex].module);
+            if (filters[filterIndex].mode == VideoFilterDisabled) {
+                CTH_TRACE("skipping disabled stage=%u filter=%p\n",
+                    "video filterchain", filters[filterIndex].stage, filters[filterIndex].filter);
                 continue;
             }
 
-            modules[moduleIndex].module->execute(frame);
+            filters[filterIndex].filter->execute(frame);
 
-            if (modules[moduleIndex].mode == VideoStageArmedOnce) {
-                CTH_TRACE("disarming one-shot stage=%u module=%p\n",
-                    "visual pipeline", modules[moduleIndex].stage, modules[moduleIndex].module);
-                modules[moduleIndex].mode = VideoStageDisabled;
+            if (filters[filterIndex].mode == VideoFilterArmedOnce) {
+                CTH_TRACE("disarming one-shot stage=%u filter=%p\n",
+                    "video filterchain", filters[filterIndex].stage, filters[filterIndex].filter);
+                filters[filterIndex].mode = VideoFilterDisabled;
             }
         }
     }
 }
 
-int VideoPipeline::size() const {
-    return int(modules.size());
+int VideoFilterchain::size() const {
+    return int(filters.size());
 }

@@ -5,7 +5,7 @@
 ```text
 .
 |-- src/                 application source and frontend-specific source files
-|-- resources/           runtime resources loaded by the visual pipeline
+|-- resources/           runtime resources loaded by the video filterchain
 |   |-- map/             256-color palette maps and PNG palette previews
 |   |-- img/             indexed image assets: PCX, PCX.GZ, and indexed PNG
 |   `-- obj/             external 3D line object assets
@@ -61,15 +61,15 @@ There is no current server-mode source entry point in `src/`.
   windows to the rest of the program.
 - `src/AudioVisualBridge.*`: runs audio processing, analysis, and auto-changing
   before visual mutation.
-- `src/VideoPipeline.*`, `src/VideoPipelineSequence.*`,
-  `src/VideoPipelineFactory.*`, `src/PipelineStageModules.*`,
-  `src/VideoDirector.*`: visual-stage executor, stage ordering, module
-  composition, concrete stage modules, and visual policy.
+- `src/VideoFilterchain.*`, `src/VideoFilterchainSequence.*`,
+  `src/VideoFilterchainFactory.*`, `src/VideoFilters.*`,
+  `src/VideoDirector.*`: visual-stage executor, stage ordering, filter
+  composition, concrete stage filters, and visual policy.
 ### Legacy Visual Core
 
 - `src/CthughaBuffer.*`: single classic visual buffer dimensions and raw indexed
   active/passive pixel buffers. Per-frame flame/translate/wave/swap
-  choreography lives in visual pipeline modules.
+  choreography lives in video filterchain filters.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
@@ -164,7 +164,7 @@ Current CMake targets:
 `src/Makefile.am` still describes these source sets:
 
 - `GENSRC`: shared options, audio/runtime files, UI, misc, base
-  display classes, autochanger, analyzer, and pipeline scaffolding.
+  display classes, autochanger, analyzer, and filterchain scaffolding.
 - `DISPSRC`: `GENSRC` plus visual effects, palettes, indexed images, translation,
   `AudioProcessor`, `CthughaBuffer`, `initExitDisp`, flashlight, and help UI.
 

@@ -1,16 +1,16 @@
-#ifndef __VIDEO_PIPELINE_FACTORY_H
-#define __VIDEO_PIPELINE_FACTORY_H
+#ifndef __VIDEO_FILTERCHAIN_FACTORY_H
+#define __VIDEO_FILTERCHAIN_FACTORY_H
 
-#include "VideoPipelineSequence.h"
+#include "VideoFilterchainSequence.h"
 
-class VideoPipeline;
+class VideoFilterchain;
 
-class VideoPipelineFactory {
+class VideoFilterchainFactory {
 public:
-    VideoPipelineFactory();
+    VideoFilterchainFactory();
 
-    VideoPipeline* create(const VideoPipelineSequence& sequence) const;
-    void refresh(VideoPipeline& pipeline, const VideoPipelineSequence& sequence) const;
+    VideoFilterchain* create(const VideoFilterchainSequence& sequence) const;
+    void refresh(VideoFilterchain& filterchain, const VideoFilterchainSequence& sequence) const;
 };
 
 #endif

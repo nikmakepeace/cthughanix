@@ -1,12 +1,12 @@
-#include "VideoPipelineSequence.h"
+#include "VideoFilterchainSequence.h"
 
-VideoPipelineSequence::VideoPipelineSequence() { }
+VideoFilterchainSequence::VideoFilterchainSequence() { }
 
-void VideoPipelineSequence::append(Stage stage) {
+void VideoFilterchainSequence::append(Stage stage) {
     sequenceValue.push_back(stage);
 }
 
-int VideoPipelineSequence::includes(Stage stage) const {
+int VideoFilterchainSequence::includes(Stage stage) const {
     for (unsigned int i = 0; i < sequenceValue.size(); i++) {
         if (sequenceValue[i] == stage)
             return 1;

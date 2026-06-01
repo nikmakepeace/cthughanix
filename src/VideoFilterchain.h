@@ -1,7 +1,7 @@
-// Internal visual pipeline scaffold.
+// Internal video filterchain scaffold.
 
-#ifndef __VIDEO_PIPELINE_H
-#define __VIDEO_PIPELINE_H
+#ifndef __VIDEO_FILTERCHAIN_H
+#define __VIDEO_FILTERCHAIN_H
 
 #include "AudioFrame.h"
 #include "AudioAnalyzer.h"
@@ -39,51 +39,51 @@ public:
     const FramePalette* framePalette() const;
 };
 
-class VideoModule {
+class VideoFilter {
 public:
-    virtual ~VideoModule();
+    virtual ~VideoFilter();
 
     virtual void refresh() { }
     virtual void execute(VideoFrame& frame) = 0;
 };
 
-enum VideoStageRunMode {
-    VideoStageDisabled,
-    VideoStageEnabled,
-    // Executes on the next run, then the pipeline changes it to Disabled.
-    VideoStageArmedOnce
+enum VideoFilterRunMode {
+    VideoFilterDisabled,
+    VideoFilterEnabled,
+    // Executes on the next run, then the filterchain changes it to Disabled.
+    VideoFilterArmedOnce
 };
 
-class VideoPipeline {
+class VideoFilterchain {
     struct Entry {
         unsigned int stage;
-        VideoModule* module;
+        VideoFilter* filter;
         int owned;
-        VideoStageRunMode mode;
+        VideoFilterRunMode mode;
 
-        Entry(unsigned int stage_, VideoModule* module_, int owned_)
+        Entry(unsigned int stage_, VideoFilter* filter_, int owned_)
             : stage(stage_)
-            , module(module_)
+            , filter(filter_)
             , owned(owned_)
-            , mode(VideoStageDisabled) { }
+            , mode(VideoFilterDisabled) { }
     };
 
-    std::vector<Entry> modules;
+    std::vector<Entry> filters;
     std::vector<unsigned int> sequence;
     FramePalette* framePaletteValue;
 
 public:
-    VideoPipeline();
-    ~VideoPipeline();
+    VideoFilterchain();
+    ~VideoFilterchain();
 
     void clear();
-    void add(unsigned int stage, VideoModule* module, int takeOwnership = 0);
+    void add(unsigned int stage, VideoFilter* filter, int takeOwnership = 0);
     void setStageSequence(const std::vector<unsigned int>& stages);
     int moveStageBefore(unsigned int stage, unsigned int beforeStage);
     int moveStageAfter(unsigned int stage, unsigned int afterStage);
-    int setStageMode(unsigned int stage, VideoStageRunMode mode);
-    VideoStageRunMode stageMode(unsigned int stage) const;
-    VideoModule* stageModule(unsigned int stage);
+    int setStageMode(unsigned int stage, VideoFilterRunMode mode);
+    VideoFilterRunMode stageMode(unsigned int stage) const;
+    VideoFilter* stageFilter(unsigned int stage);
     void setFramePalette(FramePalette* framePalette);
     FramePalette* framePalette() const;
     void refresh();

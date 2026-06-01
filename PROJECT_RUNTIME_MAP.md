@@ -52,8 +52,8 @@ AudioVisualBridge::runFrame()
   updates AcousticContext
   runs AutoChanger
 
-VideoPipeline::run()
-  runs visual-stage modules over the indexed visual buffers
+VideoFilterchain::run()
+  runs visual-stage filters over the indexed visual buffers
 
 CthughaDisplay::operator()()
   frontend-specific display composition, when doDisplay is true
@@ -204,12 +204,12 @@ analysis and before visual mutation. Waves normally read
 `AutoChanger` uses `audioMetrics.noisy` for silence handling and
 `acousticContext.cumulativeFireLevel()` for fire-driven option changes.
 
-## Visual Buffer Pipeline
+## Video Buffer Filterchain
 
 `CthughaBuffer` owns the single classic visual buffer dimensions and the raw
 active/passive indexed pixel buffers. It does not own per-frame
 flame/translate/wave choreography or the current frame palette; `VideoDirector`
-configures pipeline modules with the currently selected effect entries. Default
+configures filterchain filters with the currently selected effect entries. Default
 dimensions are:
 
 ```text
@@ -220,9 +220,9 @@ BUFF_HEIGHT = 100
 Each allocation has three hidden rows above and below the visible buffer. Flame
 code reads those rows as boundary data.
 
-### VideoPipeline Order
+### VideoFilterchain Order
 
-`VideoDirector::defaultPipelineSequence()` currently includes these stages:
+`VideoDirector::defaultFilterchainSequence()` currently includes these stages:
 
 ```text
 ImageStage
@@ -235,27 +235,27 @@ PaletteStage
 FlashlightStage
 ```
 
-`VideoPipelineFactory::create()` in `src/VideoPipelineFactory.cc` currently
-expands that sequence into this module order:
+`VideoFilterchainFactory::create()` in `src/VideoFilterchainFactory.cc` currently
+expands that sequence into this filter order:
 
 ```text
-ImageStageModule
-BorderVideoModule
-FlameStageModule
-TranslateStageModule
-WaveStageModule
-FrameCommitModule
-PaletteStageModule
-FlashlightVideoModule
+ImageFilter
+BorderFilter
+FlameFilter
+TranslateFilter
+WaveFilter
+FrameCommitFilter
+PaletteFilter
+FlashlightFilter
 ```
 
-`ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
-`WaveStageModule` are real stages. Image overlays the current `IndexedImage`
+`ImageFilter`, `FlameFilter`, `TranslateFilter`, and
+`WaveFilter` are real stages. Image overlays the current `IndexedImage`
 when `VideoDirector` arms the one-shot image stage. PCX and indexed PNG files
 are decoded into that domain object before the frame loop. Before each frame,
-`VideoDirector` updates the stage modules with the selected image, selected
+`VideoDirector` updates the stage filters with the selected image, selected
 flame, general-flame value, prepared translation object, wave, and border mode.
-`VideoPipeline::run()` then wraps the current buffer, frame context, and
+`VideoFilterchain::run()` then wraps the current buffer, frame context, and
 display palette in a `VideoFrame` and passes that frame through each enabled
 stage.
 
@@ -284,23 +284,23 @@ The selected `border` CoreOption decides whether those rows are:
 
 ### Indexed Buffer Stages
 
-The indexed-buffer mutation path is split across visual pipeline modules. The
+The indexed-buffer mutation path is split across video filterchain filters. The
 frame-level order is:
 
 ```text
-ImageStageModule
+ImageFilter
   overlay the selected IndexedImage when VideoDirector has armed ImageStage once
 
-FlameStageModule
+FlameFilter
   execute the selected Flame against the frame buffer
 
-TranslateStageModule
+TranslateFilter
   execute the bound Translate object with its ready table
 
-WaveStageModule
+WaveFilter
   execute the selected Wave against the frame buffer
 
-FrameCommitModule
+FrameCommitFilter
   log a limited visual-buffer summary
   swap(activeBuffer, passiveBuffer)
 ```
@@ -319,8 +319,8 @@ Palette smoothing is separate from the indexed pixel mutation stages.
 
 `PaletteOption` is the global CoreOption adapter for loaded palettes.
 `PaletteEntry` wraps a `ColorPalette` plus UI/config metadata, while
-`VideoDirector` binds the selected entry into `PaletteStageModule`.
-`PaletteStageModule` delegates transition mechanics to `PaletteTransition`,
+`VideoDirector` binds the selected entry into `PaletteFilter`.
+`PaletteFilter` delegates transition mechanics to `PaletteTransition`,
 which moves the output palette toward the target `ColorPalette` over a frame
 budget.
 The resulting palette and dirty flag live in `FramePalette`, which the display
@@ -339,7 +339,7 @@ Command-line options:
 - `--no-palette-smoothing`;
 - `--palette-set SET`, which filters palettes by metadata set.
 
-`FlashlightVideoModule` runs after palette smoothing so it brightens the final
+`FlashlightFilter` runs after palette smoothing so it brightens the final
 palette output for the frame instead of being diluted by the smoothing step.
 
 ## CoreOption System

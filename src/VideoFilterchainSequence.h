@@ -1,9 +1,9 @@
-#ifndef __VIDEO_PIPELINE_SEQUENCE_H
-#define __VIDEO_PIPELINE_SEQUENCE_H
+#ifndef __VIDEO_FILTERCHAIN_SEQUENCE_H
+#define __VIDEO_FILTERCHAIN_SEQUENCE_H
 
 #include <vector>
 
-class VideoPipelineSequence {
+class VideoFilterchainSequence {
     std::vector<unsigned int> sequenceValue;
 
 public:
@@ -18,7 +18,7 @@ public:
         PaletteStage
     };
 
-    VideoPipelineSequence();
+    VideoFilterchainSequence();
 
     void append(Stage stage);
     int includes(Stage stage) const;

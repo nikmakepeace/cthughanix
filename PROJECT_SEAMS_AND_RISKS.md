@@ -46,7 +46,7 @@ Loaders: `src/pcx.cc` and `src/png.cc`.
 
 Image files become entries in the image option owned by `VideoDirector`.
 PCX/PNG source palettes are retained with the image entry for future policy, but
-image display does not mutate the current frame palette. `ImageStageModule`
+image display does not mutate the current frame palette. `ImageFilter`
 clips the selected `IndexedImage` into the active visual buffer when armed.
 
 ### Add a Translation Effect
@@ -57,7 +57,7 @@ pairs an id, a display description, a generator, and per-entry options, so the
 same generator can appear multiple times with different names and parameters.
 
 `src/translate.cc` eagerly generates these tables during visual startup so the
-running pipeline only executes ready maps.
+running filterchain only executes ready maps.
 
 ### Add a 3D Line Object
 
@@ -96,7 +96,7 @@ if the UI/CoreOption list needs a different in-use flag.
 Wave functions should read sound through `audioFrameProcessedWaveData()` and rolling
 state from `audioMetrics` / `acousticContext`, read selected scale/table/object
 values from `WaveRuntime`, then draw directly into the buffer's active pixels.
-`WaveStageModule` executes the selected `Wave` through
+`WaveFilter` executes the selected `Wave` through
 `execute(buffer, context, runtime)`.
 
 ### Add an Audio Processing Mode
@@ -134,22 +134,22 @@ Contract:
 - treat `targetDelaySamples()` as output-buffer sizing only. Visual frame
   selection is driven by the runtime visual clock, not by output latency.
 
-### Add a Visual Pipeline Stage
+### Add a Video Filter
 
-Implement `VideoModule` and add it through `VideoPipelineFactory`.
+Implement `VideoFilter` and add it through `VideoFilterchainFactory`.
 
 Current reality: image, border, flame, translate, wave, frame-commit, palette
-smoothing, and flashlight are explicit modules. `VideoDirector`
-updates typed stage objects before each run; `FlameStageModule` owns the
+smoothing, and flashlight are explicit filters. `VideoDirector`
+updates typed stage objects before each run; `FlameFilter` owns the
 current `Flame` and general-flame value. `VideoDirector` chooses a runnable
 `Wave`, configures it with wave scale/table/object, and binds only that `Wave`
-into `WaveStageModule`. The pipeline passes a `VideoFrame` through each stage;
+into `WaveFilter`. The filterchain passes a `VideoFrame` through each stage;
 that frame carries the current `CthughaBuffer`, frame context, and display
 palette.
 
 The next seam to improve is the remaining compatibility global. Stage entries
 receive an explicit `VideoFrame` and entry selection does not happen inside
-the stage modules, but display code still consults `CthughaBuffer::current`
+the stage filters, but display code still consults `CthughaBuffer::current`
 while mapping the finished passive buffer to the frontend.
 
 ### Add a Display Mode
@@ -189,7 +189,7 @@ Subsystems communicate mainly through globals:
 - `screen`;
 - many `Option` and `CoreOption` singletons.
 
-The new runtime/pipeline classes reduce some coupling, but most modules still
+The new runtime/filterchain classes reduce some coupling, but most filters still
 assume initialization order rather than checking dependencies.
 
 ### Audio Has One Runtime Model
@@ -203,12 +203,12 @@ Visual code should use `audioFrameRawData()` and `audioFrameProcessedWaveData()`
 file playback, live input, random input, and silence all present the same
 1024-sample frame contract.
 
-### VideoPipeline Still Shares Display Globals
+### VideoFilterchain Still Shares Display Globals
 
-`VideoPipeline` has explicit modules for image, border, flame, translate, wave,
+`VideoFilterchain` has explicit filters for image, border, flame, translate, wave,
 frame commit, palette smoothing, and flashlight. It creates one `VideoFrame`
 from the current buffer, context, and display palette, then passes that frame
-through enabled modules in stage order.
+through enabled filters in stage order.
 
 Do not assume this is full inversion of control yet. The display path still uses
 `CthughaBuffer::current` as a compatibility pointer for buffer geometry and
@@ -236,7 +236,7 @@ Changing buffer size is a system-wide operation.
 
 ### Translation Is A Dedicated Stage
 
-Translation runs through `TranslateStageModule`. Flames should not apply
+Translation runs through `TranslateFilter`. Flames should not apply
 translation internally; coordinate remapping belongs in its own stage rather
 than inside `flames.cc`.
 
@@ -319,8 +319,8 @@ with safer metadata.
 
 - File playback has a single buffered runtime path; the riskiest edges are
   playback latency accounting, EOF/drain behavior, and raw PCM option handling.
-- `VideoPipeline` stage order is explicit, and stage execution uses
-  director-provided buffers. The remaining risk is non-pipeline code that still
+- `VideoFilterchain` stage order is explicit, and stage execution uses
+  director-provided buffers. The remaining risk is non-filterchain code that still
   consults `CthughaBuffer::current`.
 - Many fixed-size string buffers use `sprintf`, `strncpy`, and `strncat` with
   longstanding assumptions.

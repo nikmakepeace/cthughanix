@@ -1,26 +1,26 @@
-#ifndef __PIPELINE_STAGE_MODULES_H
-#define __PIPELINE_STAGE_MODULES_H
+#ifndef __VIDEO_FILTERS_H
+#define __VIDEO_FILTERS_H
 
 #include "Flame.h"
 #include "FramePalette.h"
 #include "Image.h"
 #include "PaletteTransition.h"
 #include "Translate.h"
-#include "VideoPipeline.h"
-#include "VideoPipelineSequence.h"
+#include "VideoFilterchain.h"
+#include "VideoFilterchainSequence.h"
 #include "Wave.h"
 
 class PaletteEntry;
 
 // Contract: one-shot pixel injector. Writes the selected image into the active
 // buffer, and can mirror the same pixels into passive for immediate display.
-class ImageStageModule : public VideoModule {
+class ImageFilter : public VideoFilter {
     const IndexedImage* image;
     ImagePlacement placement;
     int overlayPassiveBuffer;
 
 public:
-    ImageStageModule();
+    ImageFilter();
 
     void setImage(const IndexedImage* image_);
     void setPlacement(const ImagePlacement& placement_);
@@ -30,13 +30,13 @@ public:
 
 // Contract: feedback filter. Runs the selected Flame over the buffer, usually
 // reading passive pixels and hidden border rows while writing active pixels.
-class FlameStageModule : public VideoModule {
+class FlameFilter : public VideoFilter {
     const Flame* flame;
     int generalFlame;
     FlameLookupTables lookupTables;
 
 public:
-    FlameStageModule();
+    FlameFilter();
 
     void setFlame(const Flame* flame_);
     void setGeneralFlame(int generalFlame_);
@@ -45,11 +45,11 @@ public:
 
 // Contract: coordinate remap filter. The Translate executor owns any
 // active/passive swap it needs before remapping passive pixels into active.
-class TranslateStageModule : public VideoModule {
+class TranslateFilter : public VideoFilter {
     Translate translate;
 
 public:
-    TranslateStageModule();
+    TranslateFilter();
 
     void setTranslate(const TranslationTable& table);
     void execute(VideoFrame& frame);
@@ -57,7 +57,7 @@ public:
 
 // Contract: sound-reactive drawing filter. Draws into active pixels using the
 // current frame context plus wave-local state; it does not commit the frame.
-class WaveStageModule : public VideoModule {
+class WaveFilter : public VideoFilter {
     Wave* wave;
     WaveConfig config;
     WaveState state;
@@ -66,7 +66,7 @@ class WaveStageModule : public VideoModule {
     int needsConfiguration;
 
 public:
-    WaveStageModule();
+    WaveFilter();
 
     void setWave(Wave* wave_, const WaveConfig& config_);
     void execute(VideoFrame& frame);
@@ -74,14 +74,14 @@ public:
 
 // Contract: frame boundary. Emits optional diagnostics, then swaps active and
 // passive so the finished indexed image becomes the display source.
-class FrameCommitModule : public VideoModule {
+class FrameCommitFilter : public VideoFilter {
     const char* flameName;
     const char* waveName;
     const char* waveScaleName;
     const char* tableName;
 
 public:
-    FrameCommitModule();
+    FrameCommitFilter();
 
     void setSceneNames(const char* flameName_, const char* waveName_,
         const char* waveScaleName_, const char* tableName_);
@@ -90,20 +90,20 @@ public:
 
 // Contract: palette post-filter. Reads acoustic context and writes temporary
 // flashlight output into the frame palette; it ignores indexed pixels.
-class FlashlightVideoModule : public VideoModule {
+class FlashlightFilter : public VideoFilter {
 public:
-    FlashlightVideoModule();
+    FlashlightFilter();
 
     void execute(VideoFrame& frame);
 };
 
 // Contract: hidden-row writer. Fills the active buffer border rows used by
 // flame feedback; visible pixels are left to later stages.
-class BorderVideoModule : public VideoModule {
+class BorderFilter : public VideoFilter {
     int borderMode;
 
 public:
-    BorderVideoModule();
+    BorderFilter();
 
     void setBorderMode(int borderMode_);
     void execute(VideoFrame& frame);
@@ -111,12 +111,12 @@ public:
 
 // Contract: palette transition filter. Advances the display-facing
 // FramePalette toward the configured target; it ignores indexed pixels.
-class PaletteStageModule : public VideoModule {
+class PaletteFilter : public VideoFilter {
     PaletteTransition transition;
     FramePalette framePaletteValue;
 
 public:
-    PaletteStageModule();
+    PaletteFilter();
 
     FramePalette& framePalette();
     int needsTarget(PaletteEntry* paletteEntry) const;
@@ -125,6 +125,6 @@ public:
     void execute(VideoFrame& frame);
 };
 
-FramePalette* framePaletteFromPipeline(VideoPipeline& pipeline);
+FramePalette* framePaletteFromFilterchain(VideoFilterchain& filterchain);
 
 #endif

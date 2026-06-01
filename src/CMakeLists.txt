@@ -28,10 +28,10 @@ set(CTHUGHA_COMMON_SOURCES
     Border.cc
     ColorPalette.cc
     Image.cc
-    VideoPipeline.cc
-    VideoPipelineSequence.cc
-    PipelineStageModules.cc
-    VideoPipelineFactory.cc
+    VideoFilterchain.cc
+    VideoFilterchainSequence.cc
+    VideoFilters.cc
+    VideoFilterchainFactory.cc
     VideoDirector.cc
     keymap.cc
     InterfaceCredits.cc

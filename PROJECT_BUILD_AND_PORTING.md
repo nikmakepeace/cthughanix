@@ -256,13 +256,13 @@ Good next steps:
 - Keep visual code reading through `audioFrameRawData()` and
   `audioFrameProcessedWaveData()`.
 
-### Phase 3: Continue The Visual Pipeline Migration
+### Phase 3: Continue The Video Filterchain Migration
 
-`VideoPipeline` has explicit image, border, flame, translate, wave,
-frame-commit, palette, and flashlight modules. `VideoDirector` updates the
-current stage objects before each pipeline run.
+`VideoFilterchain` has explicit image, border, flame, translate, wave,
+frame-commit, palette, and flashlight filters. `VideoDirector` updates the
+current filter objects before each filterchain run.
 
-The visual stage path passes one `VideoFrame` through the pipeline. The frame
+The video filterchain path passes one `VideoFrame` through the filterchain. The frame
 contains the current `CthughaBuffer`, frame context, and display palette. The
 remaining compatibility coupling is in the display path:
 `CthughaBuffer::current` still supplies buffer geometry and passive-pixel reads.

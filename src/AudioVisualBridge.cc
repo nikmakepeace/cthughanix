@@ -8,7 +8,7 @@
 #endif
 
 AudioVisualBridge::AudioVisualBridge(SceneCommands* sceneCommands_)
-    : pipelineRefreshRequestedValue(0)
+    : filterchainRefreshRequestedValue(0)
     , sceneCommands(sceneCommands_) {
     CTH_DEBUG("audio visual bridge: creating bridge\n");
 #ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
@@ -57,6 +57,6 @@ void AudioVisualBridge::runFrame() {
             (processed - start) * 1000.0,
             (analyzed - processed) * 1000.0,
             (done - analyzed) * 1000.0,
-            pipelineRefreshRequestedValue);
+            filterchainRefreshRequestedValue);
     }
 }

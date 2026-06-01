@@ -9,7 +9,7 @@ sound-backend-oriented walkthrough that no longer matches the source tree.
 CthughaDisplay::nextFrame()
 audioFrameTick()
 AudioVisualBridge::runFrame()
-VideoPipeline::run()
+VideoFilterchain::run()
 CthughaDisplay::operator()()
 CDPlayer::operator()()
 ```
@@ -33,8 +33,8 @@ the same facade.
 `AudioVisualBridge::runFrame()` performs sound processing, analysis, acoustic
 state updates, and automatic option changes before visual mutation.
 
-`VideoPipeline::run()` executes the current visual modules in order. The
-default pipeline stages are:
+`VideoFilterchain::run()` executes the current video filters in order. The
+default filterchain stages are:
 
 ```text
 ImageStage
@@ -47,23 +47,23 @@ PaletteStage
 FlashlightStage
 ```
 
-In module form, this is currently:
+In filter form, this is currently:
 
 ```text
-ImageStageModule
-BorderVideoModule
-FlameStageModule
-TranslateStageModule
-WaveStageModule
-FrameCommitModule
-PaletteStageModule
-FlashlightVideoModule
+ImageFilter
+BorderFilter
+FlameFilter
+TranslateFilter
+WaveFilter
+FrameCommitFilter
+PaletteFilter
+FlashlightFilter
 ```
 
 Image, flame, translate, and wave execute domain objects through the same
 `VideoFrame`. The image stage overlays the selected `IndexedImage` when
 `VideoDirector` arms it once. PCX and indexed PNG files are decoded into the
-same image domain object; format-specific code does not run in the pipeline
+same image domain object; format-specific code does not run in the filterchain
 stage. Before each frame, `VideoDirector` updates the stage bindings for the
 selected image, flame, general-flame value, translation table, wave, border
 mode, palette target, and flashlight mode.

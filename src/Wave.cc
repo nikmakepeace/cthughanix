@@ -1,5 +1,5 @@
 #include "Wave.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 
 #include <math.h>
 

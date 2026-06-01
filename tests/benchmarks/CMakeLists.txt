@@ -55,7 +55,7 @@ add_executable(visual_effects_bench
     ${CMAKE_SOURCE_DIR}/src/Translate.cc
     ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
     ${CMAKE_SOURCE_DIR}/src/translate.cc
-    ${CMAKE_SOURCE_DIR}/src/VideoPipeline.cc
+    ${CMAKE_SOURCE_DIR}/src/VideoFilterchain.cc
 )
 
 target_compile_definitions(visual_effects_bench PRIVATE

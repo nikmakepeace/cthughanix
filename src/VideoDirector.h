@@ -1,20 +1,20 @@
-// Visual pipeline policy.
+// Video filterchain policy.
 
 #ifndef __VIDEO_DIRECTOR_H
 #define __VIDEO_DIRECTOR_H
 
 #include "Image.h"
 #include "Scene.h"
-#include "VideoPipelineSequence.h"
+#include "VideoFilterchainSequence.h"
 
 class CthughaBuffer;
-class VideoPipeline;
+class VideoFilterchain;
 
 class VideoDirector : public SceneObserver {
     ImageOption images;
     RandomLegalImagePlacementStrategy imagePlacementStrategy;
     Scene* scene;
-    VideoPipeline* pipeline;
+    VideoFilterchain* filterchain;
     CthughaBuffer* buffer;
     unsigned int pendingSceneChanges;
     const IndexedImage* pendingImageCue;
@@ -22,7 +22,7 @@ class VideoDirector : public SceneObserver {
     unsigned int appliedImageCueId;
     int imageLoadingEnabledValue;
 
-    void applySceneToPipeline(unsigned int changes);
+    void applySceneToFilterchain(unsigned int changes);
     void applyPendingImageCue();
 
 public:
@@ -37,8 +37,8 @@ public:
     void setImageLoadingEnabled(int enabled);
     int loadImages();
 
-    VideoPipelineSequence defaultPipelineSequence() const;
-    CthughaBuffer* configurePipeline(VideoPipeline& pipeline);
+    VideoFilterchainSequence defaultFilterchainSequence() const;
+    CthughaBuffer* configureFilterchain(VideoFilterchain& filterchain);
 
     virtual void sceneChanged(Scene& scene, unsigned int changes);
     virtual void sceneCue(Scene& scene, const SceneCue& cue);

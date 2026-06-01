@@ -4,7 +4,7 @@
 #include "CthughaDisplay.h"
 #include "Flashlight.h"
 #include "Image.h"
-#include "PipelineStageModules.h"
+#include "VideoFilters.h"
 #include "VideoDirector.h"
 #include "cth_buffer.h"
 #include "display.h"
@@ -12,9 +12,9 @@
 
 double paletteSmoothingChance = 1.0;
 
-template <class Module>
-static Module* stageModule(VideoPipeline& pipeline, VideoPipelineSequence::Stage stage) {
-    return dynamic_cast<Module*>(pipeline.stageModule(stage));
+template <class Filter>
+static Filter* stageFilter(VideoFilterchain& filterchain, VideoFilterchainSequence::Stage stage) {
+    return dynamic_cast<Filter*>(filterchain.stageFilter(stage));
 }
 
 static int paletteSmoothingFrameBudget() {
@@ -41,7 +41,7 @@ VideoDirector::VideoDirector()
     : images(0, "image")
     , imagePlacementStrategy()
     , scene(0)
-    , pipeline(0)
+    , filterchain(0)
     , buffer(0)
     , pendingSceneChanges(SceneAllChanged)
     , pendingImageCue(0)
@@ -80,7 +80,7 @@ void VideoDirector::unbindScene() {
         scene->removeObserver(*this);
 
     scene = 0;
-    pipeline = 0;
+    filterchain = 0;
     buffer = 0;
     pendingSceneChanges = SceneAllChanged;
     pendingImageCue = 0;
@@ -108,92 +108,92 @@ int VideoDirector::loadImages() {
     return result;
 }
 
-VideoPipelineSequence VideoDirector::defaultPipelineSequence() const {
-    VideoPipelineSequence sequence;
+VideoFilterchainSequence VideoDirector::defaultFilterchainSequence() const {
+    VideoFilterchainSequence sequence;
 
-    sequence.append(VideoPipelineSequence::ImageStage);
-    sequence.append(VideoPipelineSequence::BorderStage);
-    sequence.append(VideoPipelineSequence::FlameStage);
-    sequence.append(VideoPipelineSequence::TranslateStage);
-    sequence.append(VideoPipelineSequence::WaveStage);
-    sequence.append(VideoPipelineSequence::FrameCommitStage);
-    sequence.append(VideoPipelineSequence::PaletteStage);
-    sequence.append(VideoPipelineSequence::FlashlightStage);
+    sequence.append(VideoFilterchainSequence::ImageStage);
+    sequence.append(VideoFilterchainSequence::BorderStage);
+    sequence.append(VideoFilterchainSequence::FlameStage);
+    sequence.append(VideoFilterchainSequence::TranslateStage);
+    sequence.append(VideoFilterchainSequence::WaveStage);
+    sequence.append(VideoFilterchainSequence::FrameCommitStage);
+    sequence.append(VideoFilterchainSequence::PaletteStage);
+    sequence.append(VideoFilterchainSequence::FlashlightStage);
 
-    CTH_DEBUG("visual director: default stage sequence stages=%d\n",
+    CTH_DEBUG("video director: default stage sequence stages=%d\n",
         int(sequence.sequence().size()));
     return sequence;
 }
 
-void VideoDirector::applySceneToPipeline(unsigned int changes) {
-    if (scene == 0 || pipeline == 0 || buffer == 0)
+void VideoDirector::applySceneToFilterchain(unsigned int changes) {
+    if (scene == 0 || filterchain == 0 || buffer == 0)
         return;
 
     const SceneSettings& settings = scene->settings();
 
-    FlameStageModule* flameModule
-        = stageModule<FlameStageModule>(*pipeline, VideoPipelineSequence::FlameStage);
-    if (flameModule != 0) {
-        flameModule->setFlame(settings.flame);
-        flameModule->setGeneralFlame(settings.generalFlame);
+    FlameFilter* flameFilter
+        = stageFilter<FlameFilter>(*filterchain, VideoFilterchainSequence::FlameStage);
+    if (flameFilter != 0) {
+        flameFilter->setFlame(settings.flame);
+        flameFilter->setGeneralFlame(settings.generalFlame);
     }
 
-    TranslateStageModule* translateModule
-        = stageModule<TranslateStageModule>(*pipeline, VideoPipelineSequence::TranslateStage);
-    if (translateModule != 0 && (changes & SceneTranslationChanged))
-        translateModule->setTranslate(settings.translationTable);
+    TranslateFilter* translateFilter
+        = stageFilter<TranslateFilter>(*filterchain, VideoFilterchainSequence::TranslateStage);
+    if (translateFilter != 0 && (changes & SceneTranslationChanged))
+        translateFilter->setTranslate(settings.translationTable);
 
-    WaveStageModule* waveModule
-        = stageModule<WaveStageModule>(*pipeline, VideoPipelineSequence::WaveStage);
-    if (waveModule != 0)
-        waveModule->setWave(settings.wave, settings.waveConfig);
+    WaveFilter* waveFilter
+        = stageFilter<WaveFilter>(*filterchain, VideoFilterchainSequence::WaveStage);
+    if (waveFilter != 0)
+        waveFilter->setWave(settings.wave, settings.waveConfig);
 
-    BorderVideoModule* borderModule
-        = stageModule<BorderVideoModule>(*pipeline, VideoPipelineSequence::BorderStage);
-    if (borderModule != 0)
-        borderModule->setBorderMode(settings.borderMode);
+    BorderFilter* borderFilter
+        = stageFilter<BorderFilter>(*filterchain, VideoFilterchainSequence::BorderStage);
+    if (borderFilter != 0)
+        borderFilter->setBorderMode(settings.borderMode);
 
-    FrameCommitModule* frameCommitModule
-        = stageModule<FrameCommitModule>(*pipeline, VideoPipelineSequence::FrameCommitStage);
-    if (frameCommitModule != 0)
-        frameCommitModule->setSceneNames(settings.flameName, settings.waveName,
+    FrameCommitFilter* frameCommitFilter
+        = stageFilter<FrameCommitFilter>(*filterchain, VideoFilterchainSequence::FrameCommitStage);
+    if (frameCommitFilter != 0)
+        frameCommitFilter->setSceneNames(settings.flameName, settings.waveName,
             settings.waveScaleName, settings.tableName);
 
-    PaletteStageModule* paletteModule
-        = stageModule<PaletteStageModule>(*pipeline, VideoPipelineSequence::PaletteStage);
-    if (paletteModule != 0) {
-        int frameBudget = paletteModule->needsTarget(settings.palette)
+    PaletteFilter* paletteFilter
+        = stageFilter<PaletteFilter>(*filterchain, VideoFilterchainSequence::PaletteStage);
+    if (paletteFilter != 0) {
+        int frameBudget = paletteFilter->needsTarget(settings.palette)
             ? paletteChangeFrameBudget()
             : 0;
-        paletteModule->setTargetPalette(settings.palette, frameBudget,
+        paletteFilter->setTargetPalette(settings.palette, frameBudget,
             randomPaletteTransitionStrategy());
     }
 
-    pipeline->setStageMode(VideoPipelineSequence::FlashlightStage,
-        settings.flashlightEnabled ? VideoStageEnabled : VideoStageDisabled);
-    pipeline->setStageMode(VideoPipelineSequence::BorderStage, VideoStageEnabled);
-    pipeline->setStageMode(VideoPipelineSequence::FlameStage, VideoStageEnabled);
-    pipeline->setStageMode(VideoPipelineSequence::TranslateStage, VideoStageEnabled);
-    pipeline->setStageMode(VideoPipelineSequence::WaveStage, VideoStageEnabled);
-    pipeline->setStageMode(VideoPipelineSequence::FrameCommitStage, VideoStageEnabled);
-    pipeline->setStageMode(VideoPipelineSequence::PaletteStage, VideoStageEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::FlashlightStage,
+        settings.flashlightEnabled ? VideoFilterEnabled : VideoFilterDisabled);
+    filterchain->setStageMode(VideoFilterchainSequence::BorderStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::FlameStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::TranslateStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::WaveStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::FrameCommitStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::PaletteStage, VideoFilterEnabled);
 }
 
 void VideoDirector::applyPendingImageCue() {
-    if (pipeline == 0 || buffer == 0 || pendingImageCue == 0
+    if (filterchain == 0 || buffer == 0 || pendingImageCue == 0
         || pendingImageCueId == appliedImageCueId)
         return;
 
-    ImageStageModule* imageModule
-        = stageModule<ImageStageModule>(*pipeline, VideoPipelineSequence::ImageStage);
-    if (imageModule == 0)
+    ImageFilter* imageFilter
+        = stageFilter<ImageFilter>(*filterchain, VideoFilterchainSequence::ImageStage);
+    if (imageFilter == 0)
         return;
 
-    imageModule->setImage(pendingImageCue);
-    imageModule->setPlacement(imagePlacementStrategy.choose(*pendingImageCue,
+    imageFilter->setImage(pendingImageCue);
+    imageFilter->setPlacement(imagePlacementStrategy.choose(*pendingImageCue,
         buffer->width(), buffer->height()));
-    imageModule->setOverlayPassiveBuffer(1);
-    pipeline->setStageMode(VideoPipelineSequence::ImageStage, VideoStageArmedOnce);
+    imageFilter->setOverlayPassiveBuffer(1);
+    filterchain->setStageMode(VideoFilterchainSequence::ImageStage, VideoFilterArmedOnce);
 
     appliedImageCueId = pendingImageCueId;
     pendingImageCue = 0;
@@ -203,8 +203,8 @@ void VideoDirector::sceneChanged(Scene& scene_, unsigned int changes) {
     (void)scene_;
 
     pendingSceneChanges |= changes;
-    if (pipeline != 0 && buffer != 0) {
-        applySceneToPipeline(pendingSceneChanges);
+    if (filterchain != 0 && buffer != 0) {
+        applySceneToFilterchain(pendingSceneChanges);
         pendingSceneChanges = SceneNoChange;
     }
 }
@@ -219,11 +219,11 @@ void VideoDirector::sceneCue(Scene& scene_, const SceneCue& cue) {
     }
 }
 
-CthughaBuffer* VideoDirector::configurePipeline(VideoPipeline& pipeline_) {
+CthughaBuffer* VideoDirector::configureFilterchain(VideoFilterchain& filterchain_) {
     CthughaBuffer* targetBuffer = &CthughaBuffer::buffer;
 
-    if (pipeline != &pipeline_) {
-        pipeline = &pipeline_;
+    if (filterchain != &filterchain_) {
+        filterchain = &filterchain_;
         pendingSceneChanges |= SceneAllChanged;
     }
     if (buffer != targetBuffer) {
@@ -232,7 +232,7 @@ CthughaBuffer* VideoDirector::configurePipeline(VideoPipeline& pipeline_) {
     }
 
     if (pendingSceneChanges != SceneNoChange) {
-        applySceneToPipeline(pendingSceneChanges);
+        applySceneToFilterchain(pendingSceneChanges);
         pendingSceneChanges = SceneNoChange;
     }
     applyPendingImageCue();

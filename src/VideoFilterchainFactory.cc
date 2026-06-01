@@ -1,44 +1,44 @@
 #include "cthugha.h"
-#include "PipelineStageModules.h"
-#include "VideoPipeline.h"
-#include "VideoPipelineFactory.h"
+#include "VideoFilters.h"
+#include "VideoFilterchain.h"
+#include "VideoFilterchainFactory.h"
 
-VideoPipelineFactory::VideoPipelineFactory() { }
+VideoFilterchainFactory::VideoFilterchainFactory() { }
 
-VideoPipeline* VideoPipelineFactory::create(const VideoPipelineSequence& sequence) const {
-    VideoPipeline* pipeline = new VideoPipeline();
-    PaletteStageModule* paletteModule = 0;
+VideoFilterchain* VideoFilterchainFactory::create(const VideoFilterchainSequence& sequence) const {
+    VideoFilterchain* filterchain = new VideoFilterchain();
+    PaletteFilter* paletteFilter = 0;
 
-    pipeline->setStageSequence(sequence.sequence());
+    filterchain->setStageSequence(sequence.sequence());
 
-    if (sequence.includes(VideoPipelineSequence::ImageStage))
-        pipeline->add(VideoPipelineSequence::ImageStage, new ImageStageModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::BorderStage))
-        pipeline->add(VideoPipelineSequence::BorderStage, new BorderVideoModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::FlameStage))
-        pipeline->add(VideoPipelineSequence::FlameStage, new FlameStageModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::TranslateStage))
-        pipeline->add(VideoPipelineSequence::TranslateStage, new TranslateStageModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::WaveStage))
-        pipeline->add(VideoPipelineSequence::WaveStage, new WaveStageModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::FrameCommitStage))
-        pipeline->add(VideoPipelineSequence::FrameCommitStage, new FrameCommitModule(), 1);
-    if (sequence.includes(VideoPipelineSequence::PaletteStage)) {
-        paletteModule = new PaletteStageModule();
-        pipeline->add(VideoPipelineSequence::PaletteStage, paletteModule, 1);
-        pipeline->setFramePalette(&paletteModule->framePalette());
+    if (sequence.includes(VideoFilterchainSequence::ImageStage))
+        filterchain->add(VideoFilterchainSequence::ImageStage, new ImageFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::BorderStage))
+        filterchain->add(VideoFilterchainSequence::BorderStage, new BorderFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::FlameStage))
+        filterchain->add(VideoFilterchainSequence::FlameStage, new FlameFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::TranslateStage))
+        filterchain->add(VideoFilterchainSequence::TranslateStage, new TranslateFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::WaveStage))
+        filterchain->add(VideoFilterchainSequence::WaveStage, new WaveFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::FrameCommitStage))
+        filterchain->add(VideoFilterchainSequence::FrameCommitStage, new FrameCommitFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::PaletteStage)) {
+        paletteFilter = new PaletteFilter();
+        filterchain->add(VideoFilterchainSequence::PaletteStage, paletteFilter, 1);
+        filterchain->setFramePalette(&paletteFilter->framePalette());
     }
-    if (sequence.includes(VideoPipelineSequence::FlashlightStage))
-        pipeline->add(VideoPipelineSequence::FlashlightStage, new FlashlightVideoModule(), 1);
+    if (sequence.includes(VideoFilterchainSequence::FlashlightStage))
+        filterchain->add(VideoFilterchainSequence::FlashlightStage, new FlashlightFilter(), 1);
 
-    CTH_DEBUG("visual pipeline factory: created pipeline=%p stages=%d modules=%d\n",
-        pipeline, int(sequence.sequence().size()), pipeline->size());
-    return pipeline;
+    CTH_DEBUG("video filterchain factory: created filterchain=%p stages=%d filters=%d\n",
+        filterchain, int(sequence.sequence().size()), filterchain->size());
+    return filterchain;
 }
 
-void VideoPipelineFactory::refresh(VideoPipeline& pipeline,
-    const VideoPipelineSequence& sequence) const {
-    CTH_DEBUG("visual pipeline factory: refreshing pipeline=%p stages=%d modules=%d\n",
-        &pipeline, int(sequence.sequence().size()), pipeline.size());
-    pipeline.refresh();
+void VideoFilterchainFactory::refresh(VideoFilterchain& filterchain,
+    const VideoFilterchainSequence& sequence) const {
+    CTH_DEBUG("video filterchain factory: refreshing filterchain=%p stages=%d filters=%d\n",
+        &filterchain, int(sequence.sequence().size()), filterchain.size());
+    filterchain.refresh();
 }

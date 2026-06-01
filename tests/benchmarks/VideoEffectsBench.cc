@@ -2,7 +2,7 @@
 #include "CthughaDisplay.h"
 #include "Flame.h"
 #include "Translate.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 #include "imath.h"
 #include "translate.h"
 #include "cth_buffer.h"
@@ -49,7 +49,7 @@ namespace {
 const int kHiddenRows = 3;
 const int kMaxBenchmarkDimension = 4096;
 
-struct VisualBenchConfig {
+struct VideoBenchConfig {
     int width;
     int height;
     std::string fixtureDir;
@@ -57,13 +57,13 @@ struct VisualBenchConfig {
     std::string activeImagePath;
     std::string passiveImagePath;
 
-    VisualBenchConfig()
+    VideoBenchConfig()
         : width(160)
         , height(100) { }
 };
 
-VisualBenchConfig& config() {
-    static VisualBenchConfig value;
+VideoBenchConfig& config() {
+    static VideoBenchConfig value;
     return value;
 }
 
@@ -104,7 +104,7 @@ int parseSize(const char* value, int& width, int& height) {
     return 1;
 }
 
-void parseVisualArgs(int* argc, char** argv) {
+void parseVideoArgs(int* argc, char** argv) {
     int output = 1;
 
     for (int i = 1; i < *argc; i++) {
@@ -158,7 +158,7 @@ struct BufferFixture {
 
 std::vector<TranslateEntry*> translateEntries;
 
-std::string visualFixtureDir() {
+std::string videoFixtureDir() {
     if (!config().fixtureDir.empty())
         return config().fixtureDir;
 
@@ -174,7 +174,7 @@ int fileExists(const std::string& path) {
 }
 
 std::string fixturePath(const std::string& stem, const char* extension) {
-    return visualFixtureDir() + "/" + stem + extension;
+    return videoFixtureDir() + "/" + stem + extension;
 }
 
 int readPgmToken(std::istream& in, std::string& token) {
@@ -467,7 +467,7 @@ void createTranslationEntries() {
     }
 }
 
-void initializeVisualBenchmarks() {
+void initializeVideoBenchmarks() {
     static int initialized = 0;
     if (initialized)
         return;
@@ -491,7 +491,7 @@ void setCommonCounters(benchmark::State& state) {
 
 static void BM_Flame(benchmark::State& state, const Flame* flame,
     const BufferFixture* fixture) {
-    initializeVisualBenchmarks();
+    initializeVideoBenchmarks();
 
     VideoFrameContext context;
     static FlameLookupTables lookupTables;
@@ -512,7 +512,7 @@ static void BM_Flame(benchmark::State& state, const Flame* flame,
 
 static void BM_TranslateEntry(benchmark::State& state, TranslateEntry* entry,
     const BufferFixture* fixture) {
-    initializeVisualBenchmarks();
+    initializeVideoBenchmarks();
 
     VideoFrameContext context;
     Translate translate(entry->table());
@@ -541,8 +541,8 @@ std::string benchmarkName(const char* prefix, const char* entryName,
     return name;
 }
 
-void registerVisualBenchmarks() {
-    initializeVisualBenchmarks();
+void registerVideoBenchmarks() {
+    initializeVideoBenchmarks();
     const std::vector<BufferFixture>& allFixtures = fixtures();
 
     for (int i = 0; i < nFlameCatalogEntries; i++) {
@@ -569,13 +569,13 @@ void registerVisualBenchmarks() {
 } // namespace
 
 int main(int argc, char** argv) {
-    parseVisualArgs(&argc, argv);
+    parseVideoArgs(&argc, argv);
 
     benchmark::Initialize(&argc, argv);
     if (benchmark::ReportUnrecognizedArguments(argc, argv))
         return 1;
 
-    registerVisualBenchmarks();
+    registerVideoBenchmarks();
     benchmark::RunSpecifiedBenchmarks();
     benchmark::Shutdown();
     return 0;

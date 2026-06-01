@@ -24,18 +24,18 @@
 #include "DisplayDevice.h"
 #include "Flashlight.h"
 #include "Interface.h"
-#include "PipelineStageModules.h"
+#include "VideoFilters.h"
 #include "Scene.h"
 #include "VideoDirector.h"
-#include "VideoPipeline.h"
-#include "VideoPipelineFactory.h"
+#include "VideoFilterchain.h"
+#include "VideoFilterchainFactory.h"
 #include "keymap.h"
 
 #include <unistd.h>
 #include <signal.h>
 
-static VideoPipeline* videoPipeline = NULL;
-static VideoPipelineSequence videoPipelineSequence;
+static VideoFilterchain* videoFilterchain = NULL;
+static VideoFilterchainSequence videoFilterchainSequence;
 static AudioVisualBridge* audioVisualBridge = NULL;
 static Scene* scene = NULL;
 static SceneCommands* sceneCommands = NULL;
@@ -60,21 +60,21 @@ static void shutdownSceneRuntime() {
     scene = NULL;
 }
 
-static void initVideoPipeline() {
-    if (videoPipeline != NULL)
+static void initVideoFilterchain() {
+    if (videoFilterchain != NULL)
         return;
 
-    VideoPipelineFactory factory;
-    videoPipelineSequence = videoDirector().defaultPipelineSequence();
-    videoPipeline = factory.create(videoPipelineSequence);
+    VideoFilterchainFactory factory;
+    videoFilterchainSequence = videoDirector().defaultFilterchainSequence();
+    videoFilterchain = factory.create(videoFilterchainSequence);
 
     if (displayDevice != NULL)
-        displayDevice->setFramePalette(framePaletteFromPipeline(*videoPipeline));
+        displayDevice->setFramePalette(framePaletteFromFilterchain(*videoFilterchain));
 }
 
-static void shutdownVideoPipeline() {
-    delete videoPipeline;
-    videoPipeline = NULL;
+static void shutdownVideoFilterchain() {
+    delete videoFilterchain;
+    videoFilterchain = NULL;
 }
 
 static void initAudioVisualBridge() {
@@ -91,16 +91,16 @@ static void runAudioVisualBridge() {
     initAudioVisualBridge();
     audioVisualBridge->runFrame();
 
-    if (audioVisualBridge->pipelineRefreshRequested()) {
-        initVideoPipeline();
-        VideoPipelineFactory factory;
-        factory.refresh(*videoPipeline, videoPipelineSequence);
-        audioVisualBridge->clearPipelineRefreshRequest();
+    if (audioVisualBridge->filterchainRefreshRequested()) {
+        initVideoFilterchain();
+        VideoFilterchainFactory factory;
+        factory.refresh(*videoFilterchain, videoFilterchainSequence);
+        audioVisualBridge->clearFilterchainRefreshRequest();
     }
 }
 
-static void runVideoPipeline() {
-    initVideoPipeline();
+static void runVideoFilterchain() {
+    initVideoFilterchain();
 
     VideoFrameContext context;
     context.audioFrame = audioFrameCurrent();
@@ -111,11 +111,11 @@ static void runVideoPipeline() {
     context.now = now;
     context.deltaT = deltaT;
 
-    CTH_TRACE("running pipeline=%p modules=%d\n", "visual runtime",
-        videoPipeline, videoPipeline ? videoPipeline->size() : 0);
-    CthughaBuffer* buffer = videoDirector().configurePipeline(*videoPipeline);
+    CTH_TRACE("running filterchain=%p filters=%d\n", "video runtime",
+        videoFilterchain, videoFilterchain ? videoFilterchain->size() : 0);
+    CthughaBuffer* buffer = videoDirector().configureFilterchain(*videoFilterchain);
     if (buffer != NULL)
-        videoPipeline->run(*buffer, context);
+        videoFilterchain->run(*buffer, context);
 }
 
 void sig_tty_cont(int);
@@ -143,7 +143,7 @@ void deleter() {
     delete cthughaDisplay;
     audioRuntimeShutdown();
     delete cdPlayer;
-    shutdownVideoPipeline();
+    shutdownVideoFilterchain();
     shutdownSceneRuntime();
 }
 
@@ -259,7 +259,7 @@ void run(int doDisplay) {
         frameTiming[3] = getTime();
 
     PROFILING();
-    runVideoPipeline();
+    runVideoFilterchain();
     if (traceFrameTiming)
         frameTiming[4] = getTime();
 

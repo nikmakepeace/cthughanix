@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "Flashlight.h"
 #include "FramePalette.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 #include "display.h"
 #include "imath.h"
 

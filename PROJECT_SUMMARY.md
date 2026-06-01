@@ -21,7 +21,7 @@ audio source -> AudioRuntime / AudioFrame
              -> AudioProcessor
              -> AudioAnalyzer / AcousticContext
              -> AutoChanger
-             -> VideoPipeline
+             -> VideoFilterchain
              -> CthughaDisplay
              -> DisplayDevice frontend
 ```
@@ -33,7 +33,7 @@ runs, in order:
 CthughaDisplay::nextFrame()
 audioFrameTick()
 AudioVisualBridge::runFrame()
-VideoPipeline::run()
+VideoFilterchain::run()
 CthughaDisplay::operator()()  # when the frontend asks run() to draw
 CDPlayer::operator()()
 deferred suspend handling
@@ -92,10 +92,10 @@ Audio and visual control are separated:
   rolling intensity/fire state for effects and automatic changes.
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.
-- `VideoPipeline` is the visual-stage executor. One-shot indexed image overlay,
+- `VideoFilterchain` is the visual-stage executor. One-shot indexed image overlay,
   border, flame, translate, wave, frame commit, palette smoothing, and
-  flashlight run as explicit modules. `VideoDirector` updates those modules
-  with the selected image/effect objects. `VideoPipeline::run()` builds a
+  flashlight run as explicit filters. `VideoDirector` updates those filters
+  with the selected image/effect objects. `VideoFilterchain::run()` builds a
   `VideoFrame` carrying the current `CthughaBuffer`, frame context, and display
   palette, then passes that frame through each enabled stage.
 - `ColorPalette` is the palette data object wrapped by `PaletteEntry`; the
@@ -107,9 +107,9 @@ Audio and visual control are separated:
   `AudioInput`, `AudioOutput`, and `AudioInputProcessor`.
 - Audio-to-visual seam: `AudioFrame`, `AudioProcessor`, `AudioAnalyzer`, and
   `AudioVisualBridge`.
-- Visual pipeline seam: `VideoDirector`, `VideoPipelineFactory`,
-  `VideoPipelineSequence`, `PipelineStageModules`, `VideoPipeline`,
-  `VideoModule`, `VideoFrame`, `VideoFrameContext`, and `CthughaBuffer`.
+- Video filterchain seam: `VideoDirector`, `VideoFilterchainFactory`,
+  `VideoFilterchainSequence`, `VideoFilters`, `VideoFilterchain`,
+  `VideoFilter`, `VideoFrame`, `VideoFrameContext`, and `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
   selection, while flame, translate, and wave execution runs through standalone
   `Flame`/`Translate`/`Wave` domain objects.
@@ -139,4 +139,4 @@ The project is portable in a transitional sense, not yet a modern clean-room
 port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer, CD-ROM
 ioctl, shell-based asset helpers, and many global singletons. Audio and visual
 work are split through explicit seams, and flame/translate/wave execution runs
-through pipeline stages, but the classic engine is still stateful and global.
+through filterchain stages, but the classic engine is still stateful and global.

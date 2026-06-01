@@ -2,7 +2,7 @@
 #include "AudioFrame.h"
 #include "Border.h"
 #include "CthughaBuffer.h"
-#include "VideoPipeline.h"
+#include "VideoFilterchain.h"
 #include "cth_buffer.h"
 
 static CoreOptionEntry* border_entries[]
