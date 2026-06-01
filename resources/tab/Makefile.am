@@ -22,20 +22,15 @@ cmd_downspiral_LDADD = -lm
 cmd_randswirls_SOURCES = cmd_randswirls.c
 cmd_randswirls_LDADD = -lm
 
-cmdRead_SOURCES = cmdRead.cc
-cmdRead_LDADD = -lm
-
-
 # call this noinst, because it gets installed manually
 noinst_PROGRAMS = cmd_huricn cmd_smoke cmd_space cmd_gentable 		\
-		  cmd_bighalfwheel cmd_downspiral cmdRead		\
+		  cmd_bighalfwheel cmd_downspiral			\
 		  cmd_randswirls
 
 noinst_DATA = 	randswirls.cmd						\
 		bighalfwheel.cmd  hurricane.cmd     space-fast.cmd	\
 		downspiral.cmd    rotate.cmd        space-slow.cmd	\
-		gentable.cmd      smoke.cmd         yin-yang.cmd	\
-		cmdRead.cmd
+		gentable.cmd      smoke.cmd         yin-yang.cmd
 
 
 
@@ -49,8 +44,7 @@ install-data-local: ${noinst_PROGRAMS} ${noinst_DATA}
 EXTRA_DIST = 	randswirls.cmd						\
 		bighalfwheel.cmd  hurricane.cmd     space-fast.cmd	\
 		downspiral.cmd    rotate.cmd        space-slow.cmd	\
-		gentable.cmd      smoke.cmd         yin-yang.cmd	\
-		cmdRead.cmd
+		gentable.cmd      smoke.cmd         yin-yang.cmd
 
 
 dist-hook:

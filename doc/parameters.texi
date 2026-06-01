@@ -261,16 +261,6 @@ fast enough.
 @item --stretch
 Allow stretching of translation tables to fit buffer size.
 
-@item --load-on-demand
-Create and load translation tables only when they are needed. 
-Only one translation table is kept in memory. 
-
-@item --load-late
-Load the translation tables only when they are needed. 
-Once a translation table is loaded, it is kept in memory, so
-each translation
-table is loaded only once. This can save a lot of time when starting Cthugha.
-
 @item --images
 Enable usage of indexed image files. This is the default.
 

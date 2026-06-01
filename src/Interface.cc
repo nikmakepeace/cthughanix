@@ -13,6 +13,7 @@
 #include "Scene.h"
 #include "VisualDirector.h"
 #include "flames.h"
+#include "translate.h"
 #include "waves.h"
 
 #include <ctype.h>
@@ -228,9 +229,8 @@ void Interface::display() {
 
     if (showStatus) {
         static char str[512];
-        sprintf(str, "%s%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
-            (autoChanger != NULL) ? autoChanger->status() : "",
-            CthughaBuffer::buffer.translate.status());
+        sprintf(str, "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
+            (autoChanger != NULL) ? autoChanger->status() : "");
 
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
     }
@@ -488,7 +488,7 @@ public:
                 &border, SceneOptionBorder);
             elements[4]
                 = new InterfaceElementSceneCoreOption("Translate (t,T)       : %s",
-                    &CthughaBuffer::buffer.translate, SceneOptionTranslate);
+                    &translation, SceneOptionTranslate);
             elements[5] = new InterfaceElementSceneCoreOption("Wave (w)              : %s",
                 &wave, SceneOptionWave);
             elements[6]
@@ -512,14 +512,13 @@ public:
     }
 
     void preRun() {
-        CthughaBuffer& b = *CthughaBuffer::current;
 #define O(i)                                                                                       \
     ((InterfaceElementOption*)elements[i])->opt                                                    \
         = ((InterfaceElementCoreOption*)elements[i])->coreOpt
         O(1) = &flame;
         O(2) = &flameGeneral;
         O(3) = &border;
-        O(4) = &b.translate;
+        O(4) = &translation;
         O(5) = &wave;
         O(7) = &table;
         O(8) = &waveScale;

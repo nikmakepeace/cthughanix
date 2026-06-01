@@ -43,6 +43,7 @@ set(CTHUGHA_COMMON_SOURCES
     flames.cc
     FramePalette.cc
     PaletteTransition.cc
+    Translate.cc
     Wave.cc
     waves.cc
     sound_tables.cc

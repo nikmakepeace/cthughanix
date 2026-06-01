@@ -1,6 +1,5 @@
 set(CTH_TAB_DATA
     bighalfwheel.cmd
-    cmdRead.cmd
     downspiral.cmd
     gentable.cmd
     hurricane.cmd
@@ -19,7 +18,6 @@ add_executable(cmd_gentable cmd_gentable.c imath.c)
 add_executable(cmd_bighalfwheel cmd_bighalfwheel.c imath.c)
 add_executable(cmd_downspiral cmd_downspiral.c imath.c)
 add_executable(cmd_randswirls cmd_randswirls.c)
-add_executable(cmdRead cmdRead.cc)
 
 foreach(tool
         cmd_huricn
@@ -28,8 +26,7 @@ foreach(tool
         cmd_gentable
         cmd_bighalfwheel
         cmd_downspiral
-        cmd_randswirls
-        cmdRead)
+        cmd_randswirls)
     target_include_directories(${tool} PRIVATE ${CMAKE_BINARY_DIR}/src)
     target_link_libraries(${tool} PRIVATE m)
     install(TARGETS ${tool} RUNTIME DESTINATION ${CTH_DATA_DIR}/tab)

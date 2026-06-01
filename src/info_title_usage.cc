@@ -135,9 +135,6 @@ void usage() {
     PH("                     or a special size in the form: WIDTHxHEIGHT.");
     PH(" --no-trans          Disable translation tables");
     PH(" --stretch           Allow stretching of translation tables to fit", trans_stretch.text());
-    PH(" --load-on-demand    Load translation tables only when needed", transLoadOnDemand.text());
-    PH(" --load-late         Load translation tables when Cthugha is running",
-        transLoadLate.text());
     PH(" --images            Enable indexed image files (default)");
     PH(" --no-images         Disable indexed image files");
     PH(" --palette-smoothing F  Chance palette changes smooth, 0..1", "1");

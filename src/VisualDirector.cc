@@ -148,8 +148,8 @@ void VisualDirector::applySceneToPipeline(unsigned int changes) {
 
     TranslateStageModule* translateModule
         = stageModule<TranslateStageModule>(*pipeline, VisualPipelineSequence::TranslateStage);
-    if (translateModule != 0)
-        translateModule->setTranslate(settings.translate, settings.translateIndex);
+    if (translateModule != 0 && (changes & SceneTranslationChanged))
+        translateModule->setTranslate(settings.translationTable);
 
     WaveStageModule* waveModule
         = stageModule<WaveStageModule>(*pipeline, VisualPipelineSequence::WaveStage);

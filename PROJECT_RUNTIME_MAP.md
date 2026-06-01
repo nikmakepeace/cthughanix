@@ -67,7 +67,8 @@ pause/suspend handling
 The visual frame loop is cooperative. File playback now uses the modern audio
 runtime; Pulse output owns its feed through its write callback, and decoded PCM
 is shared with the visual engine through `AudioBuffer`/`AudioFrameBuilder`.
-Translation-table load-on-demand can still spawn helper commands.
+Translation-table helper commands run during startup so the frame loop receives
+ready tables.
 
 ### Frontend Event Loops
 
@@ -253,12 +254,11 @@ FlashlightVisualModule
 when `VisualDirector` arms the one-shot image stage. PCX and indexed PNG files
 are decoded into that domain object before the frame loop. Before each frame,
 `VisualDirector` updates the stage modules with the selected image, selected
-flame, general-flame value, translate provider, wave, and border mode.
+flame, general-flame value, prepared translation object, wave, and border mode.
 `VisualPipeline::run()` then passes the same `CthughaBuffer&` through each
 enabled stage.
 
-Current limitation: translate selection still lives on the compatibility
-`CthughaBuffer::current` path. Image selection has moved to `VisualDirector`.
+Image and translate selection now flow through `VisualDirector`.
 
 ### Flashlight
 
@@ -294,8 +294,7 @@ FlameStageModule
   execute the selected Flame against the frame buffer
 
 TranslateStageModule
-  ask the selected TranslateOption to prepare/load a TranslateEntry
-  TranslateEntry::execute(buffer, context) when ready
+  execute the bound Translate object with its ready table
 
 WaveStageModule
   execute the selected Wave against the frame buffer

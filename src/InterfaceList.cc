@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "VisualDirector.h"
 #include "flames.h"
+#include "translate.h"
 #include "waves.h"
 
 //
@@ -153,8 +154,7 @@ InterfaceList interfaceList1("Flame", "Select Flame", &flame);
 
 InterfaceList interfaceList2("Border", "Select Border of Buffer", &border);
 
-InterfaceList interfaceList3(
-    "Translate", "Select Translation Table", &(CthughaBuffer::buffer.translate));
+InterfaceList interfaceList3("Translate", "Select Translation Table", &translation);
 
 InterfaceList interfaceList4("Wave", "Select Wave", &wave);
 

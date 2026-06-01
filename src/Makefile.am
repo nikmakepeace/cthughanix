@@ -15,7 +15,7 @@ GENSRC = Option.cc OptionInt.cc CoreOption.cc CoreOptionEntry.cc	\
 
 DISPSRC = $(GENSRC)							\
 	palettes.cc pcx.cc png.cc			\
-	Flame.cc flames.cc FramePalette.cc PaletteTransition.cc Wave.cc waves.cc sound_tables.cc	\
+	Flame.cc flames.cc FramePalette.cc PaletteTransition.cc Translate.cc Wave.cc waves.cc sound_tables.cc	\
 	translate.cc 	 AudioProcessor.cc \
 	CthughaBuffer.cc initExitDisp.cc	\
 	Flashlight.cc  InterfaceHelp.cc 
@@ -39,7 +39,7 @@ noinst_HEADERS = 	\
 	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       Settings.h RuntimeFactory.h  Scene.h Screenshot.h PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VisualPipeline.h VisualPipelineSequence.h VisualPipelineFactory.h PipelineStageModules.h VisualDirector.h Flame.h flames.h FramePalette.h PaletteTransition.h Wave.h Image.h          pcx.h png.h		\
         CDPlayer.h        Mixer.h  \
 	CoreOption.h      AudioProcessor.h    Border.h          ColorPalette.h Flashlight.h      imath.h           tab_header.h	\
-	CthughaBuffer.h   information.h     translate.h	\
+	CthughaBuffer.h   information.h     Translate.h TranslationTable.h translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\
 	Option.h          disp-sys.h        xcthugha.h	\

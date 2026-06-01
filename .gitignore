@@ -83,7 +83,6 @@ core.*
 /src/cthugha-server
 /src/tabheader
 /src/tabinfo
-/resources/tab/cmdRead
 /resources/tab/cmd_bighalfwheel
 /resources/tab/cmd_downspiral
 /resources/tab/cmd_gentable

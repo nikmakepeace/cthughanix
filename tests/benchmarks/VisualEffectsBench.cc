@@ -1,6 +1,7 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "Flame.h"
+#include "Translate.h"
 #include "VisualPipeline.h"
 #include "imath.h"
 #include "translate.h"
@@ -438,25 +439,26 @@ void createTranslationEntries() {
     const char* names[] = { "identity", "mirror-x", "mirror-y", "random" };
 
     for (size_t s = 0; s < sizeof(names) / sizeof(names[0]); s++) {
-        TranslateEntry* entry = new TranslateEntry(names[s], names[s]);
-        entry->trans = new int[visiblePixels()];
+        std::vector<int> table(visiblePixels());
 
         uint32_t random = 0x9e3779b9u;
         for (int y = 0; y < config().height; y++) {
             for (int x = 0; x < config().width; x++) {
                 int index = y * config().width + x;
                 if (strcmp(names[s], "mirror-x") == 0)
-                    entry->trans[index] = y * config().width + (config().width - 1 - x);
+                    table[index] = y * config().width + (config().width - 1 - x);
                 else if (strcmp(names[s], "mirror-y") == 0)
-                    entry->trans[index] = (config().height - 1 - y) * config().width + x;
+                    table[index] = (config().height - 1 - y) * config().width + x;
                 else if (strcmp(names[s], "random") == 0) {
                     random = random * 1664525u + 1013904223u;
-                    entry->trans[index] = (int)(random % visiblePixels());
+                    table[index] = (int)(random % visiblePixels());
                 } else
-                    entry->trans[index] = index;
+                    table[index] = index;
             }
         }
 
+        TranslateEntry* entry = new TranslateEntry(names[s], names[s],
+            table, config().width, config().height);
         translateEntries.push_back(entry);
     }
 }
@@ -502,18 +504,19 @@ static void BM_Flame(benchmark::State& state, const Flame* flame,
     setCommonCounters(state);
 }
 
-static void BM_TranslateEntry(benchmark::State& state, TranslateEntry* translate,
+static void BM_TranslateEntry(benchmark::State& state, TranslateEntry* entry,
     const BufferFixture* fixture) {
     initializeVisualBenchmarks();
 
     VisualFrameContext context;
+    Translate translate(entry->table());
 
     for (auto _ : state) {
         state.PauseTiming();
         resetForTranslate(*fixture);
         state.ResumeTiming();
 
-        translate->execute(*CthughaBuffer::current, context);
+        translate.execute(*CthughaBuffer::current, context);
         benchmark::DoNotOptimize(CthughaBuffer::current->activePixels()[0]);
         benchmark::ClobberMemory();
     }

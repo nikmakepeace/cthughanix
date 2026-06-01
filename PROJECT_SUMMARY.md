@@ -112,9 +112,8 @@ Audio and visual control are now separated:
   `VisualPipelineSequence`, `PipelineStageModules`, `VisualPipeline`,
   `VisualModule`, `VisualFrameContext`, and `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
-  selection, while flame and wave execution now runs through standalone
-  `Flame`/`Wave` domain objects and translate still runs through prepared
-  `TranslateEntry` objects.
+  selection, while flame, translate, and wave execution now runs through
+  standalone `Flame`/`Translate`/`Wave` domain objects.
 - Display frontend seam: `DisplayDevice` plus the X11 `CthughaDisplay`
   subclass.
 - Asset seams: `.map` palettes, `.pcx`/`.pcx.gz`/indexed `.png` images, `.cmd` table

@@ -130,9 +130,6 @@ struct option long_options[] = {
     { "use-object", 0, &use_objects.value, 1 }, { "trans", 0, &use_translates.value, 1 },
     { "no-trans", 0, &use_translates.value, 0 }, { "stretch", 0, &trans_stretch.value, 1 },
     { "no-stretch", 0, &trans_stretch.value, 0 },
-    { "load-on-demand", 0, &transLoadOnDemand.value, 1 },
-    { "no-load-on-demand", 0, &transLoadOnDemand.value, 0 },
-    { "load-late", 0, &transLoadLate.value, 1 }, { "no-load-late", 0, &transLoadLate.value, 0 },
     { "table", 1, 0, 'a' }, { "border", 1, 0, opt_border },
 
 // display options
@@ -197,7 +194,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 't':
-        CthughaBuffer::buffer.translate.setInitialEntry(str);
+        translation.setInitialEntry(str);
         break;
 
     case 'w':

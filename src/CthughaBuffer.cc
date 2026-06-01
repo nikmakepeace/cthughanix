@@ -7,19 +7,15 @@
 #include "flames.h"
 #include "imath.h"
 
-int CthughaBuffer::nInit = 0;
 CthughaBuffer CthughaBuffer::buffer;
 
 CthughaBuffer* CthughaBuffer::current = &CthughaBuffer::buffer;
 
 CthughaBuffer::CthughaBuffer()
-    : translate(CthughaBuffer::nInit, "translate")
-    , activeBuffer(0)
+    : activeBuffer(0)
     , passiveBuffer(0)
     , widthValue(160)
-    , heightValue(100) {
-    nInit++;
-}
+    , heightValue(100) { }
 
 int CthughaBuffer::width() const {
     return widthValue;
@@ -76,7 +72,7 @@ void CthughaBuffer::initAll() {
     if (init_flames())
         exit(0);
 
-    if (init_translate())
+    if (init_translate(buffer))
         exit(0);
 
     if (init_wave())

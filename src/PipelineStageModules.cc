@@ -7,7 +7,6 @@
 #include "PipelineStageModules.h"
 #include "cth_buffer.h"
 #include "display.h"
-#include "translate.h"
 #include "Wave.h"
 
 ImageStageModule::ImageStageModule()
@@ -79,21 +78,15 @@ void FlameStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& 
 }
 
 TranslateStageModule::TranslateStageModule()
-    : translate(0)
-    , translateIndex(0) { }
+    : translate() { }
 
-void TranslateStageModule::setTranslate(TranslateOption* translate_, int translateIndex_) {
-    translate = translate_;
-    translateIndex = translateIndex_;
+void TranslateStageModule::setTranslate(const TranslationTable& table) {
+    translate = Translate(table);
 }
 
 void TranslateStageModule::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
     CTH_TRACE("executing translate stage\n", "visual pipeline");
-    TranslateEntry* entry = NULL;
-    if (translate != 0
-        && translate->prepareEntry(translateIndex, entry) == 0
-        && entry != NULL)
-        entry->execute(buffer, context);
+    translate.execute(buffer, context);
 }
 
 WaveStageModule::WaveStageModule()

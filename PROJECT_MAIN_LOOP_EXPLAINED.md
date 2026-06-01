@@ -349,8 +349,8 @@ Important limitation: this is not the final inversion-of-control shape yet.
 `VisualDirector` now injects selected values into stage modules, and the
 pipeline effect path no longer uses the old active/passive macros or a
 frame-buffer binding adapter. The remaining coupling is the
-`CthughaBuffer::current` compatibility pointer still used by translate and some
-display code around the pipeline.
+`CthughaBuffer::current` compatibility pointer still used by some display code
+around the pipeline.
 
 ## 14. Step 4a: Flashlight
 
@@ -392,8 +392,7 @@ FlameStageModule
   execute bound Flame objects
 
 TranslateStageModule
-  let bound TranslateOption providers prepare/load tables
-  execute TranslateEntry objects when ready
+  execute the bound Translate object
 
 WaveStageModule
   execute the selected Wave with the current scale, table, and object
@@ -439,12 +438,11 @@ which source pixel to read:
 dst_pixel[i] = src_pixel[translation_table[i]]
 ```
 
-Loading is in `src/translate.cc::init_translate()` and
-`TranslateOption::prepareCurrentEntry()`. `.cmd` files can generate tables with
-helper programs, and `.tab` files can be loaded directly. Tables can be loaded
-on demand. That loading/caching work belongs to the option/provider side; the
-selected `TranslateEntry::execute(buffer, context)` just applies a ready
-translation table.
+Loading is in `src/translate.cc::init_translate()`. `.cmd` files generate
+tables with helper programs, and `.tab` files can be loaded directly. By the
+time the visualizer runs, selected translations are ready tables. `VisualDirector`
+constructs a `Translate` executor for the selected entry and binds it into the
+translate stage.
 Flames no longer fold translation into their own loops; translate runs as a
 dedicated pipeline stage.
 
@@ -651,8 +649,8 @@ If you want to step through one frame in your editor:
 16. Step into `src/Border.cc::apply_border()`.
 17. Step through `FlameStageModule`, then jump to the current flame entry in
    `src/flames.cc`.
-18. Step through `TranslateStageModule`; if a table is ready, jump to
-   `src/translate.cc::TranslateEntry::execute()`.
+18. Step through `TranslateStageModule`, then jump to
+   `src/translate.cc::Translate::execute()`.
 19. Step through `WaveStageModule`, then jump through the current `Wave` in
    `src/Wave.cc` into its drawing function in `src/waves.cc`.
 20. Step through `FrameCommitModule` to see the active/passive swap.

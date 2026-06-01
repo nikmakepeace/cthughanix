@@ -18,7 +18,7 @@ SceneSettings::SceneSettings()
     , generalFlame(0)
     , wave(0)
     , waveConfig()
-    , translate(0)
+    , translationTable()
     , translateIndex(0)
     , palette(0)
     , paletteIndex(0)
@@ -76,7 +76,7 @@ unsigned int Scene::compareSettings(const SceneSettings& settings) const {
         || !settingsValue.waveConfig.sameAs(settings.waveConfig))
         changes |= SceneWaveChanged;
 
-    if ((settingsValue.translate != settings.translate)
+    if (!settingsValue.translationTable.sameTable(settings.translationTable)
         || (settingsValue.translateIndex != settings.translateIndex))
         changes |= SceneTranslationChanged;
 
@@ -171,9 +171,9 @@ SceneSettings SceneCommands::settingsFromOptions() {
     settings.tableName = table.currentName();
     settings.objectName = object.currentName();
 
-    settings.translate = &buffer.translate;
-    settings.translateIndex = buffer.translate.currentN();
-    settings.translationName = buffer.translate.currentName();
+    settings.translationTable = translation.currentTranslationTable();
+    settings.translateIndex = translation.currentN();
+    settings.translationName = translation.currentName();
 
     settings.palette = palette.currentPaletteEntry();
     settings.paletteIndex = palette.currentN();
@@ -217,7 +217,7 @@ int SceneCommands::isSceneOption(const CoreOption& option) const {
         || (&option == &wave)
         || (&option == &waveScale)
         || (&option == &object)
-        || (&option == &buffer.translate)
+        || (&option == &translation)
         || (&option == &border)
         || (&option == &flashlight)
         || (&option == &palette)
@@ -259,8 +259,8 @@ void SceneCommands::changeWaveScale(int by) { change(waveScale, by, 0); }
 void SceneCommands::changeWaveScale(const char* to) { change(waveScale, to, 0); }
 void SceneCommands::changeObject(int by) { change(object, by, 0); }
 void SceneCommands::changeObject(const char* to) { change(object, to, 0); }
-void SceneCommands::changeTranslation(int by) { change(buffer.translate, by, 0); }
-void SceneCommands::changeTranslation(const char* to) { change(buffer.translate, to, 0); }
+void SceneCommands::changeTranslation(int by) { change(translation, by, 0); }
+void SceneCommands::changeTranslation(const char* to) { change(translation, to, 0); }
 void SceneCommands::changeBorder(int by) { change(border, by, 0); }
 void SceneCommands::changeBorder(const char* to) { change(border, to, 0); }
 void SceneCommands::changeFlashlight(int by) { change(flashlight, by, 0); }

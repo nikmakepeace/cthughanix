@@ -4,6 +4,7 @@
 #define __SCENE_H
 
 #include "Wave.h"
+#include "TranslationTable.h"
 
 #include <vector>
 
@@ -13,7 +14,6 @@ class Flame;
 class ImageOption;
 class IndexedImage;
 class PaletteEntry;
-class TranslateOption;
 class Wave;
 
 enum SceneChange {
@@ -39,7 +39,7 @@ public:
     Wave* wave;
     WaveConfig waveConfig;
 
-    TranslateOption* translate;
+    TranslationTable translationTable;
     int translateIndex;
 
     PaletteEntry* palette;

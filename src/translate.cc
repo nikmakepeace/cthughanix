@@ -6,22 +6,15 @@
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
 #include <stdint.h>
 #include <vector>
 
 OptionOnOff use_translates("use-translate", 1); /* allow translations */
 OptionOnOff trans_stretch("stretching", 1); /* allow stretching */
 
-OptionOnOff transLoadOnDemand("load-on-demand", 1);
-OptionOnOff transLoadLate("load-late", 1);
-
 static CoreOptionEntry* _trans[] = { new TranslateEntry("none", "No Translate") };
 static CoreOptionEntryList translateEntries(_trans, 1);
+TranslateOption translation(-1, "translate");
 
 char lib_size[512];
 static const char* translate_path[] = { "./", "./resources/tab/", lib_size, CTH_LIBDIR "/tab/", "" };
@@ -29,28 +22,42 @@ static const char* translate_path[] = { "./", "./resources/tab/", lib_size, CTH_
 /*
  * Initialize the translate-tables.
  */
-int init_translate() {
+int init_translate(const CthughaBuffer& buffer) {
 
     if (use_translates) {
 
         CTH_INFO("  loading translation tables...\n");
 
-        if (transLoadLate)
-            transLoadOnDemand.setValue(1);
-
-        CthughaBuffer& buffer = CthughaBuffer::buffer;
         sprintf(lib_size, CTH_LIBDIR "/tab/%dx%d/", buffer.width(), buffer.height());
 
-        buffer.translate.load(
-            translate_path, "/tab/", ".cmd", TranslateEntry::loaderCmd);
-        buffer.translate.load(
-            translate_path, "/tab/", ".tab", TranslateEntry::loaderTab);
+        TranslateLoadTarget target(buffer.width(), buffer.height());
+        translation.load(translate_path, "/tab/", ".cmd", TranslateEntry::loaderCmd, &target);
+        translation.load(translate_path, "/tab/", ".tab", TranslateEntry::loaderTab, &target);
 
         CTH_INFO("  number of loaded translates: %d\n",
-            buffer.translate.getNEntries());
+            translation.getNEntries());
     }
 
     return 0;
+}
+
+void TranslateEntry::setTable(const int* table, int count, int width, int height) {
+    if (table == 0 || count <= 0) {
+        tableData.clear();
+        widthValue = 0;
+        heightValue = 0;
+        return;
+    }
+
+    tableData.assign(table, table + count);
+    widthValue = width;
+    heightValue = height;
+}
+
+void TranslateEntry::setTable(std::vector<int>& table, int width, int height) {
+    tableData.swap(table);
+    widthValue = width;
+    heightValue = height;
 }
 
 //
@@ -117,25 +124,25 @@ static int* read_trans_data(FILE* file, const tab_header& header, int BSize, con
 }
 
 static int* stretch_trans(const int* src, const tab_header& header,
-    const CthughaBuffer& buffer) {
+    const TranslateLoadTarget& target) {
     double xs, ys;
     int x, y, tp, ox, oy, dx, dy;
     int i, j;
 
     CTH_DEBUG(" ... stretching");
 
-    int* dst = new int[buffer.size()];
+    int* dst = new int[target.size];
 
-    xs = (double)header.size_x / buffer.width();
-    ys = (double)header.size_y / buffer.height();
+    xs = (double)header.size_x / target.width;
+    ys = (double)header.size_y / target.height;
 
-    for (j = 0; j < buffer.height(); j++) {
+    for (j = 0; j < target.height; j++) {
 
         y = int((double)j * ys);
         if (y >= header.size_y)
             y = header.size_y - 1;
 
-        for (i = 0; i < buffer.width(); i++) {
+        for (i = 0; i < target.width; i++) {
 
             x = int((double)i * xs);
             if (x >= header.size_x)
@@ -146,18 +153,21 @@ static int* stretch_trans(const int* src, const tab_header& header,
             oy = tp / header.size_x;
             dx = int((double)(ox - x) / xs);
             dy = int((double)(oy - y) / ys);
-            dst[i + j * buffer.width()] = abs(i + dx + (j + dy) * buffer.width()) % buffer.size();
+            dst[i + j * target.width] = abs(i + dx + (j + dy) * target.width) % target.size;
         }
     }
     return dst;
 }
 
 CoreOptionEntry* TranslateEntry::loaderTab(
-    FILE* file, const char* name, const char* dir, const char* total_name) {
+    FILE* file, const char* name, const char* dir, const char* total_name, void* context) {
+    (void)dir;
+    (void)total_name;
+
     tab_header header;
 
-    CthughaBuffer& buffer = *CthughaBuffer::current;
-    int BSize = buffer.size();
+    const TranslateLoadTarget& target = *static_cast<const TranslateLoadTarget*>(context);
+    int BSize = target.size;
     int stretch = 0;
     TranslateEntry* new_trans;
 
@@ -174,15 +184,15 @@ CoreOptionEntry* TranslateEntry::loaderTab(
         rewind(file); // back to start of file
 
         /* fill in header */
-        header.size_x = buffer.width();
-        header.size_y = buffer.height();
+        header.size_x = target.width;
+        header.size_y = target.height;
 
         new_trans = new TranslateEntry(name, "");
     } else {
         /* ID OK - now test size */
-        if ((header.size_x != buffer.width()) || (header.size_y != buffer.height())) {
+        if ((header.size_x != target.width) || (header.size_y != target.height)) {
             CTH_WARN("\n    Size mismatch (%dx%d instead of %dx%d)", header.size_x, header.size_y,
-                buffer.width(), buffer.height());
+                target.width, target.height);
             if (int(trans_stretch)) { /* allow stretching */
                 stretch = 1;
             } else {
@@ -201,17 +211,6 @@ CoreOptionEntry* TranslateEntry::loaderTab(
         new_trans = new TranslateEntry(name, header.description);
     }
 
-    if (transLoadOnDemand) {
-        if (TranslateEntry::cmdRead[0] == '\0') {
-            CTH_ERROR("Could not find 'cmdRead'. Can not load .tab files on demand.\n");
-            transLoadOnDemand.setValue(0);
-        } else {
-            sprintf(new_trans->command, TranslateEntry::cmdRead, total_name);
-            new_trans->trans = NULL;
-            return new_trans;
-        }
-    }
-
     /* read data */
     int* trans = read_trans_data(file, header, BSize, name);
     if (trans == NULL) {
@@ -221,10 +220,14 @@ CoreOptionEntry* TranslateEntry::loaderTab(
 
     /* do the stretching if necessary (from: Rus Maxham) */
     if (stretch) {
-        new_trans->trans = stretch_trans(trans, header, buffer);
+        int* stretched = stretch_trans(trans, header, target);
+        new_trans->setTable(stretched, target.size, target.width, target.height);
+        delete[] stretched;
         delete[] trans;
-    } else
-        new_trans->trans = trans;
+    } else {
+        new_trans->setTable(trans, BSize, target.width, target.height);
+        delete[] trans;
+    }
 
     return new_trans;
 }
@@ -236,13 +239,40 @@ CoreOptionEntry* TranslateEntry::loaderTab(
  *  <commd> [args] %d %d
  */
 #define MAX_DESC_LEN 64
+
+static int read_generated_trans_data(
+    FILE* in, const TranslateLoadTarget& target, std::vector<int>& trans, const char* name) {
+    trans.assign(target.size, 0);
+    std::vector<uint32_t> line(target.width);
+
+    for (int y = 0; y < target.height; y++) {
+        if (fread(&line[0], sizeof(uint32_t), target.width, in) != (size_t)target.width) {
+            CTH_ERRNO(errno, "  reading translation table %s. failed at line %d.", name, y);
+            return 1;
+        }
+
+        int* dst = &trans[target.width * y];
+        for (int x = 0; x < target.width; x++, dst++) {
+            if (line[x] >= (uint32_t)target.size) {
+                CTH_ERROR("  illegal value in translation table %s.\n", name);
+                return 1;
+            }
+            *dst = (int)line[x];
+        }
+    }
+
+    return 0;
+}
+
 CoreOptionEntry* TranslateEntry::loaderCmd(
-    FILE* file, const char* name, const char* dir, const char* total_name) {
+    FILE* file, const char* name, const char* dir, const char* total_name, void* context) {
+    (void)total_name;
+
     char line[PATH_MAX];
     char command[PATH_MAX];
     FILE* cmd_file;
     TranslateEntry* new_trans;
-    CthughaBuffer& buffer = *CthughaBuffer::current;
+    const TranslateLoadTarget& target = *static_cast<const TranslateLoadTarget*>(context);
 
     /* check ID */
     fgets(line, 512, file);
@@ -269,7 +299,7 @@ CoreOptionEntry* TranslateEntry::loaderCmd(
         CTH_ERROR("  Translation command path too long in %s.\n", name);
         return NULL;
     }
-    if (snprintf(command, sizeof(command), cmd2, buffer.width(), buffer.height()) >= (int)sizeof(command)) {
+    if (snprintf(command, sizeof(command), cmd2, target.width, target.height) >= (int)sizeof(command)) {
         CTH_ERROR("  Translation command too long in %s.\n", name);
         return NULL;
     }
@@ -278,278 +308,48 @@ CoreOptionEntry* TranslateEntry::loaderCmd(
         *(strchr(command, '\n')) = '\0';
     }
 
-    //
-    // check for the helping program cmdRead
-    //
-    if (strcmp(name, "cmdRead") == 0) {
-        strncpy(TranslateEntry::cmdRead, command, PATH_MAX);
+    /* start the command */
+    CTH_DEBUG("\n    starting: %s", command);
+    if ((cmd_file = popen(command, "r")) == NULL) {
+        CTH_ERRNO(errno, "  Can't run command '%s'.\n", command);
         delete new_trans;
-        CTH_DEBUG(" (auxiliary program)\n");
         return NULL;
     }
 
-    if (transLoadOnDemand) {
-        strncpy(new_trans->command, command, PATH_MAX);
-        new_trans->trans = NULL;
-    } else {
-        /* start the command */
-        CTH_DEBUG("\n    starting: %s", command);
-        if ((cmd_file = popen(command, "r")) == NULL) {
-            CTH_ERRNO(errno, "  Can't run command '%s'.\n", command);
-            return NULL;
-        }
+    std::vector<int> generated;
 
-        new_trans->trans = new int[buffer.size()];
-
-        for (int i = 0; i < buffer.height(); i++) {
-            if (new_trans->loadLine(cmd_file, i)) {
-                delete new_trans;
-                return NULL;
-            }
-        }
-
+    if (read_generated_trans_data(cmd_file, target, generated, name)) {
         pclose(cmd_file);
+        delete new_trans;
+        return NULL;
     }
+
+    new_trans->setTable(generated, target.width, target.height);
+
+    pclose(cmd_file);
 
     return new_trans;
 }
 
-char TranslateEntry::cmdRead[PATH_MAX] = "";
-
-int TranslateEntry::loadLine(FILE* in, int n) {
-    CthughaBuffer& buffer = *CthughaBuffer::current;
-
-    // load line into temporary buffer
-    std::vector<uint32_t> line(buffer.width());
-    if (fread(&line[0], sizeof(uint32_t), buffer.width(), in) != (size_t)buffer.width()) {
-        CTH_ERRNO(errno, "  reading translation table %s. failed at line %d.", name, n);
-        return 1;
-    }
-
-    // check for errors in the line,
-    // copy into the real buffer
-    int* d = trans + buffer.width() * n;
-    for (int i = 0; i < buffer.width(); i++, d++) {
-        if (line[i] >= (uint32_t)buffer.size()) {
-            CTH_ERROR("  illegal value in translation table %s.\n", name);
-            return 1;
-        }
-        *d = (int)line[i];
-    }
-
-    return 0;
-}
-
-int TranslateEntry::operator()(CthughaBuffer& buffer) {
-    int i;
-    unsigned int* dst;
-    unsigned char* src;
-
-    if (trans == NULL)
-        return 0;
-
-    int* trans = this->trans;
-
-    buffer.swapBuffers();
-    dst = (unsigned int*)buffer.activePixels();
-    src = buffer.passivePixels();
-
-    src[0] = 0;
-
-    // thanks to Antonio Schifano (schifano@cli.di.unipi.it)
-    // for finding the endianess bug here
-
-#if (__BYTE_ORDER == __BIG_ENDIAN)
-    /* always write 4 values at once */
-    for (i = buffer.size() / 4; i != 0; i--) { /* do the translation */
-        unsigned int D = src[*trans++];
-        D <<= 8;
-        D += src[*trans++];
-        D <<= 8;
-        D += src[*trans++];
-        D <<= 8;
-        *dst++ = D + src[*trans++];
-    }
-#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
-    for (i = buffer.size() / 4; i != 0; i--) { /* do the translation */
-        unsigned int D = src[trans[0]];
-        D += src[trans[1]] << 8;
-        D += src[trans[2]] << 16;
-        *dst = D + (src[trans[3]] << 24);
-        trans += 4;
-        dst++;
-    }
-// #elif
-// #error unknown endianess
-#endif
-
-    return 0;
-}
-
-void TranslateEntry::execute(CthughaBuffer& buffer, const VisualFrameContext& context) {
-    (void)context;
-
-    operator()(buffer);
-}
-
 TranslateOption::TranslateOption(int buffer, const char* name)
-    : CoreOption(buffer, name, translateEntries)
-    , lodCommonTrans(NULL)
-    , lodPipe(NULL)
-    , lodPID(0)
-    , lodLine(-1)
-    , lodCurrent(-1) { }
+    : CoreOption(buffer, name, translateEntries) { }
 
-int TranslateOption::openPipe(const char* command) {
-
-    int pipeDes[2];
-    if (pipe(pipeDes)) {
-        CTH_ERRNO(errno, "Can not create pipe.");
-        return 1;
-    }
-
-    switch (lodPID = fork()) {
-    case -1:
-        CTH_ERRNO(errno, "Can not fork for translation reading program.");
-        return 1;
-    case 0: {
-        close(pipeDes[0]); // close writing side of pipe
-
-        nice(99); // be very nice
-
-        // wait until the parent is ready for reading
-        fd_set wfds;
-        FD_ZERO(&wfds);
-        FD_SET(pipeDes[1], &wfds);
-        select(FD_SETSIZE, NULL, &wfds, NULL, NULL);
-
-        dup2(pipeDes[1], fileno(stdout)); // make new stdout
-
-        char sh[] = "sh";
-        char flag[] = "-c";
-        char* argv[4];
-        argv[0] = sh;
-        argv[1] = flag;
-        argv[2] = (char*)command;
-        argv[3] = 0;
-        execv("/bin/sh", argv);
-
-        CTH_ERRNO(errno, "Could not execute translation table program.");
-        close(pipeDes[0]);
-        abort();
-    }
-
-    default:
-        close(pipeDes[1]); // close reading side of pipe
-        if ((lodPipe = fdopen(pipeDes[0], "r")) == NULL) {
-            CTH_ERRNO(errno, "Can not associate FILE to pipe.");
-            return 1;
-        }
-    }
-    return 0;
-}
-int TranslateOption::prepareEntry(int index, TranslateEntry*& entry) {
-    entry = NULL;
-
+TranslateEntry* TranslateOption::translateEntry(int index) {
     if ((index < 0) || (index >= getNEntries()))
-        return 0;
+        return NULL;
 
-    TranslateEntry* current = (TranslateEntry*)(entries[index]);
-
-    //
-    // do load on demand
-    //
-
-    // initialize the common translation table
-    if (lodCommonTrans == NULL) {
-        CthughaBuffer& buffer = *CthughaBuffer::current;
-        lodCommonTrans = new int[buffer.size()];
-        for (int i = 0; i < buffer.size(); i++)
-            lodCommonTrans[i] = i;
-    }
-
-    // check for currently loading translation table
-    if (index != lodCurrent) {
-        lodCurrent = index;
-
-        if (lodPipe != NULL) {
-            if (lodPID > 0) {
-                kill(lodPID, 9);
-                int status;
-                waitpid(lodPID, &status, 0);
-                lodPID = 0;
-            }
-            pclose(lodPipe);
-            lodPipe = NULL;
-        }
-
-        // start a new command
-        if (current->command[0] != '\0') {
-            CTH_DEBUG("    starting: %s\n", current->command);
-            if (openPipe(current->command)) {
-                CTH_ERRNO(errno, "  Can't run command '%s'.\n", current->command);
-                return 1;
-            }
-
-            current->trans = lodCommonTrans;
-            lodLine = 0;
-        }
-
-    } else if (lodPipe != NULL) {
-
-        CthughaBuffer& buffer = *CthughaBuffer::current;
-        if (lodLine < buffer.height()) {
-            fd_set rfds;
-            FD_ZERO(&rfds);
-            FD_SET(fileno(lodPipe), &rfds);
-            struct timeval timeout;
-
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 0;
-
-            // load at most 10 lines at once, and only as long as there is
-            // some input data available
-            for (int l = 0; (l < 10) && (lodLine < buffer.height())
-                && (select(FD_SETSIZE, &rfds, NULL, NULL, &timeout) > 0);
-                l++) {
-                if (current->loadLine(lodPipe, lodLine)) {
-                    pclose(lodPipe);
-                    lodPipe = NULL;
-                    lodLine = -1;
-                    return 1;
-                }
-
-                lodLine++;
-            }
-        } else {
-            pclose(lodPipe);
-            lodPipe = NULL;
-            CTH_DEBUG("    finished loading.\n");
-
-            if (transLoadLate) {
-                // keep a copy of this translation table
-                current->trans = new int[buffer.size()];
-                memcpy(current->trans, lodCommonTrans, buffer.size() * sizeof(int));
-                // do not load again
-                current->command[0] = '\0';
-            } else {
-                current->trans = lodCommonTrans;
-            }
-        }
-    }
-
-    //
-    // do the translation
-    //
-    if (lodPipe != NULL)
-        return 0;
-
-    entry = current;
-    return 0;
+    return static_cast<TranslateEntry*>(entries[index]);
 }
 
-const char* TranslateOption::status() {
-    if (lodPipe != NULL)
-        return "loading";
-    return "";
+TranslateEntry* TranslateOption::currentTranslateEntry() {
+    return translateEntry(currentN());
+}
+
+TranslationTable TranslateOption::translationTable(int index) {
+    TranslateEntry* entry = translateEntry(index);
+    return (entry != 0) ? entry->table() : TranslationTable();
+}
+
+TranslationTable TranslateOption::currentTranslationTable() {
+    return translationTable(currentN());
 }

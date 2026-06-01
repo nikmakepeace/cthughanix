@@ -56,7 +56,6 @@ The populated `build/` directory currently contains:
 - `build/resources/tab/cmd_bighalfwheel`
 - `build/resources/tab/cmd_downspiral`
 - `build/resources/tab/cmd_randswirls`
-- `build/resources/tab/cmdRead`
 
 Major CMake options:
 

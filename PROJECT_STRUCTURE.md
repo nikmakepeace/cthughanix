@@ -45,8 +45,8 @@ boundary.
 - `src/initExitDisp.cc`: graphical frontend entry point and shared per-frame
   scheduler.
 - `src/tabheader.cc`, `src/tabinfo.cc`: installed translation-table utilities.
-- `resources/tab/cmd_*.c`, `resources/tab/cmdRead.cc`: translation-table
-  generator/reader tools used by `.cmd` descriptors.
+- `resources/tab/cmd_*.c`: translation-table generator tools used by `.cmd`
+  descriptors.
 
 There is no current server-mode source entry point in `src/`.
 
@@ -162,7 +162,7 @@ Current CMake targets:
 | `xcthugha` | X11 visualizer | Built from `CTHUGHA_COMMON_SOURCES`, X11 key/options wrappers, `display.cc`, and X11 display device/display classes. |
 | `tabheader` | Add/emit `.tab` headers | Built from `src/tabheader.cc`. |
 | `tabinfo` | Inspect `.tab` headers | Built from `src/tabinfo.cc`. |
-| `cmd_huricn`, `cmd_smoke`, `cmd_space`, `cmd_gentable`, `cmd_bighalfwheel`, `cmd_downspiral`, `cmd_randswirls`, `cmdRead` | Translation-table helpers | Built under `resources/tab/` when `CTH_BUILD_TAB_TOOLS=ON`. |
+| `cmd_huricn`, `cmd_smoke`, `cmd_space`, `cmd_gentable`, `cmd_bighalfwheel`, `cmd_downspiral`, `cmd_randswirls` | Translation-table helpers | Built under `resources/tab/` when `CTH_BUILD_TAB_TOOLS=ON`. |
 
 ### Autotools
 

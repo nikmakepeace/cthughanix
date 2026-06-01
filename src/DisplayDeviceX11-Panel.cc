@@ -13,6 +13,7 @@
 #include "CthughaDisplay.h"
 #include "flames.h"
 #include "Scene.h"
+#include "translate.h"
 #include "waves.h"
 
 #include <unistd.h>
@@ -757,7 +758,7 @@ void DisplayDeviceX11::xcth_create_panel() {
     menu[0] = add_menu("Display", &::screen, panel, quit_button, NULL);
     menu[1] = add_menu("Wave", &wave, panel, quit_button, menu[0]);
     menu[2] = add_menu("Flame", &flame, panel, quit_button, menu[1]);
-    menu[3] = add_menu("Translation", &CthughaBuffer::buffer.translate, panel, quit_button, menu[2]);
+    menu[3] = add_menu("Translation", &translation, panel, quit_button, menu[2]);
     menu[4] = add_menu("Palette", &palette, panel, quit_button, menu[3]);
     menu[5] = add_menu("Table", &table, panel, quit_button, menu[4]);
     menu[6] = add_menu("Image", &sceneCommands.imageOption(), panel, quit_button, menu[5]);

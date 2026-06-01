@@ -4,12 +4,12 @@
 #include "FramePalette.h"
 #include "Image.h"
 #include "PaletteTransition.h"
+#include "Translate.h"
 #include "VisualPipeline.h"
 #include "VisualPipelineSequence.h"
 
 class Flame;
 class PaletteEntry;
-class TranslateOption;
 class Wave;
 
 class ImageStageModule : public VisualModule {
@@ -39,13 +39,12 @@ public:
 };
 
 class TranslateStageModule : public VisualModule {
-    TranslateOption* translate;
-    int translateIndex;
+    Translate translate;
 
 public:
     TranslateStageModule();
 
-    void setTranslate(TranslateOption* translate_, int translateIndex_);
+    void setTranslate(const TranslationTable& table);
     void execute(CthughaBuffer& buffer, const VisualFrameContext& context);
 };
 

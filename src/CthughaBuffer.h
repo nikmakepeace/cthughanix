@@ -4,12 +4,9 @@
 #define __CTHUGHA_BUFFER_H
 
 #include "cthugha.h"
-#include "translate.h"
 
 class CthughaBuffer {
 public:
-    TranslateOption translate;
-
     CthughaBuffer();
 
     int width() const;
@@ -35,7 +32,6 @@ private:
 public:
     static CthughaBuffer buffer;
     static CthughaBuffer* current;
-    static int nInit;
 
     void init();
     static void initAll();

@@ -62,8 +62,8 @@ command %d %d [args]
 ```
 
 The command receives `BUFF_WIDTH` and `BUFF_HEIGHT` and writes one source-pixel
-index per destination pixel to stdout. `src/translate.cc` supports load-on-demand
-so large tables do not need to be generated at startup.
+index per destination pixel to stdout. `src/translate.cc` eagerly loads these
+tables during visual startup so the running pipeline only executes ready maps.
 
 This remains the best non-code visual effect seam.
 
@@ -160,7 +160,7 @@ smoothing, and flashlight are explicit modules. `VisualDirector`
 updates typed stage objects before each run; `FlameStageModule` owns the
 current `Flame` and general-flame value. `VisualDirector` chooses a runnable
 `Wave`, configures it with wave scale/table/object, and binds only that `Wave`
-into `WaveStageModule`. The stages execute selected `Flame`, `TranslateOption`,
+into `WaveStageModule`. The stages execute selected `Flame`, `Translate`,
 and `Wave` objects against the `CthughaBuffer&` passed through the pipeline.
 
 The next seam to improve is the remaining compatibility global. Stage entries
@@ -326,8 +326,8 @@ with safer metadata.
 - X11/MIT-SHM startup and image paths are platform-sensitive. A headless shell
   cannot even show `xcthugha --help` because X initialization happens first.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd`,
-  translation load-on-demand uses `/bin/sh -c`, and silence messages can run
-  `fortune`.
+  translation table generation uses helper commands during startup, and silence
+  messages can run `fortune`.
 - OSS and CD ioctl paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 
@@ -368,6 +368,5 @@ with safer metadata.
 - `.cmd` parser and generated command assembly.
 - `.tab` header parser and stretch behavior.
 - `Keymap::parseBinding()` with `src/default.keymap` examples.
-- Flame and wave transforms through their domain-object `execute()` paths,
-  translate transforms through prepared `TranslateEntry` paths, or all three
-  through a small harness.
+- Flame, translate, and wave transforms through their domain-object `execute()`
+  paths, or all three through a small harness.
