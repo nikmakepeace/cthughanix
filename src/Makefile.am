@@ -35,7 +35,7 @@ noinst_HEADERS = 	\
 	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       Settings.h RuntimeFactory.h  Scene.h Screenshot.h PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VideoFilterchain.h VideoFilterchainSequence.h VideoFilterchainFactory.h VideoFilters.h VideoDirector.h Flame.h flames.h FramePalette.h PaletteTransition.h Wave.h Image.h          pcx.h png.h		\
         Mixer.h  \
 	CoreOption.h      AudioProcessor.h    Border.h          ColorPalette.h Flashlight.h      imath.h	\
-	CthughaBuffer.h   information.h     Translate.h TranslateGenerator.h TranslationTable.h translate.h	\
+	CthughaBuffer.h   IndexedFrame.h    information.h     Translate.h TranslateGenerator.h TranslationTable.h translate.h	\
 	CthughaDisplay.h  cth_buffer.h      vroot.h		\
 	DisplayDevice.h   cthugha.h         keys.h            waves.h		\
 	Option.h          disp-sys.h        xcthugha.h	\

@@ -52,9 +52,9 @@ AudioVisualBridge::runFrame()
   runs AutoChanger
 
 VideoFilterchain::run()
-  runs visual-stage filters over the indexed visual buffers
+  runs visual-stage filters and publishes IndexedFrame
 
-CthughaDisplay::operator()()
+CthughaDisplay::present(IndexedFrame)
   frontend-specific display composition, when doDisplay is true
 
 pause/suspend handling
@@ -229,6 +229,7 @@ WaveStage
 FrameCommitStage
 PaletteStage
 FlashlightStage
+IndexedFrameStage
 ```
 
 `VideoFilterchainFactory::create()` in `src/VideoFilterchainFactory.cc` currently
@@ -243,6 +244,7 @@ WaveFilter
 FrameCommitFilter
 PaletteFilter
 FlashlightFilter
+IndexedFrameFilter
 ```
 
 `ImageFilter`, `FlameFilter`, `TranslateFilter`, and
@@ -251,9 +253,9 @@ when `VideoDirector` arms the one-shot image stage. PCX and indexed PNG files
 are decoded into that domain object before the frame loop. Before each frame,
 `VideoDirector` updates the stage filters with the selected image, selected
 flame, general-flame value, prepared translation object, wave, and border mode.
-`VideoFilterchain::run()` then wraps the current buffer, frame context, and
-display palette in a `VideoFrame` and passes that frame through each enabled
-stage.
+`VideoFilterchain::run()` then wraps the current buffer, frame context, display
+palette, and indexed-frame publication slot in a `VideoFrame`, then passes that
+frame through each enabled stage.
 
 Image and translate selection flow through `VideoDirector`.
 
@@ -370,7 +372,7 @@ displayDevice->setGlobalPalette()
 displayDevice->preDraw()
 choose direct or temporary indexed buffer
 checkZoom()
-screen() maps selected passive pixels into CthughaDisplay::buffer
+screen() maps selected IndexedFrame pixels into CthughaDisplay::buffer
 optional horizontal mirror
 palette expansion if target is not 8-bit indexed
 optional vertical mirror

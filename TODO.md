@@ -114,17 +114,11 @@
    - Prefer SDL2 or SDL3 as the first modern frontend.
    - Preserve the core contract: the engine produces an indexed 8-bit buffer plus a
      palette; the frontend presents it.
-   - Introduce an explicit `IndexedFrame` handoff from the video filterchain to
-     display presentation. Shape should be close to:
-     `pixels`, `width`, `height`, `pitch`, and `FramePalette`.
-   - Teach `CthughaDisplay` to consume `IndexedFrame` directly instead of discovering
-     pixels and geometry through `CthughaBuffer::current`.
-     - Replace presentation reads from `CthughaBuffer::current->passivePixels()` with
-       `IndexedFrame::pixels`.
-     - Replace presentation geometry reads from the current buffer with
-       `IndexedFrame` width/height/pitch.
-     - Allocate presentation scratch buffers lazily from the incoming frame geometry.
-     - Pass the frame palette explicitly into palette synchronization.
+   - Done: explicit `IndexedFrame` handoff from the video filterchain to display
+     presentation, carrying `pixels`, `width`, `height`, `pitch`, and `FramePalette`.
+   - Done: `CthughaDisplay` consumes `IndexedFrame` for presentation source pixels,
+     geometry, pitch, and palette synchronization.
+   - Allocate presentation scratch buffers lazily from the incoming frame geometry.
    - Keep X11 `DM_direct` as a legacy/backend optimization, not as part of the new
      shared display contract. The clean path should render screen transforms into an
      indexed presentation buffer, then palette-expand or upload into the backend's
@@ -164,14 +158,13 @@
    - `VideoFilterchain::run()` passes one explicit `VideoFrame` through each
      enabled filter. The frame carries the current `CthughaBuffer`,
      `VideoFrameContext`, and display `FramePalette`.
-   - The display path still uses `CthughaBuffer::current` for buffer geometry
-     and passive-pixel reads.
-   - Final filterchain handoff target:
-     - Add a final/export filter that exposes the committed passive buffer as an
-       `IndexedFrame`.
-     - `runVideoFilterchain()` should retain or return that `IndexedFrame` for display.
-     - `CthughaDisplay` should present that explicit frame, making the source independent
-       of `CthughaBuffer` and suitable for headless tests or future render sources.
+   - The display path receives an explicit `IndexedFrame` from the final filterchain
+     stage; presentation source pixels, geometry, pitch, and palette now flow through
+     that frame.
+   - Remaining display handoff work:
+     - Allocate/reallocate presentation scratch buffers from the incoming frame geometry.
+     - Move any artistic screen transforms that mutate indexed pixels into video filters.
+     - Keep backend-specific memory layout knowledge inside display backends.
    - Treat classic `screen` functions carefully:
      - If a screen function mutates the internal indexed frame as an artistic transform,
        it belongs in the video filterchain.

@@ -119,6 +119,7 @@ VideoFilterchainSequence VideoDirector::defaultFilterchainSequence() const {
     sequence.append(VideoFilterchainSequence::FrameCommitStage);
     sequence.append(VideoFilterchainSequence::PaletteStage);
     sequence.append(VideoFilterchainSequence::FlashlightStage);
+    sequence.append(VideoFilterchainSequence::IndexedFrameStage);
 
     CTH_DEBUG("video director: default stage sequence stages=%d\n",
         int(sequence.sequence().size()));
@@ -177,6 +178,7 @@ void VideoDirector::applySceneToFilterchain(unsigned int changes) {
     filterchain->setStageMode(VideoFilterchainSequence::WaveStage, VideoFilterEnabled);
     filterchain->setStageMode(VideoFilterchainSequence::FrameCommitStage, VideoFilterEnabled);
     filterchain->setStageMode(VideoFilterchainSequence::PaletteStage, VideoFilterEnabled);
+    filterchain->setStageMode(VideoFilterchainSequence::IndexedFrameStage, VideoFilterEnabled);
 }
 
 void VideoDirector::applyPendingImageCue() {

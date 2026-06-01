@@ -13,10 +13,11 @@ VideoFrameContext::VideoFrameContext()
 VideoFilter::~VideoFilter() { }
 
 VideoFrame::VideoFrame(CthughaBuffer& buffer_, const VideoFrameContext& context_,
-    FramePalette* framePalette_)
+    FramePalette* framePalette_, IndexedFrame* indexedFrame_)
     : bufferValue(&buffer_)
     , contextValue(&context_)
-    , framePaletteValue(framePalette_) { }
+    , framePaletteValue(framePalette_)
+    , indexedFrameValue(indexedFrame_) { }
 
 CthughaBuffer& VideoFrame::buffer() {
     return *bufferValue;
@@ -32,6 +33,15 @@ FramePalette* VideoFrame::framePalette() {
 
 const FramePalette* VideoFrame::framePalette() const {
     return framePaletteValue;
+}
+
+void VideoFrame::publishIndexedFrame(const IndexedFrame& indexedFrame) {
+    if (indexedFrameValue != 0)
+        *indexedFrameValue = indexedFrame;
+}
+
+const IndexedFrame& VideoFrame::indexedFrame() const {
+    return *indexedFrameValue;
 }
 
 static int findStageIndex(const std::vector<unsigned int>& sequence, unsigned int stage) {
@@ -58,6 +68,7 @@ void VideoFilterchain::clear() {
     filters.clear();
     sequence.clear();
     framePaletteValue = 0;
+    indexedFrameValue = IndexedFrame();
 }
 
 void VideoFilterchain::add(unsigned int stage, VideoFilter* filter, int takeOwnership) {
@@ -153,13 +164,18 @@ FramePalette* VideoFilterchain::framePalette() const {
     return framePaletteValue;
 }
 
+const IndexedFrame& VideoFilterchain::indexedFrame() const {
+    return indexedFrameValue;
+}
+
 void VideoFilterchain::refresh() {
     for (unsigned int i = 0; i < filters.size(); i++)
         filters[i].filter->refresh();
 }
 
 void VideoFilterchain::run(CthughaBuffer& buffer, const VideoFrameContext& context) {
-    VideoFrame frame(buffer, context, framePaletteValue);
+    indexedFrameValue = IndexedFrame();
+    VideoFrame frame(buffer, context, framePaletteValue, &indexedFrameValue);
 
     for (unsigned int stageIndex = 0; stageIndex < sequence.size(); stageIndex++) {
         unsigned int stage = sequence[stageIndex];

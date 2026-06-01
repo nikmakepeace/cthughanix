@@ -10,8 +10,23 @@
 
 #include <stdint.h>
 
-static CthughaBuffer& visualBuffer() {
-    return *CthughaBuffer::current;
+class VisualFrameView {
+public:
+    int width() const {
+        return cthughaDisplay != NULL ? cthughaDisplay->sourceWidth() : CthughaBuffer::current->width();
+    }
+
+    int height() const {
+        return cthughaDisplay != NULL ? cthughaDisplay->sourceHeight() : CthughaBuffer::current->height();
+    }
+
+    int size() const {
+        return width() * height();
+    }
+};
+
+static VisualFrameView visualBuffer() {
+    return VisualFrameView();
 }
 
 void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }

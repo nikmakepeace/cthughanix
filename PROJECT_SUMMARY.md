@@ -92,11 +92,12 @@ Audio and visual control are separated:
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
   visual mutation.
 - `VideoFilterchain` is the visual-stage executor. One-shot indexed image overlay,
-  border, flame, translate, wave, frame commit, palette smoothing, and
-  flashlight run as explicit filters. `VideoDirector` updates those filters
-  with the selected image/effect objects. `VideoFilterchain::run()` builds a
-  `VideoFrame` carrying the current `CthughaBuffer`, frame context, and display
-  palette, then passes that frame through each enabled stage.
+  border, flame, translate, wave, frame commit, palette smoothing, flashlight,
+  and indexed-frame export run as explicit filters. `VideoDirector` updates
+  those filters with the selected image/effect objects. `VideoFilterchain::run()`
+  builds a `VideoFrame` carrying the current `CthughaBuffer`, frame context,
+  display palette, and `IndexedFrame` publication slot, then passes that frame
+  through each enabled stage.
 - `ColorPalette` is the palette data object wrapped by `PaletteEntry`; the
   display-facing per-frame palette lives in `FramePalette`.
 
@@ -108,7 +109,8 @@ Audio and visual control are separated:
   `AudioVisualBridge`.
 - Video filterchain seam: `VideoDirector`, `VideoFilterchainFactory`,
   `VideoFilterchainSequence`, `VideoFilters`, `VideoFilterchain`,
-  `VideoFilter`, `VideoFrame`, `VideoFrameContext`, and `CthughaBuffer`.
+  `VideoFilter`, `VideoFrame`, `VideoFrameContext`, `IndexedFrame`, and
+  `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
   selection, while flame, translate, and wave execution runs through standalone
   `Flame`/`Translate`/`Wave` domain objects.

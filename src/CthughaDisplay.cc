@@ -7,6 +7,7 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "Interface.h"
+#include "IndexedFrame.h"
 
 #include <stdint.h>
 #include <unistd.h>
@@ -29,21 +30,82 @@ double displayStart;
 double now = 0;
 double deltaT = 0;
 
-static CthughaBuffer& visualBuffer() {
-    return *CthughaBuffer::current;
+class VisualFrameView {
+public:
+    int width() const {
+        return cthughaDisplay != NULL ? cthughaDisplay->sourceWidth() : CthughaBuffer::current->width();
+    }
+
+    int height() const {
+        return cthughaDisplay != NULL ? cthughaDisplay->sourceHeight() : CthughaBuffer::current->height();
+    }
+
+    int size() const {
+        return width() * height();
+    }
+};
+
+static VisualFrameView visualBuffer() {
+    return VisualFrameView();
 }
 
 CthughaDisplay::CthughaDisplay()
-    : needsClear(1)
+    : sourceFrame(0)
+    , buffer0(0)
+    , displayStart(0)
+    , frames(0)
+    , visualLatencyEstimate(0)
+    , buffer(0)
+    , bufferWidth(0)
+    , expandedBuffer(0)
+    , expandedBufferWidth(0)
+    , needsClear(1)
     , fps(0) {
 
-    frames = 0;
     displayStart = getTime();
-    visualLatencyEstimate = 0;
 
     // The logical Cthugha image can occupy four indexed-buffer quadrants after
     // screen() output has been mirrored into a full 2x2 buffer.
     buffer0 = new unsigned char[4 * visualBuffer().size()];
+}
+
+void CthughaDisplay::present(const IndexedFrame& frame) {
+    sourceFrame = frame.valid() ? &frame : NULL;
+    if (displayDevice != NULL && frame.framePalette != NULL)
+        displayDevice->setFramePalette(frame.framePalette);
+    (*this)();
+}
+
+const unsigned char* CthughaDisplay::sourcePixels() const {
+    if (sourceFrame != NULL && sourceFrame->valid())
+        return sourceFrame->pixels;
+
+    return CthughaBuffer::current->passivePixels();
+}
+
+int CthughaDisplay::sourceWidth() const {
+    if (sourceFrame != NULL && sourceFrame->valid())
+        return sourceFrame->width;
+
+    return CthughaBuffer::current->width();
+}
+
+int CthughaDisplay::sourceHeight() const {
+    if (sourceFrame != NULL && sourceFrame->valid())
+        return sourceFrame->height;
+
+    return CthughaBuffer::current->height();
+}
+
+int CthughaDisplay::sourcePitch() const {
+    if (sourceFrame != NULL && sourceFrame->valid())
+        return sourceFrame->pitch;
+
+    return CthughaBuffer::current->pitch();
+}
+
+int CthughaDisplay::sourceSize() const {
+    return sourceWidth() * sourceHeight();
 }
 
 /*

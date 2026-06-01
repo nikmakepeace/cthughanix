@@ -144,13 +144,14 @@ updates typed stage objects before each run; `FlameFilter` owns the
 current `Flame` and general-flame value. `VideoDirector` chooses a runnable
 `Wave`, configures it with wave scale/table/object, and binds only that `Wave`
 into `WaveFilter`. The filterchain passes a `VideoFrame` through each stage;
-that frame carries the current `CthughaBuffer`, frame context, and display
-palette.
+that frame carries the current `CthughaBuffer`, frame context, display palette,
+and `IndexedFrame` publication slot.
 
-The next seam to improve is the remaining compatibility global. Stage entries
-receive an explicit `VideoFrame` and entry selection does not happen inside
-the stage filters, but display code still consults `CthughaBuffer::current`
-while mapping the finished passive buffer to the frontend.
+The next seam to improve is the remaining display compatibility layer. Stage
+entries receive an explicit `VideoFrame` and entry selection does not happen
+inside the stage filters. Display presentation now receives an explicit
+`IndexedFrame`, but scratch allocation and backend globals still assume the
+classic runtime shape.
 
 ### Add a Display Mode
 
@@ -203,16 +204,17 @@ Visual code should use `audioFrameRawData()` and `audioFrameProcessedWaveData()`
 file playback, live input, random input, and silence all present the same
 1024-sample frame contract.
 
-### VideoFilterchain Still Shares Display Globals
+### Display Presentation Still Shares Backend Globals
 
 `VideoFilterchain` has explicit filters for image, border, flame, translate, wave,
-frame commit, palette smoothing, and flashlight. It creates one `VideoFrame`
-from the current buffer, context, and display palette, then passes that frame
-through enabled filters in stage order.
+frame commit, palette smoothing, flashlight, and indexed-frame export. It
+creates one `VideoFrame` from the current buffer, context, display palette, and
+`IndexedFrame` publication slot, then passes that frame through enabled filters
+in stage order.
 
-Do not assume this is full inversion of control yet. The display path still uses
-`CthughaBuffer::current` as a compatibility pointer for buffer geometry and
-passive-pixel reads.
+Do not assume this is full inversion of control yet. The display path consumes
+`IndexedFrame`, but X11-era globals still own backend memory layout, frame
+scratch allocation, and event-loop handoff.
 
 ### Build Wrappers Include `.cc` Files
 
@@ -312,7 +314,7 @@ with safer metadata.
   cannot even show `xcthugha --help` because X initialization happens first.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd` for
   compressed assets, and silence messages can run `fortune`.
-- OSS and CD ioctl paths are Linux-specific, obsolete, and hard to test on
+- OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 
 ### Medium Risk

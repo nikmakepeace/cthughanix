@@ -19,8 +19,12 @@ extern OptionInt maxFramesPerSecond;
 extern double now; // timestamp used by all modules while drawing this frame
 extern double deltaT; // elapsed time between the last two frames
 
+class IndexedFrame;
+
 class CthughaDisplay {
 protected:
+    const IndexedFrame* sourceFrame;
+
     // Scratch storage for indexed 8-bit Cthugha output before it is palette
     // expanded, mirrored, zoomed, or copied to the device buffer.
     unsigned char* buffer0;
@@ -64,7 +68,14 @@ public:
     CthughaDisplay();
 
     void nextFrame(); // start the next frame and publish now/deltaT
+    void present(const IndexedFrame& frame);
     virtual void operator()() { }
+
+    const unsigned char* sourcePixels() const;
+    int sourceWidth() const;
+    int sourceHeight() const;
+    int sourcePitch() const;
+    int sourceSize() const;
 
     void resetFPS();
     void observeVisualLatency(double seconds);

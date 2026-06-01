@@ -30,63 +30,91 @@
 #include "VideoFilterchainFactory.h"
 #include "keymap.h"
 
+#include <memory>
 #include <unistd.h>
 #include <signal.h>
 
-static VideoFilterchain* videoFilterchain = NULL;
-static VideoFilterchainSequence videoFilterchainSequence;
-static AudioVisualBridge* audioVisualBridge = NULL;
-static Scene* scene = NULL;
-static SceneCommands* sceneCommands = NULL;
+class Application {
+    std::unique_ptr<VideoFilterchain> videoFilterchain;
+    VideoFilterchainSequence videoFilterchainSequence;
+    std::unique_ptr<AudioVisualBridge> audioVisualBridge;
+    std::unique_ptr<Scene> sceneValue;
+    std::unique_ptr<SceneCommands> sceneCommandsValue;
+    int shutdownComplete;
 
-static void initSceneRuntime() {
-    if (scene != NULL)
+    void shutdownSceneRuntime();
+    void shutdownVideoFilterchain();
+    void shutdownAudioVisualBridge();
+    void runAudioVisualBridge();
+    const IndexedFrame* runVideoFilterchain();
+
+public:
+    Application();
+    ~Application();
+
+    void initSceneRuntime();
+    void initVideoFilterchain();
+    void initAudioVisualBridge();
+    void shutdown();
+    void runFrame(int doDisplay);
+
+    Scene& scene();
+    SceneCommands& sceneCommands();
+};
+
+static Application* application = NULL;
+
+Application::Application()
+    : shutdownComplete(0) { }
+
+Application::~Application() {
+    shutdown();
+}
+
+void Application::initSceneRuntime() {
+    if (sceneValue.get() != NULL)
         return;
 
-    scene = new Scene;
-    videoDirector().bindScene(*scene);
-    sceneCommands = new SceneCommands(*scene, CthughaBuffer::buffer,
-        videoDirector().imageOption());
-    bindSceneCommandsForLegacyCallbacks(sceneCommands);
+    sceneValue.reset(new Scene);
+    videoDirector().bindScene(*sceneValue);
+    sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
+        videoDirector().imageOption()));
+    bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
-static void shutdownSceneRuntime() {
+void Application::shutdownSceneRuntime() {
     bindSceneCommandsForLegacyCallbacks(NULL);
     videoDirector().unbindScene();
-    delete sceneCommands;
-    sceneCommands = NULL;
-    delete scene;
-    scene = NULL;
+    sceneCommandsValue.reset();
+    sceneValue.reset();
 }
 
-static void initVideoFilterchain() {
-    if (videoFilterchain != NULL)
+void Application::initVideoFilterchain() {
+    if (videoFilterchain.get() != NULL)
         return;
 
     VideoFilterchainFactory factory;
     videoFilterchainSequence = videoDirector().defaultFilterchainSequence();
-    videoFilterchain = factory.create(videoFilterchainSequence);
+    videoFilterchain.reset(factory.create(videoFilterchainSequence));
 
     if (displayDevice != NULL)
         displayDevice->setFramePalette(framePaletteFromFilterchain(*videoFilterchain));
 }
 
-static void shutdownVideoFilterchain() {
-    delete videoFilterchain;
-    videoFilterchain = NULL;
+void Application::shutdownVideoFilterchain() {
+    videoFilterchain.reset();
 }
 
-static void initAudioVisualBridge() {
-    if (audioVisualBridge == NULL)
-        audioVisualBridge = new AudioVisualBridge(sceneCommands);
+void Application::initAudioVisualBridge() {
+    if (audioVisualBridge.get() == NULL)
+        audioVisualBridge.reset(new AudioVisualBridge(sceneCommandsValue.get()));
 }
 
-static void shutdownAudioVisualBridge() {
-    delete audioVisualBridge;
-    audioVisualBridge = NULL;
+void Application::shutdownAudioVisualBridge() {
+    audioVisualBridge.reset();
 }
 
-static void runAudioVisualBridge() {
+void Application::runAudioVisualBridge() {
     initAudioVisualBridge();
     audioVisualBridge->runFrame();
 
@@ -98,7 +126,7 @@ static void runAudioVisualBridge() {
     }
 }
 
-static void runVideoFilterchain() {
+const IndexedFrame* Application::runVideoFilterchain() {
     initVideoFilterchain();
 
     VideoFrameContext context;
@@ -111,32 +139,22 @@ static void runVideoFilterchain() {
     context.deltaT = deltaT;
 
     CTH_TRACE("running filterchain=%p filters=%d\n", "video runtime",
-        videoFilterchain, videoFilterchain ? videoFilterchain->size() : 0);
+        videoFilterchain.get(), videoFilterchain.get() ? videoFilterchain->size() : 0);
     CthughaBuffer* buffer = videoDirector().configureFilterchain(*videoFilterchain);
-    if (buffer != NULL)
+    if (buffer != NULL) {
         videoFilterchain->run(*buffer, context);
+        return &videoFilterchain->indexedFrame();
+    }
+
+    return NULL;
 }
 
-void sig_tty_cont(int);
-void sig_tty_stop(int) {
-    CTH_INFO("Stopping...\n");
+void Application::shutdown() {
+    if (shutdownComplete)
+        return;
 
-    signal(SIGCONT, sig_tty_cont);
+    shutdownComplete = 1;
 
-    // Defer suspension until run() reaches a point outside graphics work.
-    cthugha_pause = 1;
-}
-void sig_tty_cont(int) {
-    CTH_INFO("Continuing...\n");
-
-    init_sound(CthughaBuffer::buffer.maxDimension());
-
-    signal(SIGTSTP, sig_tty_stop);
-
-    raise(SIGCONT);
-}
-
-void deleter() {
     // AutoChanger owns final option persistence, so destroy the bridge first.
     shutdownAudioVisualBridge();
     delete cthughaDisplay;
@@ -148,71 +166,15 @@ void deleter() {
     shutdownSceneRuntime();
 }
 
-int main(int argc, char* argv[]) {
-
-    srand(time(0));
-    seteuid(getuid()); // give up root privileges
-
-    if (get_pre_params(argc, argv))
-        return 1;
-
-    initSceneRuntime();
-
-    if (cth_init(&argc, argv))
-        return 1;
-
-    if (get_params(argc, argv))
-        return 1;
-
-    title();
-
-    init_imath();
-
-    atexit(deleter);
-
-    if (ncurses_use) {
-        init_ncurses();
-        atexit(exit_ncurses);
-    }
-
-    CTH_INFO("Initializing the sound device...\n");
-    init_sound(CthughaBuffer::buffer.maxDimension());
-
-    CTH_INFO("Initializing cthugha Buffer...\n");
-    CthughaBuffer::initAll();
-    if (videoDirector().loadImages())
-        exit(0);
-    init_border();
-    init_flashlight();
-
-    CTH_INFO("Initializing display...\n");
-    newDisplayDevice(*scene, *sceneCommands);
-    newCthughaDisplay();
-
-    CTH_INFO("Setting initial core options...\n");
-    CoreOption::changeToInitial();
-    audioProcessing.changeToInitial();
-    sceneCommands->initializeFromOptions();
-
-    CTH_INFO("Initializing interface...\n");
-    Interface::set("main");
-
-    CTH_INFO("Initializing keymaps...\n");
-    Keymap::init();
-
-    CTH_INFO("Initializing the audio-visual bridge...\n");
-    initAudioVisualBridge();
-
-    signal(SIGTSTP, sig_tty_stop);
-
-    displayDevice->mainLoop();
-
-    CTH_INFO("Exiting cthugha...\n");
-
-    return 0;
+Scene& Application::scene() {
+    return *sceneValue;
 }
 
-void run(int doDisplay) {
+SceneCommands& Application::sceneCommands() {
+    return *sceneCommandsValue;
+}
+
+void Application::runFrame(int doDisplay) {
     double frameTiming[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int traceFrameTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
     if (traceFrameTiming)
@@ -230,13 +192,17 @@ void run(int doDisplay) {
     if (traceFrameTiming)
         frameTiming[3] = getTime();
 
-    runVideoFilterchain();
+    const IndexedFrame* indexedFrame = runVideoFilterchain();
     if (traceFrameTiming)
         frameTiming[4] = getTime();
 
     double visualStart = getTime();
-    if (doDisplay)
-        (*cthughaDisplay)();
+    if (doDisplay) {
+        if (indexedFrame != NULL && indexedFrame->valid())
+            cthughaDisplay->present(*indexedFrame);
+        else
+            (*cthughaDisplay)();
+    }
     double visualEnd = getTime();
     if (traceFrameTiming)
         frameTiming[5] = visualEnd;
@@ -264,4 +230,109 @@ void run(int doDisplay) {
 
         raise(SIGTSTP);
     }
+}
+
+static void destroyApplication() {
+    delete application;
+    application = NULL;
+}
+
+void sig_tty_cont(int);
+void sig_tty_stop(int) {
+    CTH_INFO("Stopping...\n");
+
+    signal(SIGCONT, sig_tty_cont);
+
+    // Defer suspension until run() reaches a point outside graphics work.
+    cthugha_pause = 1;
+}
+void sig_tty_cont(int) {
+    CTH_INFO("Continuing...\n");
+
+    init_sound(CthughaBuffer::buffer.maxDimension());
+
+    signal(SIGTSTP, sig_tty_stop);
+
+    raise(SIGCONT);
+}
+
+void deleter() {
+    destroyApplication();
+}
+
+int main(int argc, char* argv[]) {
+
+    srand(time(0));
+    seteuid(getuid()); // give up root privileges
+
+    application = new Application;
+
+    if (get_pre_params(argc, argv)) {
+        destroyApplication();
+        return 1;
+    }
+
+    application->initSceneRuntime();
+
+    if (cth_init(&argc, argv)) {
+        destroyApplication();
+        return 1;
+    }
+
+    if (get_params(argc, argv)) {
+        destroyApplication();
+        return 1;
+    }
+
+    title();
+
+    init_imath();
+
+    atexit(deleter);
+
+    if (ncurses_use) {
+        init_ncurses();
+        atexit(exit_ncurses);
+    }
+
+    CTH_INFO("Initializing the sound device...\n");
+    init_sound(CthughaBuffer::buffer.maxDimension());
+
+    CTH_INFO("Initializing cthugha Buffer...\n");
+    CthughaBuffer::initAll();
+    if (videoDirector().loadImages())
+        exit(0);
+    init_border();
+    init_flashlight();
+
+    CTH_INFO("Initializing display...\n");
+    newDisplayDevice(application->scene(), application->sceneCommands());
+    newCthughaDisplay();
+
+    CTH_INFO("Setting initial core options...\n");
+    CoreOption::changeToInitial();
+    audioProcessing.changeToInitial();
+    application->sceneCommands().initializeFromOptions();
+
+    CTH_INFO("Initializing interface...\n");
+    Interface::set("main");
+
+    CTH_INFO("Initializing keymaps...\n");
+    Keymap::init();
+
+    CTH_INFO("Initializing the audio-visual bridge...\n");
+    application->initAudioVisualBridge();
+
+    signal(SIGTSTP, sig_tty_stop);
+
+    displayDevice->mainLoop();
+
+    CTH_INFO("Exiting cthugha...\n");
+
+    return 0;
+}
+
+void run(int doDisplay) {
+    if (application != NULL)
+        application->runFrame(doDisplay);
 }

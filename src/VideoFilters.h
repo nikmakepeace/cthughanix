@@ -125,6 +125,15 @@ public:
     void execute(VideoFrame& frame);
 };
 
+// Contract: final display export. Publishes the committed indexed pixels and
+// frame palette as a driver-facing frame descriptor.
+class IndexedFrameFilter : public VideoFilter {
+public:
+    IndexedFrameFilter();
+
+    void execute(VideoFrame& frame);
+};
+
 FramePalette* framePaletteFromFilterchain(VideoFilterchain& filterchain);
 
 #endif

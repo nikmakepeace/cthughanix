@@ -253,18 +253,17 @@ Good next steps:
 ### Phase 3: Continue The Video Filterchain Migration
 
 `VideoFilterchain` has explicit image, border, flame, translate, wave,
-frame-commit, palette, and flashlight filters. `VideoDirector` updates the
-current filter objects before each filterchain run.
+frame-commit, palette, flashlight, and indexed-frame export filters.
+`VideoDirector` updates the current filter objects before each filterchain run.
 
-The video filterchain path passes one `VideoFrame` through the filterchain. The frame
-contains the current `CthughaBuffer`, frame context, and display palette. The
-remaining compatibility coupling is in the display path:
-`CthughaBuffer::current` still supplies buffer geometry and passive-pixel reads.
+The video filterchain path passes one `VideoFrame` through the filterchain. The
+frame contains the current `CthughaBuffer`, frame context, display palette, and
+a final `IndexedFrame` publication slot. `CthughaDisplay` receives that
+`IndexedFrame` for source pixels, geometry, pitch, and palette synchronization.
 
 Good next steps:
 
-- Move the remaining `CthughaBuffer::current` lookups behind explicit
-  display/provider objects.
+- Allocate/reallocate display scratch buffers from incoming frame geometry.
 - Add tests around deterministic visual stages before changing artistic
   behavior.
 

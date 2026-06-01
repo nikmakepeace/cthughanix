@@ -56,8 +56,35 @@ CoreOption screen(-1, "display", screenEntries);
 
 char screen_first[256] = ""; /* Start with this scrn-fkt */
 
-static CthughaBuffer& visualBuffer() {
-    return *CthughaBuffer::current;
+class VisualFrameView {
+public:
+    int width() const {
+        return cthughaDisplay->sourceWidth();
+    }
+
+    int height() const {
+        return cthughaDisplay->sourceHeight();
+    }
+
+    int pitch() const {
+        return cthughaDisplay->sourcePitch();
+    }
+
+    int size() const {
+        return width() * height();
+    }
+};
+
+static VisualFrameView visualBuffer() {
+    return VisualFrameView();
+}
+
+static const unsigned char* sourcePixels() {
+    return cthughaDisplay->sourcePixels();
+}
+
+static const unsigned char* sourceLine(int line) {
+    return sourcePixels() + line * visualBuffer().pitch();
 }
 
 /*****************************************************************************
@@ -69,11 +96,11 @@ static CthughaBuffer& visualBuffer() {
  *
  * A lot of the display functions are now based on this.
  */
-static unsigned char* perm_lines[MAX_BUFF_HEIGHT];
+static const unsigned char* perm_lines[MAX_BUFF_HEIGHT];
 
 void screen_perm(void) {
     unsigned char* scrn = cthughaDisplay->buffer;
-    unsigned char** perm = perm_lines;
+    const unsigned char** perm = perm_lines;
     int i;
 
     for (i = visualBuffer().height(); i != 0; i--) {
@@ -83,8 +110,8 @@ void screen_perm(void) {
     }
 }
 
-static unsigned char* perm_addr(int i) {
-    return CthughaBuffer::current->passivePixels() + i * visualBuffer().width();
+static const unsigned char* perm_addr(int i) {
+    return sourceLine(i);
 }
 
 int screen_up() {
@@ -133,11 +160,12 @@ int screen_r2hor() {
 }
 
 int screen_4hor() {
-    unsigned char *tmp, *scrn;
+    const unsigned char* tmp;
+    unsigned char* scrn;
     int x, y;
 
     /* upper half of screen */
-    tmp = CthughaBuffer::current->passivePixels() + visualBuffer().size() / 2;
+    tmp = sourceLine(visualBuffer().height() / 2);
     scrn = cthughaDisplay->buffer;
     for (y = visualBuffer().height() / 2; y != 0; y--) {
 
@@ -152,12 +180,12 @@ int screen_4hor() {
             scrn++;
             tmp--;
         }
-        tmp += visualBuffer().width();
+        tmp += visualBuffer().pitch();
         scrn += cthughaDisplay->bufferWidth - visualBuffer().width();
     }
 
     /* lower half of screen */
-    tmp = CthughaBuffer::current->passivePixels() + visualBuffer().width() * visualBuffer().height() - visualBuffer().width();
+    tmp = sourceLine(visualBuffer().height() - 1);
     scrn = cthughaDisplay->buffer + cthughaDisplay->bufferWidth * visualBuffer().height() / 2;
     for (y = visualBuffer().height() / 2; y != 0; y--) {
 
@@ -172,7 +200,7 @@ int screen_4hor() {
             scrn++;
             tmp--;
         }
-        tmp -= visualBuffer().width();
+        tmp -= visualBuffer().pitch();
         scrn += cthughaDisplay->bufferWidth - visualBuffer().width();
     }
 
@@ -182,18 +210,18 @@ int screen_4hor() {
 int screen_2verd() {
     if (visualBuffer().width() / 2 <= visualBuffer().height()) {
         int x, y;
-        unsigned char* tmp = CthughaBuffer::current->passivePixels();
+        const unsigned char* tmp = sourcePixels();
         unsigned char* scrn = cthughaDisplay->buffer;
         for (y = visualBuffer().height(); y != 0; y--) {
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn++;
-                tmp += visualBuffer().width();
+                tmp += visualBuffer().pitch();
             }
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn++;
-                tmp -= visualBuffer().width();
+                tmp -= visualBuffer().pitch();
             }
             tmp++;
             scrn += cthughaDisplay->bufferWidth - visualBuffer().width();
@@ -209,19 +237,19 @@ int screen_2verd() {
 int screen_r2verd() {
     if (visualBuffer().width() / 2 <= visualBuffer().height()) {
         int x, y;
-        unsigned char* tmp = CthughaBuffer::current->passivePixels();
+        const unsigned char* tmp = sourcePixels();
         unsigned char* scrn = cthughaDisplay->buffer
             + cthughaDisplay->bufferWidth * (visualBuffer().height() - 1) + (visualBuffer().width() - 1);
         for (y = visualBuffer().height(); y != 0; y--) {
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn--;
-                tmp += visualBuffer().width();
+                tmp += visualBuffer().pitch();
             }
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn--;
-                tmp -= visualBuffer().width();
+                tmp -= visualBuffer().pitch();
             }
             tmp++;
             scrn -= cthughaDisplay->bufferWidth - visualBuffer().width();
@@ -235,28 +263,29 @@ int screen_r2verd() {
 
 int screen_4kal() {
     if (visualBuffer().width() / 2 <= visualBuffer().height()) {
-        unsigned char *tmp, *scrn;
+        const unsigned char* tmp;
+        unsigned char* scrn;
         int x, y;
 
-        tmp = CthughaBuffer::current->passivePixels();
+        tmp = sourcePixels();
         scrn = cthughaDisplay->buffer;
         /* upper half */
         for (y = visualBuffer().height() / 2; y != 0; y--) {
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn++;
-                tmp += visualBuffer().width();
+                tmp += visualBuffer().pitch();
             }
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn++;
-                tmp -= visualBuffer().width();
+                tmp -= visualBuffer().pitch();
             }
             tmp++;
             scrn += cthughaDisplay->bufferWidth - visualBuffer().width();
         }
 
-        tmp = CthughaBuffer::current->passivePixels();
+        tmp = sourcePixels();
         scrn = cthughaDisplay->buffer + cthughaDisplay->bufferWidth * (visualBuffer().height() - 1) + visualBuffer().width()
             - 1;
         /* lower half */
@@ -264,12 +293,12 @@ int screen_4kal() {
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn--;
-                tmp += visualBuffer().width();
+                tmp += visualBuffer().pitch();
             }
             for (x = visualBuffer().width() / 2; x != 0; x--) {
                 *scrn = *tmp;
                 scrn--;
-                tmp -= visualBuffer().width();
+                tmp -= visualBuffer().pitch();
             }
             tmp++;
             scrn -= cthughaDisplay->bufferWidth - visualBuffer().width();
@@ -282,7 +311,7 @@ int screen_4kal() {
 }
 
 int screen_scale2() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst = cthughaDisplay->buffer;
 
     for (int y = visualBuffer().height(); y != 0; y--) {
@@ -304,6 +333,7 @@ int screen_scale2() {
             dst2++;
         }
 
+        src += visualBuffer().pitch() - visualBuffer().width();
         dst += 2 * cthughaDisplay->bufferWidth;
     }
 
@@ -311,14 +341,14 @@ int screen_scale2() {
 }
 
 int screen_vscale_hmirror() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst = cthughaDisplay->buffer;
 
     for (int y = visualBuffer().height(); y != 0; y--) {
         memcpy(dst, src, visualBuffer().width());
         memcpy(dst + cthughaDisplay->bufferWidth, src, visualBuffer().width());
 
-        src += visualBuffer().width();
+        src += visualBuffer().pitch();
         dst += 2 * cthughaDisplay->bufferWidth;
     }
 
@@ -326,7 +356,7 @@ int screen_vscale_hmirror() {
 }
 
 int screen_hscale_vmirror() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst = cthughaDisplay->buffer;
 
     for (int y = visualBuffer().height(); y != 0; y--) {
@@ -342,6 +372,7 @@ int screen_hscale_vmirror() {
             d++;
         }
 
+        src += visualBuffer().pitch() - visualBuffer().width();
         dst += cthughaDisplay->bufferWidth;
     }
 
@@ -490,7 +521,7 @@ int prepare_3d(int maxZ) {
  * hfield: buffer_value determines height
  */
 int screen_hfield() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst
         = cthughaDisplay->buffer + visualBuffer().width() + cthughaDisplay->bufferWidth * visualBuffer().height();
     int i, j;
@@ -506,6 +537,7 @@ int screen_hfield() {
             p.x += s1.x;
             p.y += s1.y;
         }
+        src += visualBuffer().pitch() - visualBuffer().width();
         p.x = t.x + s2.x;
         p.y = t.y + s2.y;
     }
@@ -517,7 +549,7 @@ int screen_hfield() {
  * bent: height is a sine-wave along x axis
  */
 int screen_bent() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst
         = cthughaDisplay->buffer + visualBuffer().width() + cthughaDisplay->bufferWidth * visualBuffer().height();
     int i, j;
@@ -545,6 +577,7 @@ int screen_bent() {
             p.x += s1.x;
             p.y += s1.y;
         }
+        src += visualBuffer().pitch() - visualBuffer().width();
         p.x = t.x + s2.x;
         p.y = t.y + s2.y;
     }
@@ -556,7 +589,7 @@ int screen_bent() {
  * plate: height contant to 0
  */
 int screen_plate() {
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     unsigned char* dst
         = cthughaDisplay->buffer + visualBuffer().width() + cthughaDisplay->bufferWidth * visualBuffer().height();
     int i, j;
@@ -571,6 +604,7 @@ int screen_plate() {
             p.x += s1.x;
             p.y += s1.y;
         }
+        src += visualBuffer().pitch() - visualBuffer().width();
         p.x = t.x + s2.x;
         p.y = t.y + s2.y;
     }
@@ -617,7 +651,7 @@ static int zicks[MAX_BUFF_HEIGHT];
 int screen_zick() {
     int i;
     unsigned char* scrn = cthughaDisplay->buffer;
-    unsigned char* src = CthughaBuffer::current->passivePixels();
+    const unsigned char* src = sourcePixels();
     static int first = 1;
 
     static int d = 0;
@@ -639,7 +673,7 @@ int screen_zick() {
             memcpy(scrn, src - d, visualBuffer().width() + d);
             memset(scrn + draw_size.x + d, 0, -d);
         }
-        src += visualBuffer().width();
+        src += visualBuffer().pitch();
         scrn += cthughaDisplay->bufferWidth;
     }
 

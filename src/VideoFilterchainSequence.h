@@ -15,7 +15,8 @@ public:
         TranslateStage,
         WaveStage,
         FrameCommitStage,
-        PaletteStage
+        PaletteStage,
+        IndexedFrameStage
     };
 
     VideoFilterchainSequence();

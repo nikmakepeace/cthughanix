@@ -65,6 +65,8 @@ There is no current server-mode source entry point in `src/`.
   `src/VideoFilterchainFactory.*`, `src/VideoFilters.*`,
   `src/VideoDirector.*`: visual-stage executor, stage ordering, filter
   composition, concrete stage filters, and visual policy.
+- `src/IndexedFrame.h`: display-facing indexed frame descriptor published by
+  the final video filterchain stage.
 ### Legacy Visual Core
 
 - `src/CthughaBuffer.*`: single classic visual buffer dimensions and raw indexed

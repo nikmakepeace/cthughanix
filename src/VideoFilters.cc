@@ -202,6 +202,15 @@ void PaletteFilter::execute(VideoFrame& frame) {
     transition.execute((framePalette != 0) ? *framePalette : framePaletteValue);
 }
 
+IndexedFrameFilter::IndexedFrameFilter() { }
+
+void IndexedFrameFilter::execute(VideoFrame& frame) {
+    CTH_TRACE("publishing indexed frame\n", "video filterchain");
+    CthughaBuffer& buffer = frame.buffer();
+    frame.publishIndexedFrame(IndexedFrame(buffer.passivePixels(),
+        buffer.width(), buffer.height(), buffer.pitch(), frame.framePalette()));
+}
+
 FramePalette* framePaletteFromFilterchain(VideoFilterchain& filterchain) {
     return filterchain.framePalette();
 }

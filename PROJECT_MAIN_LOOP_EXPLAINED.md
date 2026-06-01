@@ -181,8 +181,8 @@ During the video filterchain's indexed-buffer stages:
 - `passiveBuffer` is the previous/current finished image.
 - `FrameCommitFilter` swaps the pointers after flame, translate, and wave
   stages have run.
-- Display code reads the buffer's passive pixels, so after the swap it sees
-  the newly completed frame.
+- `IndexedFrameFilter` publishes the committed passive pixels, geometry, pitch,
+  and frame palette for display presentation.
 
 Default dimensions are in `src/CthughaBuffer.cc`:
 
@@ -333,6 +333,7 @@ WaveFilter
 FrameCommitFilter
 PaletteFilter
 FlashlightFilter
+IndexedFrameFilter
 ```
 
 Image, flame, translate, and wave are explicit stages. `ImageFilter`
@@ -345,9 +346,8 @@ filterchain then wraps the current buffer, frame context, and display palette in
 `VideoFrame` and passes that frame through each enabled filter.
 
 Important limitation: this is not the final inversion-of-control shape yet.
-`VideoDirector` injects selected values into stage filters. Display code still
-reads `CthughaBuffer::current` as a compatibility pointer when mapping the
-finished passive buffer to the frontend.
+`VideoDirector` injects selected values into stage filters, and display scratch
+buffers are still sized around the classic visual geometry.
 
 ## 14. Step 4a: Flashlight
 
@@ -534,15 +534,15 @@ Examples from `src/display.cc`:
 - `screen_hfield`: heightfield.
 - `screen_roll`, `screen_bent`, `screen_plate`: more 3D-ish mappings.
 
-These functions read the visual buffer's passive pixels, which are the
-completed Cthugha image after the buffer swap.
+These functions read the current `IndexedFrame` source pixels, which are the
+completed Cthugha image published after the buffer swap.
 
 ## 20. Concept: CthughaDisplay vs DisplayDevice
 
 `CthughaDisplay`
 
 - owns frame timing;
-- knows Cthugha buffer geometry;
+- tracks the presented indexed frame geometry;
 - runs `screen()`;
 - mirrors and zooms;
 - expands palette indexes to frontend pixels;
@@ -558,7 +558,7 @@ completed Cthugha image after the buffer swap.
 If you are tracing pixels to screen, the route is:
 
 ```text
-CthughaBuffer passive pixels
+IndexedFrame pixels
   -> src/display.cc screen function
   -> CthughaDisplay buffer/expandedBuffer
   -> DisplayDevice preDraw/postDraw

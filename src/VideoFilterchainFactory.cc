@@ -30,6 +30,8 @@ VideoFilterchain* VideoFilterchainFactory::create(const VideoFilterchainSequence
     }
     if (sequence.includes(VideoFilterchainSequence::FlashlightStage))
         filterchain->add(VideoFilterchainSequence::FlashlightStage, new FlashlightFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::IndexedFrameStage))
+        filterchain->add(VideoFilterchainSequence::IndexedFrameStage, new IndexedFrameFilter(), 1);
 
     CTH_DEBUG("video filterchain factory: created filterchain=%p stages=%d filters=%d\n",
         filterchain, int(sequence.sequence().size()), filterchain->size());

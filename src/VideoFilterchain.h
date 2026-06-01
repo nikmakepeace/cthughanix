@@ -5,6 +5,7 @@
 
 #include "AudioFrame.h"
 #include "AudioAnalyzer.h"
+#include "IndexedFrame.h"
 
 #include <vector>
 
@@ -28,15 +29,18 @@ class VideoFrame {
     CthughaBuffer* bufferValue;
     const VideoFrameContext* contextValue;
     FramePalette* framePaletteValue;
+    IndexedFrame* indexedFrameValue;
 
 public:
     VideoFrame(CthughaBuffer& buffer_, const VideoFrameContext& context_,
-        FramePalette* framePalette_);
+        FramePalette* framePalette_, IndexedFrame* indexedFrame_);
 
     CthughaBuffer& buffer();
     const VideoFrameContext& context() const;
     FramePalette* framePalette();
     const FramePalette* framePalette() const;
+    void publishIndexedFrame(const IndexedFrame& indexedFrame);
+    const IndexedFrame& indexedFrame() const;
 };
 
 class VideoFilter {
@@ -71,6 +75,7 @@ class VideoFilterchain {
     std::vector<Entry> filters;
     std::vector<unsigned int> sequence;
     FramePalette* framePaletteValue;
+    IndexedFrame indexedFrameValue;
 
 public:
     VideoFilterchain();
@@ -86,6 +91,7 @@ public:
     VideoFilter* stageFilter(unsigned int stage);
     void setFramePalette(FramePalette* framePalette);
     FramePalette* framePalette() const;
+    const IndexedFrame& indexedFrame() const;
     void refresh();
     void run(CthughaBuffer& buffer, const VideoFrameContext& context);
     int size() const;
