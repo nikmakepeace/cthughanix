@@ -1,8 +1,8 @@
 # Main Loop Explained
 
 This is a guided walk through the current CthughaNix graphical main loop in
-`src/`. It describes the refactored tree, not the older analyzer/processor or
-server-mode architecture.
+`src/`. It describes the active source tree, not removed server-mode paths or
+stale build artifacts.
 
 The short version:
 
@@ -33,7 +33,8 @@ Keep these files open:
   `src/VisualPipelineFactory.*`, `src/PipelineStageModules.*`,
   `src/VisualDirector.*`: visual-stage executor, ordering, composition,
   concrete modules, and policy.
-- `src/CthughaBuffer.*`: classic visual option holders and raw indexed buffers.
+- `src/CthughaBuffer.*`: classic visual buffer dimensions and raw indexed
+  active/passive buffers.
 - `src/ColorPalette.*`, `src/FramePalette.*`, `src/PaletteTransition.*`:
   palette data, frame palette output, dirty tracking, and palette smoothing.
 - `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
@@ -146,24 +147,22 @@ Examples:
 - `border`
 - `flashlight`
 
-The old display loop called selected `CoreOptionEntry::operator()()` objects
-directly. The visual pipeline is now one step more explicit for the internal
-image stages: `ImageStageModule`, `FlameStageModule`, `TranslateStageModule`,
-and `WaveStageModule` render the current domain objects through stage-specific
-APIs.
+The visual pipeline uses explicit internal image stages:
+`ImageStageModule`, `FlameStageModule`, `TranslateStageModule`, and
+`WaveStageModule` render the current domain objects through stage-specific APIs.
 
-Flame selection is no longer buffer-owned. `src/flames.cc` exposes global
-`FlameOption` and `GeneralFlameOption` objects, and `VisualDirector` injects
-their current values into `FlameStageModule`.
+Flame selection lives in global `FlameOption` and `GeneralFlameOption` objects
+from `src/flames.cc`; `VisualDirector` injects their current values into
+`FlameStageModule`.
 
-Wave selection is no longer buffer-owned either. `src/waves.cc` exposes the
-global wave option state used by UI/keymap/config code, while `src/Wave.cc`
-defines the standalone `Wave` catalog. `VisualDirector` injects the selected
-`Wave`, wave scale, table, and object into `WaveStageModule`.
+Wave selection lives in the global wave option state exposed by `src/waves.cc`
+for UI/keymap/config code, while `src/Wave.cc` defines the standalone `Wave`
+catalog. `VisualDirector` injects the selected `Wave`, wave scale, table, and
+object into `WaveStageModule`.
 
-`sound-processing` is adjacent but now implemented by `AudioProcessingOption`
-in `src/AudioProcessor.cc`. It is selected by command-line/ini option and by
-the `m/M` key actions; it is not part of AutoChanger's CoreOption rotation.
+`sound-processing` is adjacent and implemented by `AudioProcessingOption` in
+`src/AudioProcessor.cc`. It is selected by command-line/ini option and by the
+`m/M` key actions; it is not part of AutoChanger's CoreOption rotation.
 
 ## 6. Concept: CthughaBuffer
 
@@ -338,20 +337,18 @@ PaletteStageModule
 FlashlightVisualModule
 ```
 
-Image, flame, translate, and wave are real stages now. `ImageStageModule`
+Image, flame, translate, and wave are explicit stages. `ImageStageModule`
 overlays the selected `IndexedImage` when `VisualDirector` arms the one-shot
 image stage. PCX and indexed PNG files are decoded into that shared image
 domain object before the frame loop. Before each frame, `VisualDirector`
-updates the modules with the selected image,
-selected flame, general-flame value, translate provider, wave, and border mode.
-The pipeline then passes the same `CthughaBuffer&` through each enabled module.
+updates the modules with the selected image, flame, general-flame value,
+translation table, wave, border mode, palette target, and flashlight mode. The
+pipeline then passes the same `CthughaBuffer&` through each enabled module.
 
 Important limitation: this is not the final inversion-of-control shape yet.
-`VisualDirector` now injects selected values into stage modules, and the
-pipeline effect path no longer uses the old active/passive macros or a
-frame-buffer binding adapter. The remaining coupling is the
-`CthughaBuffer::current` compatibility pointer still used by some display code
-around the pipeline.
+`VisualDirector` injects selected values into stage modules, and display code
+still reads `CthughaBuffer::current` as a compatibility pointer when mapping the
+finished passive buffer to the frontend.
 
 ## 14. Step 4a: Flashlight
 
@@ -382,8 +379,8 @@ diffusion.
 
 ## 16. Step 4c: Indexed Buffer Mutation Stages
 
-The old monolithic `CthughaBuffer::run()` path has been decomposed into
-pipeline modules. The logical order for a frame is:
+The indexed-buffer mutation path is implemented as pipeline modules. The
+logical order for a frame is:
 
 ```text
 ImageStageModule
@@ -403,9 +400,8 @@ FrameCommitModule
   swap(activeBuffer, passiveBuffer)
 ```
 
-This order matters. The implementation currently applies each stage across all
-active buffers before moving to the next stage. In normal X11 use there is one
-active buffer, but the code still preserves the old multi-buffer registry.
+This order matters. `VisualPipeline::run()` passes one explicit
+`CthughaBuffer&` through each enabled module in sequence.
 
 ### What Is A Flame?
 
@@ -427,7 +423,7 @@ In source:
 Mentally:
 
 ```text
-old finished image -> neighboring-pixel math -> new decayed image
+previous finished image -> neighboring-pixel math -> next decayed image
 ```
 
 ### What Is Translate?
@@ -444,8 +440,7 @@ Loading is in `src/translate.cc::init_translate()`. Built-in
 visualizer runs, selected translations are ready tables. `VisualDirector` passes
 the selected table into the translate stage, whose module owns the runtime
 `Translate` executor.
-Flames no longer fold translation into their own loops; translate runs as a
-dedicated pipeline stage.
+Flame and translation are separate stages; translate owns coordinate remapping.
 
 ### What Is A Wave?
 
@@ -502,8 +497,8 @@ For X11, read `src/CthughaDisplayX11.cc::CthughaDisplayX11::operator()()`.
 The classic 2D path does this:
 
 ```text
-displayDevice->preDraw()
 displayDevice->setGlobalPalette()
+displayDevice->preDraw()
 choose output buffer
 checkZoom()
 while(screen()) draw passive buffer into display buffer
@@ -680,7 +675,7 @@ The image layer:
 
 ```text
 fill hidden border rows
-diffuse old pixels with a flame
+diffuse previous pixels with a flame
 warp pixels with translate
 draw fresh audio marks with a wave
 swap buffers

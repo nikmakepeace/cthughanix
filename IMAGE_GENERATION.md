@@ -38,35 +38,35 @@ default pipeline stages are:
 
 ```text
 ImageStage
-FlashlightStage
 BorderStage
 FlameStage
 TranslateStage
 WaveStage
 FrameCommitStage
 PaletteStage
+FlashlightStage
 ```
 
 In module form, this is currently:
 
 ```text
 ImageStageModule
-FlashlightVisualModule
 BorderVisualModule
 FlameStageModule
 TranslateStageModule
 WaveStageModule
 FrameCommitModule
 PaletteStageModule
+FlashlightVisualModule
 ```
 
-Image, flame, translate, and wave are real object-executing stages now. The
-image stage overlays the selected `IndexedImage` when `VisualDirector` arms it
-once. PCX and indexed PNG files are decoded into the same image domain object;
-format-specific code does not run in the pipeline stage. Before each frame,
-`VisualDirector` synchronizes the selected-buffer global and updates the stage
-bindings for the selected image, per-buffer flames, translate providers, waves,
-and palette state. That compatibility detail cannot be affected by stage order.
+Image, flame, translate, and wave execute domain objects against the same
+`CthughaBuffer&`. The image stage overlays the selected `IndexedImage` when
+`VisualDirector` arms it once. PCX and indexed PNG files are decoded into the
+same image domain object; format-specific code does not run in the pipeline
+stage. Before each frame, `VisualDirector` updates the stage bindings for the
+selected image, flame, general-flame value, translation table, wave, border
+mode, palette target, and flashlight mode.
 
 ## Where Audio Affects Pixels
 

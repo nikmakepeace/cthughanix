@@ -67,9 +67,9 @@ There is no current server-mode source entry point in `src/`.
   composition, concrete stage modules, and visual policy.
 ### Legacy Visual Core
 
-- `src/CthughaBuffer.*`: single classic visual buffer, buffer-local option
-  instances, and raw indexed active/passive pixel buffers. Per-frame
-  flame/translate/wave/swap choreography now lives in visual pipeline modules.
+- `src/CthughaBuffer.*`: single classic visual buffer dimensions and raw indexed
+  active/passive pixel buffers. Per-frame flame/translate/wave/swap
+  choreography lives in visual pipeline modules.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
@@ -203,10 +203,10 @@ CTH_LIBDIR/map/
 
 ### `resources/img/`
 
-Contains the classic indexed image assets. Existing content is 12 PCX files:
-6 plain `.pcx` files and 6 `.pcx.gz` copies. The image option now also accepts
-indexed `.png` and `.png.gz` files from the same locations. PCX loading lives in
-`src/pcx.cc`; indexed PNG loading lives in `src/png.cc`. Compressed
+Contains the classic indexed image assets. Existing content is 6 `.pcx.gz`
+files and 1 `.png` image. The image option also accepts indexed `.png` and
+`.png.gz` files from the same locations. PCX loading lives in `src/pcx.cc`;
+indexed PNG loading lives in `src/png.cc`. Compressed
 files still go through `CoreOption::load`, which can read `.gz` by spawning
 `gzip -cd`.
 

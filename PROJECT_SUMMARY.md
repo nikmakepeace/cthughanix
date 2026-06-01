@@ -1,10 +1,9 @@
 # CthughaNix Project Summary
 
-This repository is a modernization/refactoring snapshot of CthughaNix 1.5, the
-Linux/Unix continuation of Cthugha-L and descendant of the DOS Cthugha 5.x
-visualizer. The code still has its classic indexed-color visual engine, but the
-current tree has been substantially reworked since the first project notes were
-written.
+This repository contains CthughaNix 1.5, the Linux/Unix continuation of
+Cthugha-L and descendant of the DOS Cthugha 5.x visualizer. The current tree
+keeps the classic indexed-color visual engine and presents it through an X11
+frontend.
 
 The current reference application target is `xcthugha`, the X11 frontend. The
 modern CMake build produces `xcthugha`. Translation
@@ -15,7 +14,7 @@ The old SVGAlib and OpenGL frontend paths have been removed. The old sound
 server/network sources are no longer present; only stale object files from
 previous builds remain in `src/`.
 
-The best mental model for one frame is now:
+The best mental model for one frame is:
 
 ```text
 audio source -> AudioRuntime / AudioFrame
@@ -47,7 +46,7 @@ deferred suspend handling
 - `PROJECT_RUNTIME_MAP.md` traces startup, frame flow, audio flow, visual buffer
   flow, display flow, configuration, and input.
 - `PROJECT_SEAMS_AND_RISKS.md` lists useful extension seams and the risky edges
-  that remain after the recent refactor.
+  in the current tree.
 - `PROJECT_BUILD_AND_PORTING.md` records the current CMake and autotools build
   state, dependencies, verification commands, and porting strategy.
 - `PROJECT_MAIN_LOOP_EXPLAINED.md` is a guided source walk through one frame.
@@ -55,13 +54,13 @@ deferred suspend handling
 
 ## Current Project Shape
 
-- `src/` contains the application source: 59 top-level `.cc` files and 49
+- `src/` contains the application source: 63 top-level `.cc` files and 55
   top-level headers.
 - Built-in translation generators live in `src/TranslateGenerator.*`.
 - `resources/map/` contains 100 `.map` palettes and `resources/map/png/`
   contains 23 palette preview PNGs.
-- `resources/img/` contains classic indexed image assets: currently 6 plain
-  `.pcx` files and 6 gzip-compressed copies. The same loader path now accepts
+- `resources/img/` contains classic indexed image assets: currently 6
+  gzip-compressed `.pcx` files and 1 `.png` image. The same loader path accepts
   indexed PNGs, including `.png.gz`.
 - `external/minimp3/` is the embedded MP3 decoder used by the modern audio path.
 - `external/cthugha-js/` is a separate JavaScript port/reference tree.
@@ -81,7 +80,7 @@ registry for selectable visual entries. The current active categories include:
 - visual option adapters: `VisualDirector` owns image selection, and translation
   selection is backed by built-in generator/catalog entries.
 
-Audio and visual control are now separated:
+Audio and visual control are separated:
 
 - `AudioRuntime`, `RuntimeFactory`, `PcmSourceFactory`, and `Audio` classes own
   modern source/output composition.
@@ -95,9 +94,9 @@ Audio and visual control are now separated:
   visual mutation.
 - `VisualPipeline` is the visual-stage executor. One-shot indexed image overlay,
   border, flame, translate, wave, frame commit, palette smoothing, and
-  flashlight now run as explicit modules. `VisualDirector` updates those modules
-  with the selected image/effect objects and `VisualPipeline::run()` passes the
-  single `CthughaBuffer&` through each enabled stage.
+  flashlight run as explicit modules. `VisualDirector` updates those modules
+  with the selected image/effect objects and `VisualPipeline::run()` passes one
+  `CthughaBuffer&` through each enabled stage.
 - `ColorPalette` is the palette data object wrapped by `PaletteEntry`; the
   display-facing per-frame palette lives in `FramePalette`.
 
@@ -111,8 +110,8 @@ Audio and visual control are now separated:
   `VisualPipelineSequence`, `PipelineStageModules`, `VisualPipeline`,
   `VisualModule`, `VisualFrameContext`, and `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
-  selection, while flame, translate, and wave execution now runs through
-  standalone `Flame`/`Translate`/`Wave` domain objects.
+  selection, while flame, translate, and wave execution runs through standalone
+  `Flame`/`Translate`/`Wave` domain objects.
 - Display frontend seam: `DisplayDevice` plus the X11 `CthughaDisplay`
   subclass.
 - Asset seams: `.map` palettes, `.pcx`/`.pcx.gz`/indexed `.png` images, and
@@ -137,7 +136,6 @@ initialization before it can print help.
 
 The project is portable in a transitional sense, not yet a modern clean-room
 port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer, CD-ROM
-ioctl, shell-based asset helpers, and many global singletons. The refactor has
-created better audio and visual seams, and the old monolithic
-flame/translate/wave loop has been decomposed into pipeline stages, but the
-classic engine is still stateful and global.
+ioctl, shell-based asset helpers, and many global singletons. Audio and visual
+work are split through explicit seams, and flame/translate/wave execution runs
+through pipeline stages, but the classic engine is still stateful and global.

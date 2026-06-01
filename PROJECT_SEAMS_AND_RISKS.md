@@ -147,9 +147,11 @@ into `WaveStageModule`. The stages execute selected `Flame`, `Translate`,
 and `Wave` objects against the `CthughaBuffer&` passed through the pipeline.
 
 The next seam to improve is the remaining compatibility global. Stage entries
-now receive explicit `CthughaBuffer&` objects and entry selection no longer
-happens inside the stage modules, but UI/loading/display code still consult
-`CthughaBuffer::current`.
+receive explicit `CthughaBuffer&` objects and entry selection does not happen
+inside the stage modules, but display code still consults
+`CthughaBuffer::current` while mapping the finished passive buffer to the
+frontend. `VisualDirector` also keeps that pointer synchronized to the singleton
+`CthughaBuffer::buffer`.
 
 ### Add a Display Mode
 
@@ -202,15 +204,16 @@ Visual code should use `audioFrameRawData()` and `audioFrameProcessedWaveData()`
 file playback, live input, random input, and silence all present the same
 1024-sample frame contract.
 
-### VisualPipeline Still Uses Legacy Selection And Binding
+### VisualPipeline Still Shares Display Globals
 
-`VisualPipeline` now has explicit modules for image, border, flame, translate,
-wave, frame commit, palette smoothing, and flashlight. The
-former `CthughaBuffer::run()` loop and the temporary frame-buffer binding
-adapter have been removed.
+`VisualPipeline` has explicit modules for image, border, flame, translate, wave,
+frame commit, palette smoothing, and flashlight. It receives one
+`CthughaBuffer&` from `VisualDirector` and passes that buffer through enabled
+modules in stage order.
 
-Do not assume this is full inversion of control yet. UI, loading, and display
-code still use `CthughaBuffer::current` as a compatibility pointer.
+Do not assume this is full inversion of control yet. The display path still uses
+`CthughaBuffer::current` as a compatibility pointer for buffer geometry and
+passive-pixel reads.
 
 ### Build Wrappers Include `.cc` Files
 
@@ -234,9 +237,9 @@ Changing buffer size is a system-wide operation.
 
 ### Translation Is A Dedicated Stage
 
-Translation now runs through `TranslateStageModule`. Flames should not apply
-translation internally; keeping coordinate remapping in its own stage avoids the
-old hidden coupling between `flames.cc` and `translate.cc`.
+Translation runs through `TranslateStageModule`. Flames should not apply
+translation internally; coordinate remapping belongs in its own stage rather
+than inside `flames.cc`.
 
 ### Display Functions May Self-Reject
 
@@ -294,7 +297,7 @@ path is:
    stable;
 2. continue moving `CthughaBuffer::current` lookups behind explicit
    display/provider objects;
-3. add tests around loaders and deterministic transforms before deep refactors.
+3. add tests around loaders and deterministic transforms before deep changes.
 
 ### Configuration and UI
 
@@ -308,17 +311,16 @@ with safer metadata.
 
 - X11/MIT-SHM startup and image paths are platform-sensitive. A headless shell
   cannot even show `xcthugha --help` because X initialization happens first.
-- External command execution remains: `CoreOption::load()` uses `gzip -cd`,
-  translation table generation uses helper commands during startup, and silence
-  messages can run `fortune`.
+- External command execution remains: `CoreOption::load()` uses `gzip -cd` for
+  compressed assets, and silence messages can run `fortune`.
 - OSS and CD ioctl paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 
 ### Medium Risk
 
-- File playback has a single buffered runtime path now; the riskiest edges are
+- File playback has a single buffered runtime path; the riskiest edges are
   playback latency accounting, EOF/drain behavior, and raw PCM option handling.
-- `VisualPipeline` stage order is explicit now, and stage execution uses
+- `VisualPipeline` stage order is explicit, and stage execution uses
   director-provided buffers. The remaining risk is non-pipeline code that still
   consults `CthughaBuffer::current`.
 - Many fixed-size string buffers use `sprintf`, `strncpy`, and `strncat` with
@@ -335,7 +337,7 @@ with safer metadata.
 - Indexed image loading is isolated. PNG support is intentionally limited to
   non-interlaced indexed-color PNGs.
 - Keymap parsing is standalone and a good candidate for targeted tests.
-- Translation table generators are now in-process domain objects and can be
+- Translation table generators are in-process domain objects and can be
   tested without subprocess plumbing.
 - `AudioProcessor` and `AudioAnalyzer` are much easier to test than the old
   monolithic sound path.

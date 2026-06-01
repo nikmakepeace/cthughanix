@@ -67,8 +67,8 @@ pause/suspend handling
 The visual frame loop is cooperative. File playback now uses the modern audio
 runtime; Pulse output owns its feed through its write callback, and decoded PCM
 is shared with the visual engine through `AudioBuffer`/`AudioFrameBuilder`.
-Translation-table helper commands run during startup so the frame loop receives
-ready tables.
+Translation tables are generated in-process during startup so the frame loop
+receives ready tables.
 
 ### Frontend Event Loops
 
@@ -206,11 +206,11 @@ analysis and before visual mutation. Waves normally read
 
 ## Visual Buffer Pipeline
 
-`CthughaBuffer` owns the single classic visual buffer, its legacy selectable
-effect-option holders, and the raw active/passive indexed pixel buffers. It no
-longer owns the per-frame flame/translate/wave choreography or the current
-frame palette; `VisualDirector` configures pipeline modules with the currently
-selected effect entries. Default dimensions are:
+`CthughaBuffer` owns the single classic visual buffer dimensions and the raw
+active/passive indexed pixel buffers. It does not own per-frame
+flame/translate/wave choreography or the current frame palette; `VisualDirector`
+configures pipeline modules with the currently selected effect entries. Default
+dimensions are:
 
 ```text
 BUFF_WIDTH  = 160
@@ -258,7 +258,7 @@ flame, general-flame value, prepared translation object, wave, and border mode.
 `VisualPipeline::run()` then passes the same `CthughaBuffer&` through each
 enabled stage.
 
-Image and translate selection now flow through `VisualDirector`.
+Image and translate selection flow through `VisualDirector`.
 
 ### Flashlight
 
@@ -283,8 +283,8 @@ The selected `border` CoreOption decides whether those rows are:
 
 ### Indexed Buffer Stages
 
-The old `CthughaBuffer::run()` transform has been split across visual pipeline
-modules. The frame-level order is:
+The indexed-buffer mutation path is split across visual pipeline modules. The
+frame-level order is:
 
 ```text
 ImageStageModule
@@ -369,8 +369,8 @@ audioProcessing.changeToInitial()
 The X11 display path is:
 
 ```text
-displayDevice->preDraw()
 displayDevice->setGlobalPalette()
+displayDevice->preDraw()
 choose direct or temporary indexed buffer
 checkZoom()
 screen() maps selected passive pixels into CthughaDisplay::buffer

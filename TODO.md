@@ -132,16 +132,6 @@
      - The engine consumes processed wave data through a stable per-frame context:
        raw `AudioFrame`, FFT/spectrum data, future frequency bands/features, and
        `AcousticContext`.
-   - Proposed objects:
-     - `VisualDirector`: decides which kinds of modules/stages are needed to mutate the
-       internal buffer.
-     - `VisualPipelineFactory`: consumes settings/environment/current options, resolves
-       concrete modules, and builds or refreshes the pipeline. This may initially be the
-       same class as the director.
-     - `VisualPipeline`: long-lived ordered executor for visual modules.
-     - `VisualModule`: small interface for one buffer mutation stage.
-     - `VisualFrameContext`: read-only per-frame inputs such as `AudioFrame`,
-       `AudioMetrics`, `AcousticContext`, `now`, and `deltaT`.
    - Current visual pipeline state:
      - `AudioVisualBridge` still owns audio processing/analyzer/autochanger work before
        visual mutation.
@@ -153,25 +143,19 @@
      - `FrameCommitStage`
      - `PaletteStage`
      - `FlashlightStage`
-   - Pipeline construction happens once per session, and module refresh/rebuild happens
-     when startup settings or `AutoChanger` alter selected visual options.
+   - `VisualDirector` updates stage modules with the selected image, flame,
+     general-flame value, translation table, wave config, border mode, palette
+     target, and flashlight mode.
+   - `VisualPipeline::run()` passes one explicit `CthughaBuffer&` through each
+     enabled module.
+   - The display path still uses `CthughaBuffer::current` for buffer geometry
+     and passive-pixel reads; `VisualDirector` keeps it synchronized to the
+     singleton `CthughaBuffer::buffer`.
    - Treat classic `screen` functions carefully:
      - If a screen function mutates the internal indexed frame as an artistic transform,
        it belongs in the visual pipeline.
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
        it belongs in the display/presentation layer, not the internal visual engine.
-   - Completed practical slices:
-     - Added `VisualFrameContext`, `VisualModule`, and `VisualPipeline`
-       scaffolding.
-     - Removed the old monolithic `CthughaBuffer::run()` frame choreography.
-     - Added explicit flame, translate, and wave modules. Flame execution now
-       uses domain `Flame` objects; `FlameEntry` remains only as the global
-       `FlameOption`/`CoreOption` adapter, and `FlameStageModule` owns the
-       current general-flame value.
-     - Wave execution now uses domain `Wave` objects; `WaveEntry` remains only
-       as the global `WaveOption`/`CoreOption` adapter. `VisualDirector` now
-       chooses a runnable wave, configures it with scale/table/object, and
-       binds only the selected wave into `WaveStageModule`.
    - Next practical slice:
      - Continue moving `CthughaBuffer::current` lookups behind explicit
        display/provider objects.
