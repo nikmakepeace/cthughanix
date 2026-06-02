@@ -40,10 +40,6 @@ public:
     friend class activateAction;
 };
 
-typedef CoreOptionEntry* (*CoreOptionLoader)(FILE*, const char*, const char*, const char*);
-typedef CoreOptionEntry* (*CoreOptionContextLoader)(
-    FILE*, const char*, const char*, const char*, void*);
-
 enum CoreOptionFlags {
     CORE_OPTION_NO_FLAGS = 0,
 
@@ -147,28 +143,8 @@ protected:
     void doSave();
     void doRestore();
 
-    //
-    // general loading
-    //
 protected:
-    int isCompressed(const char* name);
-    int hasExtension(const char* name, const char* extension);
     int isAutoChangeCandidate() const;
-
-    CoreOptionEntry* load(const char* name, char* total_name, const char* dir,
-        CoreOptionLoader loader);
-    CoreOptionEntry* load(const char* name, char* total_name, const char* dir,
-        CoreOptionContextLoader loader, void* context);
-    void loadDir(const char* dir, const char* extension,
-        CoreOptionLoader loader);
-    void loadDir(const char* dir, const char* extension,
-        CoreOptionContextLoader loader, void* context);
-
-public:
-    int load(const char* searchPath[], const char* extraPath, const char* extension,
-        CoreOptionLoader loader);
-    int load(const char* searchPath[], const char* extraPath, const char* extension,
-        CoreOptionContextLoader loader, void* context);
 
 public:
     CoreOption(int buffer, const char* name, CoreOptionEntryList& e,

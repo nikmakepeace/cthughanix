@@ -1,6 +1,7 @@
 // Wave option setup, object loading, color tables, and wave renderers.
 
 #include "cthugha.h"
+#include "CoreOptionAssetLoader.h"
 #include "display.h"
 #include "Interface.h"
 #include "information.h"
@@ -426,7 +427,7 @@ int init_wave() {
     if (int(use_objects)) {
 
         CTH_INFO("  loading 3-D objects...");
-        object.load(object_path, "/obj/", ".obj", read_object);
+        loadCoreOptionEntries(object, object_path, "/obj/", ".obj", read_object);
         CTH_INFO("\n  number of 3-D objects: %d\n", object.getNEntries());
     }
 

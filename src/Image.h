@@ -198,7 +198,7 @@ public:
      *
      * @param targetWidth Display/buffer width in pixels.
      * @param targetHeight Display/buffer height in pixels.
-     * @return Combined loader result from CoreOption::load().
+     * @return Combined loader result from the configured image catalog loaders.
      */
     int loadImages(int targetWidth, int targetHeight);
 };

@@ -2,6 +2,7 @@
 
 #include "Image.h"
 #include "cthugha.h"
+#include "CoreOptionAssetLoader.h"
 #include "imath.h"
 #include "pcx.h"
 #include "png.h"
@@ -173,7 +174,8 @@ int ImageOption::loadImages(int targetWidth, int targetHeight) {
 
     for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
          format++) {
-        result |= load(imagePath, "/img/", format->extension, format->loader, &target);
+        result |= loadCoreOptionEntries(*this, imagePath, "/img/", format->extension,
+            format->loader, &target);
     }
 
     return result;

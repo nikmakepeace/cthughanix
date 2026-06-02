@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "CoreOptionAssetLoader.h"
 #include "display.h"
 #include "defaults.h"
 #include "Interface.h"
@@ -377,7 +378,7 @@ int load_palettes() {
     ColorPalette* colors;
 
     CTH_INFO("  loading palettes...\n");
-    palette.load(palette_path, "/map/", ".map", read_palette);
+    loadCoreOptionEntries(palette, palette_path, "/map/", ".map", read_palette);
 
     /* create one general palette */
     new_pal = new PaletteEntry("general", "");
