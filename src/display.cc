@@ -9,49 +9,9 @@
 #include "cth_buffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
+#include "Screen.h"
 
 #include <math.h>
-
-/* possible display-function */
-int screen_up();
-int screen_down();
-int screen_2hor();
-int screen_r2hor();
-int screen_4hor();
-int screen_2verd();
-int screen_r2verd();
-int screen_4kal();
-int screen_hfield();
-int screen_roll();
-int screen_zick();
-int screen_bent();
-int screen_plate();
-int screen_scale2();
-int screen_vscale_hmirror();
-int screen_hscale_vmirror();
-
-static EffectChoice* _screens[] = {
-    new ScreenEntry(screen_up, "Up", "Up Display", xy(1, 1)),               // 0
-    new ScreenEntry(screen_down, "Down", "Upside Down", xy(1, 1)),          // 1
-    new ScreenEntry(screen_2hor, "2hor", "Hor. Split out", xy(1, 1)),       // 2
-    new ScreenEntry(screen_r2hor, "r2hor", "Hor. Split in", xy(1, 1)),      // 3
-    new ScreenEntry(screen_4hor, "4hor", "Kaleidoscope", xy(1, 1)),         // 4
-    new ScreenEntry(screen_2verd, "2verd", "90deg rot. mirror", xy(1, 1)),  // 5
-    new ScreenEntry(screen_r2verd, "r2verd", "90deg rot. mirror II", xy(1, 1)), // 6
-    new ScreenEntry(screen_4kal, "4kal", "90deg Kaleidoscope", xy(1, 1)),   // 7
-    new ScreenEntry(screen_hfield, "hfield", "Heightfield", xy(2, 2)),      // 8
-    new ScreenEntry(screen_roll, "roll", "Roll around x-axis", xy(1, 1)),   // 9
-    new ScreenEntry(screen_zick, "zick", "Zick Zack", xy(1, 1), 0),         // 10
-    new ScreenEntry(screen_bent, "bent", "A bending plane", xy(2, 2)),      // 11
-    new ScreenEntry(screen_plate, "plate", "A rotating plate", xy(2, 2)),   // 12
-
-    new ScreenEntry(screen_scale2, "scalexy", "Double", xy(2, 2), 0),     // 13
-    new ScreenEntry(screen_vscale_hmirror, "scaley", "Scale vertical, mirror horizontal", xy(1, 2)), // 14
-    new ScreenEntry(screen_hscale_vmirror, "scalex", "Scale horizontal, mirror vertical", xy(2, 1)), // 15
-};
-static EffectChoiceList screenEntries(_screens, sizeof(_screens) / sizeof(EffectChoice*));
-
-EffectControl screen(-1, "display", screenEntries, EFFECT_CONTROL_AUTO_CHANGE);
 
 char screen_first[256] = ""; /* Start with this scrn-fkt */
 
@@ -121,6 +81,10 @@ int screen_up() {
     screen_perm();
 
     return 0;
+}
+
+int screen_source() {
+    return screen_up();
 }
 
 int screen_down() {
@@ -309,73 +273,12 @@ int screen_4kal() {
     return 0;
 }
 
-int screen_scale2() {
-    const unsigned char* src = sourcePixels();
-    unsigned char* dst = cthughaDisplay->buffer;
-
-    for (int y = visualBuffer().height(); y != 0; y--) {
-        unsigned char* dst1 = dst;
-        unsigned char* dst2 = dst + cthughaDisplay->bufferWidth;
-
-        for (int x = visualBuffer().width(); x != 0; x--) {
-            unsigned char color = *src;
-            src++;
-
-            *dst1 = color;
-            dst1++;
-            *dst1 = color;
-            dst1++;
-
-            *dst2 = color;
-            dst2++;
-            *dst2 = color;
-            dst2++;
-        }
-
-        src += visualBuffer().pitch() - visualBuffer().width();
-        dst += 2 * cthughaDisplay->bufferWidth;
-    }
-
-    return 0;
-}
-
 int screen_vscale_hmirror() {
-    const unsigned char* src = sourcePixels();
-    unsigned char* dst = cthughaDisplay->buffer;
-
-    for (int y = visualBuffer().height(); y != 0; y--) {
-        memcpy(dst, src, visualBuffer().width());
-        memcpy(dst + cthughaDisplay->bufferWidth, src, visualBuffer().width());
-
-        src += visualBuffer().pitch();
-        dst += 2 * cthughaDisplay->bufferWidth;
-    }
-
-    return 0;
+    return screen_up();
 }
 
 int screen_hscale_vmirror() {
-    const unsigned char* src = sourcePixels();
-    unsigned char* dst = cthughaDisplay->buffer;
-
-    for (int y = visualBuffer().height(); y != 0; y--) {
-        unsigned char* d = dst;
-
-        for (int x = visualBuffer().width(); x != 0; x--) {
-            unsigned char color = *src;
-            src++;
-
-            *d = color;
-            d++;
-            *d = color;
-            d++;
-        }
-
-        src += visualBuffer().pitch() - visualBuffer().width();
-        dst += cthughaDisplay->bufferWidth;
-    }
-
-    return 0;
+    return screen_up();
 }
 
 /*

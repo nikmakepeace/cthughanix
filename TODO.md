@@ -178,9 +178,19 @@
      stage; presentation source pixels, geometry, pitch, and palette now flow through
      that frame.
    - The screen/presentation layer now has an explicit `IndexedDisplayFrame`
-     destination. Current `ScreenEntry` choices still request the historical
-     `2 * sourceWidth` by `2 * sourceHeight` output size through a compatibility
-     helper, but that policy is no longer buried in backend allocation.
+     destination. Most classic `ScreenEntry` choices still request the
+     historical `2 * sourceWidth` by `2 * sourceHeight` output size through a
+     compatibility helper, but that policy is no longer buried in backend
+     allocation.
+   - The screen/presentation catalog now lives in `Screen.h`/`Screen.cc`, with
+     typed entries, catalog count, lookup by index, and the selected `screen`
+     `EffectControl` separated from the display coordinator.
+   - Added a `Source` screen entry that writes a source-sized 1x
+     `IndexedDisplayFrame`, letting the display path scale final output instead
+     of forcing every presentation effect through the historical 2x surface.
+   - Updated `scalex` and `scaley` so their screen renderers no longer perform
+     plain indexed-pixel doubling; they now mirror one axis in the presentation
+     frame and rely on display scaling for the other axis.
    - Remaining display handoff work:
      - Add focused tests around screen transforms reading padded `IndexedFrame::pitch`
        and writing changed `IndexedDisplayFrame` geometries.

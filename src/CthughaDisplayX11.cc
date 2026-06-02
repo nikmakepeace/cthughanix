@@ -6,6 +6,7 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "Interface.h"
+#include "Screen.h"
 
 #include <stdint.h>
 
@@ -85,8 +86,13 @@ void CthughaDisplayX11::prepareExpandedBuffer() {
 /*
  * expand the palette
  */
-void CthughaDisplayX11::expandPalette(int narrow) {
-    int height = narrow ? visualBuffer().height() : visualBuffer().displayHeight();
+void CthughaDisplayX11::expandPalette(int height) {
+    if (height <= 0)
+        return;
+
+    if (height > visualBuffer().displayHeight())
+        height = visualBuffer().displayHeight();
+
     unsigned char* dst = expandedBuffer;
 
     switch (draw_mode) {
@@ -409,28 +415,28 @@ void CthughaDisplayX11::operator()() {
     if (traceDisplayTiming)
         displayTiming[3] = getTime();
 
-    const xy& s = screenEntry->size;
+    xy filledOutputSize = screenEntry->filledOutputSize(sourceWidth(), sourceHeight());
 
     /*
      * If the selected screen function drew only half or a quadrant, mirror the
      * missing pieces before the image is copied to the display device.
      */
-    if (s.x == 1)
-        mirrorHorizontally(s.y * visualBuffer().height());
+    if (filledOutputSize.x < indexedOutputSize.x)
+        mirrorHorizontally(filledOutputSize.y);
 
     /*
      * expand the palette (right now only the palette of buffer 0,
      *  but maybe later a different palette for each quadrant)
      */
-    expandPalette((s.y == 1) ? 1 : 0);
+    expandPalette(filledOutputSize.y);
     if (traceDisplayTiming)
         displayTiming[4] = getTime();
 
     /*
      * do veritical mirroring, if necessary
      */
-    if (s.y == 1)
-        mirrorVertically();
+    if (filledOutputSize.y < indexedOutputSize.y)
+        mirrorVertically(filledOutputSize.y);
     if (traceDisplayTiming)
         displayTiming[5] = getTime();
 

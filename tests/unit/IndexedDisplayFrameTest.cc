@@ -1,6 +1,6 @@
-#include "CthughaDisplay.h"
 #include "IndexedDisplayFrame.h"
 #include "IndexedFrame.h"
+#include "Screen.h"
 
 #include <assert.h>
 
@@ -51,6 +51,18 @@ static void testScreenEntryCompatibilityOutputSize() {
 
     assert(output.x == 640);
     assert(output.y == 480);
+
+    xy sourceSized = ScreenEntry::scaledOutputSize(320, 240, xy(1, 1));
+    assert(sourceSized.x == 320);
+    assert(sourceSized.y == 240);
+
+    xy mirroredX = ScreenEntry::scaledOutputSize(320, 240, xy(2, 1));
+    assert(mirroredX.x == 640);
+    assert(mirroredX.y == 240);
+
+    xy mirroredY = ScreenEntry::scaledOutputSize(320, 240, xy(1, 2));
+    assert(mirroredY.x == 320);
+    assert(mirroredY.y == 480);
 }
 
 int main() {

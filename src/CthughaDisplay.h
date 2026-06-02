@@ -36,10 +36,10 @@ protected:
     int frames;
     double visualLatencyEstimate;
 
-    // Complete the logical 2x2 Cthugha image when a screen() function only
-    // produced the left half, top half, or top-left quadrant.
+    // Complete missing mirrored regions when a screen() function produced only
+    // part of the selected IndexedDisplayFrame.
     void mirrorHorizontally(int height);
-    void mirrorVertically();
+    void mirrorVertically(int height);
 
     // Keep stale text/old image data out of the letterboxed area.
     int clearBorder();
@@ -47,8 +47,8 @@ protected:
     // Copy expandedBuffer to the device memory, applying the configured zoom.
     void zoom2Screen(unsigned char*, int);
 
-    // Backends override this when indexed pixels must be converted to the
-    // device's native pixel format before zoom2Screen() runs.
+    // Backends override this when indexed rows must be converted to the
+    // device's native pixel format before mirrorVertically()/zoom2Screen() run.
     virtual void expandPalette(int) { }
 
     /**
@@ -151,38 +151,6 @@ public:
     CthughaDisplayX11();
     virtual ~CthughaDisplayX11();
     virtual void operator()();
-};
-
-class ScreenEntry : public EffectChoice {
-public:
-    int (*screen)();
-
-    // Number of logical halves filled by screen(): {1,1} means the screen
-    // routine draws only the upper-left quadrant and the display layer mirrors
-    // it; {2,2} means it filled the whole Cthugha image.
-    xy size;
-
-    ScreenEntry(int (*f)(), const char* name, const char* desc, xy s, int inUse = 1)
-        : EffectChoice(name, desc, inUse)
-        , screen(f)
-        , size(s) { }
-
-    int operator()() { return (*screen)(); }
-
-    /**
-     * @return Indexed output geometry this screen effect wants to produce.
-     *
-     * Today every classic screen effect uses the historical 2x output surface.
-     * Keeping this decision here lets future effects request 1x, 4x, cropped,
-     * or otherwise pragmatic display-frame sizes without changing backends.
-     */
-    static xy compatibilityOutputSize(int sourceWidth, int sourceHeight) {
-        return xy(2 * sourceWidth, 2 * sourceHeight);
-    }
-
-    virtual xy outputSize(int sourceWidth, int sourceHeight) const {
-        return compatibilityOutputSize(sourceWidth, sourceHeight);
-    }
 };
 
 extern CthughaDisplay* cthughaDisplay;

@@ -183,11 +183,11 @@ void CthughaDisplay::mirrorHorizontally(int height) {
  * do the vertical mirroring
  * this is done in the expandedBuffer
  */
-void CthughaDisplay::mirrorVertically() {
+void CthughaDisplay::mirrorVertically(int height) {
     unsigned char* src = expandedBuffer;
     unsigned char* dst = expandedBuffer + (visualBuffer().displayHeight() - 1) * expandedBufferWidth;
 
-    for (int i = visualBuffer().height(); i != 0; i--) {
+    for (int i = height; i != 0; i--) {
         memcpy(dst, src, visualBuffer().displayWidth() * bypp);
         src += expandedBufferWidth;
         dst -= expandedBufferWidth;
@@ -237,11 +237,6 @@ void CthughaDisplay::zoom2Screen(unsigned char* scrn, int bytesPerLine) {
 
     int bpl2 = bytesPerLine / 2;
     int bpl4 = bytesPerLine / 4;
-
-    if ((zoom != 1) && (disp_size.x == visualBuffer().displayWidth()) && (disp_size.y == visualBuffer().displayHeight())) {
-        CTH_INFO("Display size matches buffer size. setting zoom to 1\n");
-        zoom.setValue(1);
-    }
 
     if ((zoom != 1) && (bypp != 1) && (bypp != 2) && (bypp != 4)) {
         CTH_ERROR("Sorry zooming is only implements for 1,2 and 4 bytes/pixel displays.");

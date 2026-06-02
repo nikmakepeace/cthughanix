@@ -18,6 +18,7 @@ set(CTHUGHA_COMMON_SOURCES
     AudioSettings.cc
     RuntimeFactory.cc
     Scene.cc
+    Screen.cc
     DefaultMessagesProvider.cc
     FileMessagesProvider.cc
     MessageFormatValidator.cc
