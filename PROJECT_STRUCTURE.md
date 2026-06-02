@@ -72,8 +72,10 @@ There is no current server-mode source entry point in `src/`.
 - `src/CoreOption.*`, `src/CoreOptionEntry.cc`: effect registry, history,
   locks, hotkeys, and file loading helpers.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
-- `src/AutoChanger.*`: automatic option changes based on silence, cumulative fire level,
-  and elapsed time.
+- `src/AutoChanger.*`: automatic option changes based on silence, cumulative
+  fire level, and elapsed time. It reports quiet intervals to visual policy.
+- `src/SilenceMessage.*`: quiet-message selection, quiet-file loading, and
+  optional `fortune` expansion for text injection.
 - `src/imath.*`: integer math tables/helpers used by visual code.
 - `src/misc.cc`: logging helpers, time helpers, and `systemf()`.
 
@@ -92,6 +94,8 @@ There is no current server-mode source entry point in `src/`.
   and visual-frame construction.
 - `src/PcmSourceFactory.*`: maps settings and file names to line input, random
   noise, WAV, MP3, or raw PCM sources.
+- `src/RuntimeFactory.*`: treats absent/failed live input as no PCM source, so
+  the `AudioFrame` facade exposes silence to visual policy.
 - `src/Mixer.*`: OSS mixer integration.
 
 Old analyzer/processor/server/network audio source files are not current source

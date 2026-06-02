@@ -165,7 +165,7 @@ Good next steps:
 
 ### Phase 3: Continue The Video Filterchain Migration
 
-`VideoFilterchain` has explicit image, border, flame, translate, wave,
+`VideoFilterchain` has explicit image, border, flame, translate, wave, text,
 frame-commit, palette, flashlight, and indexed-frame export filters.
 `VideoDirector` updates the current filter objects before each filterchain run.
 

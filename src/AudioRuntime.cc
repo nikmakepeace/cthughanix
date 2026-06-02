@@ -13,6 +13,7 @@ static AudioFrameBuilder* audioFrameBuilder = NULL;
 static char* audioRuntimeChunk = NULL;
 static char* audioRuntimeOutputChunk = NULL;
 static AudioFrame audioRuntimeFrame;
+static int audioRuntimeInitialized = 0;
 static int audioRuntimeChunkSamples = 0;
 static int audioRuntimeOutputChunkSamples = 0;
 static std::atomic<int> audioRuntimeInputFinished(0);
@@ -394,6 +395,7 @@ int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
     audioRuntimeCompletionAnnounced = 0;
     audioRuntimeVisualClockStarted = 0;
     audioRuntimeVisualClockStart = 0;
+    audioRuntimeInitialized = 1;
 
     if (audioRuntimeUsesNativeFilePipeline(settings, sourceStrategy)) {
         audioInput = runtimeFactory.createAudioInput();
@@ -402,6 +404,7 @@ int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
                 sourceStrategy);
             delete audioInput;
             audioInput = NULL;
+            audioRuntimeInitialized = 0;
             return 1;
         }
 
@@ -413,6 +416,7 @@ int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
             audioInput = NULL;
             delete audioOutput;
             audioOutput = NULL;
+            audioRuntimeInitialized = 0;
             return 1;
         }
 
@@ -444,8 +448,8 @@ int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
     } else {
         audioProcessor = runtimeFactory.createAudioProcessor();
         if (audioProcessor == NULL) {
-            CTH_DEBUG("audio runtime: native AudioInputProcessor unavailable\n");
-            return 1;
+            CTH_DEBUG("audio runtime: no PCM input source; audio facade will publish silence\n");
+            return 0;
         }
 
         CTH_DEBUG("audio runtime: installed native AudioInputProcessor path\n");
@@ -521,6 +525,7 @@ void audioRuntimeShutdown() {
     delete audioProcessor;
     audioProcessor = NULL;
 
+    audioRuntimeInitialized = 0;
     audioRuntimeInputFinished.store(0);
     audioRuntimeComplete.store(0);
     audioRuntimeThreadsStop.store(0);
@@ -535,7 +540,7 @@ void audioRuntimeShutdown() {
 }
 
 int audioRuntimeIsInitialized() {
-    return (audioBuffer != NULL) || (audioProcessor != NULL);
+    return audioRuntimeInitialized;
 }
 
 AudioInputProcessor* audioRuntimeProcessor() {

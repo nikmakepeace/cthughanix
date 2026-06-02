@@ -69,11 +69,13 @@ enum option_nr {
     opt_image,
     opt_images,
     opt_no_images,
+    opt_random_noise,
 };
 
 struct option long_options[] = {
     // selecting sound device options
     { "no-sound", 0, 0, 'x' },
+    { "random-noise", 0, 0, opt_random_noise },
 
     { "play", 1, 0, opt_play }, { "silent", 0, 0, opt_silent },
     { "no-silent", 0, 0, opt_no_silent },
@@ -299,7 +301,13 @@ int do_param(int c, int value, char* str) {
         break;
     }
 
-    case 'x': /* debug mode */
+    case 'x': /* no sound input */
+        audio_input_file[0] = '\0';
+        audioInputMode.setValue(AIM_None);
+        break;
+
+    case opt_random_noise:
+        audio_input_file[0] = '\0';
         audioInputMode.setValue(AIM_Random);
         break;
 
@@ -330,7 +338,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'q': /* alternative quiet-strings */
-        AutoChanger::loadSilenceStrings(str);
+        videoDirector().silenceMessages().loadFile(str);
         break;
 
     case opt_images:

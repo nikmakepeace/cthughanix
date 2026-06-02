@@ -125,7 +125,7 @@ in.
 - `ASS_Mp3File` for `--play *.mp3`;
 - `ASS_RawFile` for other `--play` names, using `sound-format`,
   `sound-channels`, and `sound-sample-rate`;
-- `ASS_Unknown` for unsupported cases.
+- `ASS_Unknown` for `AIM_None` and unsupported cases.
 
 ### Native File Pipeline
 
@@ -153,7 +153,7 @@ completion and requests program close.
 
 ### Native Input Processor Path
 
-For live OSS input and random noise, `RuntimeFactory` can create:
+For live OSS input and explicit random-noise input, `RuntimeFactory` can create:
 
 ```text
 PcmSource -> AudioInput -> AudioInputProcessor
@@ -166,9 +166,10 @@ and processed workspace used by visual code.
 
 There is no separate old backend fallback path. Live input uses the same modern
 `PcmSource`/`AudioInputProcessor` model as random input, and file playback uses
-the buffered `AudioInput` -> `AudioBuffer` -> `AudioOutput` path. If line input
-cannot be opened, startup falls back to `RandomNoisePcmSource` unless sound is
-explicitly disabled.
+the buffered `AudioInput` -> `AudioBuffer` -> `AudioOutput` path. If no input is
+requested, or line input is unavailable/cannot be opened, the runtime has no PCM
+source; the `AudioFrame` facade publishes its static silent buffers to visual
+policy.
 
 ### AudioFrame Facade
 
@@ -248,6 +249,7 @@ BorderStage
 FlameStage
 TranslateStage
 WaveStage
+TextStage
 FrameCommitStage
 PaletteStage
 FlashlightStage
@@ -263,16 +265,21 @@ BorderFilter
 FlameFilter
 TranslateFilter
 WaveFilter
+TextInjectionFilter
 FrameCommitFilter
 PaletteFilter
 FlashlightFilter
 IndexedFrameFilter
 ```
 
-`ImageFilter`, `FlameFilter`, `TranslateFilter`, and
-`WaveFilter` are real stages. Image overlays the current `IndexedImage`
-when `VideoDirector` arms the one-shot image stage. PCX and indexed PNG files
-are decoded into that domain object before the frame loop. Before each frame,
+`ImageFilter`, `FlameFilter`, `TranslateFilter`, `WaveFilter`, and
+`TextInjectionFilter` are real pixel-mutating stages. Image overlays the current
+`IndexedImage` when `VideoDirector` arms the one-shot image stage. Text
+injection stamps wrapped CP437 text into active pixels when `VideoDirector` arms
+the text stage. Quiet-message text is selected by `SilenceMessage`, routed
+through `SceneCueInjectText`, then observed by `VideoDirector` to arm
+`TextInjectionFilter`. PCX and indexed PNG files are decoded into that domain
+object before the frame loop. Before each frame,
 `VideoDirector` updates the stage filters with the selected image, selected
 flame, general-flame value, prepared translation object, wave, and border mode.
 `VideoFilterchain::run()` then wraps the current buffer, frame context, display

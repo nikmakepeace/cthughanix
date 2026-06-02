@@ -10,6 +10,8 @@
 #include "display.h"
 #include "imath.h"
 
+OptionTime changeMsgTime("change-msg-time", 500);
+
 double paletteSmoothingChance = 1.0;
 
 template <class Filter>
@@ -37,9 +39,20 @@ static int paletteChangeFrameBudget() {
     return paletteSmoothingFrameBudget();
 }
 
+static int quietMessageFrameBudget() {
+    const int QUIET_MESSAGE_DURATION_DIVISOR = 4;
+    int fps = 60;
+
+    if (cthughaDisplay != 0 && cthughaDisplay->fps > 0)
+        fps = cthughaDisplay->fps;
+
+    return max(1, (fps * int(changeMsgTime)) / (100 * QUIET_MESSAGE_DURATION_DIVISOR));
+}
+
 VideoDirector::VideoDirector()
     : images(0, "image")
     , imagePlacementStrategy()
+    , silenceMessage()
     , scene(0)
     , filterchain(0)
     , buffer(0)
@@ -47,6 +60,11 @@ VideoDirector::VideoDirector()
     , pendingImageCue(0)
     , pendingImageCueId(0)
     , appliedImageCueId(0)
+    , pendingTextMessage()
+    , pendingTextCueId(0)
+    , appliedTextCueId(0)
+    , pendingTextFrames(0)
+    , pendingTextInkColor(-1)
     , imageLoadingEnabledValue(1) { }
 
 VideoDirector::~VideoDirector() {
@@ -86,6 +104,11 @@ void VideoDirector::unbindScene() {
     pendingImageCue = 0;
     pendingImageCueId = 0;
     appliedImageCueId = 0;
+    pendingTextMessage.clear();
+    pendingTextCueId = 0;
+    appliedTextCueId = 0;
+    pendingTextFrames = 0;
+    pendingTextInkColor = -1;
 }
 
 int VideoDirector::imageLoadingEnabled() const {
@@ -108,6 +131,22 @@ int VideoDirector::loadImages() {
     return result;
 }
 
+SilenceMessage& VideoDirector::silenceMessages() {
+    return silenceMessage;
+}
+
+int VideoDirector::observeQuiet(int quietLength) {
+    if (!int(changeMsgTime) || quietLength <= int(changeMsgTime))
+        return 0;
+
+    if (scene == 0)
+        return 0;
+
+    std::string message = silenceMessage.nextMessage();
+    scene->emitTextCue(message.c_str(), quietMessageFrameBudget(), -1);
+    return 1;
+}
+
 VideoFilterchainSequence VideoDirector::defaultFilterchainSequence() const {
     VideoFilterchainSequence sequence;
 
@@ -116,6 +155,7 @@ VideoFilterchainSequence VideoDirector::defaultFilterchainSequence() const {
     sequence.append(VideoFilterchainSequence::FlameStage);
     sequence.append(VideoFilterchainSequence::TranslateStage);
     sequence.append(VideoFilterchainSequence::WaveStage);
+    sequence.append(VideoFilterchainSequence::TextStage);
     sequence.append(VideoFilterchainSequence::FrameCommitStage);
     sequence.append(VideoFilterchainSequence::PaletteStage);
     sequence.append(VideoFilterchainSequence::FlashlightStage);
@@ -201,6 +241,23 @@ void VideoDirector::applyPendingImageCue() {
     pendingImageCue = 0;
 }
 
+void VideoDirector::applyPendingTextCue() {
+    if (filterchain == 0 || pendingTextCueId == appliedTextCueId
+        || pendingTextMessage.empty() || pendingTextFrames <= 0)
+        return;
+
+    TextInjectionFilter* textFilter
+        = stageFilter<TextInjectionFilter>(*filterchain, VideoFilterchainSequence::TextStage);
+    if (textFilter == 0)
+        return;
+
+    textFilter->setInkColor(pendingTextInkColor);
+    textFilter->setMessage(pendingTextMessage.c_str(), pendingTextFrames);
+    filterchain->setStageMode(VideoFilterchainSequence::TextStage, VideoFilterEnabled);
+
+    appliedTextCueId = pendingTextCueId;
+}
+
 void VideoDirector::sceneChanged(Scene& scene_, unsigned int changes) {
     (void)scene_;
 
@@ -218,6 +275,12 @@ void VideoDirector::sceneCue(Scene& scene_, const SceneCue& cue) {
         pendingImageCue = cue.image;
         pendingImageCueId = cue.id;
         applyPendingImageCue();
+    } else if (cue.type == SceneCueInjectText) {
+        pendingTextMessage = cue.text;
+        pendingTextFrames = cue.textFrames;
+        pendingTextInkColor = cue.textInkColor;
+        pendingTextCueId = cue.id;
+        applyPendingTextCue();
     }
 }
 
@@ -238,6 +301,7 @@ CthughaBuffer* VideoDirector::configureFilterchain(VideoFilterchain& filterchain
         pendingSceneChanges = SceneNoChange;
     }
     applyPendingImageCue();
+    applyPendingTextCue();
 
     return targetBuffer;
 }

@@ -38,9 +38,6 @@ public:
 
     Interface* next;
 
-    const char* silenceMsg;
-    int silenceLine;
-
     Interface(const char* n, const char* ti, const char* te);
     Interface(const char* n, const char* ti, const char* te, InterfaceElement* el[], int nEl);
 
@@ -51,7 +48,6 @@ public:
 
     virtual void preRun() { }
     virtual void display();
-    virtual void msg(const char* msg);
     virtual void doKey(int key);
     virtual void run();
 };

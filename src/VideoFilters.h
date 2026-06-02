@@ -10,7 +10,22 @@
 #include "VideoFilterchainSequence.h"
 #include "Wave.h"
 
+#include <string>
+
+class BitmapFont;
 class PaletteEntry;
+
+enum TextInjectionHorizontalAlign {
+    TextInjectionAlignLeft,
+    TextInjectionAlignCenter,
+    TextInjectionAlignRight
+};
+
+enum TextInjectionVerticalAlign {
+    TextInjectionAlignTop,
+    TextInjectionAlignMiddle,
+    TextInjectionAlignBottom
+};
 
 // Contract: one-shot pixel injector. Writes the selected image into the active
 // buffer, and can mirror the same pixels into passive for immediate display.
@@ -69,6 +84,28 @@ public:
     WaveFilter();
 
     void setWave(Wave* wave_, const WaveConfig& config_);
+    void execute(VideoFrame& frame);
+};
+
+// Contract: indexed-buffer text injector. Wraps CP437 text at word boundaries,
+// draws it into active pixels, and lets later frame commits/feed-back stages
+// make it part of the visual material.
+class TextInjectionFilter : public VideoFilter {
+    const BitmapFont* font;
+    std::string message;
+    int framesRemaining;
+    int inkColor;
+    int marginPixels;
+    TextInjectionHorizontalAlign horizontalAlign;
+    TextInjectionVerticalAlign verticalAlign;
+
+public:
+    TextInjectionFilter();
+
+    void setMessage(const char* message_, int frameCount);
+    void setInkColor(int color);
+    void setPlacement(TextInjectionHorizontalAlign horizontalAlign_,
+        TextInjectionVerticalAlign verticalAlign_, int marginPixels_);
     void execute(VideoFrame& frame);
 };
 

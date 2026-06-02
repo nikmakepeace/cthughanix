@@ -6,6 +6,7 @@
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "AudioAnalyzer.h"
+#include "VideoDirector.h"
 #include "translate.h"
 
 #include <ctype.h>
@@ -65,7 +66,8 @@ void usage() {
     PH("Cthugha command line options:");
     PH("-----------------------------");
     PH("Selecting sound device (DSP device by default):");
-    PH(" -x, --no-sound      Debug mode (no sound-source)");
+    PH(" -x, --no-sound      Use no sound input");
+    PH(" --random-noise      Use generated random-noise input");
     PH(" --play FILE         Play FILE for sound input");
     PH(" --silent            Play silently", soundSilent.text());
     PH(" --loop, --no-loop   Play sound file over and over again or only once");

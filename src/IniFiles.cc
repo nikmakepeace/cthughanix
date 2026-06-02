@@ -8,6 +8,7 @@
 #include "AutoChanger.h"
 #include "AudioProcessor.h"
 #include "CthughaBuffer.h"
+#include "VideoDirector.h"
 
 #include <unistd.h>
 #include <ctype.h>

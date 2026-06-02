@@ -6,6 +6,7 @@
 #include "Wave.h"
 #include "TranslationTable.h"
 
+#include <string>
 #include <vector>
 
 class CoreOption;
@@ -28,7 +29,8 @@ enum SceneChange {
 };
 
 enum SceneCueType {
-    SceneCueInjectImage
+    SceneCueInjectImage,
+    SceneCueInjectText
 };
 
 class SceneSettings {
@@ -67,9 +69,13 @@ public:
     SceneCueType type;
     unsigned int id;
     const IndexedImage* image;
+    std::string text;
+    int textFrames;
+    int textInkColor;
 
     SceneCue();
     static SceneCue injectImage(const IndexedImage* image_);
+    static SceneCue injectText(const char* text_, int frameCount, int inkColor);
 };
 
 class Scene;
@@ -98,6 +104,7 @@ public:
     void setSettings(const SceneSettings& settings, unsigned int forcedChanges = 0);
     void emitCue(SceneCue cue);
     void emitImageCue(const IndexedImage* image);
+    void emitTextCue(const char* text, int frameCount, int inkColor);
 
     void addObserver(SceneObserver& observer);
     void removeObserver(SceneObserver& observer);

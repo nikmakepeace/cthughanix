@@ -21,6 +21,8 @@ VideoFilterchain* VideoFilterchainFactory::create(const VideoFilterchainSequence
         filterchain->add(VideoFilterchainSequence::TranslateStage, new TranslateFilter(), 1);
     if (sequence.includes(VideoFilterchainSequence::WaveStage))
         filterchain->add(VideoFilterchainSequence::WaveStage, new WaveFilter(), 1);
+    if (sequence.includes(VideoFilterchainSequence::TextStage))
+        filterchain->add(VideoFilterchainSequence::TextStage, new TextInjectionFilter(), 1);
     if (sequence.includes(VideoFilterchainSequence::FrameCommitStage))
         filterchain->add(VideoFilterchainSequence::FrameCommitStage, new FrameCommitFilter(), 1);
     if (sequence.includes(VideoFilterchainSequence::PaletteStage)) {

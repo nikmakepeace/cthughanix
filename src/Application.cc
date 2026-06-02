@@ -191,6 +191,7 @@ int Application::initialize() {
         return 0;
 
     title();
+    videoDirector().silenceMessages().initialize();
 
     init_imath();
 

@@ -14,6 +14,7 @@ public:
         FlameStage,
         TranslateStage,
         WaveStage,
+        TextStage,
         FrameCommitStage,
         PaletteStage,
         IndexedFrameStage

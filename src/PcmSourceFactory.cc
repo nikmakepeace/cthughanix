@@ -58,6 +58,9 @@ AudioSourceStrategy PcmSourceFactory::selectAudioSourceStrategy(const Settings& 
         else
             strategy = ASS_Unknown;
         break;
+    case AIM_None:
+        strategy = ASS_Unknown;
+        break;
     default:
         strategy = ASS_Unknown;
         break;

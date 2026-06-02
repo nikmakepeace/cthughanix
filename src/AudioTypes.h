@@ -19,6 +19,7 @@ enum AudioInputMode {
     AIM_DSPIn,
     AIM_Random,
     AIM_File,
+    AIM_None,
     AIM_Max
 };
 

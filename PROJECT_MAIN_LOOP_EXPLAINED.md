@@ -145,7 +145,7 @@ audioFrameCurrent();
 ```
 
 They hide whether the current data came from file playback, live/random input,
-or silent fallback buffers.
+or the static silent buffers used when there is no PCM source.
 
 ## 5. Concept: CoreOption
 
@@ -306,7 +306,9 @@ attack/beat.
 
 It decides whether to change visual options automatically:
 
-- If sound has been quiet long enough, it may show a silence message.
+- It reports long quiet intervals to `VideoDirector`, which may choose a
+  `SilenceMessage`, ask `Scene` to emit `SceneCueInjectText`, and then observe
+  that cue to arm `TextInjectionFilter`.
 - If silence ends after a quiet gap, it can trigger a change.
 - If `acousticContext.cumulativeFireLevel()` exceeds `cumulative-fire-level`, it can trigger a
   change.
@@ -412,6 +414,9 @@ TranslateFilter
 
 WaveFilter
   execute the selected Wave with the current scale, table, and object
+
+TextInjectionFilter
+  stamp wrapped CP437 text into active indexed pixels when armed
 
 FrameCommitFilter
   emit limited debug summaries

@@ -37,9 +37,7 @@ Interface::Interface(const char* n, const char* ti, const char* te)
     , text(te)
     , elements(NULL)
     , nElements(0)
-    , sel(-1)
-    , silenceMsg(NULL)
-    , silenceLine(0) {
+    , sel(-1) {
 
     next = head; // add into list of interfaces
     head = this;
@@ -51,9 +49,7 @@ Interface::Interface(const char* n, const char* ti, const char* te, InterfaceEle
     , text(te)
     , elements(el)
     , nElements(nEl)
-    , sel(-1)
-    , silenceMsg(NULL)
-    , silenceLine(0) {
+    , sel(-1) {
 
     next = head; // add into list of interfaces
     head = this;
@@ -237,15 +233,6 @@ void Interface::display() {
             TEXT_COLOR_NORMAL);
     }
 
-    if (audioMetrics.noisy) {
-        silenceMsg = NULL;
-    } else if ((silenceMsg != NULL) && (nElements == 0))
-        displayDevice->print(silenceMsg, silenceLine, 'c', TEXT_COLOR_NORMAL);
-}
-
-void Interface::msg(const char* msg) {
-    silenceMsg = msg;
-    silenceLine = rand() % (text_size.y - 5);
 }
 
 void Interface::doKey(int key) {

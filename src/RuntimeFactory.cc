@@ -52,6 +52,10 @@ AudioInput* RuntimeFactory::createAudioInput() const {
 
     switch (settings.audioInputMode) {
     case AIM_DSPIn:
+        if (!environment.ossInputAvailable) {
+            CTH_DEBUG("    audio input strategy: OSS DSP input unavailable; no PCM source\n");
+            return NULL;
+        }
         CTH_DEBUG("    audio input strategy: native OSS DSP input from %s source\n",
             PcmSourceFactory::strategyName(sourceStrategy));
         break;
@@ -61,6 +65,10 @@ AudioInput* RuntimeFactory::createAudioInput() const {
         CTH_DEBUG("    audio input strategy: native PCM input from %s source\n",
             PcmSourceFactory::strategyName(sourceStrategy));
         break;
+
+    case AIM_None:
+        CTH_DEBUG("    audio input strategy: no PCM input requested\n");
+        return NULL;
 
     default:
         CTH_DEBUG("    audio input strategy: none, because requested device %d is illegal\n",
@@ -137,10 +145,8 @@ AudioInputProcessor* RuntimeFactory::createAudioProcessor() const {
     AudioInput* input = createAudioInput();
     if (input == NULL) {
         if (settings.audioInputMode == AIM_DSPIn) {
-            CTH_WARN("Can not use requested sound input. Using random noise.\n");
-            CTH_DEBUG("    audio input strategy: falling back to RandomNoisePcmSource after null input\n");
-            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()),
-                visualMaxDimension);
+            CTH_WARN("Can not use requested sound input. Visual audio input is silent.\n");
+            CTH_DEBUG("    audio input strategy: no AudioInputProcessor after null input\n");
         }
         return NULL;
     }
@@ -149,10 +155,8 @@ AudioInputProcessor* RuntimeFactory::createAudioProcessor() const {
         CTH_DEBUG("    audio input strategy: native AudioInput construction failed\n");
         delete input;
         if (settings.audioInputMode == AIM_DSPIn) {
-            CTH_WARN("Can not use requested sound input. Using random noise.\n");
-            CTH_DEBUG("    audio input strategy: falling back to RandomNoisePcmSource after input error\n");
-            return new AudioInputProcessor(new AudioInput(new RandomNoisePcmSource()),
-                visualMaxDimension);
+            CTH_WARN("Can not use requested sound input. Visual audio input is silent.\n");
+            CTH_DEBUG("    audio input strategy: no AudioInputProcessor after input error\n");
         }
         return NULL;
     }

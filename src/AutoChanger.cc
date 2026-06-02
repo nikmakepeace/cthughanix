@@ -2,16 +2,12 @@
 #include "imath.h"
 #include "AutoChanger.h"
 #include "AudioAnalyzer.h"
-#include "Interface.h"
-#include "display.h"
 #include "options.h"
 #include "CthughaBuffer.h"
 #include "Scene.h"
+#include "VideoDirector.h"
 
 OptionTime changeQuiet("quiet-change", 150); /* change after quiet-pause (1.5 sec) */
-
-OptionTime changeMsgTime("change-msg-time", 500); /* max. quiet interval (5 sec)
-                                                     then text is displayed */
 
 /* Default to roughly the DOS Cthugha 5.3 dwell: 200-949 frames at the old
    320x200 VGA mode's ~70 Hz scan rate, or about 3-14 seconds. */
@@ -57,14 +53,9 @@ void AutoChanger::operator()() {
     if (audioMetrics.noisy)
         quietSince = now;
 
-    /* Check for long quietness */
-    if (int(changeMsgTime)) {
-        if (!audioMetrics.noisy && (quiet_length > int(changeMsgTime))) {
-            quietSince = now; // start quiet-length again
-
-            silenceMessage();
-        }
-    }
+    /* Report long quietness to visual policy. */
+    if (!audioMetrics.noisy && videoDirector().observeQuiet(quiet_length))
+        quietSince = now; // start quiet-length again
 
     if (int(lock))
         return;
@@ -102,87 +93,6 @@ void AutoChanger::change() {
         sceneCommands.changeOne();
     } else {
         sceneCommands.changeAll();
-    }
-}
-
-const char* AutoChanger::silenceStrings[MAX_SILENCE_STRINGS] = {
-    /*   1234567890123456789012345678901234567890	*/
-    "Where is the music?", /* 0 */
-    "JOLT !", /* 1 */
-    "Turn The Music On", /* 2 */
-    "Lets Party!!!", /* 3 */
-    "Pink Floyd Rules", /* 4 */
-    "Sounds of Silence ?", /* 5 */
-    "The Torps", /* 6 */
-    "Study Mathematics", /* 7 */
-    "Visit Linz", /* 8 */
-    "Press ? for help", /* 9 */
-    "Number 5 is ALIVE!!", /* 10 */
-    "Spooky Mulder.....", /* 11 */
-    "Math is Power", /* 12 */
-    "Subliminal Ads", /* 13 */
-    "Read a book", /* 14 */
-    "Get a life...", /* 15 */
-    "SMILE!", /* 16 */
-    "Cthugha-L", /* 17 */
-    "Don't Panic!", /* 18 */
-    "@fortune" /* 19 */
-};
-int AutoChanger::nSilenceStrings = 20;
-
-void AutoChanger::loadSilenceStrings(const char* fname) {
-
-    FILE* file;
-    char* line;
-
-    if ((fname == NULL) || (*fname == '\0'))
-        return;
-
-    if ((file = fopen(fname, "r")) == NULL) {
-        CTH_ERRNO(errno, "Can't open quiet strings file `%s'.", fname);
-        return;
-    }
-
-    nSilenceStrings = 0;
-    do {
-        /* read a line */
-        line = new char[256];
-        if (fgets(line, 255, file) != NULL) {
-            silenceStrings[nSilenceStrings] = line;
-            nSilenceStrings++;
-        } else {
-            delete[] line;
-            line = NULL;
-        }
-    } while ((nSilenceStrings < MAX_SILENCE_STRINGS) && (line != NULL));
-
-    /* check if file was empty */
-    if (nSilenceStrings == 0) {
-        CTH_WARN("silence strings file `%s' was empty.\n", fname);
-        nSilenceStrings = 1;
-        silenceStrings[0] = "Where is the music?";
-    }
-}
-
-void AutoChanger::silenceMessage() {
-
-    int print_nr = rand() % nSilenceStrings;
-
-    if (silenceStrings[print_nr][0] != '@') {
-        /* traditional string */
-        Interface::current->msg(silenceStrings[print_nr]);
-    } else {
-        /* print fortune */
-        FILE* msgPipe;
-
-        if ((msgPipe = popen("fortune", "r")) == NULL) {
-            Interface::current->msg("Can not open fortune pipe");
-        } else {
-            static char str[4096];
-            str[fread(str, 1, 4096, msgPipe)] = '\0';
-            Interface::current->msg(str);
-            pclose(msgPipe);
-        }
     }
 }
 

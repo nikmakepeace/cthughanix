@@ -138,12 +138,13 @@ Contract:
 
 Implement `VideoFilter` and add it through `VideoFilterchainFactory`.
 
-Current reality: image, border, flame, translate, wave, frame-commit, palette
-smoothing, and flashlight are explicit filters. `VideoDirector`
-updates typed stage objects before each run; `FlameFilter` owns the
-current `Flame` and general-flame value. `VideoDirector` chooses a runnable
-`Wave`, configures it with wave scale/table/object, and binds only that `Wave`
-into `WaveFilter`. The filterchain passes a `VideoFrame` through each stage;
+Current reality: image, border, flame, translate, wave, text injection,
+frame-commit, palette smoothing, flashlight, and indexed-frame export are
+explicit filters. `VideoDirector` updates typed stage objects before each run;
+`FlameFilter` owns the current `Flame` and general-flame value.
+`VideoDirector` chooses a runnable `Wave`, configures it with wave
+scale/table/object, and binds only that `Wave` into `WaveFilter`. The
+filterchain passes a `VideoFrame` through each stage;
 that frame carries the current `CthughaBuffer`, frame context, display palette,
 and `IndexedFrame` publication slot.
 
@@ -206,8 +207,9 @@ file playback, live input, random input, and silence all present the same
 
 ### Display Presentation Still Shares Backend Globals
 
-`VideoFilterchain` has explicit filters for image, border, flame, translate, wave,
-frame commit, palette smoothing, flashlight, and indexed-frame export. It
+`VideoFilterchain` has explicit filters for image, border, flame, translate,
+wave, text injection, frame commit, palette smoothing, flashlight, and
+indexed-frame export. It
 creates one `VideoFrame` from the current buffer, context, display palette, and
 `IndexedFrame` publication slot, then passes that frame through enabled filters
 in stage order.
@@ -313,7 +315,7 @@ with safer metadata.
   initialization is now deferred until display startup and command-line help
   exits before X is touched.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd` for
-  compressed assets, and silence messages can run `fortune`.
+  compressed assets, and `SilenceMessage` can run `fortune`.
 - OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 

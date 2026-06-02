@@ -38,12 +38,25 @@ SceneSettings::SceneSettings()
 SceneCue::SceneCue()
     : type(SceneCueInjectImage)
     , id(0)
-    , image(0) { }
+    , image(0)
+    , text()
+    , textFrames(0)
+    , textInkColor(-1) { }
 
 SceneCue SceneCue::injectImage(const IndexedImage* image_) {
     SceneCue cue;
     cue.type = SceneCueInjectImage;
     cue.image = image_;
+    return cue;
+}
+
+SceneCue SceneCue::injectText(const char* text_, int frameCount, int inkColor) {
+    SceneCue cue;
+    cue.type = SceneCueInjectText;
+    if (text_ != 0)
+        cue.text = text_;
+    cue.textFrames = frameCount;
+    cue.textInkColor = inkColor;
     return cue;
 }
 
@@ -117,6 +130,11 @@ void Scene::emitCue(SceneCue cue) {
 void Scene::emitImageCue(const IndexedImage* image) {
     if (image != 0)
         emitCue(SceneCue::injectImage(image));
+}
+
+void Scene::emitTextCue(const char* text, int frameCount, int inkColor) {
+    if (text != 0 && text[0] != '\0' && frameCount > 0)
+        emitCue(SceneCue::injectText(text, frameCount, inkColor));
 }
 
 void Scene::addObserver(SceneObserver& observer) {

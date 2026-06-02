@@ -9,6 +9,7 @@ set(CTHUGHA_COMMON_SOURCES
     Settings.cc
     RuntimeFactory.cc
     Scene.cc
+    SilenceMessage.cc
     Screenshot.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc
@@ -27,6 +28,7 @@ set(CTHUGHA_COMMON_SOURCES
     CthughaDisplay.cc
     Border.cc
     ColorPalette.cc
+    DosVga9x14Font.cc
     Image.cc
     VideoFilterchain.cc
     VideoFilterchainSequence.cc

@@ -88,14 +88,16 @@ Audio and visual control are separated:
 - `AudioAnalyzer` produces frame-local `AudioMetrics`; `AcousticContext` keeps
   rolling intensity/fire state for effects and automatic changes.
 - `AudioVisualBridge` runs processing, analysis, and `AutoChanger` policy before
-  visual mutation.
-- `VideoFilterchain` is the visual-stage executor. One-shot indexed image overlay,
-  border, flame, translate, wave, frame commit, palette smoothing, flashlight,
-  and indexed-frame export run as explicit filters. `VideoDirector` updates
-  those filters with the selected image/effect objects. `VideoFilterchain::run()`
-  builds a `VideoFrame` carrying the current `CthughaBuffer`, frame context,
-  display palette, and `IndexedFrame` publication slot, then passes that frame
-  through each enabled stage.
+  visual mutation. `AutoChanger` reports quiet intervals to `VideoDirector`;
+  `VideoDirector` uses `SilenceMessage` to choose text, asks `Scene` to emit a
+  text cue, then observes that cue to arm `TextInjectionFilter`.
+- `VideoFilterchain` is the visual-stage executor. One-shot indexed image
+  overlay, border, flame, translate, wave, text injection, frame commit, palette
+  smoothing, flashlight, and indexed-frame export run as explicit filters.
+  `VideoDirector` updates those filters with the selected image/effect objects.
+  `VideoFilterchain::run()` builds a `VideoFrame` carrying the current
+  `CthughaBuffer`, frame context, display palette, and `IndexedFrame`
+  publication slot, then passes that frame through each enabled stage.
 - `ColorPalette` is the palette data object wrapped by `PaletteEntry`; the
   display-facing per-frame palette lives in `FramePalette`.
 
@@ -105,10 +107,11 @@ Audio and visual control are separated:
   `AudioInput`, `AudioOutput`, and `AudioInputProcessor`.
 - Audio-to-visual seam: `AudioFrame`, `AudioProcessor`, `AudioAnalyzer`, and
   `AudioVisualBridge`.
-- Video filterchain seam: `VideoDirector`, `VideoFilterchainFactory`,
-  `VideoFilterchainSequence`, `VideoFilters`, `VideoFilterchain`,
-  `VideoFilter`, `VideoFrame`, `VideoFrameContext`, `IndexedFrame`, and
-  `CthughaBuffer`.
+- Video filterchain seam: `VideoDirector`, `Scene`/`SceneCue`,
+  `SilenceMessage`,
+  `VideoFilterchainFactory`, `VideoFilterchainSequence`, `VideoFilters`,
+  `VideoFilterchain`, `VideoFilter`, `VideoFrame`, `VideoFrameContext`,
+  `IndexedFrame`, and `CthughaBuffer`.
 - Classic visual effect seam: `CoreOption` still drives UI/keymap/config
   selection, while flame, translate, and wave execution runs through standalone
   `Flame`/`Translate`/`Wave` domain objects.

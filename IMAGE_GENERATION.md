@@ -10,8 +10,7 @@ CthughaDisplay::nextFrame()
 audioFrameTick()
 AudioVisualBridge::runFrame()
 VideoFilterchain::run()
-CthughaDisplay::operator()()
-CDPlayer::operator()()
+CthughaDisplay::present()
 ```
 
 Audio is exposed to the visual engine through `AudioFrame`:
@@ -42,9 +41,11 @@ BorderStage
 FlameStage
 TranslateStage
 WaveStage
+TextStage
 FrameCommitStage
 PaletteStage
 FlashlightStage
+IndexedFrameStage
 ```
 
 In filter form, this is currently:
@@ -55,9 +56,11 @@ BorderFilter
 FlameFilter
 TranslateFilter
 WaveFilter
+TextInjectionFilter
 FrameCommitFilter
 PaletteFilter
 FlashlightFilter
+IndexedFrameFilter
 ```
 
 Image, flame, translate, and wave execute domain objects through the same
@@ -68,13 +71,30 @@ stage. Before each frame, `VideoDirector` updates the stage bindings for the
 selected image, flame, general-flame value, translation table, wave, border
 mode, palette target, and flashlight mode.
 
+## Bitmap Text Source
+
+The app carries a runtime CP437 bitmap font for buffer-injected text stages:
+
+- source font: `resources/font/BmPlus_IBM_VGA_9x14.otb`;
+- converter: `tools/otb_to_bitmap_font.py`;
+- generated runtime source: `src/DosVga9x14Font.cc`;
+- runtime wrapper: `src/BitmapFont.h`.
+
+The generated representation is 256 CP437 glyphs, 9 pixels wide by 14 pixels
+high, with one `uint16_t` row mask per glyph row. `TextInjectionFilter` writes
+wrapped text into the active indexed visual buffer before `FrameCommitStage`,
+so subsequent frames can consume the committed text as real visual material.
+
 ## Where Audio Affects Pixels
 
 - `src/AudioProcessor.cc` creates processed sample data for waves/effects.
 - `src/AudioAnalyzer.cc` computes amplitude, channel balance, and noisy/silent
   state.
-- `src/AudioVisualBridge.cc` updates `AcousticContext`, which drives cumulative-fire-level
-  effects and `AutoChanger`.
+- `src/AudioVisualBridge.cc` updates `AcousticContext`, which drives
+  cumulative-fire-level effects and `AutoChanger`.
+- `src/AutoChanger.cc` reports quiet intervals to `VideoDirector`; the selected
+  `SilenceMessage` text becomes a `SceneCueInjectText`, which `VideoDirector`
+  observes to arm `TextInjectionFilter`.
 - `src/Border.cc` can copy raw audio into the hidden border rows used by flame
   diffusion.
 - `src/waves.cc` draws waveform and object effects from
