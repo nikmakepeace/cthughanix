@@ -26,14 +26,37 @@ class AutoChanger {
     int lastChange;
 
 public:
+    /**
+     * Creates the automatic scene changer.
+     *
+     * @param sceneCommands_ Scene command facade used for all visual mutations.
+     *        The referenced object must outlive this AutoChanger.
+     */
     AutoChanger(SceneCommands& sceneCommands_);
     ~AutoChanger();
 
+    /**
+     * Runs one automatic-change policy step for the current audio frame.
+     *
+     * Reads global AudioAnalyzer/AcousticContext metrics, tracks quiet duration
+     * in milliseconds from gettime(), may emit quiet-message cues through
+     * VideoDirector, and may mutate scene options through SceneCommands.
+     */
     void operator()();
 
+    /**
+     * Applies the selected automatic change action.
+     *
+     * Uses the little option to choose between changing one eligible CoreOption
+     * and changing the whole unlocked scene option set.
+     */
     void change();
 
-    const char* status(); // print status information
+    /**
+     * @return Pointer to static status text for the interface. The text is
+     *         overwritten on the next status() call.
+     */
+    const char* status();
 };
 extern AutoChanger* autoChanger;
 

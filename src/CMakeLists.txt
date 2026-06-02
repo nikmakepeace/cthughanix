@@ -3,7 +3,14 @@ set(CTHUGHA_COMMON_SOURCES
     OptionInt.cc
     CoreOption.cc
     CoreOptionEntry.cc
-    Audio.cc
+    AudioInternal.cc
+    AudioOutput.cc
+    AudioPulseOutput.cc
+    AudioDSPOutput.cc
+    AudioBuffer.cc
+    PcmSource.cc
+    AudioInputProcessor.cc
+    DspPcmSource.cc
     AudioFrame.cc
     AudioRuntime.cc
     Settings.cc
