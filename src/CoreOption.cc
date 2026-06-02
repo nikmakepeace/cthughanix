@@ -22,8 +22,6 @@ CoreOption::CoreOption(int b, const char* n, CoreOptionEntryList& e, int flags_)
     next = first;
     first = this;
 
-    initialEntry[0] = '\0';
-
     // history
     oldValues = new int[MAX_HISTORY];
     history = 0;
@@ -55,7 +53,7 @@ const char* CoreOption::name() const {
 //
 void CoreOption::changeToInitial() {
     for (CoreOption* o = first; o != NULL; o = o->next) {
-        o->change(o->initialEntry, 0);
+        o->change(o->initialEntry.c_str(), 0);
     }
 }
 

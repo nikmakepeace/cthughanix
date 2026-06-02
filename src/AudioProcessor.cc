@@ -230,9 +230,8 @@ AudioProcessingOption audioProcessing("sound-processing", audioProcessorEntries)
 
 AudioProcessingOption::AudioProcessingOption(const char* name, CoreOptionEntryList& entries_)
     : Option(name)
-    , entries(entries_) {
-    initialEntry[0] = '\0';
-}
+    , entries(entries_)
+    , initialEntry() { }
 
 int AudioProcessingOption::entryCount() const {
     return entries.n();
@@ -262,16 +261,11 @@ int AudioProcessingOption::optNr(const char* name) const {
 }
 
 void AudioProcessingOption::setInitialEntry(const char* entry) {
-    if (entry == NULL)
-        initialEntry[0] = '\0';
-    else {
-        strncpy(initialEntry, entry, sizeof(initialEntry));
-        initialEntry[sizeof(initialEntry) - 1] = '\0';
-    }
+    initialEntry = (entry != NULL) ? entry : "";
 }
 
 void AudioProcessingOption::changeToInitial() {
-    change(initialEntry);
+    change(initialEntry.c_str());
 }
 
 void AudioProcessingOption::change(int by) {

@@ -5,6 +5,8 @@
 #include "cthugha.h"
 #include "Option.h"
 
+#include <string>
+
 //
 // Remarks:
 //
@@ -138,7 +140,7 @@ protected:
     CoreOptionEntryList& entries;
     int flags;
 
-    char initialEntry[256];
+    std::string initialEntry;
 
     void doSave();
     void doRestore();
@@ -152,7 +154,7 @@ public:
 
     CoreOption& operator=(const CoreOption& other);
 
-    void setInitialEntry(const char* i) { strncpy(initialEntry, i, 256); }
+    void setInitialEntry(const char* i) { initialEntry = (i != NULL) ? i : ""; }
 
     virtual const char* name() const;
 

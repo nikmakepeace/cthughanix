@@ -7,9 +7,11 @@
 #include "CoreOption.h"
 #include "Option.h"
 
+#include <string>
+
 class AudioProcessingOption : public Option {
     CoreOptionEntryList& entries;
-    char initialEntry[256];
+    std::string initialEntry;
 
     int entryCount() const;
     int optNr(const char* name) const;
