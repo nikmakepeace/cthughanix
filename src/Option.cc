@@ -4,7 +4,7 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 
-OptionOnOff options_save("save", 0); // save options (and buffer) when leaving cthugha
+OptionOnOff options_save("save", DEFAULT_OPTIONS_SAVE_ENABLED); // save options (and buffer) when leaving cthugha
 
 OptionDummy optionDummy;
 

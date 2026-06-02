@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "defaults.h"
 #include "keys.h"
 #include "display.h"
 #include "PlatformLifecycle.h"
@@ -7,7 +8,7 @@
 #include "xcthugha.h"
 #endif
 
-int key_esc = 1; /* disable/enable ESC-key. When enable it
+int key_esc = DEFAULT_ESCAPE_KEY_ENABLED; /* disable/enable ESC-key. When enable it
                     sometimes happens that when pressing
                     functions keys or cursor keys cthugha
                     only get the leading ESC and quits. */

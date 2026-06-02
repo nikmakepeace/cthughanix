@@ -7,17 +7,17 @@
 #include "Scene.h"
 #include "VideoDirector.h"
 
-OptionTime changeQuiet("quiet-change", 1500); /* change after quiet-pause (1.5 sec) */
+OptionTime changeQuiet("quiet-change", DEFAULT_CHANGE_QUIET_MS); /* change after quiet-pause */
 
 /* Default to roughly the DOS Cthugha 5.3 dwell: 200-949 frames at the old
    320x200 VGA mode's ~70 Hz scan rate, or about 3-14 seconds. */
-OptionTime changeWaitMin("min-time", 3000); /* min time between change (3 sec) */
-OptionTime changeWaitRandom("random-time", 11000); /* extra random wait-time (11 sec) */
+OptionTime changeWaitMin("min-time", DEFAULT_CHANGE_WAIT_MIN_MS); /* min time between change */
+OptionTime changeWaitRandom("random-time", DEFAULT_CHANGE_WAIT_RANDOM_MS); /* extra random wait-time */
 
-OptionInt changeCumulativeFireLevel("cumulative-fire-level", 1000);
+OptionInt changeCumulativeFireLevel("cumulative-fire-level", DEFAULT_CHANGE_CUMULATIVE_FIRE_LEVEL);
 
-OptionOnOff lock("lock", 0); /* change automatically */
-OptionOnOff change_little("little", 0); /* only change one options */
+OptionOnOff lock("lock", DEFAULT_AUTOCHANGER_LOCKED); /* change automatically */
+OptionOnOff change_little("little", DEFAULT_AUTOCHANGER_CHANGE_LITTLE); /* only change one options */
 
 AutoChanger* autoChanger = NULL;
 
@@ -27,7 +27,7 @@ AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
     , lastChange(0) {
 
     if (changeWaitRandom <= 0)
-        changeWaitRandom.setValue(1);
+        changeWaitRandom.setValue(DEFAULT_CHANGE_WAIT_RANDOM_MIN_MS);
 
     /* set initial wait-time till change */
     waitTime = changeWaitMin + rand() % changeWaitRandom;
@@ -81,7 +81,8 @@ void AutoChanger::operator()() {
     if ((changeWaitMin + changeWaitRandom) > 0)
         if ((now - lastChange) > int(waitTime)) {
             lastChange = now;
-            waitTime = int(changeWaitMin) + rand() % max(1, int(changeWaitRandom));
+            waitTime = int(changeWaitMin)
+                + rand() % max(DEFAULT_CHANGE_WAIT_RANDOM_MIN_MS, int(changeWaitRandom));
             change();
             return;
         }

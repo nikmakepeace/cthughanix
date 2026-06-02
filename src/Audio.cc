@@ -1,6 +1,7 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "Mixer.h"
+#include "defaults.h"
 #include "imath.h"
 #include "cth_buffer.h"
 
@@ -44,10 +45,10 @@
 #endif
 #endif
 
-char pulse_server[PATH_MAX] = "";
-int pulse_latency_msec = 2000;
-char audio_output_dump[PATH_MAX] = "";
-char audio_input_file[PATH_MAX] = "";
+char pulse_server[PATH_MAX] = DEFAULT_PULSE_SERVER_TEXT;
+int pulse_latency_msec = DEFAULT_PULSE_LATENCY_MS;
+char audio_output_dump[PATH_MAX] = DEFAULT_AUDIO_OUTPUT_DUMP_PATH;
+char audio_input_file[PATH_MAX] = DEFAULT_AUDIO_INPUT_FILE_PATH;
 
 const char* pulse_server_name() {
     return (pulse_server[0] != '\0') ? pulse_server : NULL;
@@ -106,7 +107,7 @@ int AudioOutput::playbackComplete(const AudioBuffer& buffer, int inputFinished) 
     return inputFinished && (buffer.queuedForOutputSamples() == 0);
 }
 
-int AudioNullOutput::defaultTargetLatencyMs() const { return 0; }
+int AudioNullOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_NULL_TARGET_LATENCY_MS; }
 int AudioNullOutput::write(const void*, int size) { return size; }
 int AudioNullOutput::isOpen() const { return 1; }
 int AudioNullOutput::isRealtime() const { return 0; }
@@ -999,7 +1000,7 @@ AudioPulseOutput::AudioPulseOutput()
 
 AudioPulseOutput::~AudioPulseOutput() { }
 void AudioPulseOutput::closePulse() { }
-int AudioPulseOutput::defaultTargetLatencyMs() const { return 250; }
+int AudioPulseOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_PULSE_TARGET_LATENCY_MS; }
 int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 int AudioPulseOutput::write(const void*, int) { return 0; }
 int AudioPulseOutput::isOpen() const { return 0; }
@@ -1034,7 +1035,7 @@ int AudioDSPOutput::defaultTargetLatencyMs() const {
     case 2:
     case 3:
     default:
-        return 250;
+        return DEFAULT_AUDIO_DSP_TARGET_LATENCY_MS;
     }
 }
 
@@ -1241,7 +1242,7 @@ AudioDSPOutput::AudioDSPOutput(int method_, int visualMaxDimension)
 }
 
 AudioDSPOutput::~AudioDSPOutput() { }
-int AudioDSPOutput::defaultTargetLatencyMs() const { return 250; }
+int AudioDSPOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_DSP_TARGET_LATENCY_MS; }
 int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 void AudioDSPOutput::setFragment() { }
 void AudioDSPOutput::setChannels() { }

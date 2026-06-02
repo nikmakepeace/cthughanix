@@ -7,12 +7,13 @@
 #include "VideoFilters.h"
 #include "VideoDirector.h"
 #include "cth_buffer.h"
+#include "defaults.h"
 #include "display.h"
 #include "imath.h"
 
-OptionTime changeMsgTime("change-msg-time", 10000);
+OptionTime changeMsgTime("change-msg-time", DEFAULT_CHANGE_MESSAGE_MS);
 
-double paletteSmoothingChance = 1.0;
+double paletteSmoothingChance = DEFAULT_PALETTE_SMOOTHING_CHANCE;
 
 template <class Filter>
 static Filter* stageFilter(VideoFilterchain& filterchain, VideoFilterchainSequence::Stage stage) {
@@ -30,10 +31,9 @@ static int frameBudgetFramesPerSecond() {
 }
 
 static int paletteSmoothingFrameBudget() {
-    const int PALETTE_SMOOTH_SECONDS = 2;
     int fps = frameBudgetFramesPerSecond();
 
-    return max(fps * PALETTE_SMOOTH_SECONDS, 1);
+    return max(fps * DEFAULT_PALETTE_SMOOTH_SECONDS, 1);
 }
 
 static int paletteChangeFrameBudget() {
@@ -47,9 +47,10 @@ static int paletteChangeFrameBudget() {
 }
 
 static int quietMessageFrameBudget() {
-    const int QUIET_MESSAGE_DURATION = 6000; // milliseconds
     int fps = frameBudgetFramesPerSecond();
-    int durationMs = (QUIET_MESSAGE_DURATION > int(changeMsgTime)) ? int(changeMsgTime) : QUIET_MESSAGE_DURATION;
+    int durationMs = (DEFAULT_QUIET_MESSAGE_DURATION_MS > int(changeMsgTime))
+        ? int(changeMsgTime)
+        : DEFAULT_QUIET_MESSAGE_DURATION_MS;
 
     return max(1, (fps * (durationMs / 1000)));
 }
@@ -70,7 +71,7 @@ VideoDirector::VideoDirector()
     , appliedTextCueId(0)
     , pendingTextFrames(0)
     , pendingTextInkColor(-1)
-    , imageLoadingEnabledValue(1) { }
+    , imageLoadingEnabledValue(DEFAULT_IMAGE_LOADING_ENABLED) { }
 
 VideoDirector::~VideoDirector() {
     if (scene != 0)

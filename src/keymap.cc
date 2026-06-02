@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "defaults.h"
 #include "keymap.h"
 #include "Interface.h"
 #include "keys.h"
@@ -211,7 +212,7 @@ public:
     }
 };
 
-char Keymap::keymapFile[PATH_MAX] = "";
+char Keymap::keymapFile[PATH_MAX] = DEFAULT_KEYMAP_FILE_PATH;
 
 Action* Action::head = NULL;
 

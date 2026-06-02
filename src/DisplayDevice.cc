@@ -2,6 +2,7 @@
 #include "DisplayDevice.h"
 #include "CthughaDisplay.h"
 #include "FramePalette.h"
+#include "defaults.h"
 #include "imath.h"
 
 #if HAVE_NCURSES == 1
@@ -24,7 +25,7 @@
 
 DisplayDevice* displayDevice = NULL;
 
-int display_mode = 0; /* predefined graphic mode to use */
+int display_mode = DEFAULT_DISPLAY_MODE; /* predefined graphic mode to use */
 
 int bypp = 1; /* bytes per pixel */
 int bytes_per_line = 0;
@@ -73,7 +74,7 @@ int DisplayDevice::textColorRGB[][3] = {
 int DisplayDevice::textColor[3];
 int DisplayDevice::textColors = 3;
 
-int DisplayDevice::text_on_term = 0;
+int DisplayDevice::text_on_term = DEFAULT_DISPLAY_TEXT_ON_TERM;
 
 xy text_size(0, 0);
 

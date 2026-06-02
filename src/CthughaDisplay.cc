@@ -18,9 +18,9 @@ CthughaDisplay* cthughaDisplay = NULL;
 
 CthughaDisplay::~CthughaDisplay() { }
 
-OptionInt maxFramesPerSecond("maxFPS", 25);
+OptionInt maxFramesPerSecond("maxFPS", DEFAULT_MAX_FRAMES_PER_SECOND);
 
-OptionInt zoom("zoom", 0, 3);
+OptionInt zoom("zoom", DEFAULT_ZOOM_MODE, ZOOM_MODE_MAX_EXCLUSIVE);
 xy draw_size(0, 0); /* size of the drawn image (including zoom) */
 
 double displayStart;

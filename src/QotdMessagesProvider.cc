@@ -1,6 +1,7 @@
 #include "cthugha.h"
 #include "QotdMessagesProvider.h"
 #include "MessageFormatValidator.h"
+#include "defaults.h"
 
 #include <chrono>
 #include <mutex>
@@ -18,10 +19,6 @@
 #include <string.h>
 #include <unistd.h>
 #endif
-
-static const int QOTD_PREFETCH_TIMEOUT_MS = 500;
-static const char* QOTD_DEFAULT_SERVER = "djxmmx.net:17";
-static const char* QOTD_DEFAULT_PORT = "17";
 
 enum QotdFetchResult {
     QotdFetchFailed,
@@ -43,13 +40,13 @@ public:
         , inFlight(0)
         , hasMessage(0)
         , generation(0)
-        , server(QOTD_DEFAULT_SERVER)
+        , server(DEFAULT_QOTD_SERVER_TEXT)
         , message() { }
 };
 
 static std::string qotdServerOrDefault(const char* server) {
     if (server == 0)
-        return QOTD_DEFAULT_SERVER;
+        return DEFAULT_QOTD_SERVER_TEXT;
 
     std::string value(server);
     while (!value.empty() && (unsigned char)value[0] <= ' ')
@@ -57,12 +54,12 @@ static std::string qotdServerOrDefault(const char* server) {
     while (!value.empty() && (unsigned char)value[value.size() - 1] <= ' ')
         value.erase(value.size() - 1);
 
-    return value.empty() ? QOTD_DEFAULT_SERVER : value;
+    return value.empty() ? DEFAULT_QOTD_SERVER_TEXT : value;
 }
 
 static int splitQotdServer(const std::string& server, std::string& host, std::string& port) {
     host = server;
-    port = QOTD_DEFAULT_PORT;
+    port = DEFAULT_QOTD_PORT_TEXT;
 
     if (server.empty())
         return 0;
@@ -243,7 +240,7 @@ static QotdFetchResult fetchQotdPayload(const std::string& server, std::string& 
         return QotdFetchFailed;
 
     const std::chrono::steady_clock::time_point deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(QOTD_PREFETCH_TIMEOUT_MS);
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(DEFAULT_QOTD_PREFETCH_TIMEOUT_MS);
 
     QotdFetchResult fetchResult = QotdFetchFailed;
     for (const struct addrinfo* address = addresses; address != 0; address = address->ai_next) {
@@ -287,7 +284,7 @@ static void fetchQotdMessage(std::shared_ptr<QotdMessagesProviderState> state,
     std::string message;
     QotdFetchResult fetchResult = fetchQotdPayload(server, payload);
     if (fetchResult == QotdFetchTimedOut)
-        CTH_WARN("QOTD prefetch timed out after %d ms.\n", QOTD_PREFETCH_TIMEOUT_MS);
+        CTH_WARN("QOTD prefetch timed out after %d ms.\n", DEFAULT_QOTD_PREFETCH_TIMEOUT_MS);
 
     int success = fetchResult == QotdFetchSucceeded
         && validateQotdPayload(payload, server, message);
@@ -306,7 +303,7 @@ QotdMessagesProvider::QotdMessagesProvider()
 QotdMessagesProvider::~QotdMessagesProvider() { }
 
 const char* QotdMessagesProvider::defaultServer() {
-    return QOTD_DEFAULT_SERVER;
+    return DEFAULT_QOTD_SERVER_TEXT;
 }
 
 void QotdMessagesProvider::setServer(const char* server) {

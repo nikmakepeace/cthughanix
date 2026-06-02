@@ -29,7 +29,7 @@ static const int visualBufferCount = 1;
 #endif
 #endif
 
-OptionOnOff double_load("double-load", 0); // allow double loading of features
+OptionOnOff double_load("double-load", DEFAULT_DOUBLE_LOAD_ENABLED); // allow double loading of features
 
 CoreOption* CoreOption::first = NULL;
 int CoreOption::nCoreOptions = 0;

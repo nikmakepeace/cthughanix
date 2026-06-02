@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "display.h"
+#include "defaults.h"
 #include "Interface.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -19,9 +20,9 @@ unsigned long bitmap_colors3[256]; /* "compiled" palette */
 
 CoreOptionEntry* read_palette(FILE* file, const char* name, const char* dir, const char*);
 static const char* palette_path[] = { "./", "./resources/map/", CTH_LIBDIR "/map/", "" };
-static int paletteSetFilterCount = 0;
+static int paletteSetFilterCount = DEFAULT_PALETTE_SET_FILTER_COUNT;
 static char paletteSetFilter[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
-static char paletteSetFilterText[256] = "";
+static char paletteSetFilterText[256] = DEFAULT_PALETTE_SET_FILTER_TEXT;
 
 static int palette_line_was_truncated(const char* line) {
     size_t len = strlen(line);

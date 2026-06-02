@@ -39,7 +39,7 @@ class OptionChannels : public OptionAudio {
 public:
     OptionChannels(const char* name, int iV)
         // OptionInt's maximum is exclusive, so this accepts 1 or 2 channels.
-        : OptionAudio(name, iV, 3, 1) { }
+        : OptionAudio(name, iV, SOUND_CHANNELS_MAX_EXCLUSIVE, SOUND_CHANNELS_MIN) { }
 
     const char* text() const {
         switch (value) {
@@ -86,26 +86,22 @@ const char* OptionFormat::fmts[] = {
 };
 const int OptionFormat::nFmts = sizeof(OptionFormat::fmts) / sizeof(const char*);
 
-int audioInputLoop = 1;
+int audioInputLoop = DEFAULT_AUDIO_INPUT_LOOP_ENABLED;
 
-#if WITH_DSP == 1
-char dev_dsp[PATH_MAX] = DEV_DSP;
-#else
-char dev_dsp[PATH_MAX] = "";
-#endif
+char dev_dsp[PATH_MAX] = DEFAULT_DSP_DEVICE_PATH;
 
-static OptionInt audioInputModeImpl = OptionInt("sound-device-number", AIM_DSPIn, AIM_Max);
+static OptionInt audioInputModeImpl = OptionInt("sound-device-number", DEFAULT_AUDIO_INPUT_MODE, AIM_Max);
 
-static OptionAudio soundSampleRateImpl("sound-sample-rate", 44000);
-static OptionChannels soundChannelsImpl("sound-channels", 2);
-static OptionFormat soundFormatImpl("sound-format", 0);
+static OptionAudio soundSampleRateImpl("sound-sample-rate", DEFAULT_SOUND_SAMPLE_RATE_HZ);
+static OptionChannels soundChannelsImpl("sound-channels", DEFAULT_SOUND_CHANNELS);
+static OptionFormat soundFormatImpl("sound-format", DEFAULT_SOUND_FORMAT);
 
-static OptionAudio soundDSPMethodImpl("sound-method", 0);
-static OptionAudio soundDSPFragmentsImpl("sound-fragments", 16);
-static OptionAudio soundDSPFragmentSizeImpl("sound-fragment-size", 0);
-static OptionOnOff soundDSPSyncImpl("sound-sync", 0);
+static OptionAudio soundDSPMethodImpl("sound-method", DEFAULT_SOUND_DSP_METHOD);
+static OptionAudio soundDSPFragmentsImpl("sound-fragments", DEFAULT_SOUND_DSP_FRAGMENTS);
+static OptionAudio soundDSPFragmentSizeImpl("sound-fragment-size", DEFAULT_SOUND_DSP_FRAGMENT_SIZE);
+static OptionOnOff soundDSPSyncImpl("sound-sync", DEFAULT_SOUND_DSP_SYNC_ENABLED);
 
-static OptionAudioOnOff soundSilentImpl("silent", 0);
+static OptionAudioOnOff soundSilentImpl("silent", DEFAULT_SOUND_SILENT_ENABLED);
 
 Option& audioInputMode = audioInputModeImpl;
 Option& soundSampleRate = soundSampleRateImpl;

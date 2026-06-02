@@ -351,7 +351,7 @@ static void init_wave_options() {
 
 static void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c);
 
-OptionOnOff use_objects("use-objects", 1); /* use 3-D objects */
+OptionOnOff use_objects("use-objects", DEFAULT_USE_OBJECTS_ENABLED); /* use 3-D objects */
 CoreOptionEntry* read_object(FILE* file, const char* name, const char* dir, const char* total_name);
 
 /*

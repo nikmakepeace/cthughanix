@@ -19,6 +19,7 @@
 #include "DisplayDevice.h"
 #include "AudioAnalyzer.h"
 #include "VideoDirector.h"
+#include "defaults.h"
 #ifdef CTH_XWIN
 #include "xcthugha.h"
 #endif
@@ -175,11 +176,11 @@ int do_param(int c, int value, char* str) {
         // CoreOptions
         //
     case opt_flashlight:
-        flashlight.setInitialEntry(str ? str : (char*)"non-locked:on");
+        flashlight.setInitialEntry(str ? str : DEFAULT_FLASHLIGHT_ENABLE_INITIAL_ENTRY);
         break;
     case opt_no_flashlight:
     case 's':
-        flashlight.setInitialEntry(str ? str : (char*)"locked:off");
+        flashlight.setInitialEntry(str ? str : DEFAULT_FLASHLIGHT_DISABLE_INITIAL_ENTRY);
         break;
 
     case 'f':
@@ -427,7 +428,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_verbose:
-        cthugha_verbose.change(str ? str : (char*)"4");
+        cthugha_verbose.change(str ? str : DEFAULT_VERBOSE_COMMAND_LEVEL_TEXT);
         break;
 
     case opt_test:

@@ -32,7 +32,8 @@ void operator delete(void *d) {
 }
 #endif
 
-OptionInt cthugha_verbose("verbose", 1, 0, -1); // verbosity level (no max, min=-1)
+OptionInt cthugha_verbose("verbose", DEFAULT_VERBOSE_LEVEL, DEFAULT_OPTION_INT_NO_MAX,
+    DEFAULT_VERBOSE_MIN_LEVEL); // verbosity level
 
 static void copy_console_format(char* out, const char* in) {
     int i;

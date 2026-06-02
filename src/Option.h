@@ -3,6 +3,8 @@
 #ifndef __OPTION_H
 #define __OPTION_H
 
+#include "defaults.h"
+
 #include <stdio.h>
 
 //
@@ -20,7 +22,7 @@ public:
 
     Option(const char* n)
         : _name(n)
-        , value(0) { }
+        , value(DEFAULT_OPTION_VALUE) { }
 
     virtual void change(int by) = 0;
     virtual void change(const char* to) = 0;
@@ -50,7 +52,8 @@ protected:
     int minValue;
 
 public:
-    OptionInt(const char* name, int iV, int maxV = 0, int minV = 0)
+    OptionInt(const char* name, int iV, int maxV = DEFAULT_OPTION_INT_NO_MAX,
+        int minV = DEFAULT_OPTION_INT_MIN)
         : Option(name)
         , maxValue(maxV)
         , minValue(minV) {
@@ -90,7 +93,7 @@ class OptionOnOff : public OptionInt {
 protected:
 public:
     OptionOnOff(const char* name, int v)
-        : OptionInt(name, v, 2) { }
+        : OptionInt(name, v, OPTION_ON_OFF_MAX_EXCLUSIVE) { }
     virtual const char* text() const { return value ? (char*)" on" : (char*)"off"; }
     virtual void change(int by) { OptionInt::change(by); }
     virtual void change(const char* to);

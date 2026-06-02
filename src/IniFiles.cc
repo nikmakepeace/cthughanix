@@ -9,14 +9,15 @@
 #include "AudioProcessor.h"
 #include "CthughaBuffer.h"
 #include "VideoDirector.h"
+#include "defaults.h"
 
 #include <unistd.h>
 #include <ctype.h>
 #include <string>
 
-char extra_lib_path[PATH_MAX] = ""; /* extra path to search for
-                                       image, tab, map and ini */
-char ini_file_override[PATH_MAX] = "";
+char extra_lib_path[PATH_MAX] = DEFAULT_EXTRA_LIBRARY_PATH; /* extra path to search for
+                                                               image, tab, map and ini */
+char ini_file_override[PATH_MAX] = DEFAULT_INI_FILE_OVERRIDE_PATH;
 
 FILE* ini_file = NULL; /* the currently open ini-file */
 static int ini_nr = -1;

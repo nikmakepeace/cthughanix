@@ -8,6 +8,7 @@
 #include "FramePalette.h"
 #include "Scene.h"
 #include "cthugha.h"
+#include "defaults.h"
 #include "display.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -52,15 +53,15 @@ xy bufferSizes[]
     = { xy(160, 100), xy(320, 240), xy(400, 300), xy(512, 384), xy(576, 450), xy(600, 512) };
 int nBufferSizes = sizeof(bufferSizes) / sizeof(xy);
 
-int display_override_redirect = 0; // bypass the window manager
-int private_cmap = 0; // allocate a window-private colormap
-int display_mit_shm = 1; // use MIT-SHM if possible
-int display_on_root = 0; // display on root window
-int full_screen = 0;
-int window_do_pos = 0;
-xy window_pos(0, 0);
-int xcth_panel = 0; // use control panel
-char xcth_font[256] = "-adobe-courier-medium-r-normal--14-*-100-100-m-*-*-*";
+int display_override_redirect = DEFAULT_X11_OVERRIDE_REDIRECT; // bypass the window manager
+int private_cmap = DEFAULT_X11_PRIVATE_CMAP; // allocate a window-private colormap
+int display_mit_shm = DEFAULT_X11_MIT_SHM; // use MIT-SHM if possible
+int display_on_root = DEFAULT_X11_ROOT_WINDOW; // display on root window
+int full_screen = DEFAULT_X11_FULLSCREEN;
+int window_do_pos = DEFAULT_X11_WINDOW_POSITION_ENABLED;
+xy window_pos(DEFAULT_X11_WINDOW_POSITION_X, DEFAULT_X11_WINDOW_POSITION_Y);
+int xcth_panel = DEFAULT_X11_PANEL_ENABLED; // use control panel
+char xcth_font[256] = DEFAULT_X11_FONT_NAME;
 
 Display* xcth_display;
 

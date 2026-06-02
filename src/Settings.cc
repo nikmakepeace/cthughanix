@@ -2,13 +2,14 @@
 #include "Settings.h"
 #include "AudioOptions.h"
 #include "AudioTypes.h"
+#include "defaults.h"
 
 #include <string.h>
 
 Settings::Settings()
-    : audioInputMode(AIM_DSPIn)
-    , soundDSPMethod(0)
-    , silent(0) {
+    : audioInputMode(DEFAULT_AUDIO_INPUT_MODE)
+    , soundDSPMethod(DEFAULT_SOUND_DSP_METHOD)
+    , silent(DEFAULT_SOUND_SILENT_ENABLED) {
     fileName[0] = '\0';
 }
 

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-OptionOnOff use_translates("use-translate", 1); /* allow translations */
+OptionOnOff use_translates("use-translate", DEFAULT_USE_TRANSLATES_ENABLED); /* allow translations */
 
 static CoreOptionEntry* _trans[] = { new TranslateEntry("none", "No Translate") };
 static CoreOptionEntryList translateEntries(_trans, 1);

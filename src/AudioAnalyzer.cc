@@ -10,7 +10,7 @@
 
 #include <math.h>
 
-OptionInt sound_minnoise("minnoise", 5, 256); /* quiet is below this */
+OptionInt sound_minnoise("minnoise", DEFAULT_SOUND_MINNOISE, SOUND_MINNOISE_MAX_EXCLUSIVE); /* quiet is below this */
 
 AudioAnalyzer audioAnalyzer;
 AudioMetrics audioMetrics;

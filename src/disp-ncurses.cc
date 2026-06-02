@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "DisplayDevice.h"
+#include "defaults.h"
 
 #if HAVE_NCURSES == 1
 #if HAVE_NCURSES_H
@@ -19,11 +20,7 @@
 #endif
 #endif
 
-#if HAVE_NCURSES == 1
-int ncurses_use = 1;
-#else
-int ncurses_use = 0;
-#endif
+int ncurses_use = DEFAULT_NCURSES_ENABLED;
 
 /*
  * Initialization of ncurses
