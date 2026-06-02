@@ -35,13 +35,17 @@ main(argc, argv)
   newDisplayDevice()
   newCthughaDisplay()
   initAudioVisualBridge()              # constructs AutoChanger
-  install SIGTSTP handler
+  PlatformLifecycle::install()         # platform pause/suspend hook
 ```
 
-`Application::run()` enters the frontend loop:
+`Application::run()` owns the runtime loop:
 
 ```text
-displayDevice->mainLoop()
+while cthugha_close == 0
+  displayDevice->processEvents()
+  Interface::current->run()
+  runFrame(1)
+  Interface::current->run()
 ```
 
 There is no current server-mode startup path in source. Earlier notes about a
@@ -50,7 +54,8 @@ build artifacts.
 
 ## Frame Loop
 
-`run(int doDisplay)` in `src/Application.cc` is the shared per-frame scheduler.
+`Application::runFrame(int doDisplay)` in `src/Application.cc` is the shared
+per-frame scheduler.
 
 ```text
 CthughaDisplay::nextFrame()
@@ -69,7 +74,8 @@ VideoFilterchain::run()
   runs visual-stage filters and publishes IndexedFrame
 
 CthughaDisplay::present(IndexedFrame)
-  frontend-specific display composition, when doDisplay is true
+  frontend-specific display composition, when doDisplay is true and the
+  filterchain produced a valid indexed frame
 
 pause/suspend handling
 ```
@@ -82,22 +88,25 @@ receives ready tables.
 
 ### Frontend Event Loops
 
-- X11: `DisplayDeviceX11::mainLoop()` drains Xt events, translates key releases,
-  dispatches UI work, resizes to the current X window, calls `run(1)`, then runs
-  interface input again.
+- X11: `DisplayDeviceX11::processEvents()` drains pending Xt events, translates
+  key releases, dispatches toolkit events, and resizes to the current X window.
+  It does not advance audio/video; `Application::run()` does that after event
+  processing.
 
 The removed SVGAlib and OpenGL paths no longer participate in runtime control
 flow.
 
 ### Pause and Resume
 
-Graphical frontends install a `SIGTSTP` handler after initialization. Pressing
-`^Z` sets `cthugha_pause`; `run()` waits until frame work is between stages,
-calls `exit_sound()`, and raises `SIGTSTP`.
+`PlatformLifecycle` owns platform suspend requests.  On POSIX systems it
+installs a `SIGTSTP` handler with `sigaction`; that handler only records a
+pending suspend request.  Ncurses `^Z` handling uses the same
+`requestApplicationSuspend()` entry point instead of raising a signal directly.
 
-On `SIGCONT`, the continuation handler calls `init_sound()` and reinstalls the
-stop handler before the display loop continues. This keeps suspend/resume out of
-the middle of drawing code.
+`Application::runFrame()` services lifecycle requests only at the frame boundary.
+It calls application-owned callbacks to stop audio before the process suspends
+and restart audio after it resumes.  Platforms without POSIX job control get a
+no-op lifecycle hook that future native ports can replace.
 
 ## Audio Pipeline
 

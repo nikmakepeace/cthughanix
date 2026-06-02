@@ -28,14 +28,11 @@
 #include "keymap.h"
 #include "options.h"
 
-#include <signal.h>
 #include <unistd.h>
 
 static Application* application = NULL;
 
 static void configureTerminalTextMode();
-void sig_tty_cont(int);
-void sig_tty_stop(int);
 void deleter();
 
 Application::Application(int argc, char* argv[])
@@ -44,10 +41,28 @@ Application::Application(int argc, char* argv[])
     , displayArgv(argv, argv + argc)
     , exitStatusValue(1)
     , exitHandlersRegistered(0)
+    , platformLifecycle(PlatformLifecycleCallbacks(
+          &Application::platformWillSuspend, &Application::platformDidResume, this))
     , shutdownComplete(0) { }
 
 Application::~Application() {
     shutdown();
+}
+
+void Application::platformWillSuspend(void* context) {
+    ((Application*)context)->willSuspend();
+}
+
+void Application::platformDidResume(void* context) {
+    ((Application*)context)->didResume();
+}
+
+void Application::willSuspend() {
+    exit_sound();
+}
+
+void Application::didResume() {
+    init_sound(CthughaBuffer::buffer.maxDimension());
 }
 
 void Application::initSceneRuntime() {
@@ -140,6 +155,7 @@ void Application::shutdown() {
     cthughaDisplay = NULL;
     delete displayDevice;
     displayDevice = NULL;
+    platformLifecycle.shutdown();
     audioRuntimeShutdown();
     shutdownVideoFilterchain();
     shutdownSceneRuntime();
@@ -218,14 +234,61 @@ int Application::initialize() {
     CTH_INFO("Initializing the audio-visual bridge...\n");
     initAudioVisualBridge();
 
-    signal(SIGTSTP, sig_tty_stop);
+    platformLifecycle.install();
 
     exitStatusValue = 0;
     return 1;
 }
 
 void Application::run() {
-    displayDevice->mainLoop();
+    while (cthugha_close == 0) {
+        int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
+        double loopStart = traceDisplayTiming ? getTime() : 0.0;
+        double eventsStart = loopStart;
+        double eventsEnd = loopStart;
+        double preInterfaceStart = 0.0;
+        double preInterfaceEnd = 0.0;
+        double frameStart = 0.0;
+        double frameEnd = 0.0;
+        double postInterfaceStart = 0.0;
+        double postInterfaceEnd = 0.0;
+
+        DisplayEventStats eventStats = displayDevice->processEvents();
+        if (traceDisplayTiming)
+            eventsEnd = getTime();
+
+        if (traceDisplayTiming)
+            preInterfaceStart = getTime();
+        Interface::current->run();
+        if (traceDisplayTiming)
+            preInterfaceEnd = getTime();
+
+        if (cthugha_close == 0) {
+            if (traceDisplayTiming)
+                frameStart = getTime();
+            runFrame(1);
+            if (traceDisplayTiming)
+                frameEnd = getTime();
+        }
+
+        if (traceDisplayTiming)
+            postInterfaceStart = getTime();
+        Interface::current->run();
+        if (traceDisplayTiming)
+            postInterfaceEnd = getTime();
+
+        if (traceDisplayTiming) {
+            double loopEnd = getTime();
+            CTH_TRACE("mainloop-ms=%.3f events-ms=%.3f pre-interface-ms=%.3f frame-ms=%.3f post-interface-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
+                "display timing", (loopEnd - loopStart) * 1000.0,
+                (eventsEnd - eventsStart) * 1000.0,
+                (preInterfaceEnd - preInterfaceStart) * 1000.0,
+                (frameEnd - frameStart) * 1000.0,
+                (postInterfaceEnd - postInterfaceStart) * 1000.0,
+                eventStats.eventCount, eventStats.resizeEvents,
+                eventStats.exposeEvents);
+        }
+    }
 
     CTH_INFO("Exiting cthugha...\n");
 }
@@ -286,14 +349,8 @@ void Application::runFrame(int doDisplay) {
             doDisplay);
     }
 
-    // Suspend only between frame stages, after graphics operations are done.
-    if (cthugha_pause) {
-        cthugha_pause = 0;
-
-        exit_sound();
-
-        raise(SIGTSTP);
-    }
+    // Service lifecycle requests only between frame stages.
+    platformLifecycle.serviceFrameBoundary();
 }
 
 Application* createApplication(int argc, char* argv[]) {
@@ -316,30 +373,6 @@ static void configureTerminalTextMode() {
 #endif
 }
 
-void sig_tty_cont(int);
-void sig_tty_stop(int) {
-    CTH_INFO("Stopping...\n");
-
-    signal(SIGCONT, sig_tty_cont);
-
-    // Defer suspension until run() reaches a point outside graphics work.
-    cthugha_pause = 1;
-}
-void sig_tty_cont(int) {
-    CTH_INFO("Continuing...\n");
-
-    init_sound(CthughaBuffer::buffer.maxDimension());
-
-    signal(SIGTSTP, sig_tty_stop);
-
-    raise(SIGCONT);
-}
-
 void deleter() {
     destroyApplication();
-}
-
-void run(int doDisplay) {
-    if (application != NULL)
-        application->runFrame(doDisplay);
 }

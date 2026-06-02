@@ -83,26 +83,31 @@ initAudioVisualBridge()
 `Application::run()` enters:
 
 ```text
-displayDevice->mainLoop()
+while !cthugha_close
+  displayDevice->processEvents()
+  Interface::current->run()
+  runFrame(1)
+  Interface::current->run()
 ```
 
-Read this as "build long-lived singletons, then hand control to the selected
-frontend." The code is C++, but ownership is still mostly global:
+Read this as "build long-lived singletons, then let the application own the
+cadence." The code is C++, but ownership is still mostly global:
 `displayDevice`, `cthughaDisplay`, `autoChanger`, `audioMetrics`, and
 `acousticContext`.
 
-## 2. The Frontend Loop Calls `run()`
+## 2. The Application Loop Processes Events
 
-The X11 frontend owns the platform event loop and converges on `run()`.
+The application owns the outer loop. Display backends expose pending platform
+work through `processEvents()`.
 
-- X11: `DisplayDeviceX11::mainLoop()` handles pending Xt/X events, translates
-  key releases, runs the interface, resizes to the X window, then calls
-  `run(1)`.
+- X11: `DisplayDeviceX11::processEvents()` handles pending Xt/X events,
+  translates key releases, dispatches toolkit callbacks, and resizes to the X
+  window.
 
-The `doDisplay` argument decides whether `run()` itself calls the display step.
-The current X11 frontend passes `1`.
+The `doDisplay` argument decides whether `runFrame()` itself calls the display
+step. The application loop currently passes `1`.
 
-## 3. The Shared Scheduler: `run(int doDisplay)`
+## 3. The Shared Scheduler: `Application::runFrame(int doDisplay)`
 
 The core scheduler is short and worth reading directly:
 
@@ -581,11 +586,13 @@ IndexedFrame pixels
 
 ## 21. Step 6: Suspend Handling
 
-At the end of `run()`, the code checks `cthugha_pause`.
+At the end of `runFrame()`, the application services `PlatformLifecycle`.
 
-The signal handlers in `src/Application.cc` set this flag for
-`SIGTSTP`/`SIGCONT` behavior. The actual suspend happens only between frame
-stages, so the process is not stopped in the middle of a drawing operation.
+On POSIX, `PlatformLifecycle` catches `SIGTSTP` with a minimal `sigaction`
+handler that only marks a suspend request.  The actual suspend happens at the
+frame boundary: application callbacks stop audio, the process is suspended, and
+audio is restarted after resume.  Non-POSIX ports can wire their native
+pause/resume events through the same lifecycle seam.
 
 ## 23. Where Keyboard Input Fits
 
@@ -595,12 +602,13 @@ loop and the `Interface` system.
 For X11:
 
 ```text
-DisplayDeviceX11::mainLoop()
+Application::run()
+  -> DisplayDeviceX11::processEvents()
   -> collect Xt events
   -> keys_x11(...)
-  -> Interface::current->run()
   -> resize display
-  -> run(1)
+  -> Interface::current->run()
+  -> runFrame(1)
   -> Interface::current->run()
 ```
 
@@ -633,7 +641,7 @@ If you want to step through one frame in your editor:
 1. Open `src/main.cc`.
 2. Read `Application::initialize()` and `Application::run()` in
    `src/Application.cc`.
-3. Jump to `src/DisplayDeviceX11.cc::mainLoop()`.
+3. Jump to `src/DisplayDeviceX11.cc::processEvents()`.
 4. Return to `src/Application.cc::run()`.
 5. Step into `src/CthughaDisplay.cc::nextFrame()`.
 6. Step into `src/AudioFrame.cc::audioFrameTick()`.

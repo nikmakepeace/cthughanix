@@ -36,6 +36,17 @@ extern int nBufferSizes;
 enum draw_mode_t { DM_direct, DM_tmp_mapped, DM_mapped1, DM_mapped2, DM_mapped3, DM_mapped4 };
 extern enum draw_mode_t draw_mode; /* how drawing is done */
 
+struct DisplayEventStats {
+    int eventCount;
+    int resizeEvents;
+    int exposeEvents;
+
+    DisplayEventStats()
+        : eventCount(0)
+        , resizeEvents(0)
+        , exposeEvents(0) { }
+};
+
 class DisplayDevice {
 protected:
     static int textColorRGB[][3];
@@ -53,7 +64,7 @@ public:
     DisplayDevice();
     virtual ~DisplayDevice();
 
-    virtual void mainLoop() { }
+    virtual DisplayEventStats processEvents() { return DisplayEventStats(); }
 
     virtual int printScreen() { return 0; }
 

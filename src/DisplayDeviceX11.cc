@@ -436,73 +436,45 @@ DisplayDeviceX11::~DisplayDeviceX11() {
     freeImage();
 }
 
-void DisplayDeviceX11::mainLoop() {
-    while (cthugha_close == 0) {
-        int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
-        double loopStart = traceDisplayTiming ? getTime() : 0.0;
-        double eventsStart = loopStart;
-        double eventsEnd = loopStart;
-        double runStart = 0.0;
-        double runEnd = 0.0;
-        int eventCount = 0;
-        int resizeEvents = 0;
-        int exposeEvents = 0;
+DisplayEventStats DisplayDeviceX11::processEvents() {
+    DisplayEventStats stats;
 
-        // Xt queues X events for both the raw display window and the optional
-        // Athena-widget panel. Key releases are translated into Cthugha keys;
-        // everything else is dispatched back through Xt.
-        while (XtAppPending(xcth_app_con)) {
-            XEvent event;
-            XtAppNextEvent(xcth_app_con, &event);
-            eventCount++;
-            if (event.type == KeyRelease) {
-                char key_buff[256];
-                int count;
-                KeySym ks;
-                XKeyEvent* kevent = (XKeyEvent*)&event;
+    // Xt queues X events for both the raw display window and the optional
+    // Athena-widget panel. Key releases are translated into Cthugha keys;
+    // everything else is dispatched back through Xt.
+    while (XtAppPending(xcth_app_con)) {
+        XEvent event;
+        XtAppNextEvent(xcth_app_con, &event);
+        stats.eventCount++;
+        if (event.type == KeyRelease) {
+            char key_buff[256];
+            int count;
+            KeySym ks;
+            XKeyEvent* kevent = (XKeyEvent*)&event;
 
-                count = XLookupString(kevent, key_buff, 256, &ks, NULL);
-                key_buff[count] = '\0';
-                if (count == 0) {
-                    char* tmp = XKeysymToString(ks);
-                    strncpy(key_buff, tmp ? tmp : "", 256);
-                }
-
-                keys_x11(key_buff, kevent->state);
-
-            } else if ((event.type == ConfigureNotify)
-                && (event.xconfigure.window == window)) {
-                resizeEvents++;
-                resizeDisplay(event.xconfigure.width, event.xconfigure.height);
-            } else if ((event.type == Expose) && (event.xexpose.window == window)) {
-                exposeEvents++;
-                if (cthughaDisplay != NULL)
-                    cthughaDisplay->needsClear = 1;
-            } else {
-                XtDispatchEvent(&event);
+            count = XLookupString(kevent, key_buff, 256, &ks, NULL);
+            key_buff[count] = '\0';
+            if (count == 0) {
+                char* tmp = XKeysymToString(ks);
+                strncpy(key_buff, tmp ? tmp : "", 256);
             }
 
-            Interface::current->run();
-        }
-        if (traceDisplayTiming)
-            eventsEnd = getTime();
+            keys_x11(key_buff, kevent->state);
 
-        if (traceDisplayTiming)
-            runStart = getTime();
-        run(1);
-        if (traceDisplayTiming)
-            runEnd = getTime();
-        Interface::current->run();
-        if (traceDisplayTiming) {
-            double loopEnd = getTime();
-            CTH_TRACE("mainloop-ms=%.3f events-ms=%.3f run-ms=%.3f interface-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
-                "display timing", (loopEnd - loopStart) * 1000.0,
-                (eventsEnd - eventsStart) * 1000.0,
-                (runEnd - runStart) * 1000.0,
-                (loopEnd - runEnd) * 1000.0, eventCount, resizeEvents,
-                exposeEvents);
+        } else if ((event.type == ConfigureNotify)
+            && (event.xconfigure.window == window)) {
+            stats.resizeEvents++;
+            resizeDisplay(event.xconfigure.width, event.xconfigure.height);
+        } else if ((event.type == Expose) && (event.xexpose.window == window)) {
+            stats.exposeEvents++;
+            if (cthughaDisplay != NULL)
+                cthughaDisplay->needsClear = 1;
+        } else {
+            XtDispatchEvent(&event);
         }
     }
+
+    return stats;
 }
 
 void DisplayDeviceX11::prePrint() {

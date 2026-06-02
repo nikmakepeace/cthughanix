@@ -1,12 +1,11 @@
 #include "cthugha.h"
 #include "keys.h"
 #include "display.h"
+#include "PlatformLifecycle.h"
 
 #ifdef CTH_XWIN
 #include "xcthugha.h"
 #endif
-
-#include <signal.h>
 
 int key_esc = 1; /* disable/enable ESC-key. When enable it
                     sometimes happens that when pressing
@@ -274,7 +273,7 @@ int getkey_ncurs() {
     }
 
     if (key == KEY_SUSPEND) { /* suspend (^Z) */
-        raise(SIGTSTP);
+        requestApplicationSuspend();
         return CK_NONE;
     }
 

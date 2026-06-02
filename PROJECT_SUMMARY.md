@@ -34,7 +34,7 @@ CthughaDisplay::nextFrame()
 audioFrameTick()
 AudioVisualBridge::runFrame()
 VideoFilterchain::run()
-CthughaDisplay::operator()()  # when the frontend asks run() to draw
+CthughaDisplay::present()
 deferred suspend handling
 ```
 

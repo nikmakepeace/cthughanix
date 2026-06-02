@@ -3,6 +3,7 @@
 #ifndef __APPLICATION_H
 #define __APPLICATION_H
 
+#include "PlatformLifecycle.h"
 #include "VideoFilterchainSequence.h"
 
 #include <memory>
@@ -25,8 +26,13 @@ class Application {
     std::unique_ptr<AudioVisualBridge> audioVisualBridge;
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
+    PlatformLifecycle platformLifecycle;
     int shutdownComplete;
 
+    static void platformWillSuspend(void* context);
+    static void platformDidResume(void* context);
+    void willSuspend();
+    void didResume();
     void shutdownSceneRuntime();
     void shutdownVideoFilterchain();
     void shutdownAudioVisualBridge();

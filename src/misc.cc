@@ -243,7 +243,6 @@ int systemf(const char* fmt, ...) {
 }
 
 int cthugha_close = 0; // closing right now
-int cthugha_pause = 0; // going to pause (^Z)
 
 /*
  * get the 1/100 sec since program start

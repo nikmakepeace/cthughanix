@@ -70,7 +70,6 @@ char *strchr(), *strrchr();
  * variables
  */
 extern int cthugha_close; /* cthugha is closing now */
-extern int cthugha_pause; /* cthugha is suspending (^Z) now */
 
 char* cthugha_mode_text();
 
@@ -124,8 +123,6 @@ inline int fclose0(FILE*& stream) {
 
 int gettime();
 double getTime(); // return time in seconds
-
-void run(int doDisplay); // run all the modules (sound reading, buffer, display, ...)
 
 #ifdef __cplusplus
 

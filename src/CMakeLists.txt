@@ -12,6 +12,7 @@ set(CTHUGHA_COMMON_SOURCES
     Screenshot.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc
+    PlatformLifecycle.cc
     Mixer.cc
     imath.cc
     AudioSystem.cc

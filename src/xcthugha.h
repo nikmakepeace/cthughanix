@@ -142,7 +142,7 @@ public:
     DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_);
     virtual ~DisplayDeviceX11();
 
-    void mainLoop();
+    virtual DisplayEventStats processEvents();
 
     friend int cth_init(int* argc, char* argv[]);
 };

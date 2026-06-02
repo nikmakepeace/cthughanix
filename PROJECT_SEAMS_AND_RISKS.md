@@ -171,7 +171,7 @@ Required seam points:
 - `cth_init()`;
 - `newDisplayDevice()`;
 - `newCthughaDisplay()`;
-- display `mainLoop()`;
+- display `processEvents()`;
 - `preDraw()`, `postDraw()`, `clearBox()`, `copyBox()`, and text drawing.
 
 This is still a large seam because many globals (`disp_size`, `bypp`,

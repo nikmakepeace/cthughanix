@@ -50,7 +50,7 @@ There is no current server-mode source entry point in `src/`.
 
 ### Runtime and Composition
 
-- `src/cthugha.h`: global platform config, logging, timing helpers, and `run()`.
+- `src/cthugha.h`: global platform config, logging, and timing helpers.
 - `src/Settings.*`: snapshots current audio options for runtime composition.
 - `src/AudioRuntime.*`: owns the active audio runtime lifecycle.
 - `src/RuntimeFactory.*`: chooses audio input/output strategy from settings and
@@ -61,6 +61,8 @@ There is no current server-mode source entry point in `src/`.
   windows to the rest of the program.
 - `src/AudioVisualBridge.*`: runs audio processing, analysis, and auto-changing
   before visual mutation.
+- `src/PlatformLifecycle.*`: platform pause/suspend hooks with application-owned
+  suspend/resume callbacks.
 - `src/VideoFilterchain.*`, `src/VideoFilterchainSequence.*`,
   `src/VideoFilterchainFactory.*`, `src/VideoFilters.*`,
   `src/VideoDirector.*`: visual-stage executor, stage ordering, filter
