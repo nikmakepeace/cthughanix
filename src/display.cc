@@ -3,7 +3,7 @@
 #include "options.h"
 #include "AudioFrame.h"
 #include "AudioAnalyzer.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "disp-sys.h"
 #include "imath.h"
 #include "cth_buffer.h"

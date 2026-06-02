@@ -62,7 +62,7 @@ set(CTHUGHA_COMMON_SOURCES
     Wave.cc
     waves.cc
     sound_tables.cc
-    translate.cc
+    TranslationOptions.cc
     AudioProcessor.cc
     CthughaBuffer.cc
     Application.cc

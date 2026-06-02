@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "options.h"
 #include "display.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "information.h"
 #include "display.h"
 #include "keys.h"

@@ -6,7 +6,7 @@
 #include "Image.h"
 #include "display.h"
 #include "flames.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "waves.h"
 
 #include <unistd.h>

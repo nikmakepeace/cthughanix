@@ -4,7 +4,7 @@
 #include "Translate.h"
 #include "VideoFilterchain.h"
 #include "imath.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "cth_buffer.h"
 
 #include <benchmark/benchmark.h>

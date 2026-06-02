@@ -13,7 +13,7 @@
 #include "CthughaDisplay.h"
 #include "flames.h"
 #include "Scene.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "waves.h"
 
 #include <unistd.h>

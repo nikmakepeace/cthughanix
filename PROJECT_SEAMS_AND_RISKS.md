@@ -56,7 +56,7 @@ Add a `TranslateGenerator` implementation and register it in
 pairs an id, a display description, a generator, and per-entry options, so the
 same generator can appear multiple times with different names and parameters.
 
-`src/translate.cc` eagerly generates these tables during visual startup so the
+`src/TranslationOptions.cc` eagerly generates these tables during visual startup so the
 running filterchain only executes ready maps.
 
 ### Add a 3D Line Object

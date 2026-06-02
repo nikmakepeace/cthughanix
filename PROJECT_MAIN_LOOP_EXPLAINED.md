@@ -37,7 +37,7 @@ Keep these files open:
   active/passive buffers.
 - `src/ColorPalette.*`, `src/FramePalette.*`, `src/PaletteTransition.*`:
   palette data, frame palette output, dirty tracking, and palette smoothing.
-- `src/flames.cc`, `src/translate.cc`, `src/waves.cc`: classic effect entry
+- `src/flames.cc`, `src/TranslationOptions.cc`, `src/waves.cc`: classic effect entry
   objects used by the visual stages.
 - `src/display.cc`: 2D display mapping effects.
 - `src/CthughaDisplay*.cc`: frontend display composition.
@@ -458,7 +458,7 @@ which source pixel to read:
 dst_pixel[i] = src_pixel[translation_table[i]]
 ```
 
-Loading is in `src/translate.cc::init_translate()`. Built-in
+Loading is in `src/TranslationOptions.cc::init_translate()`. Built-in
 `TranslateGenerator` catalog entries generate tables in-process. By the time the
 visualizer runs, selected translations are ready tables. `VideoDirector` passes
 the selected table into the translate stage, whose filter owns the runtime
@@ -665,7 +665,7 @@ If you want to step through one frame in your editor:
 17. Step through `FlameFilter`, then jump to the current flame entry in
    `src/flames.cc`.
 18. Step through `TranslateFilter`, then jump to
-   `src/translate.cc::Translate::execute()`.
+   `src/Translate.cc::Translate::execute()`.
 19. Step through `WaveFilter`, then jump through the current `Wave` in
    `src/Wave.cc` into its drawing function in `src/waves.cc`.
 20. Step through `FrameCommitFilter` to see the active/passive swap.

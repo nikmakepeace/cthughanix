@@ -61,7 +61,7 @@ add_executable(visual_effects_bench
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
     ${CMAKE_SOURCE_DIR}/src/Translate.cc
     ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
-    ${CMAKE_SOURCE_DIR}/src/translate.cc
+    ${CMAKE_SOURCE_DIR}/src/TranslationOptions.cc
     ${CMAKE_SOURCE_DIR}/src/VideoFilterchain.cc
 )
 

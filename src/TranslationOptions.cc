@@ -1,7 +1,7 @@
 // Translation option/catalog setup; generated tables are executed by Translate.
 
 #include "cthugha.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "TranslateGenerator.h"
 #include "CthughaBuffer.h"
 

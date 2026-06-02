@@ -13,7 +13,7 @@
 #include "Scene.h"
 #include "VideoDirector.h"
 #include "flames.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "waves.h"
 
 #include <ctype.h>

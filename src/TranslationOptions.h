@@ -1,10 +1,7 @@
-// -*-c++-*-
-//
-//    CTHUGHA-L							translate.h
-//
+// Translation option/catalog layer.
 
-#ifndef __TRANSLATE_H__
-#define __TRANSLATE_H__
+#ifndef __TRANSLATION_OPTIONS_H__
+#define __TRANSLATION_OPTIONS_H__
 
 #include "cthugha.h"
 #include "CoreOption.h"

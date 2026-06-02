@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "CthughaBuffer.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 #include "waves.h"
 #include "display.h"
 #include "CthughaDisplay.h"

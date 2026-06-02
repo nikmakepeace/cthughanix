@@ -8,7 +8,7 @@
 #include "AudioAnalyzer.h"
 #include "VideoDirector.h"
 #include "QotdMessagesProvider.h"
-#include "translate.h"
+#include "TranslationOptions.h"
 
 #include <ctype.h>
 
