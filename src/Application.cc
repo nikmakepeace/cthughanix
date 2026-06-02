@@ -67,6 +67,8 @@ void Application::initSceneRuntime() {
     if (sceneValue.get() != NULL)
         return;
 
+    // SceneCommands is the modern target for legacy option callbacks, so create
+    // it before full option parsing can trigger scene-changing work.
     sceneValue.reset(new Scene);
     videoDirector().bindScene(*sceneValue);
     sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
@@ -110,6 +112,8 @@ void Application::runAudioVisualBridge() {
     initAudioVisualBridge();
     audioVisualBridge->runFrame();
 
+    // AutoChanger and audio processing can request option changes that require
+    // filters to refresh cached scene/display state before visual mutation.
     if (audioVisualBridge->filterchainRefreshRequested()) {
         initVideoFilterchain();
         VideoFilterchainFactory factory;
@@ -121,6 +125,9 @@ void Application::runAudioVisualBridge() {
 const IndexedFrame* Application::runVideoFilterchain() {
     initVideoFilterchain();
 
+    // The filterchain receives a snapshot-like context for this visual frame.
+    // The pointed-to audio/analysis state remains owned by the audio facade and
+    // global analyzers; filters borrow it only during run().
     VideoFrameContext context;
     context.audioFrame = audioFrameCurrent();
     context.rawAudioData = audioFrameRawData();
@@ -147,7 +154,8 @@ void Application::shutdown() {
 
     shutdownComplete = 1;
 
-    // AutoChanger owns final option persistence, so destroy the bridge first.
+    // AutoChanger owns final option persistence, so destroy the bridge before
+    // tearing down scene commands or runtime globals it may consult.
     shutdownAudioVisualBridge();
     if (ncursesInitialized) {
         exit_ncurses();
@@ -175,9 +183,11 @@ int Application::initialize() {
     srand(time(0));
     seteuid(getuid()); // give up root privileges
 
+    // Pre-params can affect how much parsing/output should happen at all.
     if (get_pre_params(argcValue, argvValue))
         return 0;
 
+    // Help exits successfully without opening terminal, audio, or display state.
     if (params_request_help(argcValue, argvValue)) {
         title();
         usage();
@@ -187,6 +197,7 @@ int Application::initialize() {
 
     initSceneRuntime();
 
+    // Full parameter parsing can select initial scene/audio/display options.
     if (get_params(argcValue, argvValue))
         return 0;
 
@@ -195,6 +206,8 @@ int Application::initialize() {
 
     init_imath();
 
+    // Terminal text mode is chosen before audio/display startup because ncurses
+    // may own the terminal while the graphical frontend owns the window.
     configureTerminalTextMode();
     if (ncurses_use) {
         if (init_ncurses())
@@ -206,6 +219,8 @@ int Application::initialize() {
     if (init_sound(CthughaBuffer::buffer.maxDimension()))
         return 0;
 
+    // Buffer dimensions must exist before image loading, border setup, and
+    // display construction can size their internal state.
     CTH_INFO("Initializing cthugha Buffer...\n");
     if (CthughaBuffer::initAll())
         return 0;
@@ -221,6 +236,8 @@ int Application::initialize() {
     audioProcessing.changeToInitial();
     sceneCommands().initializeFromOptions();
 
+    // Interface/keymaps are available before display creation so early display
+    // events and option panels can route input immediately.
     CTH_INFO("Initializing interface...\n");
     Interface::set("main");
 
@@ -238,6 +255,7 @@ int Application::initialize() {
     CTH_INFO("Initializing the audio-visual bridge...\n");
     initAudioVisualBridge();
 
+    // Install platform hooks last; callbacks assume audio/display state exists.
     platformLifecycle.install();
 
     exitStatusValue = 0;
@@ -245,6 +263,11 @@ int Application::initialize() {
 }
 
 void Application::run() {
+    // Main loop shape:
+    //   1. collect platform/window input;
+    //   2. let the active interface react before frame generation;
+    //   3. generate and optionally present one frame;
+    //   4. let the interface draw/react again after frame-side changes.
     while (cthugha_close == 0) {
         int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
         double loopStart = traceDisplayTiming ? getTime() : 0.0;
@@ -307,22 +330,30 @@ void Application::runFrame(int doDisplay) {
     if (traceFrameTiming)
         frameTiming[0] = getTime();
 
+    // Advance display timing first so now/deltaT describe this visual frame for
+    // audio analysis, AutoChanger policy, and all visual filters.
     cthughaDisplay->nextFrame();
     if (traceFrameTiming)
         frameTiming[1] = getTime();
 
+    // Publish the audio frame that corresponds to the visual clock.
     audioFrameTick();
     if (traceFrameTiming)
         frameTiming[2] = getTime();
 
+    // Analyze audio and run option-changing policy before visual filters read
+    // SceneSettings.
     runAudioVisualBridge();
     if (traceFrameTiming)
         frameTiming[3] = getTime();
 
+    // Mutate Cthugha's indexed active/passive buffers and publish a frame view.
     const IndexedFrame* indexedFrame = runVideoFilterchain();
     if (traceFrameTiming)
         frameTiming[4] = getTime();
 
+    // Prefer the modern IndexedFrame path. Fall back to the legacy screen()
+    // function path when no filterchain frame was published.
     double visualStart = getTime();
     if (doDisplay) {
         if (indexedFrame != NULL && indexedFrame->valid())

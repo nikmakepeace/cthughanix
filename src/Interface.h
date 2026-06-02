@@ -49,6 +49,13 @@ public:
     virtual void preRun() { }
     virtual void display();
     virtual void doKey(int key);
+
+    /**
+     * Services the active interface once.
+     *
+     * Application runs the interface before and after frame generation so input
+     * handling and overlay/status updates can bracket visual work.
+     */
     virtual void run();
 };
 

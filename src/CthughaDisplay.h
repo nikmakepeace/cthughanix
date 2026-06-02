@@ -17,7 +17,7 @@ extern OptionInt zoom;
 extern OptionInt maxFramesPerSecond;
 
 extern double now; // timestamp used by all modules while drawing this frame
-extern double deltaT; // elapsed time between the last two frames
+extern double deltaT; // elapsed time between the last two frames, in seconds
 
 class IndexedFrame;
 
@@ -67,8 +67,23 @@ public:
 
     CthughaDisplay();
 
-    void nextFrame(); // start the next frame and publish now/deltaT
+    /**
+     * Starts a new visual frame and publishes now/deltaT.
+     *
+     * Application calls this before audio analysis and visual filters so every
+     * frame subsystem observes the same visual clock.
+     */
+    void nextFrame();
+
+    /**
+     * Presents a filterchain-published indexed frame.
+     *
+     * @param frame Indexed pixels, dimensions, pitch, and palette to hand to
+     *        the display backend.
+     */
     void present(const IndexedFrame& frame);
+
+    /** Legacy display path used when no IndexedFrame is available. */
     virtual void operator()() { }
 
     const unsigned char* sourcePixels() const;
@@ -78,11 +93,20 @@ public:
     int sourceSize() const;
 
     void resetFPS();
+
+    /**
+     * Adds a display presentation latency sample.
+     *
+     * @param seconds Time spent presenting the most recent visual frame.
+     */
     void observeVisualLatency(double seconds);
+
+    /** @return Smoothed display presentation latency in seconds. */
     double visualLatencySeconds() const;
 
     double fps; // most recently measured frames per second
 
+    /** @return Human-readable FPS/status text for the interface overlay. */
     const char* status();
 
     friend int save_display();
@@ -124,6 +148,7 @@ public:
 
 extern CthughaDisplay* cthughaDisplay;
 
+/** Allocates the frontend-specific global CthughaDisplay instance. */
 void newCthughaDisplay();
 
 #endif

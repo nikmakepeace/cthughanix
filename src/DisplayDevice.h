@@ -37,8 +37,13 @@ enum draw_mode_t { DM_direct, DM_tmp_mapped, DM_mapped1, DM_mapped2, DM_mapped3,
 extern enum draw_mode_t draw_mode; /* how drawing is done */
 
 struct DisplayEventStats {
+    /** Number of platform/window events processed in one loop iteration. */
     int eventCount;
+
+    /** Number of resize/configure events processed. */
     int resizeEvents;
+
+    /** Number of expose/redraw events processed. */
     int exposeEvents;
 
     DisplayEventStats()
@@ -64,16 +69,33 @@ public:
     DisplayDevice();
     virtual ~DisplayDevice();
 
+    /**
+     * Polls and handles platform/window events.
+     *
+     * Application calls this once per main-loop iteration before interface and
+     * frame work so input, resize, and expose state are current.
+     *
+     * @return Counts used by trace logging.
+     */
     virtual DisplayEventStats processEvents() { return DisplayEventStats(); }
 
     virtual int printScreen() { return 0; }
 
+    /**
+     * Supplies the palette published by the active video filterchain.
+     *
+     * @param framePalette_ Borrowed palette pointer, or NULL.
+     */
     void setFramePalette(FramePalette* framePalette_);
+
+    /** Uploads the current global/frame palette to the backend when needed. */
     virtual int setGlobalPalette();
 
+    /** @return Writable display-memory buffer for direct/mapped draw modes. */
     virtual unsigned char* preDraw() { return NULL; } // return buffer to display memory
     virtual void copyBox(int, int, int, int, int, int) { }
     virtual void clearBox(int, int, int, int) { }
+    /** Completes backend-specific drawing/presentation work for the frame. */
     virtual void postDraw() { }
 
     virtual void prePrint();
