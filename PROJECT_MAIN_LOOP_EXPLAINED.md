@@ -14,13 +14,13 @@ frontend event loop
       -> process/analyze audio and maybe auto-change options
       -> run video filterchain stages over the indexed visual buffers
       -> draw current passive buffer to the frontend
-      -> update CD state
       -> handle deferred suspend
 ```
 
 Keep these files open:
 
-- `src/initExitDisp.cc`: startup and `run()`.
+- `src/main.cc`: graphical executable entry point.
+- `src/Application.*`: startup, shutdown, and `run()`.
 - `src/Settings.*`: snapshots current audio options.
 - `src/AudioRuntime.*`: audio source/output lifecycle.
 - `src/RuntimeFactory.*`, `src/PcmSourceFactory.*`: audio strategy selection.
@@ -46,15 +46,23 @@ Keep these files open:
 
 ## 1. Startup: `main()`
 
-Graphical frontends enter at `src/initExitDisp.cc::main()`.
+Graphical frontends enter at `src/main.cc::main()`.
 
 Startup does this:
+
+```text
+application = new Application(argc, argv)
+if application->initialize()
+    application->run()
+```
+
+`Application::initialize()` does the setup:
 
 ```text
 srand(time(0))
 drop elevated uid
 get_pre_params()
-cth_init()
+params_request_help()
 get_params()
 title()
 init_imath()
@@ -62,13 +70,19 @@ init_sound()
 CthughaBuffer::initAll()
 init_border()
 init_flashlight()
-newDisplayDevice()
-newCthughaDisplay()
 CoreOption::changeToInitial()
 audioProcessing.changeToInitial()
 Interface::set("main")
 Keymap::init()
+cth_init()
+newDisplayDevice()
+newCthughaDisplay()
 initAudioVisualBridge()
+```
+
+`Application::run()` enters:
+
+```text
 displayDevice->mainLoop()
 ```
 
@@ -569,7 +583,7 @@ IndexedFrame pixels
 
 At the end of `run()`, the code checks `cthugha_pause`.
 
-The signal handlers in `src/initExitDisp.cc` set this flag for
+The signal handlers in `src/Application.cc` set this flag for
 `SIGTSTP`/`SIGCONT` behavior. The actual suspend happens only between frame
 stages, so the process is not stopped in the middle of a drawing operation.
 
@@ -597,7 +611,7 @@ The keymap system can:
 
 - change CoreOptions;
 - change `sound-processing`, `border`, and `flashlight`;
-- enter option/help/CD/screens;
+- enter option/help screens;
 - lock options;
 - save/restore hotkeys;
 - request quit;
@@ -616,10 +630,11 @@ Look at:
 
 If you want to step through one frame in your editor:
 
-1. Open `src/initExitDisp.cc`.
-2. Read `main()` until `displayDevice->mainLoop()`.
+1. Open `src/main.cc`.
+2. Read `Application::initialize()` and `Application::run()` in
+   `src/Application.cc`.
 3. Jump to `src/DisplayDeviceX11.cc::mainLoop()`.
-4. Return to `src/initExitDisp.cc::run()`.
+4. Return to `src/Application.cc::run()`.
 5. Step into `src/CthughaDisplay.cc::nextFrame()`.
 6. Step into `src/AudioFrame.cc::audioFrameTick()`.
 7. Step into `src/AudioRuntime.cc::audioRuntimeTick()`.

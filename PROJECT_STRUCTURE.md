@@ -41,8 +41,8 @@ boundary.
 
 ### Entrypoints
 
-- `src/initExitDisp.cc`: graphical frontend entry point and shared per-frame
-  scheduler.
+- `src/main.cc`: graphical executable entry point.
+- `src/Application.*`: application lifecycle and shared per-frame scheduler.
 - `src/TranslateGenerator.cc`: built-in translation-table generators and catalog
   entries.
 
@@ -167,7 +167,7 @@ Current CMake targets:
 - `GENSRC`: shared options, audio/runtime files, UI, misc, base
   display classes, autochanger, analyzer, and filterchain scaffolding.
 - `DISPSRC`: `GENSRC` plus visual effects, palettes, indexed images, translation,
-  `AudioProcessor`, `CthughaBuffer`, `initExitDisp`, flashlight, and help UI.
+  `AudioProcessor`, `CthughaBuffer`, `Application`, flashlight, and help UI.
 
 Autotools target source sets:
 

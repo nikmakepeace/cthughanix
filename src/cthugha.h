@@ -74,6 +74,7 @@ extern int cthugha_pause; /* cthugha is suspending (^Z) now */
 
 char* cthugha_mode_text();
 
+// Initialize the selected graphical frontend when display startup is reached.
 int cth_init(int* argc, char* argv[]);
 int cth_main();
 

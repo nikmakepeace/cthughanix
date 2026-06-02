@@ -2,14 +2,22 @@
 
 ## Startup Flow
 
-Graphical frontends enter through `src/initExitDisp.cc::main`.
+Graphical frontends enter through `src/main.cc::main`.
 
 ```text
 main(argc, argv)
+  application = new Application(argc, argv)
+  if application->initialize()
+    application->run()
+```
+
+`Application::initialize()` does the startup work:
+
+```text
   srand(time(0))
   seteuid(getuid())                    # drop elevated uid
   get_pre_params()                     # early --path/--ini-file/--verbose/text options
-  cth_init(&argc, argv)                # frontend-specific early init
+  params_request_help()                # banner/help exit before display work
   get_params()                         # read ini files, then command line
   title()
   init_imath()
@@ -19,15 +27,21 @@ main(argc, argv)
   CthughaBuffer::initAll()
   init_border()
   init_flashlight()
-  newDisplayDevice()
-  newCthughaDisplay()
   CoreOption::changeToInitial()
   audioProcessing.changeToInitial()
   Interface::set("main")
   Keymap::init()
+  cth_init(&argc, argv)                # frontend-specific display init
+  newDisplayDevice()
+  newCthughaDisplay()
   initAudioVisualBridge()              # constructs AutoChanger
   install SIGTSTP handler
-  displayDevice->mainLoop()
+```
+
+`Application::run()` enters the frontend loop:
+
+```text
+displayDevice->mainLoop()
 ```
 
 There is no current server-mode startup path in source. Earlier notes about a
@@ -36,7 +50,7 @@ build artifacts.
 
 ## Frame Loop
 
-`run(int doDisplay)` in `src/initExitDisp.cc` is the shared per-frame scheduler.
+`run(int doDisplay)` in `src/Application.cc` is the shared per-frame scheduler.
 
 ```text
 CthughaDisplay::nextFrame()
@@ -430,7 +444,12 @@ Without `--ini-file`, `read_ini()` searches:
 3. `~/.cthugha.ini`
 4. `./cthugha.ini`
 5. `--path DIR` -> `DIR/cthugha.ini`
-6. X11 resource database for `xcthugha`, via `open_ini_sys()`
+6. X11 resource database for `xcthugha`, via `open_ini_sys()`, only after a
+   display connection exists
+
+Initial option loading now happens before X11 startup, so this legacy X resource
+source is skipped during normal startup configuration. Later usage reads that
+run after display startup can still query it.
 
 With `--ini-file FILE`, only that file is opened. Ini chaining from inside an
 ini file is intentionally ignored with a warning.

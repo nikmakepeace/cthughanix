@@ -310,8 +310,9 @@ with safer metadata.
 
 ### High Risk
 
-- X11/MIT-SHM startup and image paths are platform-sensitive. A headless shell
-  cannot even show `xcthugha --help` because X initialization happens first.
+- X11/MIT-SHM startup and image paths are platform-sensitive, though X11
+  initialization is now deferred until display startup and command-line help
+  exits before X is touched.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd` for
   compressed assets, and silence messages can run `fortune`.
 - OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on

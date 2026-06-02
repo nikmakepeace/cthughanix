@@ -1,71 +1,50 @@
-// Program entry point, shutdown handling, and one-frame runtime dispatcher.
-// Most subsystems own their detailed setup; this file defines their startup
-// order and the per-frame call sequence used by the display main loop.
+// Application lifecycle, shutdown handling, and one-frame runtime dispatcher.
+
+#include "Application.h"
 
 #include "cthugha.h"
-#include "cth_buffer.h"
 #include "information.h"
 #include "display.h"
-#include "AudioSystem.h"
 #include "AudioFrame.h"
 #include "AudioRuntime.h"
-#include "AudioVisualBridge.h"
+#include "AudioSystem.h"
+#include "AudioAnalyzer.h"
 #include "AudioProcessor.h"
+#include "AudioVisualBridge.h"
 #include "Border.h"
-#include "translate.h"
-#include "options.h"
-#include "keys.h"
-#include "imath.h"
-#include "waves.h"
-#include "Option.h"
+#include "CoreOption.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "Flashlight.h"
+#include "IndexedFrame.h"
 #include "Interface.h"
-#include "VideoFilters.h"
 #include "Scene.h"
 #include "VideoDirector.h"
 #include "VideoFilterchain.h"
 #include "VideoFilterchainFactory.h"
+#include "VideoFilters.h"
+#include "imath.h"
 #include "keymap.h"
+#include "options.h"
 
-#include <memory>
-#include <unistd.h>
 #include <signal.h>
-
-class Application {
-    std::unique_ptr<VideoFilterchain> videoFilterchain;
-    VideoFilterchainSequence videoFilterchainSequence;
-    std::unique_ptr<AudioVisualBridge> audioVisualBridge;
-    std::unique_ptr<Scene> sceneValue;
-    std::unique_ptr<SceneCommands> sceneCommandsValue;
-    int shutdownComplete;
-
-    void shutdownSceneRuntime();
-    void shutdownVideoFilterchain();
-    void shutdownAudioVisualBridge();
-    void runAudioVisualBridge();
-    const IndexedFrame* runVideoFilterchain();
-
-public:
-    Application();
-    ~Application();
-
-    void initSceneRuntime();
-    void initVideoFilterchain();
-    void initAudioVisualBridge();
-    void shutdown();
-    void runFrame(int doDisplay);
-
-    Scene& scene();
-    SceneCommands& sceneCommands();
-};
+#include <unistd.h>
 
 static Application* application = NULL;
 
-Application::Application()
-    : shutdownComplete(0) { }
+static void configureTerminalTextMode();
+void sig_tty_cont(int);
+void sig_tty_stop(int);
+void deleter();
+
+Application::Application(int argc, char* argv[])
+    : argcValue(argc)
+    , argvValue(argv)
+    , displayArgv(argv, argv + argc)
+    , exitStatusValue(1)
+    , exitHandlersRegistered(0)
+    , shutdownComplete(0) { }
 
 Application::~Application() {
     shutdown();
@@ -174,6 +153,91 @@ SceneCommands& Application::sceneCommands() {
     return *sceneCommandsValue;
 }
 
+int Application::initialize() {
+    srand(time(0));
+    seteuid(getuid()); // give up root privileges
+
+    if (get_pre_params(argcValue, argvValue))
+        return 0;
+
+    if (params_request_help(argcValue, argvValue)) {
+        title();
+        usage();
+        exitStatusValue = 0;
+        return 0;
+    }
+
+    initSceneRuntime();
+
+    if (get_params(argcValue, argvValue))
+        return 0;
+
+    title();
+
+    init_imath();
+
+    atexit(deleter);
+    exitHandlersRegistered = 1;
+
+    configureTerminalTextMode();
+    if (ncurses_use) {
+        init_ncurses();
+        atexit(exit_ncurses);
+    }
+
+    CTH_INFO("Initializing the sound device...\n");
+    init_sound(CthughaBuffer::buffer.maxDimension());
+
+    CTH_INFO("Initializing cthugha Buffer...\n");
+    CthughaBuffer::initAll();
+    if (videoDirector().loadImages()) {
+        exitStatusValue = 0;
+        return 0;
+    }
+    init_border();
+    init_flashlight();
+
+    CTH_INFO("Setting initial core options...\n");
+    CoreOption::changeToInitial();
+    audioProcessing.changeToInitial();
+    sceneCommands().initializeFromOptions();
+
+    CTH_INFO("Initializing interface...\n");
+    Interface::set("main");
+
+    CTH_INFO("Initializing keymaps...\n");
+    Keymap::init();
+
+    CTH_INFO("Initializing display...\n");
+    int displayArgc = int(displayArgv.size());
+    if (cth_init(&displayArgc, displayArgv.data()))
+        return 0;
+    newDisplayDevice(scene(), sceneCommands());
+    newCthughaDisplay();
+
+    CTH_INFO("Initializing the audio-visual bridge...\n");
+    initAudioVisualBridge();
+
+    signal(SIGTSTP, sig_tty_stop);
+
+    exitStatusValue = 0;
+    return 1;
+}
+
+void Application::run() {
+    displayDevice->mainLoop();
+
+    CTH_INFO("Exiting cthugha...\n");
+}
+
+int Application::exitStatus() const {
+    return exitStatusValue;
+}
+
+int Application::hasExitHandlers() const {
+    return exitHandlersRegistered;
+}
+
 void Application::runFrame(int doDisplay) {
     double frameTiming[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int traceFrameTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
@@ -232,9 +296,24 @@ void Application::runFrame(int doDisplay) {
     }
 }
 
-static void destroyApplication() {
+Application* createApplication(int argc, char* argv[]) {
+    if (application == NULL)
+        application = new Application(argc, argv);
+    return application;
+}
+
+void destroyApplication() {
     delete application;
     application = NULL;
+}
+
+static void configureTerminalTextMode() {
+#if HAVE_NCURSES == 1
+    ncurses_use = DisplayDevice::text_on_term;
+#else
+    ncurses_use = 0;
+    DisplayDevice::text_on_term = 0;
+#endif
 }
 
 void sig_tty_cont(int);
@@ -258,78 +337,6 @@ void sig_tty_cont(int) {
 
 void deleter() {
     destroyApplication();
-}
-
-int main(int argc, char* argv[]) {
-
-    srand(time(0));
-    seteuid(getuid()); // give up root privileges
-
-    application = new Application;
-
-    if (get_pre_params(argc, argv)) {
-        destroyApplication();
-        return 1;
-    }
-
-    application->initSceneRuntime();
-
-    if (cth_init(&argc, argv)) {
-        destroyApplication();
-        return 1;
-    }
-
-    if (get_params(argc, argv)) {
-        destroyApplication();
-        return 1;
-    }
-
-    title();
-
-    init_imath();
-
-    atexit(deleter);
-
-    if (ncurses_use) {
-        init_ncurses();
-        atexit(exit_ncurses);
-    }
-
-    CTH_INFO("Initializing the sound device...\n");
-    init_sound(CthughaBuffer::buffer.maxDimension());
-
-    CTH_INFO("Initializing cthugha Buffer...\n");
-    CthughaBuffer::initAll();
-    if (videoDirector().loadImages())
-        exit(0);
-    init_border();
-    init_flashlight();
-
-    CTH_INFO("Initializing display...\n");
-    newDisplayDevice(application->scene(), application->sceneCommands());
-    newCthughaDisplay();
-
-    CTH_INFO("Setting initial core options...\n");
-    CoreOption::changeToInitial();
-    audioProcessing.changeToInitial();
-    application->sceneCommands().initializeFromOptions();
-
-    CTH_INFO("Initializing interface...\n");
-    Interface::set("main");
-
-    CTH_INFO("Initializing keymaps...\n");
-    Keymap::init();
-
-    CTH_INFO("Initializing the audio-visual bridge...\n");
-    application->initAudioVisualBridge();
-
-    signal(SIGTSTP, sig_tty_stop);
-
-    displayDevice->mainLoop();
-
-    CTH_INFO("Exiting cthugha...\n");
-
-    return 0;
 }
 
 void run(int doDisplay) {

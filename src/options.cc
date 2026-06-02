@@ -27,7 +27,9 @@
 
 #include <unistd.h>
 #include <ctype.h>
+#include <string.h>
 #include <string>
+#include <vector>
 
 enum option_nr {
     opt_verbose = 16000,
@@ -510,12 +512,98 @@ int get_pre_params(int argc, char* argv[]) {
     return 0;
 }
 
+int params_request_help(int argc, char* argv[]) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-?") == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+#ifdef CTH_XWIN
+static int x_toolkit_option_with_arg(const char* arg) {
+    static const char* options[] = {
+        "-background",
+        "-bg",
+        "-display",
+        "-fn",
+        "-font",
+        "-foreground",
+        "-fg",
+        "-geometry",
+        "-name",
+        "-selectionTimeout",
+        "-title",
+        "-xrm",
+        "-xnllanguage",
+        "-xtsessionID",
+        0
+    };
+
+    for (int i = 0; options[i] != 0; i++) {
+        if (strcmp(arg, options[i]) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+static int x_toolkit_option_without_arg(const char* arg) {
+    static const char* options[] = {
+        "+rv",
+        "+synchronous",
+        "-iconic",
+        "-reverse",
+        "-rv",
+        "-synchronous",
+        0
+    };
+
+    for (int i = 0; options[i] != 0; i++) {
+        if (strcmp(arg, options[i]) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+static void filter_x_toolkit_options(int argc, char* argv[], std::vector<char*>& filtered) {
+    filtered.clear();
+    if (argc <= 0)
+        return;
+
+    filtered.push_back(argv[0]);
+    for (int i = 1; i < argc; i++) {
+        if (x_toolkit_option_with_arg(argv[i])) {
+            if (i + 1 < argc)
+                i++;
+            continue;
+        }
+
+        if (x_toolkit_option_without_arg(argv[i]))
+            continue;
+
+        filtered.push_back(argv[i]);
+    }
+}
+#endif
+
 /*
  *  Process programm-params
  */
 int get_params(int argc, char* argv[]) {
     int c;
     int option_index = 0;
+#ifdef CTH_XWIN
+    std::vector<char*> filteredArgv;
+    filter_x_toolkit_options(argc, argv, filteredArgv);
+    int parseArgc = int(filteredArgv.size());
+    char** parseArgv = filteredArgv.empty() ? argv : filteredArgv.data();
+#else
+    int parseArgc = argc;
+    char** parseArgv = argv;
+#endif
 
     read_ini();
 
@@ -526,7 +614,7 @@ int get_params(int argc, char* argv[]) {
     option_index = 0;
     optind = optindsave; /* start again at first opt */
 
-    while ((c = getopt_long(argc, argv,
+    while ((c = getopt_long(parseArgc, parseArgv,
                 "21v:L:M:xE:?S:"
                 "f:w:d:p:t:o:q:T:R:D:a:m:lQ:s"
                 ,

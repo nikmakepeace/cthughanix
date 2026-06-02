@@ -26,7 +26,7 @@ audio source -> AudioRuntime / AudioFrame
              -> DisplayDevice frontend
 ```
 
-The shared graphical loop is in `src/initExitDisp.cc`. Each frame currently
+The shared graphical loop is in `src/Application.cc`. Each frame currently
 runs, in order:
 
 ```text
@@ -132,9 +132,10 @@ tests/headers/check-headers.sh
 ```
 
 Both completed successfully in this workspace. A direct attempt to run
-`build/src/xcthugha --help` in the current headless shell failed with
-`Error: Can't open display:`, which confirms the binary starts through X11
-initialization before it can print help.
+`env -u DISPLAY build/src/xcthugha --help` in the current headless shell prints
+the banner and usage before any X11 initialization. Normal runs now defer X11
+initialization until the display section, after option parsing and core runtime
+setup.
 
 The project is portable in a transitional sense, not yet a modern clean-room
 port. It still carries X11/Xt/Xaw, MIT-SHM, OSS `/dev/dsp`, OSS mixer,

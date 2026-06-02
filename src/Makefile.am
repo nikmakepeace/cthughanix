@@ -17,7 +17,7 @@ DISPSRC = $(GENSRC)							\
 	palettes.cc pcx.cc png.cc			\
 	Flame.cc flames.cc FramePalette.cc PaletteTransition.cc Translate.cc TranslateGenerator.cc Wave.cc waves.cc sound_tables.cc	\
 	translate.cc 	 AudioProcessor.cc \
-	CthughaBuffer.cc initExitDisp.cc	\
+	CthughaBuffer.cc Application.cc main.cc	\
 	Flashlight.cc  InterfaceHelp.cc 
 
 
@@ -32,7 +32,7 @@ xcthugha_LDADD = ${N_LIBS} ${X_LIBS} -lz ${PULSE_LIBS} ${LIBOBJS}
 #removed  getopt.h
 ## all the header files
 noinst_HEADERS = 	\
-	Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       Settings.h RuntimeFactory.h  Scene.h Screenshot.h PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VideoFilterchain.h VideoFilterchainSequence.h VideoFilterchainFactory.h VideoFilters.h VideoDirector.h Flame.h flames.h FramePalette.h PaletteTransition.h Wave.h Image.h          pcx.h png.h		\
+	Application.h     Audio.h           AudioFrame.h      AudioRuntime.h    AudioSystem.h     AudioOptions.h     AudioTypes.h       Settings.h RuntimeFactory.h  Scene.h Screenshot.h PcmSourceFactory.h  AudioVisualBridge.h AutoChanger.h     AudioAnalyzer.h    VideoFilterchain.h VideoFilterchainSequence.h VideoFilterchainFactory.h VideoFilters.h VideoDirector.h Flame.h flames.h FramePalette.h PaletteTransition.h Wave.h Image.h          pcx.h png.h		\
         Mixer.h  \
 	CoreOption.h      AudioProcessor.h    Border.h          ColorPalette.h Flashlight.h      imath.h	\
 	CthughaBuffer.h   IndexedFrame.h    information.h     Translate.h TranslateGenerator.h TranslationTable.h translate.h	\

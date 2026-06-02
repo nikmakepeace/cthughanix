@@ -9,6 +9,9 @@
 static XrmDatabase database;
 
 int open_ini_sys() {
+    if (xcth_display == NULL)
+        return 1;
+
     XrmInitialize();
     if ((database = XrmGetDatabase(xcth_display)) == NULL)
         return 1;
@@ -16,6 +19,9 @@ int open_ini_sys() {
 }
 
 int get_ini_str_sys(const char* name, char* value) {
+    if (database == NULL)
+        return 1;
+
     char* str_type;
     XrmValue Entry;
     char class_[512];

@@ -50,7 +50,8 @@ set(CTHUGHA_COMMON_SOURCES
     translate.cc
     AudioProcessor.cc
     CthughaBuffer.cc
-    initExitDisp.cc
+    Application.cc
+    main.cc
     Flashlight.cc
     InterfaceHelp.cc
 )

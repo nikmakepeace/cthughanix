@@ -187,12 +187,8 @@ static void dump_x11_frame(XImage* image) {
 }
 
 int cth_init(int* argc, char* argv[]) {
-#if HAVE_NCURSES == 1
-    ncurses_use = DisplayDevice::text_on_term;
-#else
-    ncurses_use = 0;
-    DisplayDevice::text_on_term = 0;
-#endif
+    if (xcth_display != NULL)
+        return 0;
 
     // Xt owns command-line option parsing for X resources and creates the
     // application shell used by both the display window and optional panel.

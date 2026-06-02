@@ -170,29 +170,23 @@ Skipped: 1.
 Failures: 0.
 ```
 
-In the current headless shell, this command did not reach usage output:
+In the current headless shell, this command reaches usage output without opening
+X11:
 
 ```sh
-build/src/xcthugha --help
+env -u DISPLAY build/src/xcthugha --help
 ```
 
-It exited with:
-
-```text
-Error: Can't open display:
-```
-
-That is expected in a no-`DISPLAY` environment because the X11 frontend
-initializes X before normal option help can be shown.
+Help is handled before ini loading, X resource lookup, or display startup.
+For normal runs, X11 initialization is deferred until the display section after
+option parsing, sound setup, and visual-buffer setup.
 
 ## Debugging Hooks
 
-The graphical main loop has two timing paths:
+The graphical main loop exposes timing through:
 
-- `CTH_TRACE` logging in `src/initExitDisp.cc`, `AudioRuntime`, display code,
-  and related modules;
-- an older local `PROF` block in `src/initExitDisp.cc`, currently behind
-  `#undef PROF`.
+- `CTH_TRACE` logging in `src/Application.cc`, `AudioRuntime`, display code,
+  and related modules.
 
 Runtime verbosity is controlled with `--verbose` / `-v`; current code treats the
 value as a log level:
