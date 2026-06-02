@@ -7,7 +7,6 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "cth_buffer.h"
-#include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 

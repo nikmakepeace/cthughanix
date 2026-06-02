@@ -1,6 +1,5 @@
 #include "cthugha.h"
 #include "CthughaDisplay.h"
-#include "CthughaBuffer.h"
 #include "display.h"
 #include "DisplayDevice.h"
 #include "cth_buffer.h"
@@ -13,11 +12,11 @@
 class VisualFrameView {
 public:
     int width() const {
-        return cthughaDisplay != NULL ? cthughaDisplay->sourceWidth() : CthughaBuffer::current->width();
+        return cthughaDisplay->sourceWidth();
     }
 
     int height() const {
-        return cthughaDisplay != NULL ? cthughaDisplay->sourceHeight() : CthughaBuffer::current->height();
+        return cthughaDisplay->sourceHeight();
     }
 
     int size() const {
@@ -34,7 +33,21 @@ void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }
 CthughaDisplayX11::CthughaDisplayX11()
     : CthughaDisplay()
     , expandedBuffer0(NULL)
+    , expandedBufferByteCount(0)
     , expandedBufferBypp(0) {
+}
+
+CthughaDisplayX11::~CthughaDisplayX11() {
+    if (expandedBuffer0 && expandedBuffer0 != buffer0)
+        delete[] expandedBuffer0;
+}
+
+void CthughaDisplayX11::indexedBufferWillChange(unsigned char* oldBuffer) {
+    if (expandedBuffer0 == oldBuffer) {
+        expandedBuffer0 = NULL;
+        expandedBufferByteCount = 0;
+        expandedBufferBypp = 0;
+    }
 }
 
 void CthughaDisplayX11::prepareExpandedBuffer() {
@@ -45,14 +58,18 @@ void CthughaDisplayX11::prepareExpandedBuffer() {
         if (expandedBuffer0 && (expandedBuffer0 != buffer0))
             delete[] expandedBuffer0;
         expandedBuffer0 = buffer0;
+        expandedBufferByteCount = buffer0ByteCount;
         expandedBufferBypp = bypp;
         return;
     }
 
-    if ((expandedBuffer0 == NULL) || (expandedBuffer0 == buffer0) || (expandedBufferBypp != bypp)) {
+    int byteCount = 4 * visualBuffer().size() * bypp;
+    if ((expandedBuffer0 == NULL) || (expandedBuffer0 == buffer0) || (expandedBufferBypp != bypp)
+        || (expandedBufferByteCount != byteCount)) {
         if (expandedBuffer0 && (expandedBuffer0 != buffer0))
             delete[] expandedBuffer0;
-        expandedBuffer0 = new unsigned char[4 * visualBuffer().size() * bypp];
+        expandedBuffer0 = new unsigned char[byteCount];
+        expandedBufferByteCount = byteCount;
         expandedBufferBypp = bypp;
     }
 }
@@ -338,6 +355,7 @@ void CthughaDisplayX11::operator()() {
      * prepare the display device
      */
     unsigned char* display_base = displayDevice->preDraw();
+    prepareIndexedBuffer();
     prepareExpandedBuffer();
     if (traceDisplayTiming)
         displayTiming[2] = getTime();

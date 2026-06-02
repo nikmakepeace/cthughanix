@@ -42,8 +42,20 @@
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
 
-static CthughaBuffer& visualBuffer() {
-    return *CthughaBuffer::current;
+static int presentationSourceWidth() {
+    // Normal presentation has already set CthughaDisplay's IndexedFrame source.
+    // Startup and legacy display calls can still fall back to the engine buffer.
+    if (cthughaDisplay != NULL)
+        return cthughaDisplay->sourceWidth();
+
+    return CthughaBuffer::current->width();
+}
+
+static int presentationSourceHeight() {
+    if (cthughaDisplay != NULL)
+        return cthughaDisplay->sourceHeight();
+
+    return CthughaBuffer::current->height();
 }
 
 xy screenSizes[]
@@ -721,8 +733,8 @@ void DisplayDeviceX11::resizeDisplay(int new_width, int new_height) {
     if ((new_width == disp_size.x) && (new_height == disp_size.y))
         return;
 
-    disp_size.x = max(new_width, 2 * visualBuffer().width());
-    disp_size.y = max(new_height, 2 * visualBuffer().height());
+    disp_size.x = max(new_width, 2 * presentationSourceWidth());
+    disp_size.y = max(new_height, 2 * presentationSourceHeight());
 
     if (!text_on_term && !panelTextWidget) {
         text_size.x = disp_size.x / fontSize.x;
@@ -738,8 +750,9 @@ void DisplayDeviceX11::resizeDisplay(int new_width, int new_height) {
 }
 
 unsigned char* DisplayDeviceX11::preDraw() {
-    if ((disp_size.x < 2 * visualBuffer().width()) || (disp_size.y < 2 * visualBuffer().height())) {
-        resizeDisplay(2 * visualBuffer().width(), 2 * visualBuffer().height());
+    if ((disp_size.x < 2 * presentationSourceWidth())
+        || (disp_size.y < 2 * presentationSourceHeight())) {
+        resizeDisplay(2 * presentationSourceWidth(), 2 * presentationSourceHeight());
     }
 
     return (unsigned char*)image->data;

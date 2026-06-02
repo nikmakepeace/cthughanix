@@ -28,6 +28,7 @@ protected:
     // Scratch storage for indexed 8-bit Cthugha output before it is palette
     // expanded, mirrored, zoomed, or copied to the device buffer.
     unsigned char* buffer0;
+    int buffer0ByteCount;
 
     // FPS accounting starts at displayStart and counts completed frames.
     double displayStart;
@@ -48,6 +49,22 @@ protected:
     // Backends override this when indexed pixels must be converted to the
     // device's native pixel format before zoom2Screen() runs.
     virtual void expandPalette(int) { }
+
+    /**
+     * Gives a backend a chance to drop aliases before buffer0 is reallocated.
+     *
+     * @param oldBuffer Previous indexed scratch buffer. Backends must not free
+     *        this pointer; CthughaDisplay still owns it.
+     */
+    virtual void indexedBufferWillChange(unsigned char*) { }
+
+    /**
+     * Ensures buffer0 can hold the full 2x2 indexed presentation image.
+     *
+     * The source IndexedFrame is width x height, but display screen functions
+     * can fill up to a 2w x 2h indexed staging image before palette expansion.
+     */
+    void prepareIndexedBuffer();
 
     void checkFPS();
     void checkZoom();
@@ -119,13 +136,16 @@ public:
 //
 class CthughaDisplayX11 : public CthughaDisplay {
     unsigned char* expandedBuffer0;
+    int expandedBufferByteCount;
     int expandedBufferBypp;
     virtual void expandPalette(int);
     virtual void expandPaletteMirrorHV();
+    virtual void indexedBufferWillChange(unsigned char*);
     void prepareExpandedBuffer();
 
 public:
     CthughaDisplayX11();
+    virtual ~CthughaDisplayX11();
     virtual void operator()();
 };
 

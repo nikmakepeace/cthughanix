@@ -16,7 +16,9 @@
 // newCthughaDisplay(), so this points at the X11 display subclass.
 CthughaDisplay* cthughaDisplay = NULL;
 
-CthughaDisplay::~CthughaDisplay() { }
+CthughaDisplay::~CthughaDisplay() {
+    delete[] buffer0;
+}
 
 OptionInt maxFramesPerSecond("maxFPS", DEFAULT_MAX_FRAMES_PER_SECOND);
 
@@ -33,11 +35,11 @@ double deltaT = 0;
 class VisualFrameView {
 public:
     int width() const {
-        return cthughaDisplay != NULL ? cthughaDisplay->sourceWidth() : CthughaBuffer::current->width();
+        return cthughaDisplay->sourceWidth();
     }
 
     int height() const {
-        return cthughaDisplay != NULL ? cthughaDisplay->sourceHeight() : CthughaBuffer::current->height();
+        return cthughaDisplay->sourceHeight();
     }
 
     int size() const {
@@ -52,6 +54,7 @@ static VisualFrameView visualBuffer() {
 CthughaDisplay::CthughaDisplay()
     : sourceFrame(0)
     , buffer0(0)
+    , buffer0ByteCount(0)
     , displayStart(0)
     , frames(0)
     , visualLatencyEstimate(0)
@@ -63,14 +66,15 @@ CthughaDisplay::CthughaDisplay()
     , fps(0) {
 
     displayStart = getTime();
-
-    // The logical Cthugha image can occupy four indexed-buffer quadrants after
-    // screen() output has been mirrored into a full 2x2 buffer.
-    buffer0 = new unsigned char[4 * visualBuffer().size()];
 }
 
 void CthughaDisplay::present(const IndexedFrame& frame) {
-    sourceFrame = frame.valid() ? &frame : NULL;
+    if (!frame.valid()) {
+        sourceFrame = NULL;
+        return;
+    }
+
+    sourceFrame = &frame;
     if (displayDevice != NULL && frame.framePalette != NULL)
         displayDevice->setFramePalette(frame.framePalette);
     (*this)();
@@ -80,6 +84,8 @@ const unsigned char* CthughaDisplay::sourcePixels() const {
     if (sourceFrame != NULL && sourceFrame->valid())
         return sourceFrame->pixels;
 
+    // Legacy fallback for code paths that still call operator() without first
+    // publishing an IndexedFrame through present().
     return CthughaBuffer::current->passivePixels();
 }
 
@@ -106,6 +112,23 @@ int CthughaDisplay::sourcePitch() const {
 
 int CthughaDisplay::sourceSize() const {
     return sourceWidth() * sourceHeight();
+}
+
+void CthughaDisplay::prepareIndexedBuffer() {
+    // The indexed presentation scratch image is 2w x 2h, so it needs four
+    // source-image areas. Screen functions may fill only part of it, then
+    // mirrorHorizontally()/mirrorVertically() complete the final image.
+    int byteCount = 4 * sourceSize();
+    if (byteCount <= 0)
+        return;
+
+    if (buffer0ByteCount != byteCount) {
+        indexedBufferWillChange(buffer0);
+        delete[] buffer0;
+        buffer0 = new unsigned char[byteCount];
+        buffer0ByteCount = byteCount;
+        needsClear = 1;
+    }
 }
 
 /*

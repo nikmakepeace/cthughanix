@@ -121,9 +121,9 @@
      presentation, carrying `pixels`, `width`, `height`, `pitch`, and `FramePalette`.
    - Done: `CthughaDisplay` consumes `IndexedFrame` for presentation source pixels,
      geometry, pitch, and palette synchronization.
-   - Next display slice: allocate/reallocate presentation scratch buffers lazily
-     from the incoming `IndexedFrame` geometry instead of sizing them from the
-     global/current Cthugha buffer in the display constructor.
+   - Done: presentation scratch buffers are allocated/reallocated lazily from
+     incoming frame geometry instead of being sized from the global/current
+     Cthugha buffer in the display constructor.
    - Keep X11 `DM_direct` as a legacy/backend optimization, not as part of the new
      shared display contract. The clean path should render screen transforms into an
      indexed presentation buffer, then palette-expand or upload into the backend's
@@ -171,9 +171,7 @@
      stage; presentation source pixels, geometry, pitch, and palette now flow through
      that frame.
    - Remaining display handoff work:
-     - Allocate/reallocate presentation scratch buffers from the incoming frame geometry.
-     - Remove `CthughaDisplay` constructor sizing and fallback geometry reads from
-       `CthughaBuffer::current` on the normal `IndexedFrame` path.
+     - Add focused tests for padded `IndexedFrame::pitch` and frame geometry changes.
      - Make the presentation path consistently honor `IndexedFrame::pitch` when
        copying or transforming source rows.
      - Move any artistic screen transforms that mutate indexed pixels into video filters.
@@ -184,9 +182,8 @@
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
        it belongs in the display/presentation layer, not the internal visual engine.
    - Next practical slice:
-     - Finish the `IndexedFrame` -> `CthughaDisplay` presentation handoff: lazy
-       scratch allocation, no normal-path `CthughaBuffer::current` geometry reads,
-       and focused tests for pitch/geometry handling.
+     - Add focused pitch/geometry coverage for the `IndexedFrame` -> `CthughaDisplay`
+       presentation handoff.
      - Add focused tests around director-owned stage sequencing, stage modes, and
        frame commit behavior.
 
