@@ -16,14 +16,24 @@ class BitmapFont;
 class PaletteEntry;
 
 enum TextInjectionHorizontalAlign {
+    /** Align text block to the left edge of the available rectangle. */
     TextInjectionAlignLeft,
+
+    /** Center text block horizontally in the available rectangle. */
     TextInjectionAlignCenter,
+
+    /** Align text block to the right edge of the available rectangle. */
     TextInjectionAlignRight
 };
 
 enum TextInjectionVerticalAlign {
+    /** Align text block to the top edge of the available rectangle. */
     TextInjectionAlignTop,
+
+    /** Center text block vertically in the available rectangle. */
     TextInjectionAlignMiddle,
+
+    /** Align text block to the bottom edge of the available rectangle. */
     TextInjectionAlignBottom
 };
 
@@ -37,9 +47,32 @@ class ImageFilter : public VideoFilter {
 public:
     ImageFilter();
 
+    /**
+     * Selects the image to draw.
+     *
+     * @param image_ Borrowed indexed image pointer, or NULL to disable drawing.
+     */
     void setImage(const IndexedImage* image_);
+
+    /**
+     * Sets the clipped source/destination rectangle.
+     *
+     * @param placement_ Pixel coordinates produced by an ImagePlacementStrategy.
+     */
     void setPlacement(const ImagePlacement& placement_);
+
+    /**
+     * Controls whether injected pixels are mirrored into the passive buffer.
+     *
+     * @param enabled Nonzero to copy into passive pixels as well as active pixels.
+     */
     void setOverlayPassiveBuffer(int enabled);
+
+    /**
+     * Draws the selected image into the active indexed pixel buffer.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -53,8 +86,25 @@ class FlameFilter : public VideoFilter {
 public:
     FlameFilter();
 
+    /**
+     * Selects the flame feedback implementation.
+     *
+     * @param flame_ Borrowed flame pointer, or NULL to skip flame execution.
+     */
     void setFlame(const Flame* flame_);
+
+    /**
+     * Configures whether the flame runs in general-flame mode.
+     *
+     * @param generalFlame_ Nonzero when using the general flame path.
+     */
     void setGeneralFlame(int generalFlame_);
+
+    /**
+     * Runs the selected flame against active/passive indexed pixels.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -66,7 +116,18 @@ class TranslateFilter : public VideoFilter {
 public:
     TranslateFilter();
 
+    /**
+     * Replaces the coordinate translation table used by this stage.
+     *
+     * @param table Translation table in buffer-pixel coordinates.
+     */
     void setTranslate(const TranslationTable& table);
+
+    /**
+     * Applies the configured coordinate remap to the frame buffer.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -83,7 +144,19 @@ class WaveFilter : public VideoFilter {
 public:
     WaveFilter();
 
+    /**
+     * Selects the wave renderer and its per-scene configuration.
+     *
+     * @param wave_ Borrowed wave pointer, or NULL to skip wave drawing.
+     * @param config_ Wave configuration for scale/object/audio behavior.
+     */
     void setWave(Wave* wave_, const WaveConfig& config_);
+
+    /**
+     * Draws the configured wave using the frame audio/time context.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -102,10 +175,37 @@ class TextInjectionFilter : public VideoFilter {
 public:
     TextInjectionFilter();
 
+    /**
+     * Arms or clears the text cue.
+     *
+     * @param message_ CP437-compatible text to draw; NULL clears the cue.
+     * @param frameCount Number of visual frames to keep drawing the message.
+     */
     void setMessage(const char* message_, int frameCount);
+
+    /**
+     * Selects the text color.
+     *
+     * @param color Palette index 0-255, or negative to choose a bright color
+     *        from the current frame palette.
+     */
     void setInkColor(int color);
+
+    /**
+     * Sets text alignment and safe inset.
+     *
+     * @param horizontalAlign_ Horizontal alignment within the available rectangle.
+     * @param verticalAlign_ Vertical alignment within the available rectangle.
+     * @param marginPixels_ Pixel inset from each buffer edge; clamped to zero.
+     */
     void setPlacement(TextInjectionHorizontalAlign horizontalAlign_,
         TextInjectionVerticalAlign verticalAlign_, int marginPixels_);
+
+    /**
+     * Draws the active text cue and decrements its remaining frame count.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -120,8 +220,22 @@ class FrameCommitFilter : public VideoFilter {
 public:
     FrameCommitFilter();
 
+    /**
+     * Sets borrowed scene names for frame diagnostics.
+     *
+     * @param flameName_ Current flame display name, or NULL.
+     * @param waveName_ Current wave display name, or NULL.
+     * @param waveScaleName_ Current wave-scale display name, or NULL.
+     * @param tableName_ Current translation-table display name, or NULL.
+     */
     void setSceneNames(const char* flameName_, const char* waveName_,
         const char* waveScaleName_, const char* tableName_);
+
+    /**
+     * Commits the active indexed buffer by swapping active/passive buffers.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -131,6 +245,11 @@ class FlashlightFilter : public VideoFilter {
 public:
     FlashlightFilter();
 
+    /**
+     * Applies the acoustic flashlight effect to the frame palette.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -142,7 +261,18 @@ class BorderFilter : public VideoFilter {
 public:
     BorderFilter();
 
+    /**
+     * Selects the hidden-border drawing mode.
+     *
+     * @param borderMode_ Border option value used by apply_border().
+     */
     void setBorderMode(int borderMode_);
+
+    /**
+     * Writes hidden border rows into the active indexed buffer.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -155,10 +285,30 @@ class PaletteFilter : public VideoFilter {
 public:
     PaletteFilter();
 
+    /** @return Owned frame palette supplied to the filterchain. */
     FramePalette& framePalette();
+
+    /**
+     * @param paletteEntry Palette option entry to compare against current target.
+     * @return Nonzero when a new transition target is needed.
+     */
     int needsTarget(PaletteEntry* paletteEntry) const;
+
+    /**
+     * Starts or replaces the target palette transition.
+     *
+     * @param paletteEntry Palette entry to transition toward; ignored when NULL.
+     * @param frameBudget Number of visual frames over which to transition.
+     * @param strategy Per-frame palette interpolation strategy.
+     */
     void setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
         const PaletteTransitionStrategy& strategy);
+
+    /**
+     * Advances the active frame palette by one visual frame.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
@@ -168,9 +318,20 @@ class IndexedFrameFilter : public VideoFilter {
 public:
     IndexedFrameFilter();
 
+    /**
+     * Publishes the passive indexed pixels as the display-facing frame.
+     *
+     * @param frame Current video frame wrapper.
+     */
     void execute(VideoFrame& frame);
 };
 
+/**
+ * Extracts the frame palette installed in a filterchain.
+ *
+ * @param filterchain Filterchain configured by VideoFilterchainFactory.
+ * @return FramePalette owned by PaletteFilter, or NULL when no palette stage exists.
+ */
 FramePalette* framePaletteFromFilterchain(VideoFilterchain& filterchain);
 
 #endif
