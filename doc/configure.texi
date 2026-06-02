@@ -1,4 +1,4 @@
-@node Configuration, Parameters, CoreOptions, Top
+@node Configuration, Parameters, EffectControls, Top
 
 @chapter Configuration
 

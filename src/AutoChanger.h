@@ -47,7 +47,7 @@ public:
     /**
      * Applies the selected automatic change action.
      *
-     * Uses the little option to choose between changing one eligible CoreOption
+     * Uses the little option to choose between changing one eligible EffectControl
      * and changing the whole unlocked scene option set.
      */
     void change();

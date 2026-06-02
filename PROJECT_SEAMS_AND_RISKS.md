@@ -85,13 +85,13 @@ Contract:
 - respect `BUFF_WIDTH`, `BUFF_HEIGHT`, and the extra 3-line top/bottom border;
 - leave coordinate remapping to the dedicated translate stage;
 - expose execution through the `Flame` domain object, not through
-  `CoreOptionEntry`.
+  `EffectChoice`.
 
 ### Add a Compiled-In Wave
 
 Add a drawing function to `src/waves.cc`, declare it in `src/Wave.cc`, and add
 it to `waveCatalog`. Add or adjust the corresponding `WaveEntry` adapter only
-if the UI/CoreOption list needs a different in-use flag.
+if the UI/EffectControl list needs a different in-use flag.
 
 Wave functions should read sound through `audioFrameProcessedWaveData()` and rolling
 state from `audioMetrics` / `acousticContext`, read selected scale/table/object
@@ -101,7 +101,7 @@ values from `WaveRuntime`, then draw directly into the buffer's active pixels.
 
 ### Add an Audio Processing Mode
 
-Add a `CoreOptionEntry` subclass in `src/AudioProcessor.cc` and register it in
+Add a `EffectChoice` subclass in `src/AudioProcessor.cc` and register it in
 `_audioProcessorOptionEntries`.
 
 Contract:
@@ -189,7 +189,7 @@ Subsystems communicate mainly through globals:
 - `BUFF_WIDTH`, `BUFF_HEIGHT`;
 - `CthughaBuffer::current`;
 - `screen`;
-- many `Option` and `CoreOption` singletons.
+- many `Option` and `EffectControl` singletons.
 
 The new runtime/filterchain classes reduce some coupling, but most filters still
 assume initialization order rather than checking dependencies.
@@ -295,7 +295,7 @@ first, then render it as a texture through SDL2/SDL3, GLFW, or similar.
 The effect code is mostly self-contained and should be preserved. The safest
 path is:
 
-1. keep `CoreOption`, `flames`, `waves`, `translate`, palettes, and indexed image behavior
+1. keep `EffectControl`, `flames`, `waves`, `translate`, palettes, and indexed image behavior
    stable;
 2. continue moving `CthughaBuffer::current` lookups behind explicit
    display/provider objects;
@@ -303,7 +303,7 @@ path is:
 
 ### Configuration and UI
 
-The `Option` and `CoreOption` model is workable but stringly typed. A modern UI
+The `Option` and `EffectControl` model is workable but stringly typed. A modern UI
 should treat current option entries as the domain model, then gradually wrap them
 with safer metadata.
 
@@ -314,7 +314,7 @@ with safer metadata.
 - X11/MIT-SHM startup and image paths are platform-sensitive, though X11
   initialization is now deferred until display startup and command-line help
   exits before X is touched.
-- External command execution remains: `CoreOption::load()` uses `gzip -cd` for
+- External command execution remains: `EffectControl::load()` uses `gzip -cd` for
   compressed assets. Silence messages no longer execute `fortune`; opt-in QOTD
   input is public network text and must stay strictly validated and bounded.
 - OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on

@@ -26,7 +26,7 @@ main(argc, argv)
   CthughaBuffer::initAll()
   init_border()
   init_flashlight()
-  CoreOption::changeToInitial()
+  EffectControl::changeToInitial()
   audioProcessing.changeToInitial()
   Interface::set("main")
   Keymap::init()
@@ -291,7 +291,7 @@ Image and translate selection flow through `VideoDirector`.
 
 ### Flashlight
 
-`apply_flashlight()` is a palette effect. If the `flashlight` CoreOption is on,
+`apply_flashlight()` is a palette effect. If the `flashlight` EffectControl is on,
 `VideoDirector` enables the flashlight stage. The stage copies the current
 `FramePalette`, brightens low palette entries according to
 `acousticContext.fire()`, and writes the temporary palette back to
@@ -303,7 +303,7 @@ It does not draw pixels into the indexed buffer.
 
 `apply_border()` fills the three hidden rows above and below the active buffer.
 
-The selected `border` CoreOption decides whether those rows are:
+The selected `border` EffectControl decides whether those rows are:
 
 - zero;
 - copied from current audio data;
@@ -345,7 +345,7 @@ Palette smoothing is separate from the indexed pixel mutation stages.
 
 ### Palette Stage
 
-`PaletteOption` is the global CoreOption adapter for loaded palettes.
+`PaletteOption` is the global EffectControl adapter for loaded palettes.
 `PaletteEntry` wraps a `ColorPalette` plus UI/config metadata, while
 `VideoDirector` binds the selected entry into `PaletteFilter`.
 `PaletteFilter` delegates transition mechanics to `PaletteTransition`,
@@ -370,9 +370,9 @@ Command-line options:
 `FlashlightFilter` runs after palette smoothing so it brightens the final
 palette output for the frame instead of being diluted by the smoothing step.
 
-## CoreOption System
+## EffectControl System
 
-`CoreOption` is the runtime effect registry. It stores:
+`EffectControl` is the runtime effect registry. It stores:
 
 - linked-list membership for `changeOne()`/`changeAll()`;
 - current value;
@@ -382,14 +382,14 @@ palette output for the frame instead of being diluted by the smoothing step.
 - history stack for restore;
 - 10 hotkey values.
 
-`CoreOptionEntry` is callable via `operator()()`. Subclasses wrap functions,
+`EffectChoice` is callable via `operator()()`. Subclasses wrap functions,
 loaded assets, display functions, or no-op entries.
 
 Initial values come from ini files and command-line arguments. Startup applies
 them with:
 
 ```text
-CoreOption::changeToInitial()
+EffectControl::changeToInitial()
 audioProcessing.changeToInitial()
 ```
 
@@ -415,7 +415,7 @@ displayDevice->postPrint()
 displayDevice->postDraw()
 ```
 
-The display function selected by the `display` CoreOption comes from
+The display function selected by the `display` EffectControl comes from
 `src/display.cc`. It maps one `BUFF_WIDTH x BUFF_HEIGHT`
 passive buffer into an image that is commonly mirrored to
 `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT`.
@@ -436,9 +436,9 @@ Keymap contexts include:
 - `Help`;
 - `sound`;
 - `Options`;
-- `CoreOptions`;
+- `EffectControls`;
 - `OptionElement`;
-- `CoreOptionElement`;
+- `EffectControlElement`;
 - `playList`;
 - `border`;
 - `flashlight`.

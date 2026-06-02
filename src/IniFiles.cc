@@ -4,7 +4,7 @@
 #include "TranslationOptions.h"
 #include "information.h"
 #include "display.h"
-#include "CoreOptionIni.h"
+#include "EffectControlIni.h"
 #include "keys.h"
 #include "AutoChanger.h"
 #include "AudioProcessor.h"
@@ -214,7 +214,7 @@ static void warn_unknown_ini_entries() {
             continue;
         }
 
-        if (!coreOptionIsIniEntry(entry)) {
+        if (!effectControlIsIniEntry(entry)) {
             CTH_WARN("Unknown ini directive `cthugha.%s' in `%s' line %d.\n",
                 entry, ini_file_path, line_nr);
         }
@@ -344,7 +344,7 @@ int getini_yesno(const char* entry, int* value) {
     return 0;
 }
 
-int getini(CoreOption& opt) {
+int getini(EffectControl& opt) {
     char str[512];
 
     if (getini(opt.name(), str))
@@ -392,7 +392,7 @@ int read_ini() {
             }
         }
 
-        coreOptionGetIniInitials();
+        effectControlGetIniInitials();
         warn_unknown_ini_entries();
 
         if (ini_file)
@@ -409,8 +409,8 @@ int read_ini_usage() {
     open_ini_start();
     while (open_ini_file() == 0) {
 
-        coreOptionGetIniUsages();
-        coreOptionGetHotIni();
+        effectControlGetIniUsages();
+        effectControlGetHotIni();
 
         /* close the ini-file */
         if (ini_file)
@@ -494,9 +494,9 @@ int write_ini() {
 
     fprintf(ini_file,
         "#\n"
-        "# Core Options\n"
+        "# Effect Controls\n"
         "#\n");
-    coreOptionPutIniInitials();
+    effectControlPutIniInitials();
     putini(audioProcessing);
 
     fprintf(ini_file,
@@ -514,15 +514,15 @@ int write_ini() {
 
     fprintf(ini_file,
         "#\n"
-        "# Core Option usage options\n"
+        "# Effect Control usage options\n"
         "#\n");
-    coreOptionPutIniUsages();
+    effectControlPutIniUsages();
 
     fprintf(ini_file,
         "#\n"
-        "# Core Option 'Hot' options\n"
+        "# Effect Control 'Hot' options\n"
         "#\n");
-    coreOptionPutHotIni();
+    effectControlPutHotIni();
 
     /*
      * copy old settings

@@ -1,9 +1,9 @@
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 #include <ctype.h>
 
-CoreOptionEntry::CoreOptionEntry(const char* n, const char* d, int inUse)
+EffectChoice::EffectChoice(const char* n, const char* d, int inUse)
     : use("", inUse) {
     name = new char[strlen(n ? n : "none") + 1];
     strcpy(name, n ? n : "none");
@@ -13,7 +13,7 @@ CoreOptionEntry::CoreOptionEntry(const char* n, const char* d, int inUse)
 }
 
 // compare up to first SPACE in other
-int CoreOptionEntry::sameName(const char* other) {
+int EffectChoice::sameName(const char* other) {
 
     const char* n = name;
     while ((*other != '\0') && (*other != ' ') && (*n != '\0')) {

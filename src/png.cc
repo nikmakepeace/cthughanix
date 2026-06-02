@@ -124,7 +124,7 @@ static unsigned char indexedPngPixel(const unsigned char* row, int x, int bitDep
     }
 }
 
-CoreOptionEntry* read_png_image(
+EffectChoice* read_png_image(
     FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/,
     const ImageLoadTarget& target) {
     static const unsigned char pngSignature[8] = {

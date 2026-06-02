@@ -48,7 +48,7 @@
        frames. Defaults are `200 + rand() % 750`, roughly 3-14 seconds at VGA 70 Hz
        or 3-16 seconds at 60 Hz.
      - CthughaNix defaults to a time-based `AutoChanger`: `min-time=500` and
-       `random-time=1000`, meaning 5-15 seconds before a full unlocked `CoreOption`
+       `random-time=1000`, meaning 5-15 seconds before a full unlocked `EffectControl`
        change, unless audio/silence triggers earlier. `--little` changes only one
        option.
      - `cthugha-js` currently rolls once per second and may change one category each

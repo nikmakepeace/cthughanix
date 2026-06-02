@@ -68,7 +68,7 @@ deferred suspend handling
 
 ## Architectural Center
 
-The classic visual domain still revolves around `CoreOption`, the runtime
+The classic visual domain still revolves around `EffectControl`, the runtime
 registry for selectable visual entries. The current active categories include:
 
 - global/display-ish options: `display`, `border`, `flashlight`,
@@ -112,7 +112,7 @@ Audio and visual control are separated:
   `VideoFilterchainFactory`, `VideoFilterchainSequence`, `VideoFilters`,
   `VideoFilterchain`, `VideoFilter`, `VideoFrame`, `VideoFrameContext`,
   `IndexedFrame`, and `CthughaBuffer`.
-- Classic visual effect seam: `CoreOption` still drives UI/keymap/config
+- Classic visual effect seam: `EffectControl` still drives UI/keymap/config
   selection, while flame, translate, and wave execution runs through standalone
   `Flame`/`Translate`/`Wave` domain objects.
 - Display frontend seam: `DisplayDevice` plus the X11 `CthughaDisplay`

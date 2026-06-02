@@ -12,7 +12,7 @@ add_executable(audio_pipeline_bench
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
     ${CMAKE_SOURCE_DIR}/src/AudioVisualBridge.cc
-    ${CMAKE_SOURCE_DIR}/src/CoreOptionEntry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
     ${CMAKE_SOURCE_DIR}/src/misc.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -50,8 +50,8 @@ endif()
 
 add_executable(visual_effects_bench
     VideoEffectsBench.cc
-    ${CMAKE_SOURCE_DIR}/src/CoreOption.cc
-    ${CMAKE_SOURCE_DIR}/src/CoreOptionEntry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
     ${CMAKE_SOURCE_DIR}/src/Flame.cc
     ${CMAKE_SOURCE_DIR}/src/flames.cc

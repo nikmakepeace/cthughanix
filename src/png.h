@@ -2,7 +2,7 @@
 #define __PNG_H
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 struct ImageLoadTarget;
 
@@ -19,7 +19,7 @@ struct ImageLoadTarget;
  * @param target Target buffer dimensions in pixels.
  * @return Newly allocated ImageEntry, or NULL on unsupported/invalid input.
  */
-CoreOptionEntry* read_png_image(FILE* file, const char* name, const char* dir,
+EffectChoice* read_png_image(FILE* file, const char* name, const char* dir,
     const char* totalName, const ImageLoadTarget& target);
 
 #endif

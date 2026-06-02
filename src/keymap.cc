@@ -502,7 +502,7 @@ void Keymap::init() {
     static Keymap serverKM("server");
     static Keymap playListKM("playList");
     static Keymap optionsKM("Options");
-    static Keymap coreOptionsKM("CoreOptions");
+    static Keymap effectControlionsKM("EffectControls");
     static Keymap listKM("list");
 
     Keymap::addList(0,

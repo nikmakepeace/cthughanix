@@ -26,7 +26,7 @@ Interface* Interface::current = NULL;
 
 Interface* Interface::head = NULL;
 
-static void resetDisplayTimingAfterCoreOptionChange() {
+static void resetDisplayTimingAfterEffectControlChange() {
     if (cthughaDisplay != NULL)
         cthughaDisplay->resetFPS();
 }
@@ -121,12 +121,12 @@ ACTION(chgValue1) {
 
     int step = int(v * currentOptionInterfaceElement->inc1);
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (currentCoreOption && sceneCommands != NULL
-        && sceneCommands->isSceneOption(*currentCoreOption))
-        sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption) {
-        currentCoreOption->change(step, 0);
-        resetDisplayTimingAfterCoreOptionChange();
+    if (currentEffectControl && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentEffectControl))
+        sceneCommands->change(*currentEffectControl, step, 0);
+    else if (currentEffectControl) {
+        currentEffectControl->change(step, 0);
+        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -137,12 +137,12 @@ ACTION(chgValue2) {
 
     int step = int(v * currentOptionInterfaceElement->inc2);
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (currentCoreOption && sceneCommands != NULL
-        && sceneCommands->isSceneOption(*currentCoreOption))
-        sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption) {
-        currentCoreOption->change(step, 0);
-        resetDisplayTimingAfterCoreOptionChange();
+    if (currentEffectControl && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentEffectControl))
+        sceneCommands->change(*currentEffectControl, step, 0);
+    else if (currentEffectControl) {
+        currentEffectControl->change(step, 0);
+        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -153,12 +153,12 @@ ACTION(chgValue3) {
 
     int step = int(v * currentOptionInterfaceElement->inc3);
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (currentCoreOption && sceneCommands != NULL
-        && sceneCommands->isSceneOption(*currentCoreOption))
-        sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption) {
-        currentCoreOption->change(step, 0);
-        resetDisplayTimingAfterCoreOptionChange();
+    if (currentEffectControl && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentEffectControl))
+        sceneCommands->change(*currentEffectControl, step, 0);
+    else if (currentEffectControl) {
+        currentEffectControl->change(step, 0);
+        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -171,14 +171,14 @@ ACTION(setValue) {
     sprintf(str, "%d", int(v * currentOptionInterfaceElement->inc1));
 
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (currentCoreOption && sceneCommands != NULL
-        && sceneCommands->isSceneOption(*currentCoreOption)) {
-        sceneCommands->change(*currentCoreOption, str, 0);
-        sceneCommands->change(*currentCoreOption, 0, 0);
-    } else if (currentCoreOption) {
-        currentCoreOption->change(str, 0);
-        currentCoreOption->change(0, 0);
-        resetDisplayTimingAfterCoreOptionChange();
+    if (currentEffectControl && sceneCommands != NULL
+        && sceneCommands->isSceneOption(*currentEffectControl)) {
+        sceneCommands->change(*currentEffectControl, str, 0);
+        sceneCommands->change(*currentEffectControl, 0, 0);
+    } else if (currentEffectControl) {
+        currentEffectControl->change(str, 0);
+        currentEffectControl->change(0, 0);
+        resetDisplayTimingAfterEffectControlChange();
     } else if (currentOption) {
         currentOption->change(str);
         currentOption->change(0);
@@ -186,7 +186,7 @@ ACTION(setValue) {
 }
 
 static const char* InterfaceList[] = { "Help", // F1
-    "CoreOptions", // F2
+    "EffectControls", // F2
     "Options", // F3
     "sound", // F5
     "mixer", // F6
@@ -299,7 +299,7 @@ const char* InterfaceElementOption::text(int selected) {
 }
 
 Option* currentOption = NULL;
-CoreOption* currentCoreOption = NULL;
+EffectControl* currentEffectControl = NULL;
 InterfaceElementOption* currentOptionInterfaceElement = NULL;
 
 int InterfaceElementOption::doKey(int key) {
@@ -313,35 +313,35 @@ int InterfaceElementOption::doKey(int key) {
 }
 
 //
-// Core Option Element
+// Effect Control Element
 //
-Keymap InterfaceElementCoreOption::coreKeymap("CoreOptionElement");
+Keymap InterfaceElementEffectControl::effectControlKeymap("EffectControlElement");
 
-InterfaceElementCoreOption::InterfaceElementCoreOption(
-    const char* t, CoreOption* o, int i1, int i2, int i3)
+InterfaceElementEffectControl::InterfaceElementEffectControl(
+    const char* t, EffectControl* o, int i1, int i2, int i3)
     : InterfaceElementOption(t, o, i1, i2, i3)
-    , coreOpt(o) { }
+    , effectControl(o) { }
 
-int InterfaceElementCoreOption::doKey(int key) {
+int InterfaceElementEffectControl::doKey(int key) {
 
-    currentCoreOption = coreOpt;
-    currentOption = coreOpt;
+    currentEffectControl = effectControl;
+    currentOption = effectControl;
     currentOptionInterfaceElement = this;
 
-    int ret = coreKeymap.action(key);
+    int ret = effectControlKeymap.action(key);
     if (ret == 1)
         ret = keymap.action(key);
 
     currentOption = NULL;
-    currentCoreOption = NULL;
+    currentEffectControl = NULL;
     currentOptionInterfaceElement = NULL;
 
     return ret;
 }
 
 ACTION(lockElement) {
-    if (currentCoreOption)
-        currentCoreOption->lock.change(+1);
+    if (currentEffectControl)
+        currentEffectControl->lock.change(+1);
 }
 
 enum SceneOptionText {
@@ -357,7 +357,7 @@ enum SceneOptionText {
     SceneOptionFlashlight
 };
 
-static const char* sceneOptionText(SceneOptionText field, CoreOption* fallback) {
+static const char* sceneOptionText(SceneOptionText field, EffectControl* fallback) {
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
     if (sceneCommands == NULL)
         return fallback->text();
@@ -389,12 +389,12 @@ static const char* sceneOptionText(SceneOptionText field, CoreOption* fallback) 
     return fallback->text();
 }
 
-class InterfaceElementSceneCoreOption : public InterfaceElementCoreOption {
+class InterfaceElementSceneEffectControl : public InterfaceElementEffectControl {
     SceneOptionText sceneText;
 
 public:
-    InterfaceElementSceneCoreOption(const char* t, CoreOption* o, SceneOptionText sceneText_)
-        : InterfaceElementCoreOption(t, o)
+    InterfaceElementSceneEffectControl(const char* t, EffectControl* o, SceneOptionText sceneText_)
+        : InterfaceElementEffectControl(t, o)
         , sceneText(sceneText_) { }
 
     virtual const char* text(int selected) {
@@ -403,7 +403,7 @@ public:
         char in[512];
 
         sprintf(fmt, "%%c%%-%ds%%c", min(text_size.x - 3, 77));
-        sprintf(in, str, sceneOptionText(sceneText, coreOpt));
+        sprintf(in, str, sceneOptionText(sceneText, effectControl));
         sprintf(strRet, fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
 
         return strRet;
@@ -465,44 +465,44 @@ ACTION(setExtraKeymap) { strncpy(interfaceMain.extraKeymap, p, 512); }
 
 Interface interfaceMixer("Mixer", "Mixer", NULL);
 
-class InterfaceCoreOption : public Interface {
+class InterfaceEffectControl : public Interface {
 public:
-    InterfaceCoreOption()
-        : Interface("CoreOptions", "Core Options", NULL) {
+    InterfaceEffectControl()
+        : Interface("EffectControls", "Effect Controls", NULL) {
 
         nElements = 13;
         elements = new InterfaceElement*[nElements];
 
         {
-            elements[0] = new InterfaceElementCoreOption("Display (d,D)         : %s", &screen);
-            elements[1] = new InterfaceElementSceneCoreOption("Flame (f,F)           : %s",
+            elements[0] = new InterfaceElementEffectControl("Display (d,D)         : %s", &screen);
+            elements[1] = new InterfaceElementSceneEffectControl("Flame (f,F)           : %s",
                 &flame, SceneOptionFlame);
             elements[2]
-                = new InterfaceElementSceneCoreOption("General Flame (g)     : %s",
+                = new InterfaceElementSceneEffectControl("General Flame (g)     : %s",
                     &flameGeneral, SceneOptionGeneralFlame);
-            elements[3] = new InterfaceElementSceneCoreOption("Border (=)            : %s",
+            elements[3] = new InterfaceElementSceneEffectControl("Border (=)            : %s",
                 &border, SceneOptionBorder);
             elements[4]
-                = new InterfaceElementSceneCoreOption("Translate (t,T)       : %s",
+                = new InterfaceElementSceneEffectControl("Translate (t,T)       : %s",
                     &translation, SceneOptionTranslate);
-            elements[5] = new InterfaceElementSceneCoreOption("Wave (w)              : %s",
+            elements[5] = new InterfaceElementSceneEffectControl("Wave (w)              : %s",
                 &wave, SceneOptionWave);
             elements[6]
                 = new InterfaceElementOption("Sound Processing (m,M): %s", &audioProcessing);
-            elements[7] = new InterfaceElementSceneCoreOption("Table (b,B)           : %s",
+            elements[7] = new InterfaceElementSceneEffectControl("Table (b,B)           : %s",
                 &table, SceneOptionTable);
-            elements[8] = new InterfaceElementSceneCoreOption("WaveScale (W)         : %s",
+            elements[8] = new InterfaceElementSceneEffectControl("WaveScale (W)         : %s",
                 &waveScale, SceneOptionWaveScale);
             elements[9]
-                = new InterfaceElementSceneCoreOption("Palette (p,P)         : %s",
+                = new InterfaceElementSceneEffectControl("Palette (p,P)         : %s",
                     &palette, SceneOptionPalette);
             elements[10]
-                = new InterfaceElementCoreOption("Image (x,X))          : %s",
+                = new InterfaceElementEffectControl("Image (x,X))          : %s",
                     &videoDirector().imageOption());
-            elements[11] = new InterfaceElementSceneCoreOption("3D-Object (j,J)       : %s",
+            elements[11] = new InterfaceElementSceneEffectControl("3D-Object (j,J)       : %s",
                 &object, SceneOptionObject);
             elements[12]
-                = new InterfaceElementSceneCoreOption("Flashlight (s)        : %s",
+                = new InterfaceElementSceneEffectControl("Flashlight (s)        : %s",
                     &flashlight, SceneOptionFlashlight);
         }
     }
@@ -510,7 +510,7 @@ public:
     void preRun() {
 #define O(i)                                                                                       \
     ((InterfaceElementOption*)elements[i])->opt                                                    \
-        = ((InterfaceElementCoreOption*)elements[i])->coreOpt
+        = ((InterfaceElementEffectControl*)elements[i])->effectControl
         O(1) = &flame;
         O(2) = &flameGeneral;
         O(3) = &border;
@@ -524,14 +524,14 @@ public:
         O(12) = &flashlight;
     }
     void doKey(int key) {
-        if (Keymap::action("CoreOptions", key) == 0)
+        if (Keymap::action("EffectControls", key) == 0)
             return;
         if (Keymap::action("Options", key) == 0)
             return;
         Keymap::action("default", key);
     }
 
-} interfaceCoreOption;
+} interfaceEffectControl;
 
 InterfaceElement* elementsOption[] = {
     new InterfaceElementOption("Maximal Frames/second    : %10s", &maxFramesPerSecond),

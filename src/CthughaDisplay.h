@@ -3,7 +3,7 @@
 #define __CTHUGHA_DISPLAY_H
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 // The CthughaDisplay layer sits between the effect buffers and the selected
 // DisplayDevice backend.  It owns the per-frame timing, temporary image
@@ -129,7 +129,7 @@ public:
     virtual void operator()();
 };
 
-class ScreenEntry : public CoreOptionEntry {
+class ScreenEntry : public EffectChoice {
 public:
     int (*screen)();
 
@@ -139,7 +139,7 @@ public:
     xy size;
 
     ScreenEntry(int (*f)(), const char* name, const char* desc, xy s, int inUse = 1)
-        : CoreOptionEntry(name, desc, inUse)
+        : EffectChoice(name, desc, inUse)
         , screen(f)
         , size(s) { }
 

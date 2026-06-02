@@ -3,14 +3,14 @@
 #ifndef __FLASHLIGHT_H
 #define __FLASHLIGHT_H
 
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 class CthughaBuffer;
 class FramePalette;
 class VideoFrameContext;
 
 /** Global on/off option for palette flashlight. */
-extern CoreOption flashlight;
+extern EffectControl flashlight;
 
 /**
  * Registers flashlight option entries.

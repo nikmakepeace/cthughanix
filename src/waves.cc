@@ -1,7 +1,7 @@
 // Wave option setup, object loading, color tables, and wave renderers.
 
 #include "cthugha.h"
-#include "CoreOptionAssetLoader.h"
+#include "EffectChoiceLoader.h"
 #include "display.h"
 #include "Interface.h"
 #include "information.h"
@@ -14,44 +14,44 @@
 
 #include <math.h>
 
-static CoreOptionEntryList waveEntries;
-static CoreOptionEntryList objectEntries;
-static CoreOptionEntryList waveScaleEntries;
-static CoreOptionEntryList tableEntries;
+static EffectChoiceList waveEntries;
+static EffectChoiceList objectEntries;
+static EffectChoiceList waveScaleEntries;
+static EffectChoiceList tableEntries;
 
-extern CoreOptionEntry* _objects[];
+extern EffectChoice* _objects[];
 extern int _nObjects;
 
 WaveOption wave;
-CoreOption waveScale(-1, "wave-scale", waveScaleEntries, CORE_OPTION_AUTO_CHANGE);
-CoreOption table(-1, "table", tableEntries, CORE_OPTION_AUTO_CHANGE);
-CoreOption object(-1, "object", objectEntries, CORE_OPTION_AUTO_CHANGE);
+EffectControl waveScale(-1, "wave-scale", waveScaleEntries, EFFECT_CONTROL_AUTO_CHANGE);
+EffectControl table(-1, "table", tableEntries, EFFECT_CONTROL_AUTO_CHANGE);
+EffectControl object(-1, "object", objectEntries, EFFECT_CONTROL_AUTO_CHANGE);
 
-static CoreOptionEntry* wave_scales[] = { new CoreOptionEntry("scale0", "large"),
-    new CoreOptionEntry("scale1", "medium"), new CoreOptionEntry("scale2", "small") };
+static EffectChoice* wave_scales[] = { new EffectChoice("scale0", "large"),
+    new EffectChoice("scale1", "medium"), new EffectChoice("scale2", "small") };
 
-static CoreOptionEntry* table_entries[] = {
-    new CoreOptionEntry("table0", ""),
-    new CoreOptionEntry("table1", ""),
-    new CoreOptionEntry("table2", ""),
-    new CoreOptionEntry("table3", ""),
-    new CoreOptionEntry("table4", ""),
-    new CoreOptionEntry("table5", ""),
-    new CoreOptionEntry("table6", ""),
-    new CoreOptionEntry("table7", ""),
-    new CoreOptionEntry("table8", ""),
-    new CoreOptionEntry("table9", ""),
+static EffectChoice* table_entries[] = {
+    new EffectChoice("table0", ""),
+    new EffectChoice("table1", ""),
+    new EffectChoice("table2", ""),
+    new EffectChoice("table3", ""),
+    new EffectChoice("table4", ""),
+    new EffectChoice("table5", ""),
+    new EffectChoice("table6", ""),
+    new EffectChoice("table7", ""),
+    new EffectChoice("table8", ""),
+    new EffectChoice("table9", ""),
 };
 
 WaveEntry::WaveEntry(Wave& wave_, int inUse)
-    : CoreOptionEntry(wave_.name(), wave_.description(), inUse)
+    : EffectChoice(wave_.name(), wave_.description(), inUse)
     , waveValue(&wave_) { }
 
 Wave& WaveEntry::wave() const {
     return *waveValue;
 }
 
-static CoreOptionEntry* _waves[] = {
+static EffectChoice* _waves[] = {
     new WaveEntry(waveCatalog[0]), // 0
     new WaveEntry(waveCatalog[1]), // 1
     new WaveEntry(waveCatalog[2]), // 2
@@ -91,7 +91,7 @@ static CoreOptionEntry* _waves[] = {
 static const int _nWaves = nWaveCatalogEntries;
 
 WaveOption::WaveOption()
-    : CoreOption(-1, "wave", waveEntries, CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(-1, "wave", waveEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 Wave* WaveOption::currentWave() {
     WaveEntry* entry = dynamic_cast<WaveEntry*>(current());
@@ -109,7 +109,7 @@ static void init_wave_options() {
  * Wave behavior catalog
  *
  * Common fields:
- * - Entry: CoreOption name followed by description.  The X11 panel menu shows
+ * - Entry: Effect choice name followed by description.  The X11 panel menu shows
  *   the description when present, falling back to Name(); ncurses/list-style
  *   text displays both.
  * - Does: visible drawing behavior.
@@ -355,7 +355,7 @@ static void init_wave_options() {
 static void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c);
 
 OptionOnOff use_objects("use-objects", DEFAULT_USE_OBJECTS_ENABLED); /* use 3-D objects */
-CoreOptionEntry* read_object(FILE* file, const char* name, const char* dir, const char* total_name);
+EffectChoice* read_object(FILE* file, const char* name, const char* dir, const char* total_name);
 
 /*
  * Object waves have two kinds of work:
@@ -374,15 +374,15 @@ static int object_wave_needs_configuration(WaveRuntime& runtime) {
 
 static const char* object_path[] = { "./", "./resources/obj/", CTH_LIBDIR "/obj/", "" };
 
-class ObjectEntry : public CoreOptionEntry {
+class ObjectEntry : public EffectChoice {
 public:
     WObject* obj;
 
     ObjectEntry(WObject* o, const char* name, const char* desc)
-        : CoreOptionEntry(name, desc)
+        : EffectChoice(name, desc)
         , obj(o) { }
     ObjectEntry(const char* name, const char* desc)
-        : CoreOptionEntry(name, desc)
+        : EffectChoice(name, desc)
         , obj(NULL) { }
     ~ObjectEntry() {
         delete obj;
@@ -407,8 +407,8 @@ WObject cube1[] = {
     { { -1, -1, -1 }, { -1, -1, -1 } },
 };
 
-CoreOptionEntry* _objects[] = { new ObjectEntry(cube1, "bigH", "Big H") };
-int _nObjects = sizeof(_objects) / sizeof(CoreOptionEntry*);
+EffectChoice* _objects[] = { new ObjectEntry(cube1, "bigH", "Big H") };
+int _nObjects = sizeof(_objects) / sizeof(EffectChoice*);
 
 WObject* currentWaveObject() {
     ObjectEntry* entry = static_cast<ObjectEntry*>(object.current());
@@ -427,14 +427,14 @@ int init_wave() {
     if (int(use_objects)) {
 
         CTH_INFO("  loading 3-D objects...");
-        loadCoreOptionEntries(object, object_path, "/obj/", ".obj", read_object);
+        loadEffectChoices(object, object_path, "/obj/", ".obj", read_object);
         CTH_INFO("\n  number of 3-D objects: %d\n", object.getNEntries());
     }
 
     return 0;
 }
 
-CoreOptionEntry* read_object(
+EffectChoice* read_object(
     FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/) {
     char dummy[256];
     int i, j, nlines, x1, y1, z1, x2, y2, z2, mx, my, mz;

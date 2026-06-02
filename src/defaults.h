@@ -24,7 +24,7 @@ static const int DEFAULT_CHANGE_WAIT_RANDOM_MS = 11000; // Unit: milliseconds; u
 static const int DEFAULT_CHANGE_WAIT_RANDOM_MIN_MS = 1; // Unit: milliseconds; used by AutoChanger to keep random-time modulo arithmetic valid.
 static const int DEFAULT_CHANGE_CUMULATIVE_FIRE_LEVEL = 1000; // Unit: cumulative fire units; used by AutoChanger's acoustic trigger threshold.
 static const int DEFAULT_AUTOCHANGER_LOCKED = 0; // Unit: boolean; used by lock so automatic scene changes start enabled.
-static const int DEFAULT_AUTOCHANGER_CHANGE_LITTLE = 0; // Unit: boolean; used by little so AutoChanger changes all core options by default.
+static const int DEFAULT_AUTOCHANGER_CHANGE_LITTLE = 0; // Unit: boolean; used by little so AutoChanger changes all effect controls by default.
 
 static const int DEFAULT_CHANGE_MESSAGE_MS = 10000; // Unit: milliseconds; used by change-msg-time for quiet text cue spacing.
 static const int DEFAULT_QUIET_MESSAGE_DURATION_MS = 6000; // Unit: milliseconds; used by VideoDirector as the maximum quiet cue display duration.
@@ -101,8 +101,8 @@ static const int DEFAULT_PALETTE_SET_FILTER_COUNT = 0; // Unit: palette set coun
 
 static const int DEFAULT_USE_TRANSLATES_ENABLED = 1; // Unit: boolean; used by use-translate so translation tables are active by default.
 static const int DEFAULT_USE_OBJECTS_ENABLED = 1; // Unit: boolean; used by use-objects so 3-D wave objects are active by default.
-#define DEFAULT_FLASHLIGHT_ENABLE_INITIAL_ENTRY "non-locked:on" // Unit: CoreOption entry text; used by --flashlight without an explicit value.
-#define DEFAULT_FLASHLIGHT_DISABLE_INITIAL_ENTRY "locked:off" // Unit: CoreOption entry text; used by --no-flashlight without an explicit value.
+#define DEFAULT_FLASHLIGHT_ENABLE_INITIAL_ENTRY "non-locked:on" // Unit: Effect choice text; used by --flashlight without an explicit value.
+#define DEFAULT_FLASHLIGHT_DISABLE_INITIAL_ENTRY "locked:off" // Unit: Effect choice text; used by --no-flashlight without an explicit value.
 
 static const int DEFAULT_QOTD_PREFETCH_TIMEOUT_MS = 500; // Unit: milliseconds; used by QotdMessagesProvider for non-blocking fetch attempts.
 static const char* DEFAULT_QOTD_SERVER_TEXT = "djxmmx.net:17"; // Unit: host[:port] string; used by qotd-server when no server is supplied.

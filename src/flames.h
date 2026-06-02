@@ -2,13 +2,13 @@
 #define __FLAMES_H
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "Flame.h"
 
 /**
- * CoreOption entry that points at one built-in Flame catalog item.
+ * Effect choice that points at one built-in Flame catalog item.
  */
-class FlameEntry : public CoreOptionEntry {
+class FlameEntry : public EffectChoice {
     const Flame* flameValue;
 
 public:
@@ -27,7 +27,7 @@ public:
 /**
  * Option wrapper for selecting the current flame feedback kernel.
  */
-class FlameOption : public CoreOption {
+class FlameOption : public EffectControl {
 public:
     FlameOption();
 
@@ -44,7 +44,7 @@ extern FlameOption flame;
  * The value is a base-9 encoding consumed by GenSubt/GenSlow flame kernels.
  * Text changes may also carry lock prefixes such as "lock:" or "no-lock:".
  */
-class GeneralFlameOption : public CoreOption {
+class GeneralFlameOption : public EffectControl {
 public:
     GeneralFlameOption();
 
@@ -79,7 +79,7 @@ public:
 extern GeneralFlameOption flameGeneral;
 
 /** Legacy flame option entry array used by initialization/UI code. */
-extern CoreOptionEntry* _flames[];
+extern EffectChoice* _flames[];
 
 /** Number of entries in _flames. */
 extern int _nFlames;

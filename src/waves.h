@@ -5,15 +5,15 @@
 #define __WAVES_H
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "Wave.h"
 
 class CthughaBuffer;
 
 /**
- * CoreOption entry that points at one built-in Wave catalog item.
+ * Effect choice that points at one built-in Wave catalog item.
  */
-class WaveEntry : public CoreOptionEntry {
+class WaveEntry : public EffectChoice {
     Wave* waveValue;
 
 public:
@@ -32,7 +32,7 @@ public:
 /**
  * Option wrapper for selecting the current wave renderer.
  */
-class WaveOption : public CoreOption {
+class WaveOption : public EffectControl {
 public:
     WaveOption();
 
@@ -44,13 +44,13 @@ public:
 extern WaveOption wave;
 
 /** Wave-scale option; interpretation is wave-specific. */
-extern CoreOption waveScale;
+extern EffectControl waveScale;
 
 /** Palette color-table option for wave drawing. */
-extern CoreOption table;
+extern EffectControl table;
 
 /** 3D object selection option for object-capable waves. */
-extern CoreOption object;
+extern EffectControl object;
 
 /** Initializes palette color tables used by wave drawing. */
 int init_tables();

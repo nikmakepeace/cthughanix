@@ -1,11 +1,11 @@
 #keymap default
 q setInterface(main)
 		    
-o   setInterface(CoreOptions)
+o   setInterface(EffectControls)
 O   setInterface(Options)
 ?   setInterface(Help)
 F1  setInterface(Help)
-F2  setInterface(CoreOptions)
+F2  setInterface(EffectControls)
 F3  setInterface(Options)
 F5  setInterface(sound)
 F6  setInterface(mixer)
@@ -121,7 +121,7 @@ Q setInterface(main)
 O setInterface(main)
 
 
-#keymap CoreOptions
+#keymap EffectControls
 o setInterface(main)
 O setInterface(options)
 
@@ -143,7 +143,7 @@ Left  chgValue1(-1)
 8     setValue(8)
 9     setValue(9)
 
-#keymap CoreOptionElement
+#keymap EffectControlElement
 l   lockElement()
 
 

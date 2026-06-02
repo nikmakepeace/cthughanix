@@ -1,10 +1,10 @@
 set(CTHUGHA_COMMON_SOURCES
     Option.cc
     OptionInt.cc
-    CoreOption.cc
-    CoreOptionAssetLoader.cc
-    CoreOptionIni.cc
-    CoreOptionEntry.cc
+    EffectControl.cc
+    EffectChoiceLoader.cc
+    EffectControlIni.cc
+    EffectChoice.cc
     AudioInternal.cc
     AudioOutput.cc
     AudioPulseOutput.cc

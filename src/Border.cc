@@ -5,12 +5,12 @@
 #include "VideoFilterchain.h"
 #include "cth_buffer.h"
 
-static CoreOptionEntry* border_entries[]
-    = { new CoreOptionEntry("border0", ""), new CoreOptionEntry("border1", ""),
-          new CoreOptionEntry("border2", ""), new CoreOptionEntry("border3", "") };
-static CoreOptionEntryList borderEntries;
+static EffectChoice* border_entries[]
+    = { new EffectChoice("border0", ""), new EffectChoice("border1", ""),
+          new EffectChoice("border2", ""), new EffectChoice("border3", "") };
+static EffectChoiceList borderEntries;
 
-CoreOption border(0, "border", borderEntries, CORE_OPTION_AUTO_CHANGE);
+EffectControl border(0, "border", borderEntries, EFFECT_CONTROL_AUTO_CHANGE);
 
 void init_border() {
     border.add(border_entries, 4);

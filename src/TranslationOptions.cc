@@ -9,8 +9,8 @@
 
 OptionOnOff use_translates("use-translate", DEFAULT_USE_TRANSLATES_ENABLED); /* allow translations */
 
-static CoreOptionEntry* _trans[] = { new TranslateEntry("none", "No Translate") };
-static CoreOptionEntryList translateEntries(_trans, 1);
+static EffectChoice* _trans[] = { new TranslateEntry("none", "No Translate") };
+static EffectChoiceList translateEntries(_trans, 1);
 TranslateOption translation(-1, "translate");
 
 /*
@@ -38,7 +38,7 @@ int init_translate(const CthughaBuffer& buffer) {
 }
 
 TranslateOption::TranslateOption(int buffer, const char* name)
-    : CoreOption(buffer, name, translateEntries, CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(buffer, name, translateEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 TranslateEntry* TranslateOption::translateEntry(int index) {
     if ((index < 0) || (index >= getNEntries()))

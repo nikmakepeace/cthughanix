@@ -4,7 +4,7 @@
 #define __INTERFACE_H
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "keymap.h"
 
 class InterfaceElement {
@@ -74,13 +74,13 @@ public:
     virtual int doKey(int key);
 };
 
-class InterfaceElementCoreOption : public InterfaceElementOption {
+class InterfaceElementEffectControl : public InterfaceElementOption {
 public:
-    CoreOption* coreOpt;
+    EffectControl* effectControl;
 
-    static Keymap coreKeymap;
+    static Keymap effectControlKeymap;
 
-    InterfaceElementCoreOption(const char* t, CoreOption* o, int i1 = 1, int i2 = 10, int i3 = 100);
+    InterfaceElementEffectControl(const char* t, EffectControl* o, int i1 = 1, int i2 = 10, int i3 = 100);
 
     virtual int doKey(int key);
 };
@@ -99,7 +99,7 @@ public:
 };
 
 extern Option* currentOption;
-extern CoreOption* currentCoreOption;
+extern EffectControl* currentEffectControl;
 extern InterfaceElementOption* currentOptionInterfaceElement;
 
 extern Interface interfaceMixer;

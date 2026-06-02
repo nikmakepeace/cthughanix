@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "CoreOptionAssetLoader.h"
+#include "EffectChoiceLoader.h"
 #include "display.h"
 #include "defaults.h"
 #include "Interface.h"
@@ -9,7 +9,7 @@
 
 #include <ctype.h>
 
-CoreOptionEntryList paletteEntries;
+EffectChoiceList paletteEntries;
 PaletteOption palette;
 
 int change_palette_imm(int);
@@ -19,7 +19,7 @@ unsigned long bitmap_colors1[256]; /* "compiled" palette */
 unsigned long bitmap_colors2[256]; /* "compiled" palette */
 unsigned long bitmap_colors3[256]; /* "compiled" palette */
 
-CoreOptionEntry* read_palette(FILE* file, const char* name, const char* dir, const char*);
+EffectChoice* read_palette(FILE* file, const char* name, const char* dir, const char*);
 static const char* palette_path[] = { "./", "./resources/map/", CTH_LIBDIR "/map/", "" };
 static int paletteSetFilterCount = DEFAULT_PALETTE_SET_FILTER_COUNT;
 static char paletteSetFilter[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
@@ -268,7 +268,7 @@ static int palette_matches_set_filter(PaletteEntry* palette) {
 }
 
 PaletteOption::PaletteOption()
-    : CoreOption(-1, "palette", paletteEntries, CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(-1, "palette", paletteEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 PaletteEntry* PaletteOption::currentPaletteEntry() {
     return dynamic_cast<PaletteEntry*>(current());
@@ -378,7 +378,7 @@ int load_palettes() {
     ColorPalette* colors;
 
     CTH_INFO("  loading palettes...\n");
-    loadCoreOptionEntries(palette, palette_path, "/map/", ".map", read_palette);
+    loadEffectChoices(palette, palette_path, "/map/", ".map", read_palette);
 
     /* create one general palette */
     new_pal = new PaletteEntry("general", "");
@@ -426,7 +426,7 @@ int load_palettes() {
  * palettes are 256 entries of 8 bit rgb. Shorter palettes are filled up with black.
  * longer palettes are truncated.
  */
-CoreOptionEntry* read_palette(
+EffectChoice* read_palette(
     FILE* file, const char* name, const char* /*dir*/, const char* total_name) {
     char line[256];
     int i = 0;

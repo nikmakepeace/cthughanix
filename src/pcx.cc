@@ -106,7 +106,7 @@ public:
     }
 };
 
-CoreOptionEntry* read_pcx_image(
+EffectChoice* read_pcx_image(
     FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/,
     const ImageLoadTarget& target) {
     int x, y;

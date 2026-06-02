@@ -70,7 +70,7 @@ init_sound()
 CthughaBuffer::initAll()
 init_border()
 init_flashlight()
-CoreOption::changeToInitial()
+EffectControl::changeToInitial()
 audioProcessing.changeToInitial()
 Interface::set("main")
 Keymap::init()
@@ -147,9 +147,9 @@ audioFrameCurrent();
 They hide whether the current data came from file playback, live/random input,
 or the static silent buffers used when there is no PCM source.
 
-## 5. Concept: CoreOption
+## 5. Concept: EffectControl
 
-`CoreOption` is the runtime registry for visual choices. It is more than a
+`EffectControl` is the runtime registry for visual choices. It is more than a
 scalar setting: it owns entries, tracks the current entry, supports locks,
 supports random changes, stores history/hotkeys, and can be addressed by
 config/keymap/UI code.
@@ -179,7 +179,7 @@ object into `WaveFilter`.
 
 `sound-processing` is adjacent and implemented by `AudioProcessingOption` in
 `src/AudioProcessor.cc`. It is selected by command-line/ini option and by the
-`m/M` key actions; it is not part of AutoChanger's CoreOption rotation.
+`m/M` key actions; it is not part of AutoChanger's EffectControl rotation.
 
 ## 6. Concept: CthughaBuffer
 
@@ -317,13 +317,13 @@ It decides whether to change visual options automatically:
 The actual change is:
 
 ```cpp
-CoreOption::changeOne()
+EffectControl::changeOne()
 // or
-CoreOption::changeAll()
+EffectControl::changeAll()
 ```
 
 So the autochanger does not directly know about specific flame or wave
-functions. It asks the CoreOption system to move current selections.
+functions. It asks the EffectControl system to move current selections.
 
 ## 13. Step 4: VideoFilterchain
 
@@ -387,7 +387,7 @@ It does not draw pixels.
 `apply_border()` in `src/Border.cc` fills the three hidden rows above and below
 the active buffer.
 
-The selected `border` CoreOption decides whether those rows are:
+The selected `border` EffectControl decides whether those rows are:
 
 - zero;
 - copied from audio frame data;
@@ -437,7 +437,7 @@ gives the visualizer memory.
 In source:
 
 - domain flames are registered in `src/Flame.cc::flameCatalog`;
-- `src/flames.cc::_flames` adapts those flames into the current `CoreOption`
+- `src/flames.cc::_flames` adapts those flames into the current `EffectControl`
   interface through the global `FlameOption`;
 - `FlameFilter` executes the bound `Flame` objects selected by
   `VideoDirector`;
@@ -479,7 +479,7 @@ Those marks become fuel for later frames' flames.
 
 ## 17. Step 4d: Palette Stage
 
-`PaletteOption` is the global CoreOption adapter for loaded palettes, and each
+`PaletteOption` is the global EffectControl adapter for loaded palettes, and each
 `PaletteEntry` wraps a `ColorPalette`. `VideoDirector` binds the selected
 entry into `PaletteFilter`, and the stage delegates the transition math to
 `PaletteTransition`. That object stores the target palette, remaining frame
@@ -540,10 +540,10 @@ that estimate when choosing the sample window for future frames.
 
 ## 19. Concept: What Is `screen()`?
 
-`screen()` is another `CoreOption`, defined in `src/display.cc`:
+`screen()` is another `EffectControl`, defined in `src/display.cc`:
 
 ```cpp
-CoreOption screen(-1, "display", screenEntries);
+EffectControl screen(-1, "display", screenEntries);
 ```
 
 A "screen" entry is not the OS window. It is a mapping from the Cthugha buffer
@@ -622,7 +622,7 @@ through `Keymap::action()`.
 
 The keymap system can:
 
-- change CoreOptions;
+- change EffectControls;
 - change `sound-processing`, `border`, and `flashlight`;
 - enter option/help screens;
 - lock options;
@@ -687,7 +687,7 @@ advance audio source/output
 publish a 1024-sample visual frame
 process raw audio into processed wave data
 compute amplitude/fire/silence
-maybe change CoreOptions
+maybe change EffectControls
 ```
 
 The image layer:

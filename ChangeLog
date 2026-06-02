@@ -49,7 +49,7 @@ Release 1.4:
     - new sound reading method (4) directly using the DMA buffer 
     - new option: --load-late to load translation tables when they are used
       for the first time
-    - lists are now updated when the Core Option changes (new random palette)
+    - lists are now updated when the Effect Control changes (new random palette)
   
 Release 1.3:
     - check if G1600x1024x256, ... is defined 

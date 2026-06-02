@@ -25,13 +25,13 @@
 #define PATH_MAX 4096
 #endif
 
-CoreOptionEntryList paletteEntries;
-CoreOptionEntryList pcxEntries;
+EffectChoiceList paletteEntries;
+EffectChoiceList pcxEntries;
 
 int getini(const char*, char*) { return 1; }
 int getini(const char*, int*) { return 1; }
 int getini_yesno(const char*, int*) { return 1; }
-int getini(CoreOption&) { return 1; }
+int getini(EffectControl&) { return 1; }
 int putini(const char*, const char*) { return 0; }
 int putini(const Option&) { return 0; }
 

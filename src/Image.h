@@ -2,7 +2,7 @@
 #define __IMAGE_H
 
 #include "ColorPalette.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 class CthughaBuffer;
 
@@ -153,7 +153,7 @@ public:
 /**
  * Image option entry owning optional image pixels and source palette.
  */
-class ImageEntry : public CoreOptionEntry {
+class ImageEntry : public EffectChoice {
     IndexedImage* imageValue;
     ColorPalette* paletteValue;
 
@@ -181,9 +181,9 @@ public:
 };
 
 /**
- * CoreOption that loads/selects indexed image entries.
+ * EffectControl that loads/selects indexed image entries.
  */
-class ImageOption : public CoreOption {
+class ImageOption : public EffectControl {
 public:
     ImageOption(int buffer, const char* name);
 

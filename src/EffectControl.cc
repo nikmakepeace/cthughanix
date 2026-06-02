@@ -1,17 +1,17 @@
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "imath.h"
 
 #include <string>
 
 static const int visualBufferCount = 1;
 
-CoreOption* CoreOption::first = NULL;
+EffectControl* EffectControl::first = NULL;
 
 const int MAX_HISTORY = 128;
 const int MAX_HOT = 10;
 
-CoreOption::CoreOption(int b, const char* n, CoreOptionEntryList& e, int flags_)
+EffectControl::EffectControl(int b, const char* n, EffectChoiceList& e, int flags_)
     : Option(n)
     , buffer(b)
     , entries(e)
@@ -32,13 +32,13 @@ CoreOption::CoreOption(int b, const char* n, CoreOptionEntryList& e, int flags_)
         hot[i] = 0;
 }
 
-CoreOption& CoreOption::operator=(const CoreOption& other) {
+EffectControl& EffectControl::operator=(const EffectControl& other) {
     entries = other.entries;
 
     return *this;
 }
 
-const char* CoreOption::name() const {
+const char* EffectControl::name() const {
     static char str[512];
 
     if (buffer < 0)
@@ -51,13 +51,13 @@ const char* CoreOption::name() const {
 //
 // Changeing
 //
-void CoreOption::changeToInitial() {
-    for (CoreOption* o = first; o != NULL; o = o->next) {
+void EffectControl::changeToInitial() {
+    for (EffectControl* o = first; o != NULL; o = o->next) {
         o->change(o->initialEntry.c_str(), 0);
     }
 }
 
-void CoreOption::change(int by, int doSave) {
+void EffectControl::change(int by, int doSave) {
 
     if (doSave)
         save();
@@ -90,7 +90,7 @@ void CoreOption::change(int by, int doSave) {
 
 }
 
-void CoreOption::changeRandom(int doSave) {
+void EffectControl::changeRandom(int doSave) {
     if (lock)
         return;
     if (getNEntries() == 0)
@@ -99,7 +99,7 @@ void CoreOption::changeRandom(int doSave) {
     change(0, doSave); // change to next usable value, do saving
 }
 
-void CoreOption::change(const char* to, int doSave) {
+void EffectControl::change(const char* to, int doSave) {
     char* pos;
 
     // check, if there is something we can set this to
@@ -169,7 +169,7 @@ void CoreOption::change(const char* to, int doSave) {
 //
 // convert an option name to a number
 //
-int CoreOption::optNr(const char* n) {
+int EffectControl::optNr(const char* n) {
     char* pos;
 
     // check, if there is something we can set this to
@@ -201,10 +201,10 @@ int CoreOption::optNr(const char* n) {
 //
 // change randomly one of the features
 //
-CoreOption* CoreOption::changeOne() {
+EffectControl* EffectControl::changeOne() {
 
     int nCandidates = 0;
-    for (CoreOption* o = first; o != NULL; o = o->next) {
+    for (EffectControl* o = first; o != NULL; o = o->next) {
         if (o->isAutoChangeCandidate())
             nCandidates++;
     }
@@ -213,7 +213,7 @@ CoreOption* CoreOption::changeOne() {
         return 0;
 
     int n = rand() % nCandidates;
-    CoreOption* o = CoreOption::first;
+    EffectControl* o = EffectControl::first;
     while (o != NULL) {
         if (o->isAutoChangeCandidate()) {
             if (n == 0)
@@ -224,7 +224,7 @@ CoreOption* CoreOption::changeOne() {
     }
 
     if (o == NULL) {
-        CTH_ERROR("internal error: no CoreOption found among %d autochange candidates\n",
+        CTH_ERROR("internal error: no EffectControl found among %d autochange candidates\n",
             nCandidates);
         return 0;
     }
@@ -238,24 +238,24 @@ CoreOption* CoreOption::changeOne() {
 //
 // change all the features
 //
-void CoreOption::changeAll() {
+void EffectControl::changeAll() {
 
     save();
 
-    for (CoreOption* o = first; o != NULL; o = o->next) {
+    for (EffectControl* o = first; o != NULL; o = o->next) {
         if (o->isAutoChangeCandidate())
             o->changeRandom(0);
     }
 }
 
-int CoreOption::isAutoChangeCandidate() const {
+int EffectControl::isAutoChangeCandidate() const {
     if (!autoChangeEnabled())
         return 0;
 
     return (buffer < 0) || (buffer < visualBufferCount);
 }
 
-const char* CoreOption::text() const {
+const char* EffectControl::text() const {
     static std::string text;
 
     text.clear();
@@ -276,11 +276,11 @@ const char* CoreOption::text() const {
 //
 // save the current state
 //
-void CoreOption::save() {
-    for (CoreOption* o = first; o != NULL; o = o->next)
+void EffectControl::save() {
+    for (EffectControl* o = first; o != NULL; o = o->next)
         o->doSave();
 }
-void CoreOption::doSave() {
+void EffectControl::doSave() {
     if (history >= MAX_HISTORY) {
         memcpy(oldValues, oldValues + 1, sizeof(int) * (MAX_HISTORY - 1));
         history--;
@@ -292,11 +292,11 @@ void CoreOption::doSave() {
 //
 // get back the last state
 //
-void CoreOption::restore() {
-    for (CoreOption* o = first; o != NULL; o = o->next)
+void EffectControl::restore() {
+    for (EffectControl* o = first; o != NULL; o = o->next)
         o->doRestore();
 }
-void CoreOption::doRestore() {
+void EffectControl::doRestore() {
     if (history > 0) {
         history--;
         value = int(oldValues[history]);
@@ -307,52 +307,52 @@ void CoreOption::doRestore() {
 //
 // save to hotkey position
 //
-void CoreOption::save(int to) {
+void EffectControl::save(int to) {
     if ((to < 0) || (to >= MAX_HOT))
         return;
 
-    for (CoreOption* o = first; o != NULL; o = o->next)
+    for (EffectControl* o = first; o != NULL; o = o->next)
         o->hot[to] = o->value;
 }
 
 //
 // get back from hotkey
 //
-void CoreOption::restore(int from) {
+void EffectControl::restore(int from) {
     if ((from < 0) || (from >= MAX_HOT))
         return;
 
     save();
 
-    for (CoreOption* o = first; o != NULL; o = o->next) {
+    for (EffectControl* o = first; o != NULL; o = o->next) {
         o->value = o->hot[from];
         o->change(0, 0);
     }
 }
 
-void CoreOption::setHotValue(int slot, int value_) {
+void EffectControl::setHotValue(int slot, int value_) {
     if ((slot < 0) || (slot >= MAX_HOT))
         return;
 
     hot[slot] = value_;
 }
 
-int CoreOption::hotValue(int slot) const {
+int EffectControl::hotValue(int slot) const {
     if ((slot < 0) || (slot >= MAX_HOT))
         return 0;
 
     return hot[slot];
 }
 
-int CoreOption::hotSlotCount() { return MAX_HOT; }
+int EffectControl::hotSlotCount() { return MAX_HOT; }
 
-CoreOption* CoreOption::firstRegistered() { return first; }
+EffectControl* EffectControl::firstRegistered() { return first; }
 
 //
 // add a new entry to the list
 //
-void CoreOption::add(CoreOptionEntry* entry) { entries.add(entry); }
-void CoreOption::add(CoreOptionEntry** entries, int nEntries) {
+void EffectControl::add(EffectChoice* entry) { entries.add(entry); }
+void EffectControl::add(EffectChoice** entries, int nEntries) {
     for (int i = 0; i < nEntries; i++)
         add(entries[i]);
 }
@@ -360,7 +360,7 @@ void CoreOption::add(CoreOptionEntry** entries, int nEntries) {
 //
 // check if an entry is already defines
 //
-int CoreOption::defined(const char* name) {
+int EffectControl::defined(const char* name) {
 
     for (int i = 0; i < getNEntries(); i++)
         if (strcmp(entries[i]->name, name) == 0)

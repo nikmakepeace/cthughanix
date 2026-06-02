@@ -31,7 +31,7 @@ int screen_scale2();
 int screen_vscale_hmirror();
 int screen_hscale_vmirror();
 
-static CoreOptionEntry* _screens[] = { 
+static EffectChoice* _screens[] = {
     new ScreenEntry(screen_up, "Up", "Up Display", xy(1, 1)),               // 0
     new ScreenEntry(screen_down, "Down", "Upside Down", xy(1, 1)),          // 1
     new ScreenEntry(screen_2hor, "2hor", "Hor. Split out", xy(1, 1)),       // 2
@@ -50,9 +50,9 @@ static CoreOptionEntry* _screens[] = {
     new ScreenEntry(screen_vscale_hmirror, "scaley", "Scale vertical, mirror horizontal", xy(1, 2)), // 14
     new ScreenEntry(screen_hscale_vmirror, "scalex", "Scale horizontal, mirror vertical", xy(2, 1)), // 15
 };
-static CoreOptionEntryList screenEntries(_screens, sizeof(_screens) / sizeof(CoreOption*));
+static EffectChoiceList screenEntries(_screens, sizeof(_screens) / sizeof(EffectChoice*));
 
-CoreOption screen(-1, "display", screenEntries, CORE_OPTION_AUTO_CHANGE);
+EffectControl screen(-1, "display", screenEntries, EFFECT_CONTROL_AUTO_CHANGE);
 
 char screen_first[256] = ""; /* Start with this scrn-fkt */
 

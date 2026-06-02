@@ -6,7 +6,7 @@
 #include "cthugha.h"
 #include "AudioTypes.h"
 
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 extern OptionInt sound_minnoise; /* quiet is below this */
 

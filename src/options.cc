@@ -118,7 +118,7 @@ struct option long_options[] = {
     { "qotd-server", 1, 0, opt_qotd_server },
     { "cumulative-fire-level", 1, 0, opt_cumulative_fire_level },
 
-// Core Options
+// Effect Controls
     { "flashlight", 0, 0, opt_flashlight }, { "no-flashlight", 0, 0, opt_no_flashlight },
     { "sound-processing", 1, 0, 'm' }, { "flame", 1, 0, 'f' }, { "translation", 1, 0, 't' },
 
@@ -173,7 +173,7 @@ int do_param(int c, int value, char* str) {
         return 0;
 
         //
-        // CoreOptions
+        // EffectControls
         //
     case opt_flashlight:
         flashlight.setInitialEntry(str ? str : DEFAULT_FLASHLIGHT_ENABLE_INITIAL_ENTRY);

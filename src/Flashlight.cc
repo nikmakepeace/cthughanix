@@ -7,10 +7,10 @@
 #include "display.h"
 #include "imath.h"
 
-static CoreOptionEntry* flashlight_entries[] = { new OffEntry(), new OnEntry() };
-static CoreOptionEntryList flashlightEntries;
+static EffectChoice* flashlight_entries[] = { new OffEntry(), new OnEntry() };
+static EffectChoiceList flashlightEntries;
 
-CoreOption flashlight(0, "flashlight", flashlightEntries, CORE_OPTION_AUTO_CHANGE);
+EffectControl flashlight(0, "flashlight", flashlightEntries, EFFECT_CONTROL_AUTO_CHANGE);
 
 void init_flashlight() {
     flashlight.add(flashlight_entries, 2);

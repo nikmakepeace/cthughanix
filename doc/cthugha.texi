@@ -85,7 +85,7 @@ DOCUMENTATION
 @menu
 * Introduction::	Please read at least this part
 * Mixed::               Several different things
-* CoreOptions::         The "important" Options
+* EffectControls::         The "important" Options
 * Configuration::       Configure Cthugha with ini-files and X11
                         resource database
 * Parameters::          Description of all Parameters for Cthugha-L
@@ -119,7 +119,7 @@ DOCUMENTATION
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node Mixed, CoreOptions, Introduction, Top
+@node Mixed, EffectControls, Introduction, Top
 
 @chapter Mixed
 @menu
@@ -139,19 +139,19 @@ DOCUMENTATION
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node CoreOptions, Configuration, Mixed, Top
+@node EffectControls, Configuration, Mixed, Top
 
-@chapter CoreOptions
+@chapter EffectControls
 
 Several options control the way Cthugha displays the sound. In lack of a
-better name I use CoreOption for those (I you know a better name, please
+better name I use EffectControl for those (I you know a better name, please
 tell me about it).
 
 As you already know Cthugha uses (multiple) buffers that are mapped to
-the screen. So all the CoreOptions (except the one controlling how the
+the screen. So all the EffectControls (except the one controlling how the
 buffers are mapped to the screen) are defined for each buffer.
 
-The CoreOptions are
+The EffectControls are
 @table @emph
 @item Display
 How the buffers are mapped to the screen
@@ -191,13 +191,13 @@ Change the palette based on beats.
 @end table
 
 
-You can lock each of these CoreOptions individually. You can do this
+You can lock each of these EffectControls individually. You can do this
 either when starting Cthugha for example with @code{--display lock:up}
 or when Cthugha is running: Press @code{o} to the a list of the current
-CoreOptions, select the one you would like to lock and press @code{l}.
+EffectControls, select the one you would like to lock and press @code{l}.
 
 You can use the function keys (starting from @code{F5}) to get lists of
-the possible values of all the CoreOptions.
+the possible values of all the EffectControls.
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -222,8 +222,8 @@ When giving the options at the command line, you can use abbreviations
 @menu
 * Sound and CD::        Sound, CD and Mixer Options
 * Automatic Changer::   How and when the display is changed automatically
-* General CoreOptions:: General CoreOptions ("Buffer" options)
-* Initial Values::      Initial values for CoreOptions
+* General EffectControls:: General EffectControls ("Buffer" options)
+* Initial Values::      Initial values for EffectControls
 * Display::             Display options
 * General::             Some more options
 @end menu
@@ -255,9 +255,9 @@ extraKeymap (as defined by the @code{setExtraKeymap} action)@*
 @code{main}@*
 @code{default}
 
-@item Options, CoreOptions, Sound, ...
-@code{CoreOptionElement} (only for CoreOptions), @code{OptionElement}@*
-@code{CoreOption} for CoreOptions
+@item Options, EffectControls, Sound, ...
+@code{EffectControlElement} (only for EffectControls), @code{OptionElement}@*
+@code{EffectControl} for EffectControls
 @code{Option} or @code{Sound}, ...@*
 @code{default} 
 

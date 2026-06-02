@@ -1,18 +1,18 @@
-// Ini-file adapter for registered CoreOptions.
+// Ini-file adapter for registered EffectControls.
 
-#include "CoreOptionIni.h"
+#include "EffectControlIni.h"
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "options.h"
 
 #include <string>
 
-static CoreOption* firstCoreOption() {
-    return CoreOption::firstRegistered();
+static EffectControl* firstEffectControl() {
+    return EffectControl::firstRegistered();
 }
 
-static void getCoreOptionIniUsage(CoreOption& option) {
+static void getEffectControlIniUsage(EffectControl& option) {
     for (int i = 0; i < option.getNEntries(); i++) {
         std::string key = std::string(option.name()) + "." + option[i]->Name();
         int use = option[i]->inUse();
@@ -21,46 +21,46 @@ static void getCoreOptionIniUsage(CoreOption& option) {
     }
 }
 
-static void putCoreOptionIniUsage(CoreOption& option) {
+static void putEffectControlIniUsage(EffectControl& option) {
     for (int i = 0; i < option.getNEntries(); i++) {
         std::string key = std::string(option.name()) + "." + option[i]->Name();
         putini(key.c_str(), option[i]->useText());
     }
 }
 
-void coreOptionGetIniInitials() {
-    for (CoreOption* option = firstCoreOption(); option != NULL;
+void effectControlGetIniInitials() {
+    for (EffectControl* option = firstEffectControl(); option != NULL;
          option = option->nextRegistered()) {
         getini(*option);
     }
 }
 
-void coreOptionPutIniInitials() {
-    for (CoreOption* option = firstCoreOption(); option != NULL;
+void effectControlPutIniInitials() {
+    for (EffectControl* option = firstEffectControl(); option != NULL;
          option = option->nextRegistered()) {
         putini(*option);
     }
 }
 
-void coreOptionGetIniUsages() {
-    for (CoreOption* option = firstCoreOption(); option != NULL;
+void effectControlGetIniUsages() {
+    for (EffectControl* option = firstEffectControl(); option != NULL;
          option = option->nextRegistered()) {
         if (option->bufferIndex() <= 0)
-            getCoreOptionIniUsage(*option);
+            getEffectControlIniUsage(*option);
     }
 }
 
-void coreOptionPutIniUsages() {
-    for (CoreOption* option = firstCoreOption(); option != NULL;
+void effectControlPutIniUsages() {
+    for (EffectControl* option = firstEffectControl(); option != NULL;
          option = option->nextRegistered()) {
         if (option->bufferIndex() <= 0)
-            putCoreOptionIniUsage(*option);
+            putEffectControlIniUsage(*option);
     }
 }
 
-void coreOptionGetHotIni() {
-    for (int i = 0; i < CoreOption::hotSlotCount(); i++) {
-        for (CoreOption* option = firstCoreOption(); option != NULL;
+void effectControlGetHotIni() {
+    for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
+        for (EffectControl* option = firstEffectControl(); option != NULL;
              option = option->nextRegistered()) {
             std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
             char val[512];
@@ -71,17 +71,17 @@ void coreOptionGetHotIni() {
     }
 }
 
-void coreOptionPutHotIni() {
-    for (int i = 0; i < CoreOption::hotSlotCount(); i++) {
-        for (CoreOption* option = firstCoreOption(); option != NULL;
-         option = option->nextRegistered()) {
+void effectControlPutHotIni() {
+    for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
+        for (EffectControl* option = firstEffectControl(); option != NULL;
+             option = option->nextRegistered()) {
             std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
             putini(key.c_str(), option->text(option->hotValue(i)));
         }
     }
 }
 
-int coreOptionIsIniEntry(const char* entry) {
+int effectControlIsIniEntry(const char* entry) {
     int len;
 
     if (strchr(entry, '?') != NULL)
@@ -90,7 +90,7 @@ int coreOptionIsIniEntry(const char* entry) {
     if (strncasecmp(entry, "hot.", 4) == 0)
         return 1;
 
-    for (CoreOption* option = firstCoreOption(); option != NULL;
+    for (EffectControl* option = firstEffectControl(); option != NULL;
          option = option->nextRegistered()) {
         if (strcasecmp(entry, option->name()) == 0)
             return 1;
@@ -99,7 +99,7 @@ int coreOptionIsIniEntry(const char* entry) {
         if ((strncasecmp(entry, option->name(), len) == 0) && (entry[len] == '.'))
             return 1;
 
-        for (int i = 0; i < CoreOption::hotSlotCount(); i++) {
+        for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
             std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
             if (strcasecmp(entry, key.c_str()) == 0)
                 return 1;

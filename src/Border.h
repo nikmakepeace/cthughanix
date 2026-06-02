@@ -3,12 +3,12 @@
 #ifndef __BORDER_H
 #define __BORDER_H
 
-#include "CoreOption.h"
+#include "EffectControl.h"
 
 class CthughaBuffer;
 class VideoFrameContext;
 
-extern CoreOption border;
+extern EffectControl border;
 
 void init_border();
 void apply_border(CthughaBuffer& buffer, const VideoFrameContext& context, int borderMode);

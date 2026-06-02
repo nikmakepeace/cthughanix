@@ -13,7 +13,7 @@
 #include "TranslationOptions.h"
 #include "waves.h"
 
-static void resetDisplayTimingAfterCoreOptionChange() {
+static void resetDisplayTimingAfterEffectControlChange() {
     if (cthughaDisplay != NULL)
         cthughaDisplay->resetFPS();
 }
@@ -28,19 +28,19 @@ static void resetDisplayTimingAfterCoreOptionChange() {
 class InterfaceList : public Interface {
     static int size;
     int pos;
-    CoreOption* coreOpt;
+    EffectControl* effectControl;
     static Keymap listOptionKeymap;
 
 public:
-    InterfaceList(const char* name, const char* title, CoreOption* o)
+    InterfaceList(const char* name, const char* title, EffectControl* o)
         : Interface(name, title, NULL)
-        , coreOpt(o) { }
+        , effectControl(o) { }
 
     virtual void display() {
 
         Interface::display();
 
-        int n = coreOpt->getNEntries();
+        int n = effectControl->getNEntries();
         if (n == 0)
             return;
 
@@ -58,10 +58,10 @@ public:
                 continue;
 
             char str1[128];
-            sprintf(str1, "%c%s", (s == sel) ? '>' : ' ', coreOpt->entries[s]->name);
+            sprintf(str1, "%c%s", (s == sel) ? '>' : ' ', effectControl->entries[s]->name);
 
             char str2[128];
-            sprintf(str2, "%s %3s%c", coreOpt->entries[s]->desc, coreOpt->entries[s]->use.text(),
+            sprintf(str2, "%s %3s%c", effectControl->entries[s]->desc, effectControl->entries[s]->use.text(),
                 (s == sel) ? '<' : ' ');
 
             char str3[128];
@@ -76,13 +76,13 @@ public:
 
     virtual void doKey(int key) {
         int ret = key;
-        int n = coreOpt->getNEntries();
+        int n = effectControl->getNEntries();
 
         nElements = n;
 
         if ((sel < n) && (sel >= 0)) {
-            currentOption = &(coreOpt->entries[sel]->use);
-            currentCoreOption = coreOpt;
+            currentOption = &(effectControl->entries[sel]->use);
+            currentEffectControl = effectControl;
 
             ret = Keymap::action("ListOption", key);
 
@@ -100,7 +100,7 @@ public:
         nElements = 0;
 
         currentOption = NULL;
-        currentCoreOption = NULL;
+        currentEffectControl = NULL;
     }
 };
 Keymap InterfaceList::listOptionKeymap("ListOption");
@@ -112,19 +112,19 @@ ACTION(toggleUse) {
 }
 
 ACTION(activate) {
-    if (currentCoreOption == NULL)
+    if (currentEffectControl == NULL)
         return;
     if (currentOption == NULL)
         return;
 
-    currentCoreOption->entries[Interface::current->sel]->use.change("on");
+    currentEffectControl->entries[Interface::current->sel]->use.change("on");
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (sceneCommands != NULL && sceneCommands->isSceneOption(*currentCoreOption)) {
-        sceneCommands->activate(*currentCoreOption, Interface::current->sel);
+    if (sceneCommands != NULL && sceneCommands->isSceneOption(*currentEffectControl)) {
+        sceneCommands->activate(*currentEffectControl, Interface::current->sel);
     } else {
-        currentCoreOption->setValue(Interface::current->sel);
-        currentCoreOption->change(0, 0);
-        resetDisplayTimingAfterCoreOptionChange();
+        currentEffectControl->setValue(Interface::current->sel);
+        currentEffectControl->change(0, 0);
+        resetDisplayTimingAfterEffectControlChange();
     }
 }
 

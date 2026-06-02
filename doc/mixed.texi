@@ -2,7 +2,7 @@
 @node Hotkeys, Screen Saver, Mixed, Mixed
 @section Hotkeys
 
-You can store up to 10 settings of the CoreOption (flame, display,
+You can store up to 10 settings of the EffectControl (flame, display,
 palette, ...) to hotkeys. 
 
 

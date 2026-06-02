@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-class CoreOption;
+class EffectControl;
 class CthughaBuffer;
 class Flame;
 class ImageOption;
@@ -119,7 +119,7 @@ class SceneCommands {
     Wave* selectRunnableWave(const WaveConfig& config);
     void syncFromOptions(unsigned int forcedChanges);
     void emitImageCue();
-    void syncFromOptionsAndMaybeCueImage(const CoreOption& option, unsigned int forcedChanges);
+    void syncFromOptionsAndMaybeCueImage(const EffectControl& option, unsigned int forcedChanges);
 
 public:
     SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_);
@@ -132,10 +132,10 @@ public:
     void initializeFromOptions();
     void refreshFromOptions(unsigned int forcedChanges = 0);
 
-    int isSceneOption(const CoreOption& option) const;
-    void change(CoreOption& option, int by, int doSave = 0);
-    void change(CoreOption& option, const char* to, int doSave = 0);
-    void activate(CoreOption& option, int index);
+    int isSceneOption(const EffectControl& option) const;
+    void change(EffectControl& option, int by, int doSave = 0);
+    void change(EffectControl& option, const char* to, int doSave = 0);
+    void activate(EffectControl& option, int index);
 
     void changeFlame(int by);
     void changeFlame(const char* to);

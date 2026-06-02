@@ -12,7 +12,7 @@
 #include "AudioProcessor.h"
 #include "AudioVisualBridge.h"
 #include "Border.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
@@ -224,7 +224,7 @@ int Application::initialize() {
         return 0;
 
     // Visual catalogs depend on final buffer dimensions and must be available
-    // before CoreOption::changeToInitial() resolves staged option names.
+    // before EffectControl::changeToInitial() resolves staged option names.
     CTH_INFO("Initializing cthugha Buffer...\n");
     if (initializeVisualCatalogs(CthughaBuffer::buffer))
         return 0;
@@ -236,8 +236,8 @@ int Application::initialize() {
     init_border();
     init_flashlight();
 
-    CTH_INFO("Setting initial core options...\n");
-    CoreOption::changeToInitial();
+    CTH_INFO("Setting initial effect controls...\n");
+    EffectControl::changeToInitial();
     audioProcessing.changeToInitial();
     sceneCommands().initializeFromOptions();
 

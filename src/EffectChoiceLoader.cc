@@ -1,6 +1,6 @@
-// Filesystem/catalog loader for CoreOption entries.
+// Filesystem/catalog loader for Effect choices.
 
-#include "CoreOptionAssetLoader.h"
+#include "EffectChoiceLoader.h"
 
 #include "cthugha.h"
 #include "options.h"
@@ -67,8 +67,8 @@ static int hasExtension(const char* name, const char* extension) {
     return 0;
 }
 
-static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char* dir,
-    CoreOptionLoader loader) {
+static EffectChoice* loadEntry(const char* name, char* total_name, const char* dir,
+    EffectChoiceLoader loader) {
 
     int compressed = isCompressed(total_name);
     FILE* file;
@@ -92,7 +92,7 @@ static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char
 
     /* now do the loading */
     if (file != NULL) {
-        CoreOptionEntry* entry;
+        EffectChoice* entry;
 
         /* file was opened successfully - now read it */
         if ((entry = (*loader)(file, name, dir, total_name)) != NULL) {
@@ -112,8 +112,8 @@ static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char
     }
 }
 
-static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char* dir,
-    CoreOptionContextLoader loader, void* context) {
+static EffectChoice* loadEntry(const char* name, char* total_name, const char* dir,
+    EffectChoiceContextLoader loader, void* context) {
 
     int compressed = isCompressed(total_name);
     FILE* file;
@@ -137,7 +137,7 @@ static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char
 
     /* now do the loading */
     if (file != NULL) {
-        CoreOptionEntry* entry;
+        EffectChoice* entry;
 
         /* file was opened successfully - now read it */
         if ((entry = (*loader)(file, name, dir, total_name, context)) != NULL) {
@@ -157,13 +157,13 @@ static CoreOptionEntry* loadEntry(const char* name, char* total_name, const char
     }
 }
 
-static void loadDir(CoreOption& option, const char* dir, const char* extension,
-    CoreOptionLoader loader) {
+static void loadDir(EffectControl& option, const char* dir, const char* extension,
+    EffectChoiceLoader loader) {
     char total_name[PATH_MAX];
     char feat_name[PATH_MAX];
     DIR* directory;
     struct dirent* entry;
-    CoreOptionEntry* fe;
+    EffectChoice* fe;
     char** names = NULL;
     int nNames = 0;
     int maxNames = 0;
@@ -232,13 +232,13 @@ static void loadDir(CoreOption& option, const char* dir, const char* extension,
     }
 }
 
-static void loadDir(CoreOption& option, const char* dir, const char* extension,
-    CoreOptionContextLoader loader, void* context) {
+static void loadDir(EffectControl& option, const char* dir, const char* extension,
+    EffectChoiceContextLoader loader, void* context) {
     char total_name[PATH_MAX];
     char feat_name[PATH_MAX];
     DIR* directory;
     struct dirent* entry;
-    CoreOptionEntry* fe;
+    EffectChoice* fe;
     char** names = NULL;
     int nNames = 0;
     int maxNames = 0;
@@ -307,8 +307,8 @@ static void loadDir(CoreOption& option, const char* dir, const char* extension,
     }
 }
 
-int loadCoreOptionEntries(CoreOption& option, const char* searchPath[],
-    const char* extraPath, const char* extension, CoreOptionLoader loader) {
+int loadEffectChoices(EffectControl& option, const char* searchPath[],
+    const char* extraPath, const char* extension, EffectChoiceLoader loader) {
     int path;
 
     /* load normal search path */
@@ -326,8 +326,8 @@ int loadCoreOptionEntries(CoreOption& option, const char* searchPath[],
     return 0;
 }
 
-int loadCoreOptionEntries(CoreOption& option, const char* searchPath[],
-    const char* extraPath, const char* extension, CoreOptionContextLoader loader,
+int loadEffectChoices(EffectControl& option, const char* searchPath[],
+    const char* extraPath, const char* extension, EffectChoiceContextLoader loader,
     void* context) {
     int path;
 

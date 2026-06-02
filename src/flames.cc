@@ -9,8 +9,8 @@
 #include "AutoChanger.h"
 #include "flames.h"
 
-static CoreOptionEntryList flameEntries;
-static CoreOptionEntryList generalFlameEntries;
+static EffectChoiceList flameEntries;
+static EffectChoiceList generalFlameEntries;
 static const int generalFlameStates = 9 * 9 * 9 * 9 * 9;
 
 FlameOption flame;
@@ -74,7 +74,7 @@ const char* GeneralFlameOption::text() const {
 }
 
 FlameEntry::FlameEntry(const Flame& flame, int inUse)
-    : CoreOptionEntry(flame.name(), flame.description(), inUse)
+    : EffectChoice(flame.name(), flame.description(), inUse)
     , flameValue(&flame) { }
 
 const Flame& FlameEntry::flame() const {
@@ -82,7 +82,7 @@ const Flame& FlameEntry::flame() const {
 }
 
 FlameOption::FlameOption()
-    : CoreOption(-1, "flame", flameEntries, CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(-1, "flame", flameEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 const Flame* FlameOption::currentFlame() {
     FlameEntry* entry = dynamic_cast<FlameEntry*>(current());
@@ -90,7 +90,7 @@ const Flame* FlameOption::currentFlame() {
 }
 
 GeneralFlameOption::GeneralFlameOption()
-    : CoreOption(-1, "flame-general", generalFlameEntries, CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(-1, "flame-general", generalFlameEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 void GeneralFlameOption::change(const char* to, int doSave) {
     char* pos;
@@ -130,7 +130,7 @@ void GeneralFlameOption::changeRandom(int doSave) {
     value = Random(generalFlameStates);
 }
 
-CoreOptionEntry* _flames[] = {
+EffectChoice* _flames[] = {
     new FlameEntry(flameCatalog[0], 0),
     new FlameEntry(flameCatalog[1]),
     new FlameEntry(flameCatalog[2]),

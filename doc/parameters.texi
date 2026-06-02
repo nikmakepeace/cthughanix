@@ -173,7 +173,7 @@ Use CD as input with volume @code{VOL}. This is a shortcut for
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node Automatic Changer, General CoreOptions, Sound and CD, Parameters
+@node Automatic Changer, General EffectControls, Sound and CD, Parameters
 @section Automatic Changer Options
 
 Cthugha automatically changes the way the data is displayed to the
@@ -256,7 +256,7 @@ let the screen change more often.
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node General CoreOptions, Initial Values, Automatic Changer, Parameters
+@node General EffectControls, Initial Values, Automatic Changer, Parameters
 @section Change options
 
 
@@ -293,7 +293,7 @@ This feature was called FFT in version 0.8 of Cthugha-L.
 
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@node Initial Values, Display, General CoreOptions, Parameters
+@node Initial Values, Display, General EffectControls, Parameters
 @section Disable options
 
 Please use @code{xcthugha --help} for a list of these options.

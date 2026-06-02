@@ -13,7 +13,7 @@
 
 #include "cthugha.h"
 #include "ColorPalette.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "Screenshot.h"
 
 /*
@@ -36,9 +36,9 @@ extern int rev_byte_order;
 const int PALETTE_METADATA_MAX_VALUES = 16;
 const int PALETTE_METADATA_VALUE_SIZE = 64;
 
-extern CoreOptionEntryList paletteEntries;
+extern EffectChoiceList paletteEntries;
 
-class PaletteEntry : public CoreOptionEntry {
+class PaletteEntry : public EffectChoice {
     ColorPalette paletteValue;
     void random(); // randomize this palette
 public:
@@ -52,7 +52,7 @@ public:
     char metadataEnergies[4][16];
 
     PaletteEntry(const char* name, const char* desc)
-        : CoreOptionEntry(name, desc) {
+        : EffectChoice(name, desc) {
         sourcePath[0] = '\0';
         metadataName[0] = '\0';
         metadataSet[0] = '\0';
@@ -80,10 +80,10 @@ public:
     static void Random(); // re-randomize the last random palette
     static void addRandom(); // add a new random palette
 
-    friend CoreOptionEntry* read_palette(FILE*, const char*, const char*, const char*);
+    friend EffectChoice* read_palette(FILE*, const char*, const char*, const char*);
 };
 
-class PaletteOption : public CoreOption {
+class PaletteOption : public EffectControl {
 public:
     PaletteOption();
 

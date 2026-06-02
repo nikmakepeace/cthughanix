@@ -220,7 +220,7 @@ void SceneCommands::emitImageCue() {
 }
 
 void SceneCommands::syncFromOptionsAndMaybeCueImage(
-    const CoreOption& option, unsigned int forcedChanges) {
+    const EffectControl& option, unsigned int forcedChanges) {
     syncFromOptions(forcedChanges);
     if (&option == &images)
         emitImageCue();
@@ -235,7 +235,7 @@ void SceneCommands::refreshFromOptions(unsigned int forcedChanges) {
     syncFromOptions(forcedChanges);
 }
 
-int SceneCommands::isSceneOption(const CoreOption& option) const {
+int SceneCommands::isSceneOption(const EffectControl& option) const {
     return (&option == &flame)
         || (&option == &flameGeneral)
         || (&option == &wave)
@@ -249,19 +249,19 @@ int SceneCommands::isSceneOption(const CoreOption& option) const {
         || (&option == &images);
 }
 
-void SceneCommands::change(CoreOption& option, int by, int doSave) {
+void SceneCommands::change(EffectControl& option, int by, int doSave) {
     option.change(by, doSave);
     resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
-void SceneCommands::change(CoreOption& option, const char* to, int doSave) {
+void SceneCommands::change(EffectControl& option, const char* to, int doSave) {
     option.change(to, doSave);
     resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
-void SceneCommands::activate(CoreOption& option, int index) {
+void SceneCommands::activate(EffectControl& option, int index) {
     if ((index < 0) || (index >= option.getNEntries()))
         return;
 
@@ -324,14 +324,14 @@ void SceneCommands::changeImage(int by) { change(images, by, 0); }
 void SceneCommands::changeImage(const char* to) { change(images, to, 0); }
 
 void SceneCommands::changeAll() {
-    CoreOption::changeAll();
+    EffectControl::changeAll();
     resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
-    CoreOption* changedOption = CoreOption::changeOne();
+    EffectControl* changedOption = EffectControl::changeOne();
     if (changedOption != 0)
         resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneNoChange);
@@ -340,21 +340,21 @@ void SceneCommands::changeOne() {
 }
 
 void SceneCommands::restore() {
-    CoreOption::restore();
+    EffectControl::restore();
     resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::restore(int from) {
-    CoreOption::restore(from);
+    EffectControl::restore(from);
     resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::save(int to) {
-    CoreOption::save(to);
+    EffectControl::save(to);
 }
 
 void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands) {

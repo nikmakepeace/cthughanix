@@ -117,7 +117,7 @@ void usage() {
     PH(" --cumulative-fire-level N      Set cumulative fire threshold to N", changeCumulativeFireLevel.text());
     PH("");
 
-    PH("General CoreOptions (\"Buffer\" options):");
+    PH("General Effect Controls (\"Buffer\" options):");
     PH(" -S, --buff-size SIZE    Set buffer size. Perdefined sizes:");
     for (int i = 0; i < nBufferSizes; i++) {
         printfv(0, "                   ");
@@ -135,7 +135,7 @@ void usage() {
     PH(" -s, --no-flashlight Diable usage of flashlights (changing palette on beats)");
     PH("");
 
-    PH("Initial Values for CoreOptions:");
+    PH("Initial Values for Effect Controls:");
     PH(" -d, --display N     Start with display N (how buffer is mapped to screen)");
     PH(" -f, --flame N       Start with flame N");
     PH(" -w, --wave N        Start with wave N (how sound is drawn)");

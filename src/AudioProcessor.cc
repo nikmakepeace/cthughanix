@@ -166,10 +166,10 @@ void AudioProcessor::fft(char2* raw, char2* processedWaveData) {
     }
 }
 
-class FFT : public CoreOptionEntry {
+class FFT : public EffectChoice {
 public:
     FFT()
-        : CoreOptionEntry("FFT", "", 1) { }
+        : EffectChoice("FFT", "", 1) { }
 
     int operator()() {
         if (currentAudioFrame())
@@ -180,10 +180,10 @@ public:
     }
 };
 
-class Massage1 : public CoreOptionEntry {
+class Massage1 : public EffectChoice {
 public:
     Massage1()
-        : CoreOptionEntry("Filter1", "", 1) { }
+        : EffectChoice("Filter1", "", 1) { }
 
     int operator()() {
         if (currentAudioFrame())
@@ -194,10 +194,10 @@ public:
     }
 };
 
-class Massage2 : public CoreOptionEntry {
+class Massage2 : public EffectChoice {
 public:
     Massage2()
-        : CoreOptionEntry("Filter2", "low pass filter", 1) { }
+        : EffectChoice("Filter2", "low pass filter", 1) { }
 
     int operator()() {
         if (currentAudioFrame())
@@ -208,10 +208,10 @@ public:
     }
 };
 
-class NoAudioProcess : public CoreOptionEntry {
+class NoAudioProcess : public EffectChoice {
 public:
     NoAudioProcess()
-        : CoreOptionEntry("none", "", 1) { }
+        : EffectChoice("none", "", 1) { }
 
     int operator()() {
         if (currentAudioFrame())
@@ -222,13 +222,13 @@ public:
     }
 };
 
-static CoreOptionEntry* _audioProcessorOptionEntries[]
+static EffectChoice* _audioProcessorOptionEntries[]
     = { new NoAudioProcess(), new Massage1(), new Massage2(), new FFT() };
-CoreOptionEntryList audioProcessorEntries(_audioProcessorOptionEntries, 4);
+EffectChoiceList audioProcessorEntries(_audioProcessorOptionEntries, 4);
 
 AudioProcessingOption audioProcessing("sound-processing", audioProcessorEntries);
 
-AudioProcessingOption::AudioProcessingOption(const char* name, CoreOptionEntryList& entries_)
+AudioProcessingOption::AudioProcessingOption(const char* name, EffectChoiceList& entries_)
     : Option(name)
     , entries(entries_)
     , initialEntry() { }
@@ -247,7 +247,7 @@ int AudioProcessingOption::optNr(const char* name) const {
         return Random(n);
 
     for (int i = 0; i < n; i++) {
-        CoreOptionEntry* entry = entries[i];
+        EffectChoice* entry = entries[i];
         if ((entry != NULL) && entry->sameName(name))
             return i;
     }

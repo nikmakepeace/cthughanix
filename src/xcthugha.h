@@ -120,7 +120,7 @@ protected:
     // control panel stuff
     typedef struct {
         SceneCommands* sceneCommands;
-        CoreOption* opt;
+        EffectControl* opt;
         int pos;
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
@@ -130,7 +130,7 @@ protected:
     static void revertPaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
     static void nextUntaggedPaletteCB(Widget item, XtPointer data, XtPointer data2);
     static void palettePreviewExpose(Widget item, XtPointer data, XEvent* event, Boolean* cont);
-    Widget add_menu(const char* name, CoreOption* what, Widget parent, Widget under, Widget right);
+    Widget add_menu(const char* name, EffectControl* what, Widget parent, Widget under, Widget right);
     unsigned long palettePreviewPixel(unsigned char r, unsigned char g, unsigned char b);
     void updatePalettePreview();
     void drawPalettePreview();

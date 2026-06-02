@@ -2,14 +2,14 @@
 
 #include "Image.h"
 #include "cthugha.h"
-#include "CoreOptionAssetLoader.h"
+#include "EffectChoiceLoader.h"
 #include "imath.h"
 #include "pcx.h"
 #include "png.h"
 
-static CoreOptionEntryList& imageEntries() {
+static EffectChoiceList& imageEntries() {
     static ImageEntry none("none", "");
-    static CoreOptionEntryList entries(&none);
+    static EffectChoiceList entries(&none);
     return entries;
 }
 
@@ -17,16 +17,16 @@ static const char* imagePath[] = { "./", "./resources/img/", CTH_LIBDIR "/img/",
 
 struct ImageFileFormat {
     const char* extension;
-    CoreOptionContextLoader loader;
+    EffectChoiceContextLoader loader;
 };
 
-static CoreOptionEntry* loadPcxImage(FILE* file, const char* name, const char* dir,
+static EffectChoice* loadPcxImage(FILE* file, const char* name, const char* dir,
     const char* totalName, void* context) {
     return read_pcx_image(file, name, dir, totalName,
         *static_cast<const ImageLoadTarget*>(context));
 }
 
-static CoreOptionEntry* loadPngImage(FILE* file, const char* name, const char* dir,
+static EffectChoice* loadPngImage(FILE* file, const char* name, const char* dir,
     const char* totalName, void* context) {
     return read_png_image(file, name, dir, totalName,
         *static_cast<const ImageLoadTarget*>(context));
@@ -137,7 +137,7 @@ ImagePlacement RandomLegalImagePlacementStrategy::choose(const IndexedImage& ima
 
 ImageEntry::ImageEntry(const char* name, const char* desc, IndexedImage* image,
     ColorPalette* palette)
-    : CoreOptionEntry(name, desc)
+    : EffectChoice(name, desc)
     , imageValue(image)
     , paletteValue(palette) { }
 
@@ -157,7 +157,7 @@ const ColorPalette* ImageEntry::palette() const {
 }
 
 ImageOption::ImageOption(int buffer, const char* name)
-    : CoreOption(buffer, name, imageEntries(), CORE_OPTION_AUTO_CHANGE) { }
+    : EffectControl(buffer, name, imageEntries(), EFFECT_CONTROL_AUTO_CHANGE) { }
 
 ImageEntry* ImageOption::currentImageEntry() {
     return static_cast<ImageEntry*>(current());
@@ -174,7 +174,7 @@ int ImageOption::loadImages(int targetWidth, int targetHeight) {
 
     for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
          format++) {
-        result |= loadCoreOptionEntries(*this, imagePath, "/img/", format->extension,
+        result |= loadEffectChoices(*this, imagePath, "/img/", format->extension,
             format->loader, &target);
     }
 

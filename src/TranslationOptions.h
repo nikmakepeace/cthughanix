@@ -4,7 +4,7 @@
 #define __TRANSLATION_OPTIONS_H__
 
 #include "cthugha.h"
-#include "CoreOption.h"
+#include "EffectControl.h"
 #include "TranslationTable.h"
 
 #include <vector>
@@ -14,7 +14,7 @@ class CthughaBuffer;
 /**
  * Option entry that owns one generated translation table.
  */
-class TranslateEntry : public CoreOptionEntry {
+class TranslateEntry : public EffectChoice {
     std::vector<int> tableData;
     int widthValue;
     int heightValue;
@@ -27,7 +27,7 @@ public:
      * @param desc Human-readable description.
      */
     TranslateEntry(const char* name, const char* desc)
-        : CoreOptionEntry(name, desc)
+        : EffectChoice(name, desc)
         , tableData()
         , widthValue(0)
         , heightValue(0) { }
@@ -43,7 +43,7 @@ public:
      */
     TranslateEntry(const char* name, const char* desc,
         const std::vector<int>& table, int width, int height)
-        : CoreOptionEntry(name, desc)
+        : EffectChoice(name, desc)
         , tableData(table)
         , widthValue(width)
         , heightValue(height) { }
@@ -60,7 +60,7 @@ public:
     friend class TranslateOption;
 };
 
-class TranslateOption : public CoreOption {
+class TranslateOption : public EffectControl {
 
 public:
     TranslateOption(int buffer, const char* name);
