@@ -70,6 +70,9 @@ enum option_nr {
     opt_images,
     opt_no_images,
     opt_random_noise,
+    opt_qotd,
+    opt_no_qotd,
+    opt_qotd_server,
 };
 
 struct option long_options[] = {
@@ -110,6 +113,8 @@ struct option long_options[] = {
     { "min-time", 1, 0, 'T' }, { "random-time", 1, 0, 'R' },
     { "msg-time", 1, 0, opt_msg_time }, { "quiet-time", 1, 0, 'Q' },
     { "quiet-file", 1, 0, 'q' }, { "min-noise", 1, 0, opt_min_noise },
+    { "qotd", 0, 0, opt_qotd }, { "no-qotd", 0, 0, opt_no_qotd },
+    { "qotd-server", 1, 0, opt_qotd_server },
     { "cumulative-fire-level", 1, 0, opt_cumulative_fire_level },
 
 // Core Options
@@ -339,6 +344,18 @@ int do_param(int c, int value, char* str) {
 
     case 'q': /* alternative quiet-strings */
         videoDirector().silenceMessages().loadFile(str);
+        break;
+
+    case opt_qotd:
+        videoDirector().silenceMessages().setQotdEnabled(1);
+        break;
+
+    case opt_no_qotd:
+        videoDirector().silenceMessages().setQotdEnabled(0);
+        break;
+
+    case opt_qotd_server:
+        videoDirector().silenceMessages().setQotdServer(str);
         break;
 
     case opt_images:

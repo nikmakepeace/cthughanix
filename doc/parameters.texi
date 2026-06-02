@@ -181,9 +181,9 @@ screen after some time, and after special events. All of this
 features work independently from another.
 
 Setting a timevalue to 0 disables the corresponding feature. You can
-specify all the times in 1/100th of a second or in seconds. To specify a
-time in seconds you have to appends @code{sec} after the number. So the
-following two are equivalent: @code{--time 4.2sec} and @code{--time 420}.
+specify all the times in milliseconds or in seconds. To specify a time in
+seconds you have to append @code{sec} after the number. So the following two
+are equivalent: @code{--time 4.2sec} and @code{--time 4200}.
 
 @table @code
 
@@ -221,11 +221,24 @@ again sound (like the pause between two tracks on a CD).
 How long to wait in silence until messages are displayed.
 
 @item -q, --quiet-file FILE
-Load alternate quiet messages from @code{FILE}. These are messages are
-display if for a long time no sound comes in.
+Load alternate quiet messages from @code{FILE}. These messages are displayed
+if no sound comes in for a long time. The file uses BSD fortune format:
+fortunes are separated by a line containing only @code{%}. Each fortune must
+be representable in the CP437 display font and may contain up to 512
+characters; invalid fortunes are rejected with a warning. Hard-wrapped source
+lines are reflowed, while blank lines and attribution blocks are preserved.
 
-If a line in @code{FILE} starts with a @code{@@} then Cthugha runs 
-@code{fortune} to get a message. 
+@item --qotd
+Enable public Quote of the Day quiet messages. QOTD messages are fetched in the
+background and validated as CP437 text before use. Messages may contain up to
+512 characters.
+
+@item --no-qotd
+Disable public Quote of the Day quiet messages.
+
+@item --qotd-server SERVER
+Set the Quote of the Day server used by @option{--qotd}. @code{SERVER} may be
+a hostname, or @code{host:port}. The default is @code{djxmmx.net:17}.
 
 
 

@@ -276,7 +276,8 @@ IndexedFrameFilter
 `TextInjectionFilter` are real pixel-mutating stages. Image overlays the current
 `IndexedImage` when `VideoDirector` arms the one-shot image stage. Text
 injection stamps wrapped CP437 text into active pixels when `VideoDirector` arms
-the text stage. Quiet-message text is selected by `SilenceMessage`, routed
+the text stage. Quiet-message text is selected by `SilenceMessage` from
+validated `--quiet-file` messages, opt-in QOTD prefetches, or defaults, routed
 through `SceneCueInjectText`, then observed by `VideoDirector` to arm
 `TextInjectionFilter`. PCX and indexed PNG files are decoded into that domain
 object before the frame loop. Before each frame,

@@ -315,7 +315,8 @@ with safer metadata.
   initialization is now deferred until display startup and command-line help
   exits before X is touched.
 - External command execution remains: `CoreOption::load()` uses `gzip -cd` for
-  compressed assets, and `SilenceMessage` can run `fortune`.
+  compressed assets. Silence messages no longer execute `fortune`; opt-in QOTD
+  input is public network text and must stay strictly validated and bounded.
 - OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 

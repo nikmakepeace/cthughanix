@@ -77,7 +77,7 @@ public:
         : OptionInt(name, v) { }
     virtual const char* text() const {
         static char s[64];
-        sprintf(s, "%5.2f sec", double(value) / 100.0);
+        sprintf(s, "%5.2f sec", double(value) / 1000.0);
         return s;
     }
     virtual void change(const char* to); // also accept "sec"

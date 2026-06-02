@@ -10,7 +10,7 @@
 #include "display.h"
 #include "imath.h"
 
-OptionTime changeMsgTime("change-msg-time", 500);
+OptionTime changeMsgTime("change-msg-time", 10000);
 
 double paletteSmoothingChance = 1.0;
 
@@ -19,12 +19,19 @@ static Filter* stageFilter(VideoFilterchain& filterchain, VideoFilterchainSequen
     return dynamic_cast<Filter*>(filterchain.stageFilter(stage));
 }
 
-static int paletteSmoothingFrameBudget() {
-    const int PALETTE_SMOOTH_SECONDS = 2;
-    int fps = 60;
+static int frameBudgetFramesPerSecond() {
+    if (int(maxFramesPerSecond) > 0)
+        return int(maxFramesPerSecond);
 
     if (cthughaDisplay != 0 && cthughaDisplay->fps > 0)
-        fps = cthughaDisplay->fps;
+        return int(cthughaDisplay->fps);
+
+    return 60;
+}
+
+static int paletteSmoothingFrameBudget() {
+    const int PALETTE_SMOOTH_SECONDS = 2;
+    int fps = frameBudgetFramesPerSecond();
 
     return max(fps * PALETTE_SMOOTH_SECONDS, 1);
 }
@@ -40,13 +47,11 @@ static int paletteChangeFrameBudget() {
 }
 
 static int quietMessageFrameBudget() {
-    const int QUIET_MESSAGE_DURATION_DIVISOR = 4;
-    int fps = 60;
+    const int QUIET_MESSAGE_DURATION = 6000; // milliseconds
+    int fps = frameBudgetFramesPerSecond();
+    int durationMs = (QUIET_MESSAGE_DURATION > int(changeMsgTime)) ? int(changeMsgTime) : QUIET_MESSAGE_DURATION;
 
-    if (cthughaDisplay != 0 && cthughaDisplay->fps > 0)
-        fps = cthughaDisplay->fps;
-
-    return max(1, (fps * int(changeMsgTime)) / (100 * QUIET_MESSAGE_DURATION_DIVISOR));
+    return max(1, (fps * (durationMs / 1000)));
 }
 
 VideoDirector::VideoDirector()

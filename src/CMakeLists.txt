@@ -9,6 +9,11 @@ set(CTHUGHA_COMMON_SOURCES
     Settings.cc
     RuntimeFactory.cc
     Scene.cc
+    DefaultMessagesProvider.cc
+    FileMessagesProvider.cc
+    MessageFormatValidator.cc
+    MessagesProvider.cc
+    QotdMessagesProvider.cc
     SilenceMessage.cc
     Screenshot.cc
     PcmSourceFactory.cc

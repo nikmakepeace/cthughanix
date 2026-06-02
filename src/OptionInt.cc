@@ -32,7 +32,7 @@ void OptionInt::setValue(int value_) {
 
 //
 // change to String
-// str can be: an integer: time in 1/100 of a sec
+// str can be: an integer: time in milliseconds
 //             a double with "sec" afterwards: time in seconds
 //
 void OptionTime::change(const char* str) {
@@ -43,7 +43,7 @@ void OptionTime::change(const char* str) {
             CTH_ERROR("Not a time value `%s' for option `%s'.\n", str, name());
             return;
         }
-        value = int(d * 100 + 0.5);
+        value = int(d * 1000 + 0.5);
     } else {
         char* pos;
         int tvalue = strtol(str, &pos, 0);

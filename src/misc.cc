@@ -245,7 +245,7 @@ int systemf(const char* fmt, ...) {
 int cthugha_close = 0; // closing right now
 
 /*
- * get the 1/100 sec since program start
+ * get the milliseconds since program start
  */
 int gettime() {
     struct timeval tv;
@@ -258,7 +258,7 @@ int gettime() {
     }
     tv.tv_sec -= starttime;
 
-    return tv.tv_sec * 100L + tv.tv_usec / 10000L;
+    return tv.tv_sec * 1000L + tv.tv_usec / 1000L;
 }
 double getTime() {
     struct timeval tv;

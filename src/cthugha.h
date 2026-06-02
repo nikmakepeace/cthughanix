@@ -121,7 +121,7 @@ inline int fclose0(FILE*& stream) {
 
 #endif
 
-int gettime();
+int gettime(); // return milliseconds since program start
 double getTime(); // return time in seconds
 
 #ifdef __cplusplus

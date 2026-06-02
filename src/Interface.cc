@@ -416,7 +416,7 @@ void ErrorMessages::display() {
     }
 
     // remove old messages
-    const int errorTime = 300;
+    const int errorTime = 3000;
     while ((nMsgs > 0) && ((gettime() - on_screen[0]) > errorTime)) {
         for (int i = 1; i < nMsgs; i++) {
             strncpy(msgs[i - 1], msgs[i], 128);
@@ -524,10 +524,10 @@ public:
 InterfaceElement* elementsOption[] = {
     new InterfaceElementOption("Maximal Frames/second    : %10s", &maxFramesPerSecond),
     new InterfaceElementOption("Zoom (0=max)             : %10s", &zoom),
-    new InterfaceElementOption("Minimal time btw. change : %10s", &changeWaitMin, 10, 50, 100),
-    new InterfaceElementOption("Extra random time        : %10s", &changeWaitRandom, 10, 50, 100),
-    new InterfaceElementOption("Quiet change time        : %10s", &changeQuiet, 10, 50, 100),
-    new InterfaceElementOption("Time before silence Msg. : %10s", &changeMsgTime, 10, 50, 100),
+    new InterfaceElementOption("Minimal time btw. change : %10s", &changeWaitMin, 100, 500, 1000),
+    new InterfaceElementOption("Extra random time        : %10s", &changeWaitRandom, 100, 500, 1000),
+    new InterfaceElementOption("Quiet change time        : %10s", &changeQuiet, 100, 500, 1000),
+    new InterfaceElementOption("Time before silence Msg. : %10s", &changeMsgTime, 100, 500, 1000),
     new InterfaceElementOption("Minimal noise level      : %10s", &sound_minnoise, 1, 10, 255),
     new InterfaceElementOption("Cumulative fire level    : %10s", &changeCumulativeFireLevel, 10, 50, 100),
     new InterfaceElementOption("Little changes only      : %10s", &change_little),

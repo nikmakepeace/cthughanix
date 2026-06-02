@@ -25,7 +25,7 @@ public:
         }
 
         int time_diff = gettime() - firsttime;
-        pos = -(double(text_size.y) * 0.8) + double(time_diff) / 25.0;
+        pos = -(double(text_size.y) * 0.8) + double(time_diff) / 250.0;
 
         for (int i = 1; i < text_size.y; i++) {
             int L = (int(pos) + i) % nCredits;

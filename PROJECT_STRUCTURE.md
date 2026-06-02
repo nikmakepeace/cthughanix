@@ -74,8 +74,10 @@ There is no current server-mode source entry point in `src/`.
 - `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
 - `src/AutoChanger.*`: automatic option changes based on silence, cumulative
   fire level, and elapsed time. It reports quiet intervals to visual policy.
-- `src/SilenceMessage.*`: quiet-message selection, quiet-file loading, and
-  optional `fortune` expansion for text injection.
+- `src/SilenceMessage.*`, `src/*MessagesProvider.*`, and
+  `src/MessageFormatValidator.*`: quiet-message selection, validated
+  CP437-compatible `--quiet-file`/default messages, and opt-in non-blocking
+  QOTD prefetch for text injection.
 - `src/imath.*`: integer math tables/helpers used by visual code.
 - `src/misc.cc`: logging helpers, time helpers, and `systemf()`.
 

@@ -7,12 +7,12 @@
 #include "Scene.h"
 #include "VideoDirector.h"
 
-OptionTime changeQuiet("quiet-change", 150); /* change after quiet-pause (1.5 sec) */
+OptionTime changeQuiet("quiet-change", 1500); /* change after quiet-pause (1.5 sec) */
 
 /* Default to roughly the DOS Cthugha 5.3 dwell: 200-949 frames at the old
    320x200 VGA mode's ~70 Hz scan rate, or about 3-14 seconds. */
-OptionTime changeWaitMin("min-time", 300); /* min time between change (3 sec) */
-OptionTime changeWaitRandom("random-time", 1100); /* extra random wait-time (11 sec) */
+OptionTime changeWaitMin("min-time", 3000); /* min time between change (3 sec) */
+OptionTime changeWaitRandom("random-time", 11000); /* extra random wait-time (11 sec) */
 
 OptionInt changeCumulativeFireLevel("cumulative-fire-level", 1000);
 
@@ -104,9 +104,9 @@ const char* AutoChanger::status() {
     } else {
         int now = gettime();
 
-        sprintf(txt, "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 100.0,
+        sprintf(txt, "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 1000.0,
             changeCumulativeFireLevel - acousticContext.cumulativeFireLevel(),
-            double(changeQuiet - (now - quietSince)) / 100.0);
+            double(changeQuiet - (now - quietSince)) / 1000.0);
     }
 
     return txt;

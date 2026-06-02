@@ -1,21 +1,26 @@
 #ifndef __SILENCE_MESSAGE_H
 #define __SILENCE_MESSAGE_H
 
+#include "DefaultMessagesProvider.h"
+#include "FileMessagesProvider.h"
+#include "QotdMessagesProvider.h"
+
 #include <string>
-#include <vector>
 
 class SilenceMessage {
-    std::vector<std::string> messages;
+    DefaultMessagesProvider defaultMessages;
+    FileMessagesProvider fileMessages;
+    QotdMessagesProvider qotdMessages;
     int initialized;
-
-    void loadDefaultMessages();
-    void loadResourceFortuneMessages();
+    int qotdEnabled;
 
 public:
     SilenceMessage();
 
     void initialize();
     void loadFile(const char* fname);
+    void setQotdEnabled(int enabled);
+    void setQotdServer(const char* server);
     std::string nextMessage();
 };
 

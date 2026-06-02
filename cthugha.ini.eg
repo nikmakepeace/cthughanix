@@ -34,6 +34,10 @@ cthugha.pulse-server	: tcp:localhost:4713		# PulseAudio server for playback pass
 cthugha.pulse-latency-ms: 2000			# PulseAudio target latency for network playback
 #cthugha.audio-output-dump: output.wav		# dump submitted playback PCM for diagnostics
 cthugha.verbose		: 2			# log level: 0 error, 1 warn, 2 info, 5 debug, 10 trace
+#cthugha.quiet-file	: fortune.txt		# BSD fortune format, 512 chars/fortune max
+#cthugha.qotd		: yes			# opt in to public Quote of the Day quiet messages
+#cthugha.qotd-server	: djxmmx.net:17		# QOTD server, as host or host:port
+#cthugha.no-qotd	: yes			# force Quote of the Day quiet messages off
 
 cthugha.flashlight.?	: locked:off		# I don't like this, so I turn it off
 						#  for all buffers

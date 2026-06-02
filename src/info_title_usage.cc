@@ -7,6 +7,7 @@
 #include "CthughaBuffer.h"
 #include "AudioAnalyzer.h"
 #include "VideoDirector.h"
+#include "QotdMessagesProvider.h"
 #include "translate.h"
 
 #include <ctype.h>
@@ -109,6 +110,9 @@ void usage() {
     PH(" -Q, --quiet-time N  Change after short silence", changeQuiet.text());
     PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text());
     PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE");
+    PH(" --qotd              Enable Quote of the Day quiet messages");
+    PH(" --no-qotd           Disable Quote of the Day quiet messages");
+    PH(" --qotd-server SERVER  Quote of the Day server", QotdMessagesProvider::defaultServer());
     PH(" --min-noise N       Set level for quiet sound", sound_minnoise.text());
     PH(" --cumulative-fire-level N      Set cumulative fire threshold to N", changeCumulativeFireLevel.text());
     PH("");

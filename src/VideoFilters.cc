@@ -244,14 +244,22 @@ static int textInjectionHorizontalPosition(int rectX, int rectWidth, int lineWid
 
 static int textInjectionVerticalPosition(int rectY, int rectHeight, int blockHeight,
     TextInjectionVerticalAlign align) {
+    int spareHeight = rectHeight - blockHeight;
+    if (spareHeight < 0)
+        spareHeight = 0;
+
     switch (align) {
     case TextInjectionAlignTop:
         return rectY;
     case TextInjectionAlignBottom:
-        return rectY + rectHeight - blockHeight;
+        return rectY + spareHeight;
     case TextInjectionAlignMiddle:
     default:
-        return rectY + (rectHeight - blockHeight) / 2;
+        if (blockHeight > (rectHeight * 2) / 3)
+            return rectY + spareHeight / 4;
+        if (blockHeight > rectHeight / 3)
+            return rectY + spareHeight / 3;
+        return rectY + spareHeight / 2;
     }
 }
 

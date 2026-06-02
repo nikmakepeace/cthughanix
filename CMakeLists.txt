@@ -138,9 +138,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/map/png")
 endif()
 install(DIRECTORY resources/obj/ DESTINATION ${CTH_DATA_DIR}/obj
         FILES_MATCHING PATTERN "*.obj")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/fortune.txt")
-    install(FILES resources/fortune.txt DESTINATION ${CTH_DATA_DIR})
-endif()
 
 message(STATUS "")
 message(STATUS "CthughaNix modern CMake summary")

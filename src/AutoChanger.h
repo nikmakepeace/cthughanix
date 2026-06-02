@@ -10,8 +10,8 @@
 //
 
 extern OptionTime changeQuiet; /* change after quiet-pause (1.5 sec) */
-extern OptionTime changeWaitMin; /* min time between change (5 sec) */
-extern OptionTime changeWaitRandom; /* extra random wait-time (10 sec) */
+extern OptionTime changeWaitMin; /* min time between change (3 sec) */
+extern OptionTime changeWaitRandom; /* extra random wait-time (11 sec) */
 extern OptionInt changeCumulativeFireLevel;
 extern OptionOnOff lock; /* change automatically */
 extern OptionOnOff change_little; /* only change one options */
