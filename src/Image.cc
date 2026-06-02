@@ -1,3 +1,5 @@
+// Indexed image ownership, placement, and loader option integration.
+
 #include "Image.h"
 #include "cthugha.h"
 #include "imath.h"

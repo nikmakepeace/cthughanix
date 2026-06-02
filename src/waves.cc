@@ -1,3 +1,5 @@
+// Wave option setup, object loading, color tables, and wave renderers.
+
 #include "cthugha.h"
 #include "display.h"
 #include "Interface.h"

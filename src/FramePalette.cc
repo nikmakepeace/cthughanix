@@ -1,3 +1,5 @@
+// Per-frame palette state and dirty tracking.
+
 #include "cthugha.h"
 #include "FramePalette.h"
 

@@ -1,3 +1,5 @@
+// Flame option setup and individual feedback kernels.
+
 #include "cthugha.h"
 #include "display.h"
 #include "Interface.h"

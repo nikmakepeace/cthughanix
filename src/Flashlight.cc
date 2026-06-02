@@ -1,3 +1,5 @@
+// Palette flashlight option and acoustic palette brightening.
+
 #include "cthugha.h"
 #include "Flashlight.h"
 #include "FramePalette.h"

@@ -1,3 +1,5 @@
+// Runtime coordinate remap executor used by TranslateFilter.
+
 #include "cthugha.h"
 #include "Translate.h"
 #include "CthughaBuffer.h"

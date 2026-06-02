@@ -1,3 +1,5 @@
+// Flame catalog entries and runtime dispatch.
+
 #include "Flame.h"
 
 void flame_clear(CthughaBuffer& buffer, const VideoFrameContext& context, FlameRuntime& runtime);

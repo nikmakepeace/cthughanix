@@ -1,3 +1,5 @@
+// Built-in translation table generators.
+
 #include "cthugha.h"
 #include "TranslateGenerator.h"
 

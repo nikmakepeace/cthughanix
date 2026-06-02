@@ -1,3 +1,5 @@
+// Indexed PCX image loading and PCX screenshot saving.
+
 #include "cthugha.h"
 #include "cth_buffer.h"
 #include "display.h"

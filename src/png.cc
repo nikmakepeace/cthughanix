@@ -1,3 +1,5 @@
+// Indexed PNG image loader.
+
 #include "cthugha.h"
 #include "cth_buffer.h"
 #include "Image.h"

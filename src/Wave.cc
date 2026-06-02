@@ -1,3 +1,5 @@
+// Wave catalog entries, runtime facade, and shared lookup tables.
+
 #include "Wave.h"
 #include "VideoFilterchain.h"
 
