@@ -21,8 +21,9 @@
    - Preserve visual behavior except for the obvious stale-region bug.~~
 
 3. Reinforce the visual-engine/display seam.
-   - Make buffer dimensions and ownership clearer: base visual buffer versus full display
-     buffer.
+   - Mostly done: make buffer dimensions and ownership clearer. `CthughaBuffer`
+     now owns visible active/passive indexed pixels plus named hidden vertical
+     border rows for flame feedback; it no longer choreographs visual startup.
    - Add shared helpers for clearing the full display surface and/or base display region.
    - Document which screen functions produce `BUFF_WIDTH x BUFF_HEIGHT` content and rely
      on mirroring, and which produce the full `2 * BUFF_WIDTH x 2 * BUFF_HEIGHT` surface.
@@ -92,10 +93,10 @@
 7. Stabilize image behavior.
    - ~~Verify loading from `resources/img/`, `.pcx.gz`, clipping, centering, and palette selection.~~
    - Add PNG loader coverage and keep screenshot save behavior verified.
-   - Review init/load return-code behavior: several `init_*` functions currently always
-     return `0`, while `CthughaBuffer::initAll()` still checks them and calls `exit(0)`.
-     Decide whether those functions should be `void`, or whether startup should have real
-     fatal error propagation.
+   - Review visual catalog/init return-code behavior: `Application` now owns
+     visual catalog startup, but several `init_*` functions still always return
+     `0`. Decide whether those functions should be `void`, or whether startup
+     should have real fatal error propagation.
    - ~~Keep PCX working as classic content while preparing for a modern image path.~~
 
 8. Add a modern image loader.
@@ -105,8 +106,10 @@
      output, or separate overlay layer.
 
 9. Modernize the build.
-   - Add a contemporary build path that can build `xcthugha` and future modern display
-     targets.
+   - ~~Add a contemporary CMake build path that can build `xcthugha`, benchmarks,
+     and future modern display targets.~~
+   - Promote the CMake build as the documented reference path once packaging and
+     install behavior are comfortable.
    - Keep removed legacy frontend paths out of active build/configuration surfaces.
    - Keep old build files around until the replacement build proves itself.
 
@@ -118,7 +121,9 @@
      presentation, carrying `pixels`, `width`, `height`, `pitch`, and `FramePalette`.
    - Done: `CthughaDisplay` consumes `IndexedFrame` for presentation source pixels,
      geometry, pitch, and palette synchronization.
-   - Allocate presentation scratch buffers lazily from the incoming frame geometry.
+   - Next display slice: allocate/reallocate presentation scratch buffers lazily
+     from the incoming `IndexedFrame` geometry instead of sizing them from the
+     global/current Cthugha buffer in the display constructor.
    - Keep X11 `DM_direct` as a legacy/backend optimization, not as part of the new
      shared display contract. The clean path should render screen transforms into an
      indexed presentation buffer, then palette-expand or upload into the backend's
@@ -134,8 +139,10 @@
    - Target responsibilities:
      - The visual engine knows nothing about the audio source or PCM file/device format.
      - The visual engine knows nothing about the display backend or display pixel format.
-     - `CthughaBuffer` owns long-lived internal indexed buffers, dimensions, pitch,
-       border storage, active/passive buffers, and swap/pixel access.
+     - `CthughaBuffer` owns long-lived internal indexed buffers, visible dimensions,
+       hidden vertical border storage, active/passive buffers, and swap/pixel access.
+       It currently has no separate pitch/stride; reintroduce stride only if side
+       padding or non-tightly-packed internal rows become real.
      - `CthughaBuffer` should be state, not choreography; it should not run or write
        itself.
      - The engine consumes processed wave data through a stable per-frame context:
@@ -149,9 +156,11 @@
      - `FlameStage`
      - `TranslateStage`
      - `WaveStage`
+     - `TextStage`
      - `FrameCommitStage`
      - `PaletteStage`
      - `FlashlightStage`
+     - `IndexedFrameStage`
    - `VideoDirector` updates stage filters with the selected image, flame,
      general-flame value, translation table, wave config, border mode, palette
      target, and flashlight mode.
@@ -163,6 +172,10 @@
      that frame.
    - Remaining display handoff work:
      - Allocate/reallocate presentation scratch buffers from the incoming frame geometry.
+     - Remove `CthughaDisplay` constructor sizing and fallback geometry reads from
+       `CthughaBuffer::current` on the normal `IndexedFrame` path.
+     - Make the presentation path consistently honor `IndexedFrame::pitch` when
+       copying or transforming source rows.
      - Move any artistic screen transforms that mutate indexed pixels into video filters.
      - Keep backend-specific memory layout knowledge inside display backends.
    - Treat classic `screen` functions carefully:
@@ -171,8 +184,9 @@
      - If it copies/converts into `cthughaDisplay->buffer` or knows display memory layout,
        it belongs in the display/presentation layer, not the internal visual engine.
    - Next practical slice:
-     - Continue moving `CthughaBuffer::current` lookups behind explicit
-       display/provider objects.
+     - Finish the `IndexedFrame` -> `CthughaDisplay` presentation handoff: lazy
+       scratch allocation, no normal-path `CthughaBuffer::current` geometry reads,
+       and focused tests for pitch/geometry handling.
      - Add focused tests around director-owned stage sequencing, stage modes, and
        frame commit behavior.
 
