@@ -26,6 +26,11 @@ Interface* Interface::current = NULL;
 
 Interface* Interface::head = NULL;
 
+static void resetDisplayTimingAfterCoreOptionChange() {
+    if (cthughaDisplay != NULL)
+        cthughaDisplay->resetFPS();
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
 //
@@ -119,8 +124,10 @@ ACTION(chgValue1) {
     if (currentCoreOption && sceneCommands != NULL
         && sceneCommands->isSceneOption(*currentCoreOption))
         sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption)
+    else if (currentCoreOption) {
         currentCoreOption->change(step, 0);
+        resetDisplayTimingAfterCoreOptionChange();
+    }
     else if (currentOption)
         currentOption->change(step);
 }
@@ -133,8 +140,10 @@ ACTION(chgValue2) {
     if (currentCoreOption && sceneCommands != NULL
         && sceneCommands->isSceneOption(*currentCoreOption))
         sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption)
+    else if (currentCoreOption) {
         currentCoreOption->change(step, 0);
+        resetDisplayTimingAfterCoreOptionChange();
+    }
     else if (currentOption)
         currentOption->change(step);
 }
@@ -147,8 +156,10 @@ ACTION(chgValue3) {
     if (currentCoreOption && sceneCommands != NULL
         && sceneCommands->isSceneOption(*currentCoreOption))
         sceneCommands->change(*currentCoreOption, step, 0);
-    else if (currentCoreOption)
+    else if (currentCoreOption) {
         currentCoreOption->change(step, 0);
+        resetDisplayTimingAfterCoreOptionChange();
+    }
     else if (currentOption)
         currentOption->change(step);
 }
@@ -167,6 +178,7 @@ ACTION(setValue) {
     } else if (currentCoreOption) {
         currentCoreOption->change(str, 0);
         currentCoreOption->change(0, 0);
+        resetDisplayTimingAfterCoreOptionChange();
     } else if (currentOption) {
         currentOption->change(str);
         currentOption->change(0);

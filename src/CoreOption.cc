@@ -1,7 +1,6 @@
 #include "cthugha.h"
 #include "CoreOption.h"
 #include "imath.h"
-#include "CthughaDisplay.h"
 
 #include <string>
 
@@ -91,8 +90,6 @@ void CoreOption::change(int by, int doSave) {
 
     CTH_DEBUG("changed option `%s' to `%s'\n", name(), entries[value]->name);
 
-    if (cthughaDisplay)
-        cthughaDisplay->resetFPS();
 }
 
 void CoreOption::changeRandom(int doSave) {

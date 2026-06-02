@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "Border.h"
 #include "CthughaBuffer.h"
+#include "CthughaDisplay.h"
 #include "Flashlight.h"
 #include "Image.h"
 #include "display.h"
@@ -12,6 +13,11 @@
 #include <unistd.h>
 
 static SceneCommands* legacySceneCommands = 0;
+
+static void resetDisplayTimingAfterOptionChange() {
+    if (cthughaDisplay != 0)
+        cthughaDisplay->resetFPS();
+}
 
 SceneSettings::SceneSettings()
     : flame(0)
@@ -245,11 +251,13 @@ int SceneCommands::isSceneOption(const CoreOption& option) const {
 
 void SceneCommands::change(CoreOption& option, int by, int doSave) {
     option.change(by, doSave);
+    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
 void SceneCommands::change(CoreOption& option, const char* to, int doSave) {
     option.change(to, doSave);
+    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
@@ -260,6 +268,7 @@ void SceneCommands::activate(CoreOption& option, int index) {
     option[index]->setUse(1);
     option.setValue(index);
     option.change(0, 0);
+    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
@@ -268,6 +277,7 @@ void SceneCommands::changeFlame(const char* to) { change(flame, to, 0); }
 
 void SceneCommands::changeGeneralFlame() {
     flameGeneral.changeRandom();
+    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneFlameChanged);
 }
 
@@ -292,6 +302,7 @@ void SceneCommands::deletePaletteAndChange(int by) {
         unlink(paletteEntry->sourcePath);
 
     palette.change(by, 0);
+    resetDisplayTimingAfterOptionChange();
     syncFromOptions(ScenePaletteChanged);
 }
 
@@ -314,12 +325,15 @@ void SceneCommands::changeImage(const char* to) { change(images, to, 0); }
 
 void SceneCommands::changeAll() {
     CoreOption::changeAll();
+    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
     CoreOption* changedOption = CoreOption::changeOne();
+    if (changedOption != 0)
+        resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneNoChange);
     if (changedOption == &images)
         emitImageCue();
@@ -327,12 +341,14 @@ void SceneCommands::changeOne() {
 
 void SceneCommands::restore() {
     CoreOption::restore();
+    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::restore(int from) {
     CoreOption::restore(from);
+    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
