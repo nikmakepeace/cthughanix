@@ -17,6 +17,19 @@ mkdir -p "$build_dir"
 
 include_flags="-I$cmake_build_dir/src -I$cmake_build_dir -I$repo_root/src -I$repo_root"
 
+if test -f "$cmake_build_dir/CMakeCache.txt"; then
+    x11_include_paths=`awk -F= '
+        /^X11_.*_INCLUDE_PATH:PATH=/ {
+            if ($2 != "" && $2 !~ /-NOTFOUND$/)
+                print $2
+        }
+    ' "$cmake_build_dir/CMakeCache.txt" | sort -u`
+
+    for path in $x11_include_paths; do
+        include_flags="$include_flags -I$path"
+    done
+fi
+
 if test ! -f "$cmake_build_dir/config.h"; then
     {
         echo "warning: $cmake_build_dir/config.h was not found."
