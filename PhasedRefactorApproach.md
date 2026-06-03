@@ -116,7 +116,7 @@ Capture timing around risky X11 slices and compare:
 - Resize clears stale border pixels.
 - Overlay text appears and disappears cleanly.
 
-## Phase 0: Make Tests And Baselines Usable
+## Phase 0: Make Tests And Baselines Usable - DONE
 
 ### Goal
 
@@ -155,7 +155,7 @@ Make the refactor measurable before moving code.
   test.
 - No production display behavior changes.
 
-## Phase 1: Characterize Screen Output
+## Phase 1: Characterize Screen Output - DONE
 
 ### Goal
 
