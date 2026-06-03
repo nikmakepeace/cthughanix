@@ -11,6 +11,7 @@
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
 #include "VideoFilterchain.h"
+#include "WaveObject.h"
 
 #include <math.h>
 
@@ -18,9 +19,6 @@ static EffectChoiceList waveEntries;
 static EffectChoiceList objectEntries;
 static EffectChoiceList waveScaleEntries;
 static EffectChoiceList tableEntries;
-
-extern EffectChoice* _objects[];
-extern int _nObjects;
 
 WaveOption wave;
 EffectControl waveScale(-1, "wave-scale", waveScaleEntries, EFFECT_CONTROL_AUTO_CHANGE);
@@ -355,8 +353,6 @@ static void init_wave_options() {
 static void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c);
 
 OptionOnOff use_objects("use-objects", DEFAULT_USE_OBJECTS_ENABLED); /* use 3-D objects */
-EffectChoice* read_object(FILE* file, const char* name, const char* dir, const char* total_name);
-
 /*
  * Object waves have two kinds of work:
  *
@@ -374,45 +370,8 @@ static int object_wave_needs_configuration(WaveRuntime& runtime) {
 
 static const char* object_path[] = { "./", "./resources/obj/", CTH_LIBDIR "/obj/", "" };
 
-class ObjectEntry : public EffectChoice {
-public:
-    WObject* obj;
-
-    ObjectEntry(WObject* o, const char* name, const char* desc)
-        : EffectChoice(name, desc)
-        , obj(o) { }
-    ObjectEntry(const char* name, const char* desc)
-        : EffectChoice(name, desc)
-        , obj(NULL) { }
-    ~ObjectEntry() {
-        delete obj;
-        obj = NULL;
-    }
-};
-
-/* another cube */
-WObject cube1[] = {
-    { { 0, 0, 0 }, { 1, 0, 0 } },
-    { { 1, 0, 0 }, { 1, 1, 0 } },
-    { { 1, 1, 0 }, { 2, 1, 0 } },
-    { { 2, 1, 0 }, { 2, 0, 0 } },
-    { { 2, 0, 0 }, { 3, 0, 0 } },
-    { { 3, 0, 0 }, { 3, 3, 0 } },
-    { { 3, 3, 0 }, { 2, 3, 0 } },
-    { { 2, 3, 0 }, { 2, 2, 0 } },
-    { { 2, 2, 0 }, { 1, 2, 0 } },
-    { { 1, 2, 0 }, { 1, 3, 0 } },
-    { { 1, 3, 0 }, { 0, 3, 0 } },
-    { { 0, 3, 0 }, { 0, 0, 0 } },
-    { { -1, -1, -1 }, { -1, -1, -1 } },
-};
-
-EffectChoice* _objects[] = { new ObjectEntry(cube1, "bigH", "Big H") };
-int _nObjects = sizeof(_objects) / sizeof(EffectChoice*);
-
 WObject* currentWaveObject() {
-    ObjectEntry* entry = static_cast<ObjectEntry*>(object.current());
-    return (entry != NULL) ? entry->obj : NULL;
+    return waveObjectEntryObject(object.current());
 }
 
 /*
@@ -432,92 +391,6 @@ int init_wave() {
     }
 
     return 0;
-}
-
-EffectChoice* read_object(
-    FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/) {
-    char dummy[256];
-    int i, j, nlines, x1, y1, z1, x2, y2, z2, mx, my, mz;
-
-    ObjectEntry* new_obj = new ObjectEntry(name, "");
-
-    /* count relevant lines, discarding comment lines and empty lines */
-    nlines = 0;
-    while (!feof(file)) {
-        fgets(dummy, 255, file);
-        if (dummy[0] != 0 && dummy[0] != '#') /* if this is not a comment line */
-            nlines++; /* or an empty line, then count it */
-    }
-
-    new_obj->obj = new WObject[nlines + 1];
-
-    rewind(file);
-    i = 1;
-    j = 0;
-    mx = my = mz = 0x7fffffff;
-
-    /* now read in the data */
-    while (!feof(file)) {
-
-        fgets(dummy, 255, file);
-
-        if (dummy[0] != 0 && dummy[0] != '#') /* if this looks like a legit line */
-
-            if (sscanf(dummy, "%d,%d,%d - %d,%d,%d", &x1, &y1, &z1, &x2, &y2, &z2) < 6) {
-                CTH_WARN("\n    Can't read at line: %d (%s)", i, name);
-                if (i == 1) { /*  nothing read  */
-                    CTH_WARN(" ... skipping file");
-                    delete new_obj;
-                    return NULL;
-                }
-            } else {
-                if (j >= nlines) {
-                    CTH_ERROR("Error reading object file %s", name);
-                    delete new_obj;
-                    return NULL;
-                }
-
-                if (x1 < mx)
-                    mx = x1;
-                if (x2 < mx)
-                    mx = x2;
-                if (y1 < my)
-                    my = y1;
-                if (y2 < my)
-                    my = y2;
-                if (z1 < mz)
-                    mz = z1;
-                if (z2 < mz)
-                    mz = z2;
-
-                new_obj->obj[j][0][0] = x1;
-                new_obj->obj[j][0][1] = y1;
-                new_obj->obj[j][0][2] = z1;
-
-                new_obj->obj[j][1][0] = x2;
-                new_obj->obj[j][1][1] = y2;
-                new_obj->obj[j][1][2] = z2;
-                j++;
-            }
-
-        i++;
-    }
-
-    /* align the object up against the axes */
-    for (i = 0; i < j; i++) {
-        new_obj->obj[i][0][0] -= mx;
-        new_obj->obj[i][0][1] -= my;
-        new_obj->obj[i][0][2] -= mz;
-        new_obj->obj[i][1][0] -= mx;
-        new_obj->obj[i][1][1] -= my;
-        new_obj->obj[i][1][2] -= mz;
-    }
-
-    /* terminate the line list with -1 coordinates */
-    new_obj->obj[j][0][0] = new_obj->obj[j][0][1] = new_obj->obj[j][0][2] = new_obj->obj[j][1][0]
-        = new_obj->obj[j][1][1] = new_obj->obj[j][1][2] = -1;
-
-    return new_obj;
 }
 
 /*

@@ -64,6 +64,7 @@ set(CTHUGHA_COMMON_SOURCES
     Translate.cc
     TranslateGenerator.cc
     Wave.cc
+    WaveObject.cc
     waves.cc
     sound_tables.cc
     TranslationOptions.cc
