@@ -159,6 +159,7 @@ void usage() {
     PH("                     or a special resolution in the form: WIDTHxHEIGHT.");
     PH(" --zoom N            Set Zoom factor to N (0 = fit window/screen)");
     PH(" --max-fps N         Set maximal frames per seond to N (0 = no limit)");
+    PH(" --show-fps          Show a live FPS counter");
     PH("X11 options:");
     PH(" --root              Display on root window");
     PH(" --install           Install a private colormap");

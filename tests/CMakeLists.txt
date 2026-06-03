@@ -304,6 +304,22 @@ target_link_libraries(overlay_source_test PRIVATE m)
 
 add_test(NAME overlay_source_test COMMAND overlay_source_test)
 
+add_executable(fps_overlay_test
+    unit/FpsOverlayTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FpsOverlay.cc
+    ${CMAKE_SOURCE_DIR}/src/OverlaySource.cc
+)
+
+target_include_directories(fps_overlay_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(fps_overlay_test PRIVATE m)
+
+add_test(NAME fps_overlay_test COMMAND fps_overlay_test)
+
 add_executable(pixel_transfer_test
     unit/PixelTransferTest.cc
     ${CMAKE_SOURCE_DIR}/src/PixelTransfer.cc

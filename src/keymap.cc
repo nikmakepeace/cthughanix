@@ -571,6 +571,7 @@ ACTION(saveOrRestore) {
 }
 
 ACTION(toggleStatus) { Interface::showStatus = 1 - Interface::showStatus; }
+ACTION(toggleFPS) { showFPS.change(+1); }
 
 ACTION(changeAll) { sceneCommandsForLegacyCallbacks()->changeAll(); }
 ACTION(changeOne) { sceneCommandsForLegacyCallbacks()->changeOne(); }

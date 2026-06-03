@@ -8,6 +8,7 @@
 #include "Interface.h"
 #include "IndexedFrame.h"
 #include "DisplayRuntime.h"
+#include "FpsOverlay.h"
 #include "OverlaySource.h"
 
 #include <stdint.h>
@@ -100,7 +101,10 @@ static OverlayCommands collectDisplayOverlays() {
     CurrentInterfaceOverlayProducer interfaceProducer;
     ErrorMessagesOverlayProducer errorProducer(errors);
     OverlaySource source(&interfaceProducer, &errorProducer);
-    return source.collect();
+    OverlayCommands overlays = source.collect();
+    FpsOverlay::append(overlays,
+        cthughaDisplay != NULL ? cthughaDisplay->fps : 0.0, int(showFPS));
+    return overlays;
 }
 
 void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }

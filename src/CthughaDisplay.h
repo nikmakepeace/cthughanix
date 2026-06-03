@@ -18,6 +18,7 @@
 extern xy draw_size;
 extern OptionInt zoom;
 extern OptionInt maxFramesPerSecond;
+extern OptionOnOff showFPS;
 
 extern double now; // timestamp used by all modules while drawing this frame
 extern double deltaT; // elapsed time between the last two frames, in seconds

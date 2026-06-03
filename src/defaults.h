@@ -69,6 +69,7 @@ static const int DEFAULT_AUDIO_DSP_TARGET_LATENCY_MS = 250; // Unit: millisecond
 #endif
 
 static const int DEFAULT_MAX_FRAMES_PER_SECOND = 25; // Unit: frames per second; used by maxFPS for frame pacing.
+static const int DEFAULT_SHOW_FPS_ENABLED = 0; // Unit: boolean; used by show-fps so the live FPS overlay starts hidden.
 static const int DEFAULT_ZOOM_MODE = 0; // Unit: zoom mode; used by zoom where 0 means fit to window.
 static const int ZOOM_MODE_MAX_EXCLUSIVE = 3; // Unit: zoom mode; used by zoom to accept fit, 1x, or 2x modes.
 static const int DEFAULT_DISPLAY_MODE = 0; // Unit: display mode index; used by disp-mode to choose the first predefined X11 size.

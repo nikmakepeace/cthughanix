@@ -84,6 +84,7 @@ set(CTHUGHA_COMMON_SOURCES
     main.cc
     Flashlight.cc
     InterfaceHelp.cc
+    FpsOverlay.cc
 )
 
 add_custom_command(

@@ -138,6 +138,8 @@ struct option long_options[] = {
     { "no-palette-smoothing", 0, 0, opt_no_palette_smoothing },
     { "palette-set", 1, 0, opt_palette_set },
     { "test", 0, 0, opt_test }, { "max-fps", 1, 0, opt_maxfps },
+    { "show-fps", 0, &showFPS.value, 1 },
+    { "no-show-fps", 0, &showFPS.value, 0 },
     { "zoom", 1, 0, opt_zoom },
 
 // X11 options

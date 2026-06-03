@@ -63,6 +63,7 @@ const char* InterfaceHelp::text[] = {
     N "F1,?    : Help                         \n",
     N "F2, o   : Effect Controls Summary      \n",
     N "F3, O   : Time/Auto-changer Options    \n",
+    N "F4      : toggle FPS counter           \n",
     N "F5      : Sound control panel          \n",
     N "F6      : Mixer                        \n",
     N "F7/F8   : Play List (not implemented)  \n",

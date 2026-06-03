@@ -9,6 +9,7 @@
 #include "AutoChanger.h"
 #include "AudioProcessor.h"
 #include "CthughaBuffer.h"
+#include "CthughaDisplay.h"
 #include "VideoDirector.h"
 #include "defaults.h"
 
@@ -553,6 +554,7 @@ int write_ini() {
 
     putini(lock);
     putini(change_little);
+    putini(showFPS);
 
     fprintf(ini_file,
         "#\n"
@@ -617,6 +619,7 @@ int write_continuation_ini() {
         "#\n");
     effectControlPutIniInitials();
     putini(audioProcessing);
+    putini(showFPS);
 
     int write_error = ferror(ini_file);
     int close_error = fclose(ini_file);
