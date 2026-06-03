@@ -1,7 +1,9 @@
 #include "DisplayRuntime.h"
 #include "FramePalette.h"
+#include "PixelTransfer.h"
 
 #include <assert.h>
+#include <string.h>
 
 class FakeBackend : public DisplayBackend {
 public:
@@ -46,6 +48,33 @@ public:
         presentedViewport = presentation.viewport;
         presentedNeedsFullCopy = presentation.needsFullCopy;
         presentedNeedsBorderClear = presentation.needsBorderClear;
+    }
+};
+
+class TransferringBackend : public DisplayBackend {
+public:
+    unsigned char destination[16];
+    int presentCalls;
+
+    TransferringBackend()
+        : presentCalls(0) {
+        memset(destination, 0xaa, sizeof(destination));
+    }
+
+    virtual DisplayEventStats processEvents() {
+        return DisplayEventStats();
+    }
+
+    virtual PixelSize outputSize() const {
+        return PixelSize(4, 4);
+    }
+
+    virtual void present(const DisplayPresentation& presentation) {
+        presentCalls++;
+        PixelTransfer::indexedToNative(presentation.frame.pixels(),
+            PixelSize(presentation.frame.width(), presentation.frame.height()),
+            presentation.frame.pitch(), destination,
+            presentation.viewport.drawSize, 4, 1, 0);
     }
 };
 
@@ -112,9 +141,46 @@ static void testPresentationRequestCarriesFrameViewportAndFlags() {
     assert(backend.presentedNeedsBorderClear == 0);
 }
 
+static void testBackendCanTransferPresentationFrameFromRuntime() {
+    TransferringBackend backend;
+    DisplayRuntime runtime(backend);
+    IndexedDisplayFrame frame;
+    DisplayViewport viewport;
+    frame.resize(2, 2);
+    frame.line(0)[0] = 10;
+    frame.line(0)[1] = 20;
+    frame.line(1)[0] = 30;
+    frame.line(1)[1] = 40;
+    viewport.frameSize = PixelSize(2, 2);
+    viewport.windowSize = PixelSize(4, 4);
+    viewport.drawSize = PixelSize(4, 4);
+    viewport.destination = PixelRect(0, 0, 4, 4);
+
+    runtime.present(frame, viewport, 0, 0);
+
+    assert(backend.presentCalls == 1);
+    assert(backend.destination[0] == 10);
+    assert(backend.destination[1] == 10);
+    assert(backend.destination[2] == 20);
+    assert(backend.destination[3] == 20);
+    assert(backend.destination[4] == 10);
+    assert(backend.destination[5] == 10);
+    assert(backend.destination[6] == 20);
+    assert(backend.destination[7] == 20);
+    assert(backend.destination[8] == 30);
+    assert(backend.destination[9] == 30);
+    assert(backend.destination[10] == 40);
+    assert(backend.destination[11] == 40);
+    assert(backend.destination[12] == 30);
+    assert(backend.destination[13] == 30);
+    assert(backend.destination[14] == 40);
+    assert(backend.destination[15] == 40);
+}
+
 int main() {
     testProcessEventsDelegatesToBackend();
     testOutputSizeDelegatesToBackend();
     testPresentationRequestCarriesFrameViewportAndFlags();
+    testBackendCanTransferPresentationFrameFromRuntime();
     return 0;
 }

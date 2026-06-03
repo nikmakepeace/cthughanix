@@ -20,6 +20,7 @@
 #include "CthughaDisplay.h"
 #include "DisplayBackend.h"
 #include "DisplayRuntime.h"
+#include "PixelTransfer.h"
 #include "ViewportPresentation.h"
 #include "xcthugha.h"
 
@@ -81,6 +82,13 @@ static DisplayViewport currentDisplayViewport() {
     return viewport;
 }
 
+static const unsigned long* nativePixelsForCurrentDrawMode() {
+    if (draw_mode == DM_direct)
+        return 0;
+
+    return bitmap_colors0;
+}
+
 class DisplayBackendX11 : public DisplayBackend {
     DisplayDeviceX11& device;
 
@@ -100,9 +108,25 @@ public:
     virtual void present(const DisplayPresentation& presentation) {
         if (presentation.framePalette != NULL)
             device.setFramePalette(presentation.framePalette);
+        DisplayDevice& displayDeviceBase = device;
+        displayDeviceBase.setGlobalPalette();
         if (presentation.needsFullCopy)
             device.needsFullCopy = 1;
-        device.postDraw();
+
+        unsigned char* displayBase = device.preDraw();
+        if (displayBase == 0 || !presentation.frame.valid())
+            return;
+
+        PixelRect drawRect = ViewportPresentation::drawCopyRect(presentation.viewport);
+        if (!drawRect.valid())
+            return;
+
+        unsigned char* destination = displayBase
+            + ViewportPresentation::drawOffsetBytes(presentation.viewport, bytes_per_line, bypp);
+        PixelTransfer::indexedToNative(presentation.frame.pixels(),
+            PixelSize(presentation.frame.width(), presentation.frame.height()),
+            presentation.frame.pitch(), destination, drawRect.size(),
+            bytes_per_line, bypp, nativePixelsForCurrentDrawMode());
     }
 };
 

@@ -92,8 +92,6 @@ CthughaDisplay::CthughaDisplay()
     , visualLatencyEstimate(0.0)
     , buffer(0)
     , bufferWidth(0)
-    , expandedBuffer(0)
-    , expandedBufferWidth(0)
     , needsClear(0)
     , fps(60.0) {
 }

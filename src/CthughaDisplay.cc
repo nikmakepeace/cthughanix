@@ -82,8 +82,6 @@ CthughaDisplay::CthughaDisplay()
     , visualLatencyEstimate(0)
     , buffer(0)
     , bufferWidth(0)
-    , expandedBuffer(0)
-    , expandedBufferWidth(0)
     , needsClear(1)
     , fps(0) {
 
@@ -158,8 +156,7 @@ int CthughaDisplay::displayFrameHeight() const {
     return 2 * sourceHeight();
 }
 
-void CthughaDisplay::indexedPixelsWillMove(unsigned char* oldPixels) {
-    indexedBufferWillChange(oldPixels);
+void CthughaDisplay::indexedPixelsWillMove(unsigned char*) {
 }
 
 void CthughaDisplay::indexedFrameGeometryChanged() {
@@ -216,148 +213,6 @@ int CthughaDisplay::clearBorder() {
         displayDevice->needsFullCopy = 1;
     }
     return 0;
-}
-
-/*
- * copy the expandedBuffer to the screen
- */
-void CthughaDisplay::zoom2Screen(unsigned char* scrn, int bytesPerLine) {
-    zoom2Screen(scrn, bytesPerLine, displayViewportValue);
-}
-
-void CthughaDisplay::zoom2Screen(
-    unsigned char* scrn, int bytesPerLine, const DisplayViewport& viewport) {
-    unsigned char* b1 = expandedBuffer;
-    unsigned short* b2 = (unsigned short*)(expandedBuffer);
-    uint32_t* b4 = (uint32_t*)(expandedBuffer);
-
-    unsigned char* s1 = (unsigned char*)(scrn);
-    unsigned short* s2 = (unsigned short*)(scrn);
-    uint32_t* s4 = (uint32_t*)(scrn);
-
-    int bpl2 = bytesPerLine / 2;
-    int bpl4 = bytesPerLine / 4;
-    PixelSize targetSize = viewport.drawSize;
-
-    if ((zoom != 1) && (bypp != 1) && (bypp != 2) && (bypp != 4)) {
-        CTH_ERROR("Sorry zooming is only implements for 1,2 and 4 bytes/pixel displays.");
-        zoom.setValue(1);
-    }
-
-    switch (zoom) {
-    case 0: {
-        //
-        // zoom 0: zoom, so that the image fits the screen
-        //
-        if (!targetSize.valid())
-            return;
-
-        int dx = int(65536.0 * double(visualBuffer().displayWidth()) / double(targetSize.width));
-        double dy = double(visualBuffer().displayHeight()) / double(targetSize.height);
-
-        switch (bypp) {
-        case 1:
-            for (int i = 0; i < targetSize.height; i++) {
-                b1 = (unsigned char*)(expandedBuffer + int(dy * double(i)) * expandedBufferWidth);
-                int x = 0;
-
-                for (int j = targetSize.width; j != 0; j--) {
-                    *s1 = *(b1 + (x >> 16));
-                    s1++;
-                    x += dx;
-                }
-                s1 = s1 + bytesPerLine - targetSize.width;
-            }
-            break;
-        case 2:
-            for (int i = 0; i < targetSize.height; i++) {
-                b2 = (unsigned short*)(expandedBuffer + int(dy * double(i)) * expandedBufferWidth);
-                int x = 0;
-
-                for (int j = targetSize.width; j != 0; j--) {
-                    *s2 = *(b2 + (x >> 16));
-                    s2++;
-                    x += dx;
-                }
-                s2 = s2 + bpl2 - targetSize.width;
-            }
-            break;
-        case 4:
-            for (int i = 0; i < targetSize.height; i++) {
-                b4 = (uint32_t*)(expandedBuffer + int(dy * double(i)) * expandedBufferWidth);
-                int x = 0;
-
-                for (int j = targetSize.width; j != 0; j--) {
-                    *s4 = *(b4 + (x >> 16));
-                    s4++;
-                    x += dx;
-                }
-                s4 = s4 + bpl4 - targetSize.width;
-            }
-            break;
-        }
-        break;
-    }
-    case 1:
-        //
-        // no zooming, just copy
-        // this works for all bypp
-        //
-        for (int i = visualBuffer().displayHeight(); i != 0; i--) {
-            memcpy(scrn, b1, visualBuffer().displayWidth() * bypp);
-            scrn += bytesPerLine;
-            b1 += expandedBufferWidth;
-        }
-        break;
-    case 2:
-        //
-        // zoom by a factor of 2
-        //
-        switch (bypp) {
-        case 1:
-            for (int i = visualBuffer().displayHeight(); i != 0; i--) {
-                for (int j = visualBuffer().displayWidth(); j != 0; j--) {
-                    unsigned short s = (*b1) | ((unsigned short)(*b1) << 8);
-                    *s2 = s;
-                    *(s2 + bpl2) = s;
-                    s2++;
-                    b1++;
-                }
-                s2 += bpl2 + bpl2 - visualBuffer().displayWidth();
-                b1 += expandedBufferWidth - visualBuffer().displayWidth();
-            }
-            break;
-        case 2:
-            for (int i = visualBuffer().displayHeight(); i != 0; i--) {
-                for (int j = visualBuffer().displayWidth(); j != 0; j--) {
-                    uint32_t s = (*b2) | ((uint32_t)(*b2) << 16);
-                    *s4 = s;
-                    *(s4 + bpl4) = s;
-                    s4++;
-                    b2++;
-                }
-                s4 += bpl4 + bpl4 - visualBuffer().displayWidth();
-                b2 += expandedBufferWidth / 2 - visualBuffer().displayWidth();
-            }
-            break;
-        case 4:
-            for (int i = visualBuffer().displayHeight(); i != 0; i--) {
-                for (int j = visualBuffer().displayWidth(); j != 0; j--) {
-                    uint32_t s = *b4;
-                    *s4 = s;
-                    *(s4 + 1) = s;
-                    *(s4 + bpl4) = s;
-                    *(s4 + bpl4 + 1) = s;
-                    s4 += 2;
-                    b4++;
-                }
-                s4 += bpl4 + bpl4 - 2 * visualBuffer().displayWidth();
-                b4 += expandedBufferWidth / 4 - visualBuffer().displayWidth();
-            }
-            break;
-        }
-        break;
-    }
 }
 
 void CthughaDisplay::checkZoom() {

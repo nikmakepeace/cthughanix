@@ -43,22 +43,6 @@ protected:
     // Keep stale text/old image data out of the letterboxed area.
     int clearBorder();
 
-    // Copy expandedBuffer to the device memory, applying the configured zoom.
-    void zoom2Screen(unsigned char*, int);
-    void zoom2Screen(unsigned char*, int, const DisplayViewport&);
-
-    // Backends override this when indexed rows must be converted to the
-    // device's native pixel format before completion/zooming run.
-    virtual void expandPalette(int) { }
-
-    /**
-     * Gives a backend a chance to drop aliases before indexed pixels move.
-     *
-     * @param oldPixels Previous indexed display pixels. Backends must not free
-     *        this pointer; CthughaDisplay still owns it.
-     */
-    virtual void indexedBufferWillChange(unsigned char*) { }
-
     virtual void indexedPixelsWillMove(unsigned char*);
     virtual void indexedFrameGeometryChanged();
 
@@ -74,11 +58,6 @@ public:
     // DM_direct mode. bufferWidth is measured in bytes.
     unsigned char* buffer;
     int bufferWidth;
-
-    // expandedBuffer is the palette-expanded image that zoom2Screen() reads.
-    // On 8-bit backends it may be the same memory as buffer.
-    unsigned char* expandedBuffer;
-    int expandedBufferWidth;
 
     int needsClear; // border must be cleared before the next frame is shown
 
@@ -139,14 +118,6 @@ public:
 // a special CthughaDisplay for X11
 //
 class CthughaDisplayX11 : public CthughaDisplay {
-    unsigned char* expandedBuffer0;
-    int expandedBufferByteCount;
-    int expandedBufferBypp;
-    virtual void expandPalette(int);
-    virtual void expandPaletteMirrorHV();
-    virtual void indexedBufferWillChange(unsigned char*);
-    void prepareExpandedBuffer();
-
 public:
     CthughaDisplayX11();
     virtual ~CthughaDisplayX11();

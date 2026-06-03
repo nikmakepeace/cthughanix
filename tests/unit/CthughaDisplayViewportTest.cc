@@ -98,9 +98,6 @@ public:
         return clearBorder();
     }
 
-    void copyZoomed(unsigned char* destination, int pitch) {
-        zoom2Screen(destination, pitch);
-    }
 };
 
 class RecordingDisplayDevice : public DisplayDevice {
@@ -213,64 +210,11 @@ static void testClearBorderUsesViewportGeometryInsteadOfLegacyGlobals() {
     assert(device.clearedRects[3] == PixelRect(0, 9, 20, 4));
 }
 
-static void testFitZoomUsesViewportDrawSizeInsteadOfLegacyDisplaySize() {
-    ViewportDisplayHarness display;
-    unsigned char expanded[] = {
-        10, 20,
-        30, 40
-    };
-    unsigned char output[] = {
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0,
-        0, 0, 0, 0
-    };
-    DisplayViewport viewport;
-    viewport.frameSize = PixelSize(2, 2);
-    viewport.windowSize = PixelSize(4, 4);
-    viewport.drawSize = PixelSize(4, 4);
-    viewport.destination = PixelRect(0, 0, 4, 4);
-    viewport.scaleMode = SCALE_MODE_FIT_WINDOW;
-    viewport.requestedZoom = 0;
-    viewport.effectiveZoom = 0;
-
-    cthughaDisplay = &display;
-    display.setDisplayFrameSize(2, 2);
-    display.setViewport(viewport);
-    display.expandedBuffer = expanded;
-    display.expandedBufferWidth = 2;
-    bypp = 1;
-    zoom.setValue(0);
-
-    disp_size = xy(2, 2);
-    draw_size = xy(2, 2);
-
-    display.copyZoomed(output, 4);
-
-    assert(output[0] == 10);
-    assert(output[1] == 10);
-    assert(output[2] == 20);
-    assert(output[3] == 20);
-    assert(output[4] == 10);
-    assert(output[5] == 10);
-    assert(output[6] == 20);
-    assert(output[7] == 20);
-    assert(output[8] == 30);
-    assert(output[9] == 30);
-    assert(output[10] == 40);
-    assert(output[11] == 40);
-    assert(output[12] == 30);
-    assert(output[13] == 30);
-    assert(output[14] == 40);
-    assert(output[15] == 40);
-}
-
 int main() {
     testCheckZoomPublishesFitViewportAndLegacyDrawSize();
     testCheckZoomPublishesFixedViewportAndOffsets();
     testCheckZoomReducesOversizedFixedZoom();
     testCheckZoomMarksBorderClearWhenResizeMovesViewport();
     testClearBorderUsesViewportGeometryInsteadOfLegacyGlobals();
-    testFitZoomUsesViewportDrawSizeInsteadOfLegacyDisplaySize();
     return 0;
 }
