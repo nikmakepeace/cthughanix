@@ -455,7 +455,7 @@ Remove palette expansion from generic display coordination.
 - X11 true-color paths retain lookup-table speed.
 - Manual smoke covers 8-bit/mapped/true-color paths where available.
 
-## Phase 10: Separate Overlay Collection From Backend Text Drawing
+## Phase 10: Separate Overlay Collection From Backend Text Drawing - DONE
 
 ### Goal
 
