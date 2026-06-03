@@ -385,7 +385,7 @@ resource management and MIT-SHM behavior.
 - Manual smoke confirms resize, centering, fit, fixed zoom, and border clearing.
 - MIT-SHM timing does not regress relative to the current baseline.
 
-## Phase 8: Introduce `DisplayPresentation` And `DisplayBackend`
+## Phase 8: Introduce `DisplayPresentation` And `DisplayBackend` - DONE
 
 ### Goal
 
