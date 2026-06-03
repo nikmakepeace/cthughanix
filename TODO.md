@@ -137,6 +137,9 @@
      native surface.
    - Define the new frontend contract explicitly so buffer size, presentation-surface size,
      and actual window size can vary independently where useful.
+   - Keep simulation size and display size separable: high-resolution windows should be
+     able to present lower-resolution indexed simulations cleanly, and high-resolution
+     simulations should not be forced to inherit old 320x240 effect tuning.
    - Use SDL to cover Wayland/X11/fullscreen/input for modern users before considering a
      native Wayland implementation.
 
@@ -208,6 +211,12 @@
        presentation transforms, and backend/display-memory transforms.
      - Add focused tests around director-owned stage sequencing, stage modes, and
        frame commit behavior.
+   - Audit resolution-sensitive visual effects, especially flames. Several effects were
+     tuned around classic low-resolution buffers; at higher native buffer sizes, per-frame
+     cooling, diffusion, lift, blur, and travel distances cover a smaller fraction of the
+     image, so flames can fade before traversing enough of the display. Decide whether to
+     keep those effects at a fixed simulation resolution and scale them during
+     presentation, or make effect-local distances/decay rates resolution-aware.
 
 ## Short-Term Extras
 
