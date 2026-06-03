@@ -134,6 +134,36 @@ target_link_libraries(presentation_composer_test PRIVATE m)
 
 add_test(NAME presentation_composer_test COMMAND presentation_composer_test)
 
+add_executable(cthugha_display_presentation_test
+    unit/CthughaDisplayPresentationTest.cc
+    ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
+    ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
+    ${CMAKE_SOURCE_DIR}/src/Screen.cc
+    ${CMAKE_SOURCE_DIR}/src/ScreenRenderContext.cc
+    ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/FramePalette.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(cthugha_display_presentation_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/unit
+)
+
+target_link_libraries(cthugha_display_presentation_test PRIVATE m)
+
+add_test(NAME cthugha_display_presentation_test
+    COMMAND cthugha_display_presentation_test)
+
 add_executable(warning_clean_smoke_test
     unit/WarningCleanSmokeTest.cc
 )

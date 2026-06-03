@@ -59,6 +59,9 @@ protected:
     virtual void indexedPixelsWillMove(unsigned char*);
     virtual void indexedFrameGeometryChanged();
 
+    const IndexedDisplayFrame& composePresentationFrame(
+        PresentationScreenSelection& screenSelection);
+
     void checkFPS();
     void checkZoom();
 

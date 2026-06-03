@@ -147,6 +147,16 @@ void CthughaDisplay::indexedFrameGeometryChanged() {
     needsClear = 1;
 }
 
+const IndexedDisplayFrame& CthughaDisplay::composePresentationFrame(
+    PresentationScreenSelection& screenSelection) {
+    IndexedFrame screenSource(sourcePixels(), sourceWidth(), sourceHeight(), sourcePitch(),
+        sourceFrame != NULL ? sourceFrame->framePalette : NULL);
+    const IndexedDisplayFrame& frame = presentationComposer.compose(screenSource,
+        indexedDisplayFrameValue, screenSelection, now, deltaT, fps, this);
+    buffer0 = indexedDisplayFrameValue.pixels();
+    return frame;
+}
+
 /*
  * clear the border around the image on the screen
  */

@@ -377,12 +377,8 @@ void CthughaDisplayX11::operator()() {
     if (traceDisplayTiming)
         displayTiming[1] = getTime();
 
-    IndexedFrame screenSource(sourcePixels(), sourceWidth(), sourceHeight(), sourcePitch(),
-        sourceFrame != NULL ? sourceFrame->framePalette : NULL);
     GlobalPresentationScreenSelection screenSelection;
-    presentationComposer.compose(screenSource, indexedDisplayFrameValue,
-        screenSelection, now, deltaT, fps, this);
-    buffer0 = indexedDisplayFrameValue.pixels();
+    composePresentationFrame(screenSelection);
     if (traceDisplayTiming)
         displayTiming[2] = getTime();
 
