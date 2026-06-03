@@ -322,7 +322,7 @@ screen into a completed `IndexedDisplayFrame`.
 - X11 receives a completed indexed frame from the composer.
 - No backend API changes yet.
 
-## Phase 6: Add Display Geometry Types And `ViewportPolicy`
+## Phase 6: Add Display Geometry Types And `ViewportPolicy` - DONE
 
 ### Goal
 
