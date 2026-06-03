@@ -143,3 +143,5 @@ __pycache__/
 
 # build dumps
 /dumps
+
+/resources/obj/*
