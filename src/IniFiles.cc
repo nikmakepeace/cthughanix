@@ -24,6 +24,17 @@ FILE* ini_file = NULL; /* the currently open ini-file */
 static int ini_nr = -1;
 static char ini_file_path[PATH_MAX] = "";
 
+static const char* continuation_ini_file_name() {
+    static std::string fname;
+    const char* home = getenv("HOME");
+
+    if (home == NULL)
+        return NULL;
+
+    fname = std::string(home) + "/.cthugha.continue";
+    return fname.c_str();
+}
+
 /*
  * create the name of an ini file
  */
@@ -366,39 +377,70 @@ int putini(const Option& opt) { return putini(opt.name(), opt.text()); }
 /*
  *  Read settings from ini-file's
  */
-int read_ini() {
+static void read_current_ini_initials() {
     char str[256];
     struct option* opt;
 
+    for (opt = long_options; opt->name != NULL; opt++) {
+        if (strcasecmp(opt->name, canonical_long_option_name(opt)) != 0)
+            continue;
+
+        if ((opt->flag == 0) || // no variable, must pass it to do_param
+            (opt->has_arg != 0)) { // has argument, must pass it to do_param
+            if (getini(opt->name, str) == 0) { // there is an entry in the ini-file
+                if ((strcasecmp(opt->name, "ini-file") == 0) && (ini_file != NULL)) {
+                    CTH_WARN("Ignoring `cthugha.ini-file' in `%s'; ini-file chaining is not supported. Use --ini-file on the command line.\n",
+                        ini_file_path);
+                    continue;
+                }
+                do_param(opt->val, atoi(str), str);
+            }
+        } else { // variable given, we must take care
+            getini_yesno(opt->name, opt->flag);
+        }
+    }
+
+    effectControlGetIniInitials();
+    warn_unknown_ini_entries();
+}
+
+static int read_continuation_ini() {
+    const char* fname = continuation_ini_file_name();
+    if (fname == NULL)
+        return 0;
+
+    ini_file = fopen(fname, "r");
+    if (ini_file == NULL)
+        return 0;
+
+    strncpy(ini_file_path, fname, PATH_MAX);
+    ini_file_path[PATH_MAX - 1] = '\0';
+
+    CTH_INFO("Loading continuation state from `%s'.\n", ini_file_path);
+    read_current_ini_initials();
+
+    fclose(ini_file);
+    ini_file = NULL;
+
+    if (unlink(fname) != 0) {
+        CTH_ERRNO(errno, "Can not remove continuation ini `%s'.", fname);
+        return 0;
+    }
+
+    CTH_DEBUG("Removed continuation ini `%s'.\n", fname);
+    return 0;
+}
+
+int read_ini() {
     open_ini_start();
     while (open_ini_file() == 0) {
-
-        for (opt = long_options; opt->name != NULL; opt++) {
-            if (strcasecmp(opt->name, canonical_long_option_name(opt)) != 0)
-                continue;
-
-            if ((opt->flag == 0) || // no variable, must pass it to do_param
-                (opt->has_arg != 0)) { // has argument, must pass it to do_param
-                if (getini(opt->name, str) == 0) { // there is an entry in the ini-file
-                    if ((strcasecmp(opt->name, "ini-file") == 0) && (ini_file != NULL)) {
-                        CTH_WARN("Ignoring `cthugha.ini-file' in `%s'; ini-file chaining is not supported. Use --ini-file on the command line.\n",
-                            ini_file_path);
-                        continue;
-                    }
-                    do_param(opt->val, atoi(str), str);
-                }
-            } else { // variable given, we must take care
-                getini_yesno(opt->name, opt->flag);
-            }
-        }
-
-        effectControlGetIniInitials();
-        warn_unknown_ini_entries();
+        read_current_ini_initials();
 
         if (ini_file)
             fclose(ini_file);
     }
-    return 0;
+
+    return read_continuation_ini();
 }
 
 /*
@@ -546,5 +588,52 @@ int write_ini() {
     fclose(f);
     fclose(ini_file);
 
+    return 0;
+}
+
+int write_continuation_ini() {
+    const char* fname = continuation_ini_file_name();
+    if (fname == NULL) {
+        CTH_ERROR("Can not create continuation ini: HOME is not set.\n");
+        return 1;
+    }
+
+    std::string tmpName = std::string(fname) + ".tmp";
+    FILE* previous_ini_file = ini_file;
+    FILE* out = fopen(tmpName.c_str(), "w");
+    if (out == NULL) {
+        CTH_ERRNO(errno, "Can not create continuation ini `%s'.", tmpName.c_str());
+        return 1;
+    }
+
+    ini_file = out;
+    fprintf(ini_file,
+        "#\n"
+        "# .cthugha.continue\n"
+        "#\n"
+        "# One-shot stop-and-continue state. Cthugha deletes this file after startup.\n"
+        "#\n"
+        "# Effect Controls\n"
+        "#\n");
+    effectControlPutIniInitials();
+    putini(audioProcessing);
+
+    int write_error = ferror(ini_file);
+    int close_error = fclose(ini_file);
+    ini_file = previous_ini_file;
+
+    if (write_error || close_error) {
+        unlink(tmpName.c_str());
+        CTH_ERROR("Can not write continuation ini `%s'.\n", tmpName.c_str());
+        return 1;
+    }
+
+    if (rename(tmpName.c_str(), fname) != 0) {
+        unlink(tmpName.c_str());
+        CTH_ERRNO(errno, "Can not install continuation ini `%s'.", fname);
+        return 1;
+    }
+
+    CTH_INFO("Saved continuation state to `%s'.\n", fname);
     return 0;
 }

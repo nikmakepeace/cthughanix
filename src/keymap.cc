@@ -518,6 +518,10 @@ void Keymap::init() {
 //
 
 ACTION(quit) { cthugha_close++; }
+ACTION(stopAndContinue) {
+    if (write_continuation_ini() == 0)
+        cthugha_close++;
+}
 
 ACTION(screenChg) { screen.change(int(v), 0); }
 ACTION(zoomChg) { zoom.change(int(v)); }
