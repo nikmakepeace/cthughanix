@@ -20,6 +20,7 @@ set(CTHUGHA_COMMON_SOURCES
     RuntimeFactory.cc
     Scene.cc
     Screen.cc
+    ScreenRenderContext.cc
     DefaultMessagesProvider.cc
     FileMessagesProvider.cc
     MessageFormatValidator.cc

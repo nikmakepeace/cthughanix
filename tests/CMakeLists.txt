@@ -51,6 +51,7 @@ add_executable(screen_renderer_characterization_test
     unit/ScreenRendererCharacterizationTest.cc
     ${CMAKE_SOURCE_DIR}/src/display.cc
     ${CMAKE_SOURCE_DIR}/src/Screen.cc
+    ${CMAKE_SOURCE_DIR}/src/ScreenRenderContext.cc
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
@@ -69,6 +70,23 @@ target_include_directories(screen_renderer_characterization_test PRIVATE
 target_link_libraries(screen_renderer_characterization_test PRIVATE m)
 
 add_test(NAME screen_renderer_characterization_test COMMAND screen_renderer_characterization_test)
+
+add_executable(screen_render_context_test
+    unit/ScreenRenderContextTest.cc
+    ${CMAKE_SOURCE_DIR}/src/ScreenRenderContext.cc
+    ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
+)
+
+target_include_directories(screen_render_context_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/unit
+)
+
+target_link_libraries(screen_render_context_test PRIVATE m)
+
+add_test(NAME screen_render_context_test COMMAND screen_render_context_test)
 
 add_executable(warning_clean_smoke_test
     unit/WarningCleanSmokeTest.cc

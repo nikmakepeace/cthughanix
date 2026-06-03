@@ -3,6 +3,7 @@
 #include "CthughaDisplay.h"
 #include "IndexedFrameTestFixtures.h"
 #include "Screen.h"
+#include "ScreenRenderContext.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -120,32 +121,6 @@ int CthughaDisplay::displayFrameHeight() const {
                                             : 2 * sourceHeight();
 }
 
-class TestDisplay : public CthughaDisplay {
-public:
-    void attach(const IndexedFrame& source, IndexedDisplayFrame& destination) {
-        sourceFrame = &source;
-        buffer = destination.pixels();
-        bufferWidth = destination.pitch();
-    }
-};
-
-class InstalledDisplay {
-    CthughaDisplay* previousDisplay;
-    TestDisplay display;
-
-public:
-    InstalledDisplay(const IndexedFrame& source, IndexedDisplayFrame& destination)
-        : previousDisplay(cthughaDisplay)
-        , display() {
-        display.attach(source, destination);
-        cthughaDisplay = &display;
-    }
-
-    ~InstalledDisplay() {
-        cthughaDisplay = previousDisplay;
-    }
-};
-
 static ScreenEntry& requiredScreenEntry(int index, const char* name) {
     ScreenEntry* entry = screenByIndex(index);
     assert(entry != 0);
@@ -159,7 +134,9 @@ static int renderScreenEntry(ScreenEntry& entry, const IndexedFrame& source,
     preparePaddedDestination(destination, output.x, output.y, output.x + 3,
         kDestinationSentinel);
 
-    InstalledDisplay installedDisplay(source, destination);
+    ScreenRenderContext context(source, destination, now, deltaT, 60.0);
+    ScopedScreenRenderContext contextScope(context);
+    assert(cthughaDisplay == 0);
     return entry();
 }
 
@@ -293,7 +270,9 @@ static void testGeometryRetryMovesToNextScreenEntry() {
     preparePaddedDestination(destination, output.x, output.y, output.x + 3,
         kDestinationSentinel);
 
-    InstalledDisplay installedDisplay(source.frame(), destination);
+    ScreenRenderContext context(source.frame(), destination, now, deltaT, 60.0);
+    ScopedScreenRenderContext contextScope(context);
+    assert(cthughaDisplay == 0);
     screen.change("2verd", 0);
 
     int result = entry();
