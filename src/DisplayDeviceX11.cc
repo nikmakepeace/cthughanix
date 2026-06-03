@@ -18,6 +18,8 @@
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "DisplayBackend.h"
+#include "DisplayRuntime.h"
 #include "ViewportPresentation.h"
 #include "xcthugha.h"
 
@@ -78,6 +80,31 @@ static DisplayViewport currentDisplayViewport() {
         draw_size.x, draw_size.y);
     return viewport;
 }
+
+class DisplayBackendX11 : public DisplayBackend {
+    DisplayDeviceX11& device;
+
+public:
+    explicit DisplayBackendX11(DisplayDeviceX11& device_)
+        : device(device_) {
+    }
+
+    virtual DisplayEventStats processEvents() {
+        return device.processEvents();
+    }
+
+    virtual PixelSize outputSize() const {
+        return PixelSize::fromXy(disp_size);
+    }
+
+    virtual void present(const DisplayPresentation& presentation) {
+        if (presentation.framePalette != NULL)
+            device.setFramePalette(presentation.framePalette);
+        if (presentation.needsFullCopy)
+            device.needsFullCopy = 1;
+        device.postDraw();
+    }
+};
 
 xy screenSizes[]
     = { xy(320, 200), xy(640, 480), xy(800, 600), xy(1024, 768), xy(1152, 864), xy(1280, 1024) };
@@ -1334,6 +1361,8 @@ int newDisplayDevice(Scene& scene, SceneCommands& sceneCommands) {
     }
 
     displayDevice = device;
+    displayBackend = new DisplayBackendX11(*device);
+    displayRuntime = new DisplayRuntime(*displayBackend);
     return 0;
 }
 

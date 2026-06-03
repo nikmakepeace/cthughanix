@@ -40,6 +40,7 @@ set(CTHUGHA_COMMON_SOURCES
     disp-ncurses.cc
     misc.cc
     DisplayDevice.cc
+    DisplayRuntime.cc
     AutoChanger.cc
     AudioAnalyzer.cc
     CthughaDisplay.cc

@@ -15,7 +15,9 @@
 #include "EffectControl.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "DisplayBackend.h"
 #include "DisplayDevice.h"
+#include "DisplayRuntime.h"
 #include "Flashlight.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
@@ -167,6 +169,10 @@ void Application::shutdown() {
     }
     delete cthughaDisplay;
     cthughaDisplay = NULL;
+    delete displayRuntime;
+    displayRuntime = NULL;
+    delete displayBackend;
+    displayBackend = NULL;
     delete displayDevice;
     displayDevice = NULL;
     platformLifecycle.shutdown();
@@ -288,7 +294,9 @@ void Application::run() {
         double postInterfaceStart = 0.0;
         double postInterfaceEnd = 0.0;
 
-        DisplayEventStats eventStats = displayDevice->processEvents();
+        DisplayEventStats eventStats = displayRuntime != NULL
+            ? displayRuntime->processEvents()
+            : displayDevice->processEvents();
         if (traceDisplayTiming)
             eventsEnd = getTime();
 

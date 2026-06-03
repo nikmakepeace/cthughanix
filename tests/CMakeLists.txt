@@ -237,6 +237,24 @@ target_link_libraries(cthugha_display_viewport_test PRIVATE m)
 add_test(NAME cthugha_display_viewport_test
     COMMAND cthugha_display_viewport_test)
 
+add_executable(display_runtime_test
+    unit/DisplayRuntimeTest.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
+    ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/FramePalette.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+)
+
+target_include_directories(display_runtime_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(display_runtime_test PRIVATE m)
+
+add_test(NAME display_runtime_test COMMAND display_runtime_test)
+
 add_executable(warning_clean_smoke_test
     unit/WarningCleanSmokeTest.cc
 )

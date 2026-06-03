@@ -8,6 +8,7 @@
 #include "imath.h"
 #include "Interface.h"
 #include "IndexedFrame.h"
+#include "Screen.h"
 #include "ViewportPolicy.h"
 #include "ViewportPresentation.h"
 
@@ -58,6 +59,17 @@ public:
 static VisualFrameView visualBuffer() {
     return VisualFrameView();
 }
+
+class GlobalPresentationScreenSelection : public PresentationScreenSelection {
+public:
+    virtual ScreenEntry* current() {
+        return (ScreenEntry*)screen.current();
+    }
+
+    virtual void change(int by, int doSave) {
+        screen.change(by, doSave);
+    }
+};
 
 CthughaDisplay::CthughaDisplay()
     : sourceFrame(0)
@@ -162,6 +174,11 @@ const IndexedDisplayFrame& CthughaDisplay::composePresentationFrame(
         indexedDisplayFrameValue, screenSelection, now, deltaT, fps, this);
     buffer0 = indexedDisplayFrameValue.pixels();
     return frame;
+}
+
+const IndexedDisplayFrame& CthughaDisplay::composePresentationFrame() {
+    GlobalPresentationScreenSelection screenSelection;
+    return composePresentationFrame(screenSelection);
 }
 
 /*

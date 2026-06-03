@@ -64,6 +64,7 @@ protected:
 
     const IndexedDisplayFrame& composePresentationFrame(
         PresentationScreenSelection& screenSelection);
+    const IndexedDisplayFrame& composePresentationFrame();
 
     void checkFPS();
     void checkZoom();

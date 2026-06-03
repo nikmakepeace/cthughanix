@@ -7,7 +7,7 @@
 #include "imath.h"
 #include "Interface.h"
 #include "IndexedFrame.h"
-#include "Screen.h"
+#include "DisplayRuntime.h"
 #include "ViewportPresentation.h"
 
 #include <stdint.h>
@@ -38,17 +38,6 @@ public:
 static VisualFrameView visualBuffer() {
     return VisualFrameView();
 }
-
-class GlobalPresentationScreenSelection : public PresentationScreenSelection {
-public:
-    virtual ScreenEntry* current() {
-        return (ScreenEntry*)screen.current();
-    }
-
-    virtual void change(int by, int doSave) {
-        screen.change(by, doSave);
-    }
-};
 
 void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }
 
@@ -378,8 +367,7 @@ void CthughaDisplayX11::operator()() {
     if (traceDisplayTiming)
         displayTiming[1] = getTime();
 
-    GlobalPresentationScreenSelection screenSelection;
-    composePresentationFrame(screenSelection);
+    composePresentationFrame();
     if (traceDisplayTiming)
         displayTiming[2] = getTime();
 
@@ -428,6 +416,7 @@ void CthughaDisplayX11::operator()() {
     /*
      * clear the border around the image
      */
+    int borderClearRequested = displayDevice->textOnScreen || needsClear;
     clearBorder();
 
     /*
@@ -452,7 +441,11 @@ void CthughaDisplayX11::operator()() {
     /*
      * make sure everything is really copied to the screen
      */
-    displayDevice->postDraw();
+    if (displayRuntime != NULL)
+        displayRuntime->present(indexedDisplayFrameValue, displayViewport(),
+            displayDevice->needsFullCopy, borderClearRequested);
+    else
+        displayDevice->postDraw();
     if (traceDisplayTiming) {
         displayTiming[7] = getTime();
         CTH_TRACE("x11 frame-ms=%.3f palette-ms=%.3f compose-ms=%.3f prepare-ms=%.3f expand-ms=%.3f zoom-clear-ms=%.3f text-ms=%.3f post-ms=%.3f draw-mode=%d bypp=%d size=%dx%d draw=%dx%d\n",
