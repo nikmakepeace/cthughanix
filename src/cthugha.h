@@ -55,15 +55,25 @@ char *strchr(), *strrchr();
 #if HAVE_ENDIAN_H
 #include <endian.h>
 #else
+#ifndef __LITTLE_ENDIAN
 #define __LITTLE_ENDIAN 1234
+#endif
+#ifndef __BIG_ENDIAN
 #define __BIG_ENDIAN 4321
+#endif
+#ifndef __PDP_ENDIAN
 #define __PDP_ENDIAN 3412
+#endif
+#ifndef __BYTE_ORDER
 #ifdef WORDS_BIGENDIAN
 #define __BYTE_ORDER __BIG_ENDIAN
 #else
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
+#endif
+#ifndef BYTE_ORDER
 #define BYTE_ORDER __BYTE_ORDER
+#endif
 #endif
 
 /*
