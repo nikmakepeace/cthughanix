@@ -36,11 +36,6 @@ protected:
     int frames;
     double visualLatencyEstimate;
 
-    // Complete missing mirrored regions when a screen() function produced only
-    // part of the selected IndexedDisplayFrame.
-    void mirrorHorizontally(int height);
-    void mirrorVertically(int height);
-
     // Keep stale text/old image data out of the letterboxed area.
     int clearBorder();
 
@@ -48,7 +43,7 @@ protected:
     void zoom2Screen(unsigned char*, int);
 
     // Backends override this when indexed rows must be converted to the
-    // device's native pixel format before mirrorVertically()/zoom2Screen() run.
+    // device's native pixel format before completion/zooming run.
     virtual void expandPalette(int) { }
 
     /**

@@ -88,6 +88,23 @@ target_link_libraries(screen_render_context_test PRIVATE m)
 
 add_test(NAME screen_render_context_test COMMAND screen_render_context_test)
 
+add_executable(frame_completion_test
+    unit/FrameCompletionTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
+    ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
+)
+
+target_include_directories(frame_completion_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/unit
+)
+
+target_link_libraries(frame_completion_test PRIVATE m)
+
+add_test(NAME frame_completion_test COMMAND frame_completion_test)
+
 add_executable(warning_clean_smoke_test
     unit/WarningCleanSmokeTest.cc
 )

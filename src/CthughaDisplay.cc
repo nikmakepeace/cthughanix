@@ -161,40 +161,6 @@ void CthughaDisplay::prepareIndexedDisplayFrame(int width, int height) {
 }
 
 /*
- * do the horizontal mirroring
- * this is done in the buffer
- */
-void CthughaDisplay::mirrorHorizontally(int height) {
-    unsigned char* src = buffer;
-    unsigned char* dst = buffer + (visualBuffer().displayWidth() - 1);
-
-    for (int i = height; i != 0; i--) {
-        for (int j = visualBuffer().width(); j != 0; j--) {
-            *dst = *src;
-            src++;
-            dst--;
-        }
-        src += bufferWidth - visualBuffer().width();
-        dst += bufferWidth + visualBuffer().width();
-    }
-}
-
-/*
- * do the vertical mirroring
- * this is done in the expandedBuffer
- */
-void CthughaDisplay::mirrorVertically(int height) {
-    unsigned char* src = expandedBuffer;
-    unsigned char* dst = expandedBuffer + (visualBuffer().displayHeight() - 1) * expandedBufferWidth;
-
-    for (int i = height; i != 0; i--) {
-        memcpy(dst, src, visualBuffer().displayWidth() * bypp);
-        src += expandedBufferWidth;
-        dst -= expandedBufferWidth;
-    }
-}
-
-/*
  * clear the border around the image on the screen
  */
 int CthughaDisplay::clearBorder() {

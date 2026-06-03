@@ -4,6 +4,7 @@
 #include "DisplayDevice.h"
 #include "cth_buffer.h"
 #include "disp-sys.h"
+#include "FrameCompletion.h"
 #include "imath.h"
 #include "Interface.h"
 #include "IndexedFrame.h"
@@ -438,7 +439,8 @@ void CthughaDisplayX11::operator()() {
      * missing pieces before the image is copied to the display device.
      */
     if (filledOutputSize.x < indexedOutputSize.x)
-        mirrorHorizontally(filledOutputSize.y);
+        FrameCompletion::mirrorHorizontally(buffer, filledOutputSize.x,
+            indexedOutputSize.x, filledOutputSize.y, bufferWidth);
 
     /*
      * expand the palette (right now only the palette of buffer 0,
@@ -452,7 +454,8 @@ void CthughaDisplayX11::operator()() {
      * do veritical mirroring, if necessary
      */
     if (filledOutputSize.y < indexedOutputSize.y)
-        mirrorVertically(filledOutputSize.y);
+        FrameCompletion::mirrorVertically(expandedBuffer, indexedOutputSize.x * bypp,
+            indexedOutputSize.y, filledOutputSize.y, expandedBufferWidth);
     if (traceDisplayTiming)
         displayTiming[5] = getTime();
 
