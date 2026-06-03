@@ -42,8 +42,6 @@ int init_pcx() { return 0; }
 char extra_lib_path[PATH_MAX] = "";
 CthughaDisplay* cthughaDisplay = NULL;
 
-void CthughaDisplay::resetFPS() { }
-
 namespace {
 
 const int kHiddenRows = 3;

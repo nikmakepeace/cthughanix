@@ -3,7 +3,6 @@
 #include "display.h"
 #include "imath.h"
 #include "Border.h"
-#include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
@@ -12,11 +11,6 @@
 #include "flames.h"
 #include "TranslationOptions.h"
 #include "waves.h"
-
-static void resetDisplayTimingAfterEffectControlChange() {
-    if (cthughaDisplay != NULL)
-        cthughaDisplay->resetFPS();
-}
 
 //
 // ERROR:
@@ -124,7 +118,6 @@ ACTION(activate) {
     } else {
         currentEffectControl->setValue(Interface::current->sel);
         currentEffectControl->change(0, 0);
-        resetDisplayTimingAfterEffectControlChange();
     }
 }
 

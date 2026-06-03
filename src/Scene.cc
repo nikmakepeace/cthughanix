@@ -3,7 +3,6 @@
 #include "EffectPresetCatalog.h"
 #include "Border.h"
 #include "CthughaBuffer.h"
-#include "CthughaDisplay.h"
 #include "Flashlight.h"
 #include "Image.h"
 #include "display.h"
@@ -14,11 +13,6 @@
 #include <unistd.h>
 
 static SceneCommands* legacySceneCommands = 0;
-
-static void resetDisplayTimingAfterOptionChange() {
-    if (cthughaDisplay != 0)
-        cthughaDisplay->resetFPS();
-}
 
 SceneSettings::SceneSettings()
     : flame(0)
@@ -252,13 +246,11 @@ int SceneCommands::isSceneOption(const EffectControl& option) const {
 
 void SceneCommands::change(EffectControl& option, int by, int doSave) {
     option.change(by, doSave);
-    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
 void SceneCommands::change(EffectControl& option, const char* to, int doSave) {
     option.change(to, doSave);
-    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
@@ -269,7 +261,6 @@ void SceneCommands::activate(EffectControl& option, int index) {
     option[index]->setUse(1);
     option.setValue(index);
     option.change(0, 0);
-    resetDisplayTimingAfterOptionChange();
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
@@ -278,7 +269,6 @@ void SceneCommands::changeFlame(const char* to) { change(flame, to, 0); }
 
 void SceneCommands::changeGeneralFlame() {
     flameGeneral.changeRandom();
-    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneFlameChanged);
 }
 
@@ -316,15 +306,12 @@ void SceneCommands::changeImage(const char* to) { change(images, to, 0); }
 
 void SceneCommands::changeAll() {
     EffectControl::changeAll();
-    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
     EffectControl* changedOption = EffectControl::changeOne();
-    if (changedOption != 0)
-        resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneNoChange);
     if (changedOption == &images)
         emitImageCue();
@@ -332,14 +319,12 @@ void SceneCommands::changeOne() {
 
 void SceneCommands::restore() {
     EffectControl::restore();
-    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::restorePreset(int slot) {
     effectPresetCatalog.restore(slot);
-    resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }

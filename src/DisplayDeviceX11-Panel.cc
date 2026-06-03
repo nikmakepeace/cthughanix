@@ -11,7 +11,6 @@
 #include "Image.h"
 #include "FramePalette.h"
 #include "cth_buffer.h"
-#include "CthughaDisplay.h"
 #include "flames.h"
 #include "Scene.h"
 #include "TranslationOptions.h"
@@ -72,8 +71,6 @@ void DisplayDeviceX11::menuCB(Widget /*item*/, XtPointer data, XtPointer /*data2
         } else {
             d->opt->setValue(d->pos);
             d->opt->change(0, 0);
-            if (cthughaDisplay != 0)
-                cthughaDisplay->resetFPS();
         }
     }
 }

@@ -26,11 +26,6 @@ Interface* Interface::current = NULL;
 
 Interface* Interface::head = NULL;
 
-static void resetDisplayTimingAfterEffectControlChange() {
-    if (cthughaDisplay != NULL)
-        cthughaDisplay->resetFPS();
-}
-
 ////////////////////////////////////////////////////////////////////////////
 
 //
@@ -126,7 +121,6 @@ ACTION(chgValue1) {
         sceneCommands->change(*currentEffectControl, step, 0);
     else if (currentEffectControl) {
         currentEffectControl->change(step, 0);
-        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -142,7 +136,6 @@ ACTION(chgValue2) {
         sceneCommands->change(*currentEffectControl, step, 0);
     else if (currentEffectControl) {
         currentEffectControl->change(step, 0);
-        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -158,7 +151,6 @@ ACTION(chgValue3) {
         sceneCommands->change(*currentEffectControl, step, 0);
     else if (currentEffectControl) {
         currentEffectControl->change(step, 0);
-        resetDisplayTimingAfterEffectControlChange();
     }
     else if (currentOption)
         currentOption->change(step);
@@ -178,7 +170,6 @@ ACTION(setValue) {
     } else if (currentEffectControl) {
         currentEffectControl->change(str, 0);
         currentEffectControl->change(0, 0);
-        resetDisplayTimingAfterEffectControlChange();
     } else if (currentOption) {
         currentOption->change(str);
         currentOption->change(0);

@@ -240,11 +240,6 @@ void CthughaDisplay::updateFPS() {
         "frame pacing", deltaT * 1000.0, fps, rollingFps);
 }
 
-void CthughaDisplay::resetFPS() {
-    // FPS is now derived directly from the continuous frame clock; option
-    // changes should not reset or distort the displayed measurement.
-}
-
 void CthughaDisplay::observeVisualLatency(double seconds) {
     double previous = visualLatencyEstimate;
     double alpha = 0.1;

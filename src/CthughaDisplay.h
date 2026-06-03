@@ -90,8 +90,6 @@ public:
     int displayFrameWidth() const;
     int displayFrameHeight() const;
 
-    void resetFPS();
-
     /**
      * Adds a display presentation latency sample.
      *
