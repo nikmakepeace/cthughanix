@@ -268,7 +268,7 @@ EffectChoice* read_png_image(
         return NULL;
     }
 
-    IndexedImage* image = new IndexedImage(name, width, height);
+    IndexedImage* image = new IndexedImage(name, width, height, sourcePalette);
     unsigned char* pixels = image->mutablePixels();
     for (int y = 0; y < height; y++) {
         const unsigned char* row = &packedPixels[y * rowBytes];
@@ -276,5 +276,5 @@ EffectChoice* read_png_image(
             pixels[y * width + x] = indexedPngPixel(row, x, bitDepth);
     }
 
-    return new ImageEntry(name, "", image, sourcePalette);
+    return new ImageEntry(name, "", image);
 }

@@ -48,9 +48,11 @@ static int chooseImageLeft(int imageSize, int bufferSize) {
     return Random(bufferSize - imageSize + 1);
 }
 
-IndexedImage::IndexedImage(const char* name, int width, int height)
+IndexedImage::IndexedImage(const char* name, int width, int height,
+    ColorPalette* palette)
     : nameValue(0)
     , pixelsValue(0)
+    , paletteValue(palette)
     , widthValue(width)
     , heightValue(height) {
     const char* imageName = (name != 0) ? name : "";
@@ -66,6 +68,8 @@ IndexedImage::~IndexedImage() {
     nameValue = 0;
     delete[] pixelsValue;
     pixelsValue = 0;
+    delete paletteValue;
+    paletteValue = 0;
 }
 
 const char* IndexedImage::name() const {
@@ -90,6 +94,18 @@ const unsigned char* IndexedImage::pixels() const {
 
 unsigned char* IndexedImage::mutablePixels() {
     return pixelsValue;
+}
+
+void IndexedImage::setPalette(ColorPalette* palette) {
+    if (paletteValue == palette)
+        return;
+
+    delete paletteValue;
+    paletteValue = palette;
+}
+
+const ColorPalette* IndexedImage::palette() const {
+    return paletteValue;
 }
 
 ImagePlacement::ImagePlacement()
@@ -135,25 +151,17 @@ ImagePlacement RandomLegalImagePlacementStrategy::choose(const IndexedImage& ima
         bufferHeight);
 }
 
-ImageEntry::ImageEntry(const char* name, const char* desc, IndexedImage* image,
-    ColorPalette* palette)
+ImageEntry::ImageEntry(const char* name, const char* desc, IndexedImage* image)
     : EffectChoice(name, desc)
-    , imageValue(image)
-    , paletteValue(palette) { }
+    , imageValue(image) { }
 
 ImageEntry::~ImageEntry() {
     delete imageValue;
     imageValue = 0;
-    delete paletteValue;
-    paletteValue = 0;
 }
 
 const IndexedImage* ImageEntry::image() const {
     return imageValue;
-}
-
-const ColorPalette* ImageEntry::palette() const {
-    return paletteValue;
 }
 
 ImageOption::ImageOption(int buffer, const char* name)

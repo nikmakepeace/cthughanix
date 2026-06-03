@@ -197,7 +197,9 @@ EffectChoice* read_pcx_image(
         CTH_DEBUG("pcx: loaded source palette from `%s'\n", name);
     }
 
-    return new ImageEntry(name, "", image, sourcePalette);
+    image->setPalette(sourcePalette);
+
+    return new ImageEntry(name, "", image);
 }
 
 int save_pcx(unsigned char* buffer, int width, int height, Palette pal) {

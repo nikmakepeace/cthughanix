@@ -48,6 +48,13 @@ class VideoDirector : public SceneObserver {
     /** Arms a queued image cue when the filterchain and buffer are ready. */
     void applyPendingImageCue();
 
+    /**
+     * Applies the palette side effect chosen for an image cue.
+     *
+     * @param image Indexed image being injected; may carry its own source palette.
+     */
+    void applyImageCuePalette(const IndexedImage& image);
+
     /** Arms a queued text cue when the filterchain is ready. */
     void applyPendingTextCue();
 

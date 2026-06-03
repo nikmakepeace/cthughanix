@@ -196,7 +196,8 @@ const PaletteTransitionStrategy& randomPaletteTransitionStrategy() {
 PaletteTransition::PaletteTransition()
     : strategyValue(&linearPaletteTransitionStrategy())
     , hasTargetValue(0)
-    , remainingFramesValue(0) { }
+    , remainingFramesValue(0)
+    , holdCurrentFrameValue(0) { }
 
 int PaletteTransition::hasTarget(const ColorPalette& target) const {
     return hasTargetValue && targetPalette.equals(target);
@@ -210,15 +211,35 @@ void PaletteTransition::achieve(const ColorPalette& target, int frameBudget,
     targetPalette.copyFrom(target);
     strategyValue = &strategy;
     remainingFramesValue = (frameBudget > 0) ? frameBudget : 0;
+    holdCurrentFrameValue = 0;
     hasTargetValue = 1;
 
     CTH_DEBUG("palette transition target set strategy=%s frames=%d\n",
         strategyValue->name(), remainingFramesValue);
 }
 
+void PaletteTransition::snapThenAchieve(const ColorPalette& current,
+    const ColorPalette& target, int frameBudget, const PaletteTransitionStrategy& strategy) {
+    currentPalette.copyFrom(current);
+    targetPalette.copyFrom(target);
+    strategyValue = &strategy;
+    remainingFramesValue = (frameBudget > 0) ? frameBudget : 0;
+    holdCurrentFrameValue = 1;
+    hasTargetValue = 1;
+
+    CTH_DEBUG("palette transition snapped strategy=%s frames=%d\n",
+        strategyValue->name(), remainingFramesValue);
+}
+
 void PaletteTransition::execute(FramePalette& framePalette) {
     if (!hasTargetValue) {
         framePalette.clearPaletteDirty();
+        return;
+    }
+
+    if (holdCurrentFrameValue) {
+        holdCurrentFrameValue = 0;
+        framePalette.setPalette(currentPalette);
         return;
     }
 

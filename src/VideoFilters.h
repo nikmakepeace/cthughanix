@@ -295,6 +295,12 @@ public:
     int needsTarget(PaletteEntry* paletteEntry) const;
 
     /**
+     * @param palette Palette to compare against current target.
+     * @return Nonzero when a new transition target is needed.
+     */
+    int needsTarget(const ColorPalette& palette) const;
+
+    /**
      * Starts or replaces the target palette transition.
      *
      * @param paletteEntry Palette entry to transition toward; ignored when NULL.
@@ -302,6 +308,28 @@ public:
      * @param strategy Per-frame palette interpolation strategy.
      */
     void setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
+        const PaletteTransitionStrategy& strategy);
+
+    /**
+     * Starts or replaces the target palette transition.
+     *
+     * @param palette Palette to transition toward.
+     * @param frameBudget Number of visual frames over which to transition.
+     * @param strategy Per-frame palette interpolation strategy.
+     */
+    void setTargetPalette(const ColorPalette& palette, int frameBudget,
+        const PaletteTransitionStrategy& strategy);
+
+    /**
+     * Displays one palette for one palette-stage execution, then returns to a target.
+     *
+     * @param immediatePalette Palette shown on the next palette-stage execution.
+     * @param targetPalette Palette to transition toward after the one-frame snap.
+     * @param frameBudget Number of visual frames over which to transition back.
+     * @param strategy Per-frame palette interpolation strategy.
+     */
+    void snapThenTransitionPalette(const ColorPalette& immediatePalette,
+        const ColorPalette& targetPalette, int frameBudget,
         const PaletteTransitionStrategy& strategy);
 
     /**

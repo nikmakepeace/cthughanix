@@ -31,6 +31,7 @@ struct ImageLoadTarget {
 class IndexedImage {
     char* nameValue;
     unsigned char* pixelsValue;
+    ColorPalette* paletteValue;
     int widthValue;
     int heightValue;
 
@@ -44,8 +45,9 @@ public:
      * @param name Image display/option name.
      * @param width Width in pixels.
      * @param height Height in pixels.
+     * @param palette Owned source palette for these indices, or NULL.
      */
-    IndexedImage(const char* name, int width, int height);
+    IndexedImage(const char* name, int width, int height, ColorPalette* palette = 0);
     ~IndexedImage();
 
     /** @return Image display/option name. */
@@ -65,6 +67,16 @@ public:
 
     /** @return Mutable 8-bit palette-index pixels for loaders. */
     unsigned char* mutablePixels();
+
+    /**
+     * Replaces the image source palette.
+     *
+     * @param palette Owned 256-color RGB palette for these indices, or NULL.
+     */
+    void setPalette(ColorPalette* palette);
+
+    /** @return Source palette owned by this indexed image, or NULL. */
+    const ColorPalette* palette() const;
 };
 
 /**
@@ -151,11 +163,10 @@ public:
 };
 
 /**
- * Image option entry owning optional image pixels and source palette.
+ * Image option entry owning optional indexed image pixels.
  */
 class ImageEntry : public EffectChoice {
     IndexedImage* imageValue;
-    ColorPalette* paletteValue;
 
     ImageEntry(const ImageEntry&);
     ImageEntry& operator=(const ImageEntry&);
@@ -167,17 +178,12 @@ public:
      * @param name Option/display name.
      * @param desc Human-readable description.
      * @param image Owned indexed image, or NULL.
-     * @param palette Owned source palette, or NULL.
      */
-    ImageEntry(const char* name, const char* desc, IndexedImage* image = 0,
-        ColorPalette* palette = 0);
+    ImageEntry(const char* name, const char* desc, IndexedImage* image = 0);
     ~ImageEntry();
 
     /** @return Owned image pointer, or NULL. */
     const IndexedImage* image() const;
-
-    /** @return Owned source palette pointer, or NULL. */
-    const ColorPalette* palette() const;
 };
 
 /**

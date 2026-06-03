@@ -36,14 +36,18 @@ static int paletteSmoothingFrameBudget() {
     return max(fps * DEFAULT_PALETTE_SMOOTH_SECONDS, 1);
 }
 
-static int paletteChangeFrameBudget() {
+static int shouldSmoothPaletteChange() {
     if (paletteSmoothingChance <= 0.0)
         return 0;
 
     if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance)
         return 0;
 
-    return paletteSmoothingFrameBudget();
+    return 1;
+}
+
+static int paletteChangeFrameBudget() {
+    return shouldSmoothPaletteChange() ? paletteSmoothingFrameBudget() : 0;
 }
 
 static int quietMessageFrameBudget() {
@@ -53,6 +57,23 @@ static int quietMessageFrameBudget() {
         : DEFAULT_QUIET_MESSAGE_DURATION_MS;
 
     return max(1, (fps * (durationMs / 1000)));
+}
+
+enum ImageCuePaletteMode {
+    ImageCuePaletteSnapThenReturn,
+    ImageCuePaletteAdopt,
+    ImageCuePaletteIgnore
+};
+
+static ImageCuePaletteMode chooseImageCuePaletteMode() {
+    if (shouldSmoothPaletteChange())
+        return ImageCuePaletteSnapThenReturn;
+
+    return (rand() % 2 == 0) ? ImageCuePaletteAdopt : ImageCuePaletteIgnore;
+}
+
+static const ColorPalette* scenePaletteColors(const SceneSettings& settings) {
+    return (settings.palette != 0) ? &settings.palette->colors() : 0;
 }
 
 VideoDirector::VideoDirector()
@@ -206,14 +227,16 @@ void VideoDirector::applySceneToFilterchain(unsigned int changes) {
         frameCommitFilter->setSceneNames(settings.flameName, settings.waveName,
             settings.waveScaleName, settings.tableName);
 
-    PaletteFilter* paletteFilter
-        = stageFilter<PaletteFilter>(*filterchain, VideoFilterchainSequence::PaletteStage);
-    if (paletteFilter != 0) {
-        int frameBudget = paletteFilter->needsTarget(settings.palette)
-            ? paletteChangeFrameBudget()
-            : 0;
-        paletteFilter->setTargetPalette(settings.palette, frameBudget,
-            randomPaletteTransitionStrategy());
+    if (changes & ScenePaletteChanged) {
+        PaletteFilter* paletteFilter
+            = stageFilter<PaletteFilter>(*filterchain, VideoFilterchainSequence::PaletteStage);
+        if (paletteFilter != 0) {
+            int frameBudget = paletteFilter->needsTarget(settings.palette)
+                ? paletteChangeFrameBudget()
+                : 0;
+            paletteFilter->setTargetPalette(settings.palette, frameBudget,
+                randomPaletteTransitionStrategy());
+        }
     }
 
     filterchain->setStageMode(VideoFilterchainSequence::FlashlightStage,
@@ -242,9 +265,44 @@ void VideoDirector::applyPendingImageCue() {
         buffer->width(), buffer->height()));
     imageFilter->setOverlayPassiveBuffer(1);
     filterchain->setStageMode(VideoFilterchainSequence::ImageStage, VideoFilterArmedOnce);
+    applyImageCuePalette(*pendingImageCue);
 
     appliedImageCueId = pendingImageCueId;
     pendingImageCue = 0;
+}
+
+void VideoDirector::applyImageCuePalette(const IndexedImage& image) {
+    if (scene == 0 || filterchain == 0)
+        return;
+
+    const ColorPalette* imagePalette = image.palette();
+    if (imagePalette == 0)
+        return;
+
+    PaletteFilter* paletteFilter
+        = stageFilter<PaletteFilter>(*filterchain, VideoFilterchainSequence::PaletteStage);
+    if (paletteFilter == 0)
+        return;
+
+    ImageCuePaletteMode mode = chooseImageCuePaletteMode();
+    if (mode == ImageCuePaletteIgnore)
+        return;
+
+    if (mode == ImageCuePaletteAdopt) {
+        paletteFilter->setTargetPalette(*imagePalette, 0,
+            linearPaletteTransitionStrategy());
+        return;
+    }
+
+    const ColorPalette* returnPalette = scenePaletteColors(scene->settings());
+    if (returnPalette == 0) {
+        paletteFilter->setTargetPalette(*imagePalette, 0,
+            linearPaletteTransitionStrategy());
+        return;
+    }
+
+    paletteFilter->snapThenTransitionPalette(*imagePalette, *returnPalette,
+        paletteSmoothingFrameBudget(), linearPaletteTransitionStrategy());
 }
 
 void VideoDirector::applyPendingTextCue() {

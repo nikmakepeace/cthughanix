@@ -13,6 +13,23 @@ target_link_libraries(indexed_display_frame_test PRIVATE m)
 
 add_test(NAME indexed_display_frame_test COMMAND indexed_display_frame_test)
 
+add_executable(palette_transition_test
+    unit/PaletteTransitionTest.cc
+    ${CMAKE_SOURCE_DIR}/src/PaletteTransition.cc
+    ${CMAKE_SOURCE_DIR}/src/FramePalette.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+)
+
+target_include_directories(palette_transition_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(palette_transition_test PRIVATE m)
+
+add_test(NAME palette_transition_test COMMAND palette_transition_test)
+
 add_executable(warning_clean_smoke_test
     unit/WarningCleanSmokeTest.cc
 )

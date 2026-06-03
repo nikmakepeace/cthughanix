@@ -422,13 +422,29 @@ FramePalette& PaletteFilter::framePalette() {
 }
 
 int PaletteFilter::needsTarget(PaletteEntry* paletteEntry) const {
-    return paletteEntry != 0 && !transition.hasTarget(paletteEntry->colors());
+    return paletteEntry != 0 && needsTarget(paletteEntry->colors());
+}
+
+int PaletteFilter::needsTarget(const ColorPalette& palette) const {
+    return !transition.hasTarget(palette);
 }
 
 void PaletteFilter::setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
     const PaletteTransitionStrategy& strategy) {
     if (paletteEntry != 0)
-        transition.achieve(paletteEntry->colors(), frameBudget, strategy);
+        setTargetPalette(paletteEntry->colors(), frameBudget, strategy);
+}
+
+void PaletteFilter::setTargetPalette(const ColorPalette& palette, int frameBudget,
+    const PaletteTransitionStrategy& strategy) {
+    transition.achieve(palette, frameBudget, strategy);
+}
+
+void PaletteFilter::snapThenTransitionPalette(const ColorPalette& immediatePalette,
+    const ColorPalette& targetPalette, int frameBudget,
+    const PaletteTransitionStrategy& strategy) {
+    transition.snapThenAchieve(immediatePalette, targetPalette, frameBudget,
+        strategy);
 }
 
 void PaletteFilter::execute(VideoFrame& frame) {
