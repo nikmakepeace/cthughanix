@@ -56,7 +56,7 @@ static void PH(const char* txt, const char* def = "") {
     int dl = 79 - strlen(txt);
 
     char fmt[100];
-    sprintf(fmt, "%%s%%%ds\n", dl);
+    snprintf(fmt, sizeof(fmt), "%%s%%%ds\n", dl);
 
     printfv(0, fmt, txt, d);
 }

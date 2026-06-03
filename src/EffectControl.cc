@@ -44,7 +44,7 @@ const char* EffectControl::name() const {
     if (buffer < 0)
         return _name;
 
-    sprintf(str, "%s.%d", _name, buffer);
+    snprintf(str, sizeof(str), "%s.%d", _name, buffer);
     return str;
 }
 

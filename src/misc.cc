@@ -233,7 +233,7 @@ int systemf(const char* fmt, ...) {
 
     va_list ap;
     va_start(ap, fmt);
-    vsprintf(cmd, fmt, ap);
+    vsnprintf(cmd, sizeof(cmd), fmt, ap);
     va_end(ap);
 
     return system(cmd);

@@ -45,6 +45,12 @@
 
 #include "xcthugha.h"
 
+template <class T>
+static void xawSetArg(Arg& arg, const char* name, T value) {
+    arg.name = const_cast<String>(name);
+    arg.value = (XtArgVal)value;
+}
+
 //
 // Create the panel with buttons and menus
 //
@@ -468,7 +474,7 @@ void DisplayDeviceX11::setPaletteMetadataStatus(const char* status) {
         return;
 
     Arg wargs[1];
-    XtSetArg(wargs[0], XtNlabel, status ? status : "");
+    xawSetArg(wargs[0], XtNlabel, status ? status : "");
     XtSetValues(paletteMetadataStatusWidget, wargs, 1);
 }
 
@@ -687,14 +693,14 @@ Widget DisplayDeviceX11::add_menu(
 
     /* create menu button */
     n = 0;
-    XtSetArg(wargs[n], XtNlabel, name);
+    xawSetArg(wargs[n], XtNlabel, name);
     n++;
     if (under) {
-        XtSetArg(wargs[n], XtNfromVert, under);
+        xawSetArg(wargs[n], XtNfromVert, under);
         n++;
     }
     if (right) {
-        XtSetArg(wargs[n], XtNfromHoriz, right);
+        xawSetArg(wargs[n], XtNfromHoriz, right);
         n++;
     }
     button = XtCreateManagedWidget(name, menuButtonWidgetClass, parent, wargs, n);
@@ -709,7 +715,7 @@ Widget DisplayDeviceX11::add_menu(
     }
 
     if (what->getNEntries() <= 0) {
-        XtSetArg(wargs[0], XtNlabel, "none");
+        xawSetArg(wargs[0], XtNlabel, "none");
         XtCreateManagedWidget("none", smeBSBObjectClass, menu, wargs, 1);
     }
 
@@ -722,7 +728,7 @@ Widget DisplayDeviceX11::add_menu(
         md->opt = what;
         md->pos = i;
 
-        XtSetArg(wargs[0], XtNlabel, label);
+        xawSetArg(wargs[0], XtNlabel, label);
         item = XtCreateManagedWidget((*what)[i]->Name(), smeBSBObjectClass, menu, wargs, 1);
         XtAddCallback(item, XtNcallback, menuCB, md);
     }
@@ -740,18 +746,18 @@ void DisplayDeviceX11::xcth_create_panel() {
     panel = XtCreateManagedWidget("panel", formWidgetClass, xcth_toplevel, NULL, 0);
 
     /* create the quit button */
-    XtSetArg(wargs[0], XtNlabel, "Quit!");
+    xawSetArg(wargs[0], XtNlabel, "Quit!");
     quit_button = XtCreateManagedWidget("quit", commandWidgetClass, panel, wargs, 1);
     XtAddCallback(quit_button, XtNcallback, (XtCallbackProc)quit, NULL);
 
     /* create the change button */
-    XtSetArg(wargs[0], XtNlabel, "Change!");
-    XtSetArg(wargs[1], XtNfromHoriz, quit_button);
+    xawSetArg(wargs[0], XtNlabel, "Change!");
+    xawSetArg(wargs[1], XtNfromHoriz, quit_button);
     change_button = XtCreateManagedWidget("change", commandWidgetClass, panel, wargs, 2);
     XtAddCallback(change_button, XtNcallback, key_button, (char*)" ");
 
-    XtSetArg(wargs[0], XtNlabel, "Delete Palette");
-    XtSetArg(wargs[1], XtNfromHoriz, change_button);
+    xawSetArg(wargs[0], XtNlabel, "Delete Palette");
+    xawSetArg(wargs[1], XtNfromHoriz, change_button);
     delete_palette_button
         = XtCreateManagedWidget("deletePalette", commandWidgetClass, panel, wargs, 2);
     XtAddCallback(delete_palette_button, XtNcallback, deletePaletteCB, this);
@@ -771,81 +777,81 @@ void DisplayDeviceX11::xcth_create_panel() {
     text_size.y = 40 / fontSize.y;
     if (text_size.y < 1)
         text_size.y = 1;
-    XtSetArg(wargs[0], XtNfromVert, menu[0]);
-    XtSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
-    XtSetArg(wargs[2], XtNheight, 40);
+    xawSetArg(wargs[0], XtNfromVert, menu[0]);
+    xawSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
+    xawSetArg(wargs[2], XtNheight, 40);
     panelTextWidget = XtCreateManagedWidget("panelText", labelWidgetClass, panel, wargs, 3);
 
-    XtSetArg(wargs[0], XtNfromVert, panelTextWidget);
-    XtSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
-    XtSetArg(wargs[2], XtNheight, 256);
-    XtSetArg(wargs[3], XtNright, XawChainRight);
+    xawSetArg(wargs[0], XtNfromVert, panelTextWidget);
+    xawSetArg(wargs[1], XtNwidth, fontSize.x * text_size.x);
+    xawSetArg(wargs[2], XtNheight, 256);
+    xawSetArg(wargs[3], XtNright, XawChainRight);
     palettePreviewWidget = XtCreateManagedWidget("palettePreview", simpleWidgetClass, panel, wargs, 4);
     XtAddEventHandler(
         palettePreviewWidget, ExposureMask | StructureNotifyMask, False, palettePreviewExpose, this);
 
-    XtSetArg(wargs[0], XtNlabel, "Name");
-    XtSetArg(wargs[1], XtNfromVert, palettePreviewWidget);
+    xawSetArg(wargs[0], XtNlabel, "Name");
+    xawSetArg(wargs[1], XtNfromVert, palettePreviewWidget);
     name_label = XtCreateManagedWidget("paletteNameLabel", labelWidgetClass, panel, wargs, 2);
 
-    XtSetArg(wargs[0], XtNfromVert, palettePreviewWidget);
-    XtSetArg(wargs[1], XtNfromHoriz, name_label);
-    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
-    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
-    XtSetArg(wargs[4], XtNstring, "");
+    xawSetArg(wargs[0], XtNfromVert, palettePreviewWidget);
+    xawSetArg(wargs[1], XtNfromHoriz, name_label);
+    xawSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    xawSetArg(wargs[3], XtNeditType, XawtextEdit);
+    xawSetArg(wargs[4], XtNstring, "");
     paletteNameTextWidget
         = XtCreateManagedWidget("paletteNameText", asciiTextWidgetClass, panel, wargs, 5);
 
-    XtSetArg(wargs[0], XtNlabel, "Set");
-    XtSetArg(wargs[1], XtNfromVert, name_label);
+    xawSetArg(wargs[0], XtNlabel, "Set");
+    xawSetArg(wargs[1], XtNfromVert, name_label);
     set_label = XtCreateManagedWidget("paletteSetLabel", labelWidgetClass, panel, wargs, 2);
 
-    XtSetArg(wargs[0], XtNfromVert, paletteNameTextWidget);
-    XtSetArg(wargs[1], XtNfromHoriz, set_label);
-    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
-    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
-    XtSetArg(wargs[4], XtNstring, "");
+    xawSetArg(wargs[0], XtNfromVert, paletteNameTextWidget);
+    xawSetArg(wargs[1], XtNfromHoriz, set_label);
+    xawSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    xawSetArg(wargs[3], XtNeditType, XawtextEdit);
+    xawSetArg(wargs[4], XtNstring, "");
     paletteSetTextWidget
         = XtCreateManagedWidget("paletteSetText", asciiTextWidgetClass, panel, wargs, 5);
 
-    XtSetArg(wargs[0], XtNlabel, "Energy");
-    XtSetArg(wargs[1], XtNfromVert, set_label);
+    xawSetArg(wargs[0], XtNlabel, "Energy");
+    xawSetArg(wargs[1], XtNfromVert, set_label);
     energy_label = XtCreateManagedWidget("paletteEnergyLabel", labelWidgetClass, panel, wargs, 2);
 
-    XtSetArg(wargs[0], XtNfromVert, paletteSetTextWidget);
-    XtSetArg(wargs[1], XtNfromHoriz, energy_label);
-    XtSetArg(wargs[2], XtNwidth, fontSize.x * 64);
-    XtSetArg(wargs[3], XtNeditType, XawtextEdit);
-    XtSetArg(wargs[4], XtNstring, "");
+    xawSetArg(wargs[0], XtNfromVert, paletteSetTextWidget);
+    xawSetArg(wargs[1], XtNfromHoriz, energy_label);
+    xawSetArg(wargs[2], XtNwidth, fontSize.x * 64);
+    xawSetArg(wargs[3], XtNeditType, XawtextEdit);
+    xawSetArg(wargs[4], XtNstring, "");
     paletteEnergyTextWidget
         = XtCreateManagedWidget("paletteEnergyText", asciiTextWidgetClass, panel, wargs, 5);
 
-    XtSetArg(wargs[0], XtNlabel, "Save Metadata");
-    XtSetArg(wargs[1], XtNfromVert, energy_label);
+    xawSetArg(wargs[0], XtNlabel, "Save Metadata");
+    xawSetArg(wargs[1], XtNfromVert, energy_label);
     save_metadata_button
         = XtCreateManagedWidget("savePaletteMetadata", commandWidgetClass, panel, wargs, 2);
     XtAddCallback(save_metadata_button, XtNcallback, savePaletteMetadataCB, this);
 
-    XtSetArg(wargs[0], XtNlabel, "Revert");
-    XtSetArg(wargs[1], XtNfromVert, energy_label);
-    XtSetArg(wargs[2], XtNfromHoriz, save_metadata_button);
+    xawSetArg(wargs[0], XtNlabel, "Revert");
+    xawSetArg(wargs[1], XtNfromVert, energy_label);
+    xawSetArg(wargs[2], XtNfromHoriz, save_metadata_button);
     revert_metadata_button
         = XtCreateManagedWidget("revertPaletteMetadata", commandWidgetClass, panel, wargs, 3);
     XtAddCallback(revert_metadata_button, XtNcallback, revertPaletteMetadataCB, this);
 
-    XtSetArg(wargs[0], XtNlabel, "Next Untagged");
-    XtSetArg(wargs[1], XtNfromVert, energy_label);
-    XtSetArg(wargs[2], XtNfromHoriz, revert_metadata_button);
+    xawSetArg(wargs[0], XtNlabel, "Next Untagged");
+    xawSetArg(wargs[1], XtNfromVert, energy_label);
+    xawSetArg(wargs[2], XtNfromHoriz, revert_metadata_button);
     next_untagged_button
         = XtCreateManagedWidget("nextUntaggedPalette", commandWidgetClass, panel, wargs, 3);
     XtAddCallback(next_untagged_button, XtNcallback, nextUntaggedPaletteCB, this);
 
-    XtSetArg(wargs[0], XtNlabel, "");
-    XtSetArg(wargs[1], XtNfromVert, energy_label);
-    XtSetArg(wargs[2], XtNfromHoriz, next_untagged_button);
-    XtSetArg(wargs[3], XtNwidth, fontSize.x * 18);
-    XtSetArg(wargs[4], XtNborderWidth, 0);
-    XtSetArg(wargs[5], XtNjustify, XtJustifyLeft);
+    xawSetArg(wargs[0], XtNlabel, "");
+    xawSetArg(wargs[1], XtNfromVert, energy_label);
+    xawSetArg(wargs[2], XtNfromHoriz, next_untagged_button);
+    xawSetArg(wargs[3], XtNwidth, fontSize.x * 18);
+    xawSetArg(wargs[4], XtNborderWidth, 0);
+    xawSetArg(wargs[5], XtNjustify, XtJustifyLeft);
     paletteMetadataStatusWidget
         = XtCreateManagedWidget("paletteMetadataStatus", labelWidgetClass, panel, wargs, 6);
 

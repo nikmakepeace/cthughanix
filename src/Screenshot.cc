@@ -8,9 +8,9 @@ char* prtFileName(const char* ext) {
     static int count = 0;
 
     if (count == 0) {
-        sprintf(name, "%s.%s", display_prt_file, ext);
+        snprintf(name, sizeof(name), "%s.%s", display_prt_file, ext);
     } else {
-        sprintf(name, "%s.%d.%s", display_prt_file, count, ext);
+        snprintf(name, sizeof(name), "%s.%d.%s", display_prt_file, count, ext);
     }
     count++;
 

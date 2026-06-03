@@ -75,11 +75,11 @@ static EffectChoice* loadEntry(const char* name, char* total_name, const char* d
 
     if (compressed) {
         /* open with 'gzip' - through pipe */
-        char cmd[PATH_MAX];
+        char cmd[PATH_MAX + 16];
 
         CTH_DEBUG("uncompressing and ");
 
-        sprintf(cmd, "gzip -cd \"%s\"", total_name);
+        snprintf(cmd, sizeof(cmd), "gzip -cd \"%s\"", total_name);
 
         file = popen(cmd, "r");
 
@@ -120,11 +120,11 @@ static EffectChoice* loadEntry(const char* name, char* total_name, const char* d
 
     if (compressed) {
         /* open with 'gzip' - through pipe */
-        char cmd[PATH_MAX];
+        char cmd[PATH_MAX + 16];
 
         CTH_DEBUG("uncompressing and ");
 
-        sprintf(cmd, "gzip -cd \"%s\"", total_name);
+        snprintf(cmd, sizeof(cmd), "gzip -cd \"%s\"", total_name);
 
         file = popen(cmd, "r");
 

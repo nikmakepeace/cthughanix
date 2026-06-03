@@ -536,7 +536,7 @@ void PaletteEntry::random() {
 
     char str[512];
     delete[] name;
-    sprintf(str, "%s.%d", randomName, lastRandom);
+    snprintf(str, sizeof(str), "%s.%d", randomName, lastRandom);
     name = new char[strlen(str) + 1];
     strcpy(name, str);
 
@@ -545,7 +545,7 @@ void PaletteEntry::random() {
     //
     FILE* f;
     char fname[PATH_MAX];
-    sprintf(fname, "%s.map", name);
+    snprintf(fname, sizeof(fname), "%s.map", name);
 
     CTH_DEBUG("  saving '%s'.\n", fname);
 

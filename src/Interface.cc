@@ -168,7 +168,7 @@ ACTION(setValue) {
         return;
 
     char str[128];
-    sprintf(str, "%d", int(v * currentOptionInterfaceElement->inc1));
+    snprintf(str, sizeof(str), "%d", int(v * currentOptionInterfaceElement->inc1));
 
     SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
     if (currentEffectControl && sceneCommands != NULL
@@ -234,7 +234,7 @@ void Interface::display() {
 
     if (showStatus) {
         static char str[512];
-        sprintf(str, "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
+        snprintf(str, sizeof(str), "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
             (autoChanger != NULL) ? autoChanger->status() : "");
 
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
@@ -289,11 +289,11 @@ const char* InterfaceElementOption::text(int selected) {
     char fmt[512];
     char in[512];
 
-    sprintf(fmt, "%%c%%-%ds%%c", min(text_size.x - 3, 77));
-    sprintf(in, str, opt->text());
+    snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+    snprintf(in, sizeof(in), str, opt->text());
 
     // make format and include the > <
-    sprintf(strRet, fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
+    snprintf(strRet, sizeof(strRet), fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
 
     return strRet;
 }
@@ -402,9 +402,9 @@ public:
         char fmt[512];
         char in[512];
 
-        sprintf(fmt, "%%c%%-%ds%%c", min(text_size.x - 3, 77));
-        sprintf(in, str, sceneOptionText(sceneText, effectControl));
-        sprintf(strRet, fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
+        snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+        snprintf(in, sizeof(in), str, sceneOptionText(sceneText, effectControl));
+        snprintf(strRet, sizeof(strRet), fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
 
         return strRet;
     }

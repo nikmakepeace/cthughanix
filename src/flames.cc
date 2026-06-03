@@ -66,9 +66,9 @@ const char* GeneralFlameOption::text() const {
     static char str[32];
 
     if (lock)
-        sprintf(str, "locked:%d", value);
+        snprintf(str, sizeof(str), "locked:%d", value);
     else
-        sprintf(str, "%d", value);
+        snprintf(str, sizeof(str), "%d", value);
 
     return str;
 }

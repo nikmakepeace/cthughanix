@@ -58,14 +58,14 @@ public:
                 continue;
 
             char str1[128];
-            sprintf(str1, "%c%s", (s == sel) ? '>' : ' ', effectControl->entries[s]->name);
+            snprintf(str1, sizeof(str1), "%c%s", (s == sel) ? '>' : ' ', effectControl->entries[s]->name);
 
             char str2[128];
-            sprintf(str2, "%s %3s%c", effectControl->entries[s]->desc, effectControl->entries[s]->use.text(),
+            snprintf(str2, sizeof(str2), "%s %3s%c", effectControl->entries[s]->desc, effectControl->entries[s]->use.text(),
                 (s == sel) ? '<' : ' ');
 
             char str3[128];
-            sprintf(str3, "%40s", str2);
+            snprintf(str3, sizeof(str3), "%40s", str2);
 
             displayDevice->print(
                 str3, (i + 2), 'l', (s == sel) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);

@@ -101,11 +101,11 @@ const char* AutoChanger::status() {
     static char txt[512];
 
     if (lock) {
-        sprintf(txt, "locked ");
+        snprintf(txt, sizeof(txt), "locked ");
     } else {
         int now = gettime();
 
-        sprintf(txt, "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 1000.0,
+        snprintf(txt, sizeof(txt), "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 1000.0,
             changeCumulativeFireLevel - acousticContext.cumulativeFireLevel(),
             double(changeQuiet - (now - quietSince)) / 1000.0);
     }

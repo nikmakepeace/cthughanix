@@ -457,6 +457,6 @@ void CthughaDisplay::nextFrame() {
 const char* CthughaDisplay::status() {
     static char txt[512];
 
-    sprintf(txt, "fps: %5.2f ", fps);
+    snprintf(txt, sizeof(txt), "fps: %5.2f ", fps);
     return txt;
 }
