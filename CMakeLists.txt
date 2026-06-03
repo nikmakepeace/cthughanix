@@ -139,9 +139,6 @@ endif()
 install(DIRECTORY resources/img/ DESTINATION ${CTH_DATA_DIR}/img)
 install(DIRECTORY resources/map/ DESTINATION ${CTH_DATA_DIR}/map
         FILES_MATCHING PATTERN "*.map")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/map/png")
-    install(DIRECTORY resources/map/png/ DESTINATION ${CTH_DATA_DIR}/map/png)
-endif()
 install(DIRECTORY resources/obj/ DESTINATION ${CTH_DATA_DIR}/obj
         FILES_MATCHING PATTERN "*.obj")
 

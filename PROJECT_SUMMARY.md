@@ -54,8 +54,8 @@ deferred suspend handling
 - `src/` contains the application source: 62 top-level `.cc` files and 54
   top-level headers.
 - Built-in translation generators live in `src/TranslateGenerator.*`.
-- `resources/map/` contains 100 `.map` palettes and `resources/map/png/`
-  contains 23 palette preview PNGs.
+- `resources/map/` contains 100 `.map` palettes; palette previews are rendered
+  directly from palette data.
 - `resources/img/` contains classic indexed image assets: currently 6
   gzip-compressed `.pcx` files and 1 `.png` image. The same loader path accepts
   indexed PNGs, including `.png.gz`.

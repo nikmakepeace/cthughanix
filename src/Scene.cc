@@ -296,16 +296,6 @@ void SceneCommands::changeFlashlight(const char* to) { change(flashlight, to, 0)
 void SceneCommands::changePalette(int by) { change(palette, by, 0); }
 void SceneCommands::changePalette(const char* to) { change(palette, to, 0); }
 
-void SceneCommands::deletePaletteAndChange(int by) {
-    PaletteEntry* paletteEntry = palette.currentPaletteEntry();
-    if ((paletteEntry != 0) && (paletteEntry->sourcePath[0] != '\0'))
-        unlink(paletteEntry->sourcePath);
-
-    palette.change(by, 0);
-    resetDisplayTimingAfterOptionChange();
-    syncFromOptions(ScenePaletteChanged);
-}
-
 void SceneCommands::randomPalette() {
     PaletteEntry::Random();
     palette.setValue(PaletteEntry::lastRandomPos);

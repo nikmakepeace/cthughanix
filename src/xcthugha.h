@@ -91,8 +91,6 @@ public:
     int palettePreviewPalette;
     int palettePreviewWidth;
     int palettePreviewHeight;
-    double palettePreviewChangedAt;
-    char palettePreviewMapPath[PATH_MAX];
 
     enum { shmNone, shmImage, shmPixmap } shmLevel;
     XShmSegmentInfo shminfo;
@@ -129,7 +127,6 @@ protected:
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
     static void menuCB(Widget item, XtPointer data, XtPointer data2);
-    static void deletePaletteCB(Widget item, XtPointer data, XtPointer data2);
     static void savePaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
     static void revertPaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
     static void nextUntaggedPaletteCB(Widget item, XtPointer data, XtPointer data2);

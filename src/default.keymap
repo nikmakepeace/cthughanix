@@ -157,6 +157,3 @@ Left   toggleUse()
 *      toggleUse()
 Return setInterface(main) activate()
 \\     activate()
-
-# only used for thinning palettes out
-k deletePaletteChg(+1)

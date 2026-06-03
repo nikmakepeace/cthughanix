@@ -531,7 +531,6 @@ ACTION(soundProcessChg) { audioProcessing.change(int(v)); }
 ACTION(borderChg) { sceneCommandsForLegacyCallbacks()->changeBorder(int(v)); }
 ACTION(flashlightChg) { sceneCommandsForLegacyCallbacks()->changeFlashlight(int(v)); }
 ACTION(paletteChg) { sceneCommandsForLegacyCallbacks()->changePalette(int(v)); }
-ACTION(deletePaletteChg) { sceneCommandsForLegacyCallbacks()->deletePaletteAndChange(int(v)); }
 ACTION(tableChg) { sceneCommandsForLegacyCallbacks()->changeTable(int(v)); }
 ACTION(imageChg) { sceneCommandsForLegacyCallbacks()->changeImage(int(v)); }
 ACTION(lockChg) { lock.change(+1); }

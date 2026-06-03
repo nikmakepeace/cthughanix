@@ -154,7 +154,6 @@ public:
     void changeFlashlight(const char* to);
     void changePalette(int by);
     void changePalette(const char* to);
-    void deletePaletteAndChange(int by);
     void randomPalette();
     void addRandomPalette();
     void changeTable(int by);

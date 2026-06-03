@@ -175,9 +175,8 @@ Contains 100 `.map` palettes. Format: up to 256 RGB rows, with optional
 metadata lines before the RGB data. Supported metadata keys include `name`,
 `set`, and `energy`. Loader: `src/palettes.cc`.
 
-`resources/map/png/` contains 23 palette preview PNGs. These are installed by
-CMake when the directory exists, but the visualizer's palette loader uses `.map`
-files.
+The panel draws palette previews directly from the active and target `.map`
+palettes; there is no separate palette-preview image directory.
 
 Search path:
 
