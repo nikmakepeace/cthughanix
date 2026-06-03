@@ -10,6 +10,8 @@
 #include <vector>
 
 class AudioVisualBridge;
+class CthughaDisplay;
+class DisplayRuntimeOwnership;
 class IndexedFrame;
 class Scene;
 class SceneCommands;
@@ -34,6 +36,8 @@ class Application {
     std::unique_ptr<AudioVisualBridge> audioVisualBridge;
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
+    std::unique_ptr<DisplayRuntimeOwnership> displayRuntimeOwnership;
+    std::unique_ptr<CthughaDisplay> cthughaDisplayValue;
     PlatformLifecycle platformLifecycle;
     int shutdownComplete;
 

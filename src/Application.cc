@@ -171,14 +171,11 @@ void Application::shutdown() {
         exit_ncurses();
         ncursesInitialized = 0;
     }
-    delete cthughaDisplay;
+    cthughaDisplayValue.reset();
     cthughaDisplay = NULL;
-    delete displayRuntime;
-    displayRuntime = NULL;
-    delete displayBackend;
-    displayBackend = NULL;
-    delete displayDevice;
-    displayDevice = NULL;
+    if (displayRuntimeOwnership.get() != NULL)
+        displayRuntimeOwnership->shutdown();
+    displayRuntimeOwnership.reset();
     platformLifecycle.shutdown();
     audioRuntimeShutdown();
     shutdownVideoFilterchain();
@@ -263,9 +260,12 @@ int Application::initialize() {
     int displayArgc = int(displayArgv.size());
     if (cth_init(&displayArgc, displayArgv.data()))
         return 0;
-    if (newDisplayDevice(scene(), sceneCommands()))
+    displayRuntimeOwnership = newDisplayDevice(scene(), sceneCommands());
+    if (displayRuntimeOwnership.get() == NULL)
         return 0;
-    newCthughaDisplay();
+    displayRuntimeOwnership->publishAliases();
+    cthughaDisplayValue = newCthughaDisplay();
+    cthughaDisplay = cthughaDisplayValue.get();
 
     CTH_INFO("Loading effect-control usage and preset slots...\n");
     read_effect_control_usage_and_presets();

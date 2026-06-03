@@ -322,6 +322,22 @@ target_link_libraries(display_runtime_test PRIVATE m)
 
 add_test(NAME display_runtime_test COMMAND display_runtime_test)
 
+add_executable(display_ownership_test
+    unit/DisplayOwnershipTest.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayRuntimeOwnership.cc
+)
+
+target_include_directories(display_ownership_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(display_ownership_test PRIVATE m)
+
+add_test(NAME display_ownership_test COMMAND display_ownership_test)
+
 add_executable(overlay_source_test
     unit/OverlaySourceTest.cc
     ${CMAKE_SOURCE_DIR}/src/OverlaySource.cc

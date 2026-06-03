@@ -41,6 +41,7 @@ set(CTHUGHA_COMMON_SOURCES
     misc.cc
     DisplayDevice.cc
     DisplayRuntime.cc
+    DisplayRuntimeOwnership.cc
     AutoChanger.cc
     AudioAnalyzer.cc
     CthughaDisplay.cc

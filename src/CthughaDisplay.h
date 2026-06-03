@@ -8,6 +8,8 @@
 #include "IndexedDisplayFrame.h"
 #include "PresentationComposer.h"
 
+#include <memory>
+
 // The CthughaDisplay layer sits between the effect buffers and the selected
 // DisplayDevice backend.  It owns the per-frame timing, temporary image
 // buffers, mirroring/zooming, and the final handoff to the device.
@@ -123,7 +125,7 @@ public:
 
 extern CthughaDisplay* cthughaDisplay;
 
-/** Allocates the frontend-specific global CthughaDisplay instance. */
-void newCthughaDisplay();
+/** Allocates the frontend-specific display coordinator. */
+std::unique_ptr<CthughaDisplay> newCthughaDisplay();
 
 #endif

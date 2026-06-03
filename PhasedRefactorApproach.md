@@ -511,7 +511,7 @@ Move shared visual timing out of `CthughaDisplay`.
   observe the same frame timing values as before.
 - Any frame-pacing behavior change is isolated and measurable.
 
-## Phase 12: Move Display Ownership Into `Application`
+## Phase 12: Move Display Ownership Into `Application` - DONE
 
 ### Goal
 

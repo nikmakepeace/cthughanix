@@ -107,7 +107,9 @@ static OverlayCommands collectDisplayOverlays() {
     return overlays;
 }
 
-void newCthughaDisplay() { cthughaDisplay = new CthughaDisplayX11(); }
+std::unique_ptr<CthughaDisplay> newCthughaDisplay() {
+    return std::unique_ptr<CthughaDisplay>(new CthughaDisplayX11());
+}
 
 CthughaDisplayX11::CthughaDisplayX11()
     : CthughaDisplay() {

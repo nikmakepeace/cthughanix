@@ -5,9 +5,12 @@
 
 #include "display.h"
 
+#include <memory>
+
 class FramePalette;
 class Scene;
 class SceneCommands;
+class DisplayRuntimeOwnership;
 
 //
 //  Stuff about text-display
@@ -110,6 +113,7 @@ public:
 
 extern DisplayDevice* displayDevice;
 
-extern int newDisplayDevice(Scene& scene, SceneCommands& sceneCommands);
+extern std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
+    Scene& scene, SceneCommands& sceneCommands);
 
 #endif

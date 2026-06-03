@@ -38,6 +38,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <limits.h>
+#include <utility>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
@@ -1391,17 +1392,19 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
     }
 }
 
-int newDisplayDevice(Scene& scene, SceneCommands& sceneCommands) {
-    DisplayDeviceX11* device = new DisplayDeviceX11(scene, sceneCommands);
+std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
+    Scene& scene, SceneCommands& sceneCommands) {
+    std::unique_ptr<DisplayDeviceX11> device(
+        new DisplayDeviceX11(scene, sceneCommands));
     if (!device->isInitialized()) {
-        delete device;
-        return 1;
+        return std::unique_ptr<DisplayRuntimeOwnership>();
     }
 
-    displayDevice = device;
-    displayBackend = new DisplayBackendX11(*device);
-    displayRuntime = new DisplayRuntime(*displayBackend);
-    return 0;
+    std::unique_ptr<DisplayBackend> backend(new DisplayBackendX11(*device));
+    std::unique_ptr<DisplayRuntime> runtime(new DisplayRuntime(*backend));
+    return std::unique_ptr<DisplayRuntimeOwnership>(
+        new DisplayRuntimeOwnership(std::move(device), std::move(backend),
+            std::move(runtime)));
 }
 
 #if HAVE_XPM_H
