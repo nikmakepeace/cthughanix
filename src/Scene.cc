@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "Scene.h"
+#include "EffectPresetCatalog.h"
 #include "Border.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
@@ -336,15 +337,15 @@ void SceneCommands::restore() {
     emitImageCue();
 }
 
-void SceneCommands::restore(int from) {
-    EffectControl::restore(from);
+void SceneCommands::restorePreset(int slot) {
+    effectPresetCatalog.restore(slot);
     resetDisplayTimingAfterOptionChange();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
-void SceneCommands::save(int to) {
-    EffectControl::save(to);
+void SceneCommands::savePreset(int slot) {
+    effectPresetCatalog.save(slot);
 }
 
 void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands) {

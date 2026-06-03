@@ -559,14 +559,14 @@ ACTION(soundReset) { audioFrameChange(); }
 ACTION(printScreen) { displayDevice->printScreen(); }
 
 ACTION(restore) { sceneCommandsForLegacyCallbacks()->restore(); }
-ACTION(toggleSave) { Interface::saveToHot = 1 - Interface::saveToHot; }
-ACTION(save) { sceneCommandsForLegacyCallbacks()->save(int(v)); }
+ACTION(toggleSave) { Interface::saveToPreset = 1 - Interface::saveToPreset; }
+ACTION(save) { sceneCommandsForLegacyCallbacks()->savePreset(int(v)); }
 ACTION(saveOrRestore) {
-    if (Interface::saveToHot) {
-        sceneCommandsForLegacyCallbacks()->save(int(v));
-        Interface::saveToHot = 0;
+    if (Interface::saveToPreset) {
+        sceneCommandsForLegacyCallbacks()->savePreset(int(v));
+        Interface::saveToPreset = 0;
     } else {
-        sceneCommandsForLegacyCallbacks()->restore(int(v));
+        sceneCommandsForLegacyCallbacks()->restorePreset(int(v));
     }
 }
 

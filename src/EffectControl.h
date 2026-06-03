@@ -128,11 +128,10 @@ protected:
     EffectControl* next;
 
     //
-    // History and Hot Values
+    // History
     //
     int* oldValues;
     int history;
-    int* hot;
 
     //
     // Choices
@@ -223,17 +222,12 @@ public:
     EffectControl* nextRegistered() const { return next; }
 
     //
-    // control History and Hot Values
+    // control History
     //
 
     static void save();
     static void restore();
 
-    static void save(int to);
-    static void restore(int from);
-    void setHotValue(int slot, int value_);
-    int hotValue(int slot) const;
-    static int hotSlotCount();
     static EffectControl* firstRegistered();
 
     friend class InterfaceList;

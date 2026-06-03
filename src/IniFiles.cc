@@ -444,15 +444,15 @@ int read_ini() {
 }
 
 /*
- * read the usage from the ini files
+ * read per-entry usage flags and preset slots after effect catalogs exist
  */
-int read_ini_usage() {
+int read_effect_control_usage_and_presets() {
 
     open_ini_start();
     while (open_ini_file() == 0) {
 
         effectControlGetIniUsages();
-        effectControlGetHotIni();
+        effectControlGetPresetIni();
 
         /* close the ini-file */
         if (ini_file)
@@ -562,9 +562,9 @@ int write_ini() {
 
     fprintf(ini_file,
         "#\n"
-        "# Effect Control 'Hot' options\n"
+        "# Effect Control preset slots\n"
         "#\n");
-    effectControlPutHotIni();
+    effectControlPutPresetIni();
 
     /*
      * copy old settings

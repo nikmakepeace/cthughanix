@@ -51,6 +51,26 @@ target_link_libraries(wave_object_test PRIVATE m)
 
 add_test(NAME wave_object_test COMMAND wave_object_test)
 
+add_executable(effect_preset_catalog_test
+    unit/EffectPresetCatalogTest.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(effect_preset_catalog_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(effect_preset_catalog_test PRIVATE m)
+
+add_test(NAME effect_preset_catalog_test COMMAND effect_preset_catalog_test)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_library(format_warning_clean OBJECT
         ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc

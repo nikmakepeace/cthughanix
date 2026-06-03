@@ -32,8 +32,6 @@ AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
     /* set initial wait-time till change */
     waitTime = changeWaitMin + rand() % changeWaitRandom;
 
-    read_ini_usage();
-
     lastChange = gettime();
     quietSince = gettime();
 }

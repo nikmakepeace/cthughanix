@@ -164,8 +164,8 @@ public:
     void changeAll();
     void changeOne();
     void restore();
-    void restore(int from);
-    void save(int to);
+    void restorePreset(int slot);
+    void savePreset(int slot);
 };
 
 void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands);

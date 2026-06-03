@@ -2,6 +2,7 @@ set(CTHUGHA_COMMON_SOURCES
     Option.cc
     OptionInt.cc
     EffectControl.cc
+    EffectPresetCatalog.cc
     EffectChoiceLoader.cc
     EffectControlIni.cc
     EffectChoice.cc

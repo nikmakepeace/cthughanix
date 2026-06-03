@@ -19,7 +19,7 @@
 #include <ctype.h>
 #include <signal.h>
 
-int Interface::saveToHot = 0;
+int Interface::saveToPreset = 0;
 int Interface::showStatus = 0;
 
 Interface* Interface::current = NULL;
@@ -240,8 +240,8 @@ void Interface::display() {
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
     }
 
-    if (saveToHot) {
-        displayDevice->print("save to hotkey (press 0..9)", text_size.y - (showStatus ? 2 : 1), 'l',
+    if (saveToPreset) {
+        displayDevice->print("save to preset slot (press 0..9)", text_size.y - (showStatus ? 2 : 1), 'l',
             TEXT_COLOR_NORMAL);
     }
 

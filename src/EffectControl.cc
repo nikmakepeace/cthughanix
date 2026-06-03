@@ -9,7 +9,6 @@ static const int visualBufferCount = 1;
 EffectControl* EffectControl::first = NULL;
 
 const int MAX_HISTORY = 128;
-const int MAX_HOT = 10;
 
 EffectControl::EffectControl(int b, const char* n, EffectChoiceList& e, int flags_)
     : Option(n)
@@ -25,11 +24,6 @@ EffectControl::EffectControl(int b, const char* n, EffectChoiceList& e, int flag
     // history
     oldValues = new int[MAX_HISTORY];
     history = 0;
-
-    // hot values
-    hot = new int[MAX_HOT];
-    for (int i = 0; i < MAX_HOT; i++)
-        hot[i] = 0;
 }
 
 EffectControl& EffectControl::operator=(const EffectControl& other) {
@@ -303,48 +297,6 @@ void EffectControl::doRestore() {
         this->change(0, 0);
     }
 }
-
-//
-// save to hotkey position
-//
-void EffectControl::save(int to) {
-    if ((to < 0) || (to >= MAX_HOT))
-        return;
-
-    for (EffectControl* o = first; o != NULL; o = o->next)
-        o->hot[to] = o->value;
-}
-
-//
-// get back from hotkey
-//
-void EffectControl::restore(int from) {
-    if ((from < 0) || (from >= MAX_HOT))
-        return;
-
-    save();
-
-    for (EffectControl* o = first; o != NULL; o = o->next) {
-        o->value = o->hot[from];
-        o->change(0, 0);
-    }
-}
-
-void EffectControl::setHotValue(int slot, int value_) {
-    if ((slot < 0) || (slot >= MAX_HOT))
-        return;
-
-    hot[slot] = value_;
-}
-
-int EffectControl::hotValue(int slot) const {
-    if ((slot < 0) || (slot >= MAX_HOT))
-        return 0;
-
-    return hot[slot];
-}
-
-int EffectControl::hotSlotCount() { return MAX_HOT; }
 
 EffectControl* EffectControl::firstRegistered() { return first; }
 

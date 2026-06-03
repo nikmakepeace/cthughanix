@@ -5,6 +5,7 @@
 #include "cthugha.h"
 #include "EffectControl.h"
 #include "options.h"
+#include "EffectPresetCatalog.h"
 
 #include <string>
 
@@ -58,25 +59,25 @@ void effectControlPutIniUsages() {
     }
 }
 
-void effectControlGetHotIni() {
-    for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
+void effectControlGetPresetIni() {
+    for (int i = 0; i < effectPresetCatalog.slotCount(); i++) {
         for (EffectControl* option = firstEffectControl(); option != NULL;
              option = option->nextRegistered()) {
-            std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
+            std::string key = std::string("preset.") + std::to_string(i) + "." + option->name();
             char val[512];
             if (!getini(key.c_str(), val)) {
-                option->setHotValue(i, option->optNr(val));
+                effectPresetCatalog.setValue(i, *option, option->optNr(val));
             }
         }
     }
 }
 
-void effectControlPutHotIni() {
-    for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
+void effectControlPutPresetIni() {
+    for (int i = 0; i < effectPresetCatalog.slotCount(); i++) {
         for (EffectControl* option = firstEffectControl(); option != NULL;
              option = option->nextRegistered()) {
-            std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
-            putini(key.c_str(), option->text(option->hotValue(i)));
+            std::string key = std::string("preset.") + std::to_string(i) + "." + option->name();
+            putini(key.c_str(), option->text(effectPresetCatalog.value(i, *option)));
         }
     }
 }
@@ -87,7 +88,7 @@ int effectControlIsIniEntry(const char* entry) {
     if (strchr(entry, '?') != NULL)
         return 1;
 
-    if (strncasecmp(entry, "hot.", 4) == 0)
+    if (strncasecmp(entry, "preset.", 7) == 0)
         return 1;
 
     for (EffectControl* option = firstEffectControl(); option != NULL;
@@ -99,8 +100,8 @@ int effectControlIsIniEntry(const char* entry) {
         if ((strncasecmp(entry, option->name(), len) == 0) && (entry[len] == '.'))
             return 1;
 
-        for (int i = 0; i < EffectControl::hotSlotCount(); i++) {
-            std::string key = std::string("hot.") + std::to_string(i) + "." + option->name();
+        for (int i = 0; i < effectPresetCatalog.slotCount(); i++) {
+            std::string key = std::string("preset.") + std::to_string(i) + "." + option->name();
             if (strcasecmp(entry, key.c_str()) == 0)
                 return 1;
         }

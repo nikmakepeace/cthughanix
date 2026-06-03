@@ -34,7 +34,7 @@ extern struct option long_options[];
  * Stuff about ini-files
  */
 int read_ini(); /* read settings from ini-files */
-int read_ini_usage();
+int read_effect_control_usage_and_presets();
 int write_ini();
 int write_continuation_ini();
 

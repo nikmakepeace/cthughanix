@@ -1,4 +1,4 @@
-// Ini-file adapter for EffectControl values, usage flags, and hot slots.
+// Ini-file adapter for EffectControl values, usage flags, and preset slots.
 
 #ifndef __EFFECT_CONTROL_INI_H
 #define __EFFECT_CONTROL_INI_H
@@ -17,17 +17,17 @@ void effectControlGetIniUsages();
 /** Writes per-entry EffectControl usage flags to the currently open ini output. */
 void effectControlPutIniUsages();
 
-/** Reads EffectControl hot-slot selections from the currently open ini source. */
-void effectControlGetHotIni();
+/** Reads EffectControl preset-slot selections from the currently open ini source. */
+void effectControlGetPresetIni();
 
-/** Writes EffectControl hot-slot selections to the currently open ini output. */
-void effectControlPutHotIni();
+/** Writes EffectControl preset-slot selections to the currently open ini output. */
+void effectControlPutPresetIni();
 
 /**
  * Checks whether an ini key belongs to any registered EffectControl.
  *
  * @param entry Ini key without the "cthugha." prefix.
- * @return Nonzero when the key is an EffectControl initial value, usage flag, hot
+ * @return Nonzero when the key is an EffectControl initial value, usage flag, preset
  *         slot, or legacy wildcard key.
  */
 int effectControlIsIniEntry(const char* entry);

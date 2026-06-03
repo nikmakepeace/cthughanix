@@ -257,6 +257,9 @@ int Application::initialize() {
         return 0;
     newCthughaDisplay();
 
+    CTH_INFO("Loading effect-control usage and preset slots...\n");
+    read_effect_control_usage_and_presets();
+
     CTH_INFO("Initializing the audio-visual bridge...\n");
     initAudioVisualBridge();
 

@@ -22,7 +22,7 @@ public:
 
 class Interface {
 public:
-    static int saveToHot;
+    static int saveToPreset;
     static int showStatus;
 
     static Interface* current;
