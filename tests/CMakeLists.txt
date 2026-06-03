@@ -13,6 +13,23 @@ target_link_libraries(indexed_display_frame_test PRIVATE m)
 
 add_test(NAME indexed_display_frame_test COMMAND indexed_display_frame_test)
 
+add_executable(indexed_frame_test_fixtures_test
+    unit/IndexedFrameTestFixturesTest.cc
+    ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
+)
+
+target_include_directories(indexed_frame_test_fixtures_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/unit
+)
+
+target_link_libraries(indexed_frame_test_fixtures_test PRIVATE m)
+
+add_test(NAME indexed_frame_test_fixtures_test COMMAND indexed_frame_test_fixtures_test)
+
+
 add_executable(palette_transition_test
     unit/PaletteTransitionTest.cc
     ${CMAKE_SOURCE_DIR}/src/PaletteTransition.cc
