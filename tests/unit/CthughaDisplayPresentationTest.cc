@@ -132,6 +132,7 @@ public:
         , selection(selection_)
         , presented(0) {
         fps = 60.0;
+        rollingFps = 60.0;
     }
 
     virtual void operator()() {

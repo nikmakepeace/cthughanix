@@ -6,6 +6,7 @@
 #include "Image.h"
 #include "VideoFilters.h"
 #include "VideoDirector.h"
+#include "VideoFrameBudget.h"
 #include "cth_buffer.h"
 #include "defaults.h"
 #include "display.h"
@@ -21,13 +22,8 @@ static Filter* stageFilter(VideoFilterchain& filterchain, VideoFilterchainSequen
 }
 
 static int frameBudgetFramesPerSecond() {
-    if (int(maxFramesPerSecond) > 0)
-        return int(maxFramesPerSecond);
-
-    if (cthughaDisplay != 0 && cthughaDisplay->fps > 0)
-        return int(cthughaDisplay->fps);
-
-    return 60;
+    return videoFrameBudgetFramesPerSecond(int(maxFramesPerSecond),
+        cthughaDisplay != 0 ? cthughaDisplay->rollingFps : 0.0);
 }
 
 static int paletteSmoothingFrameBudget() {

@@ -36,9 +36,6 @@ protected:
     // classic screen functions still write through cthughaDisplay->buffer.
     unsigned char* buffer0;
 
-    // FPS accounting starts at displayStart and counts completed frames.
-    double displayStart;
-    int frames;
     double visualLatencyEstimate;
 
     // Keep stale text/old image data out of the letterboxed area.
@@ -105,7 +102,8 @@ public:
     /** @return Smoothed display presentation latency in seconds. */
     double visualLatencySeconds() const;
 
-    double fps; // most recently measured frames per second
+    double fps; // instantaneous frames per second from the last completed frame
+    double rollingFps; // rolling average frames per second for frame budgets
 
     /** @return Human-readable FPS/status text for the interface overlay. */
     const char* status();

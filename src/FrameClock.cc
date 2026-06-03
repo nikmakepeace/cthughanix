@@ -8,13 +8,21 @@ double SystemFrameTimeSource::seconds() {
 FrameClock::FrameClock(FrameTimeSource& timeSource_)
     : timeSource(timeSource_)
     , nowValue(0.0)
-    , deltaValue(0.0) {
+    , deltaValue(0.0)
+    , hasFrameValue(0)
+    , frameRateMeter() {
 }
 
 void FrameClock::beginFrame() {
     double previous = nowValue;
     nowValue = timeSource.seconds();
-    deltaValue = nowValue - previous;
+    if (hasFrameValue) {
+        deltaValue = nowValue - previous;
+        frameRateMeter.observeFrameDuration(deltaValue);
+    } else {
+        deltaValue = 0.0;
+        hasFrameValue = 1;
+    }
 }
 
 double FrameClock::sample() {
@@ -27,6 +35,14 @@ double FrameClock::now() const {
 
 double FrameClock::deltaT() const {
     return deltaValue;
+}
+
+double FrameClock::framesPerSecond() const {
+    return frameRateMeter.framesPerSecond();
+}
+
+double FrameClock::rollingFramesPerSecond() const {
+    return frameRateMeter.rollingFramesPerSecond();
 }
 
 void FrameClock::publish(double& nowAlias, double& deltaAlias) const {

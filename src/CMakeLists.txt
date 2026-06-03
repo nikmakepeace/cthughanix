@@ -50,6 +50,7 @@ set(CTHUGHA_COMMON_SOURCES
     FrameClock.cc
     FrameCompletion.cc
     FramePacer.cc
+    FrameRateMeter.cc
     Image.cc
     IndexedDisplayFrame.cc
     OverlaySource.cc
@@ -60,6 +61,7 @@ set(CTHUGHA_COMMON_SOURCES
     VideoFilterchainSequence.cc
     VideoFilters.cc
     VideoFilterchainFactory.cc
+    VideoFrameBudget.cc
     VideoDirector.cc
     keymap.cc
     InterfaceCredits.cc

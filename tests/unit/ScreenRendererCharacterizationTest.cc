@@ -87,13 +87,12 @@ CthughaDisplay::CthughaDisplay()
     : sourceFrame(0)
     , indexedDisplayFrameValue()
     , buffer0(0)
-    , displayStart(0.0)
-    , frames(0)
     , visualLatencyEstimate(0.0)
     , buffer(0)
     , bufferWidth(0)
     , needsClear(0)
-    , fps(60.0) {
+    , fps(60.0)
+    , rollingFps(60.0) {
 }
 
 CthughaDisplay::~CthughaDisplay() {

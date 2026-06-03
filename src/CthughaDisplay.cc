@@ -27,8 +27,6 @@ OptionOnOff showFPS("show-fps", DEFAULT_SHOW_FPS_ENABLED);
 OptionInt zoom("zoom", DEFAULT_ZOOM_MODE, ZOOM_MODE_MAX_EXCLUSIVE);
 xy draw_size(0, 0); /* size of the drawn image (including zoom) */
 
-double displayStart;
-
 // Frame clock shared by animation, sound processing, and display effects.
 // nextFrame() updates these before the rest of the frame runs.
 double now = 0;
@@ -81,15 +79,12 @@ CthughaDisplay::CthughaDisplay()
     , presentationComposer()
     , displayViewportValue()
     , buffer0(0)
-    , displayStart(0)
-    , frames(0)
     , visualLatencyEstimate(0)
     , buffer(0)
     , bufferWidth(0)
     , needsClear(1)
-    , fps(0) {
-
-    displayStart = frameClock.sample();
+    , fps(0)
+    , rollingFps(0) {
 }
 
 void CthughaDisplay::present(const IndexedFrame& frame) {
@@ -238,21 +233,16 @@ void CthughaDisplay::checkZoom() {
 }
 
 void CthughaDisplay::updateFPS() {
-    /*
-     * compute frames/second, of at least 3 frames or 0.1 second
-     */
-    double i = now - displayStart;
-    if ((i > 0.1) && (frames > 2))
-        fps = double(frames) / i;
-    frames++;
+    fps = frameClock.framesPerSecond();
+    rollingFps = frameClock.rollingFramesPerSecond();
 
-    CTH_TRACE("updateFPS deltaT-ms=%.3f fps=%.3f frames=%d\n",
-        "frame pacing", deltaT * 1000.0, fps, frames);
+    CTH_TRACE("updateFPS deltaT-ms=%.3f fps=%.3f rolling-fps=%.3f\n",
+        "frame pacing", deltaT * 1000.0, fps, rollingFps);
 }
 
 void CthughaDisplay::resetFPS() {
-    displayStart = frameClock.sample(); // restart the averaging window from this instant
-    frames = 0;
+    // FPS is now derived directly from the continuous frame clock; option
+    // changes should not reset or distort the displayed measurement.
 }
 
 void CthughaDisplay::observeVisualLatency(double seconds) {

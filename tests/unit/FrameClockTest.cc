@@ -1,6 +1,11 @@
 #include "FrameClock.h"
 
 #include <assert.h>
+#include <math.h>
+
+static void assertNear(double actual, double expected) {
+    assert(fabs(actual - expected) < 0.000001);
+}
 
 double getTime() {
     return -1.0;
@@ -30,7 +35,7 @@ static void testBeginFramePublishesNowAndDelta() {
 
     assert(timeSource.calls == 1);
     assert(clock.now() == 10.0);
-    assert(clock.deltaT() == 10.0);
+    assert(clock.deltaT() == 0.0);
 
     timeSource.value = 10.25;
     clock.beginFrame();
@@ -50,7 +55,7 @@ static void testPublishUpdatesLegacyAliases() {
     clock.publish(nowAlias, deltaAlias);
 
     assert(nowAlias == 20.0);
-    assert(deltaAlias == 20.0);
+    assert(deltaAlias == 0.0);
 }
 
 static void testSampleUsesInjectedTimeSourceWithoutAdvancingFrame() {
@@ -62,9 +67,29 @@ static void testSampleUsesInjectedTimeSourceWithoutAdvancingFrame() {
     assert(clock.deltaT() == 0.0);
 }
 
+static void testFrameRateReadoutsComeFromCompletedFrameDurations() {
+    FakeTimeSource timeSource(40.0);
+    FrameClock clock(timeSource);
+
+    clock.beginFrame();
+    assertNear(clock.framesPerSecond(), 0.0);
+    assertNear(clock.rollingFramesPerSecond(), 0.0);
+
+    timeSource.value = 40.040;
+    clock.beginFrame();
+    assertNear(clock.framesPerSecond(), 25.0);
+    assertNear(clock.rollingFramesPerSecond(), 25.0);
+
+    timeSource.value = 40.090;
+    clock.beginFrame();
+    assertNear(clock.framesPerSecond(), 20.0);
+    assertNear(clock.rollingFramesPerSecond(), 2.0 / 0.090);
+}
+
 int main() {
     testBeginFramePublishesNowAndDelta();
     testPublishUpdatesLegacyAliases();
     testSampleUsesInjectedTimeSourceWithoutAdvancingFrame();
+    testFrameRateReadoutsComeFromCompletedFrameDurations();
     return 0;
 }
