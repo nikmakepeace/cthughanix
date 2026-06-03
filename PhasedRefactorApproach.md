@@ -57,6 +57,41 @@ build. At the moment the repository has `tests/CMakeLists.txt`, but a default
 configure can report no CTest tests. The first implementation slice should make
 CTest useful.
 
+## TDD Commit Discipline
+
+Each implementation slice should use a strict red/green commit pattern.
+
+1. Write the test first.
+   - The red commit should contain tests and test-only infrastructure.
+   - It may include build-system wiring needed to compile and run the test.
+   - It should not include production behavior changes.
+   - Prefer a test failure over a compile failure once the test target exists.
+
+2. Commit the failing test.
+   - Record the exact failing command and failure mode.
+   - If the test cannot be made to fail for the intended reason, stop and fix
+     the test design before touching production code.
+
+3. Make the smallest production change that passes the committed test.
+   - Do not change expected values in the green step.
+   - Do not soften assertions to match the implementation.
+   - If the red test turns out to be wrong, revert or amend the red commit and
+     re-run the red step rather than drifting test and code together.
+
+4. Commit the passing implementation.
+   - The green commit should contain production code and only unavoidable
+     test-harness adjustments.
+   - Any test expectation change in this commit needs an explicit explanation.
+
+5. Squash the red and green commits only after review.
+   - Before squashing, inspect both commits separately.
+   - Confirm the red commit fails without the green commit.
+   - Confirm the squashed commit passes the full verification commands.
+
+This is meant to prevent tests and production code from co-evolving until they
+agree by accident. The tests should describe the intended behavior before the
+implementation is allowed to adapt.
+
 Recommended commands after each implementation slice:
 
 ```sh
