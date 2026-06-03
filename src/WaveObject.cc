@@ -42,8 +42,8 @@ const ObjectEntry* asObjectEntry(const EffectChoice* entry) {
     return static_cast<const ObjectEntry*>(entry);
 }
 
-/* another cube */
-WObject cube1[] = {
+/* An H, for Harald, presumably */
+WObject letterH[] = {
     { { 0, 0, 0 }, { 1, 0, 0 } },
     { { 1, 0, 0 }, { 1, 1, 0 } },
     { { 1, 1, 0 }, { 2, 1, 0 } },
@@ -56,12 +56,37 @@ WObject cube1[] = {
     { { 1, 2, 0 }, { 1, 3, 0 } },
     { { 1, 3, 0 }, { 0, 3, 0 } },
     { { 0, 3, 0 }, { 0, 0, 0 } },
+    { { 0, 0, 1 }, { 1, 0, 1 } },
+    { { 1, 0, 1 }, { 1, 1, 1 } },
+    { { 1, 1, 1 }, { 2, 1, 1 } },
+    { { 2, 1, 1 }, { 2, 0, 1 } },
+    { { 2, 0, 1 }, { 3, 0, 1 } },
+    { { 3, 0, 1 }, { 3, 3, 1 } },
+    { { 3, 3, 1 }, { 2, 3, 1 } },
+    { { 2, 3, 1 }, { 2, 2, 1 } },
+    { { 2, 2, 1 }, { 1, 2, 1 } },
+    { { 1, 2, 1 }, { 1, 3, 1 } },
+    { { 1, 3, 1 }, { 0, 3, 1 } },
+    { { 0, 3, 1 }, { 0, 0, 1 } },
+    { { 0, 0, 1 }, { 0, 0, 0 } },
+    { { 1, 0, 1 }, { 1, 0, 0 } },
+    { { 1, 1, 1 }, { 1, 1, 0 } },
+    { { 2, 1, 1 }, { 2, 1, 0 } },
+    { { 2, 0, 1 }, { 2, 0, 0 } },
+    { { 3, 0, 1 }, { 3, 0, 0 } },
+    { { 3, 3, 1 }, { 3, 3, 0 } },
+    { { 2, 3, 1 }, { 2, 3, 0 } },
+    { { 2, 2, 1 }, { 2, 2, 0 } },
+    { { 1, 2, 1 }, { 1, 2, 0 } },
+    { { 1, 3, 1 }, { 1, 3, 0 } },
+    { { 0, 3, 1 }, { 0, 3, 0 } },
     { { -1, -1, -1 }, { -1, -1, -1 } },
 };
 
+
 }
 
-EffectChoice* _objects[] = { new ObjectEntry(cube1, "bigH", "Big H") };
+EffectChoice* _objects[] = { new ObjectEntry(letterH, "bigH", "Big H") };
 int _nObjects = sizeof(_objects) / sizeof(EffectChoice*);
 
 WObject* waveObjectEntryObject(EffectChoice* entry) {
