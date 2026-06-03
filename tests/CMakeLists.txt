@@ -107,6 +107,36 @@ target_link_libraries(frame_completion_test PRIVATE m)
 
 add_test(NAME frame_completion_test COMMAND frame_completion_test)
 
+add_executable(frame_clock_test
+    unit/FrameClockTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
+)
+
+target_include_directories(frame_clock_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(frame_clock_test PRIVATE m)
+
+add_test(NAME frame_clock_test COMMAND frame_clock_test)
+
+add_executable(frame_pacer_test
+    unit/FramePacerTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FramePacer.cc
+)
+
+target_include_directories(frame_pacer_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(frame_pacer_test PRIVATE m)
+
+add_test(NAME frame_pacer_test COMMAND frame_pacer_test)
+
 add_executable(presentation_composer_test
     unit/PresentationComposerTest.cc
     ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
@@ -137,6 +167,7 @@ add_test(NAME presentation_composer_test COMMAND presentation_composer_test)
 add_executable(cthugha_display_presentation_test
     unit/CthughaDisplayPresentationTest.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
     ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
     ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
     ${CMAKE_SOURCE_DIR}/src/ViewportPolicy.cc
@@ -211,6 +242,7 @@ add_test(NAME viewport_presentation_test COMMAND viewport_presentation_test)
 add_executable(cthugha_display_viewport_test
     unit/CthughaDisplayViewportTest.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
     ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
     ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
     ${CMAKE_SOURCE_DIR}/src/ViewportPolicy.cc

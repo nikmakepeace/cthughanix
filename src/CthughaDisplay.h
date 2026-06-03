@@ -50,7 +50,7 @@ protected:
         PresentationScreenSelection& screenSelection);
     const IndexedDisplayFrame& composePresentationFrame();
 
-    void checkFPS();
+    void updateFPS();
     void checkZoom();
 
 public:

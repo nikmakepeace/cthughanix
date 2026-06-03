@@ -3,6 +3,7 @@
 #include "CthughaBuffer.h"
 #include "display.h"
 #include "DisplayDevice.h"
+#include "FrameClock.h"
 #include "cth_buffer.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -13,7 +14,6 @@
 #include "ViewportPresentation.h"
 
 #include <stdint.h>
-#include <unistd.h>
 
 // The active display coordinator.  The selected frontend supplies
 // newCthughaDisplay(), so this points at the X11 display subclass.
@@ -32,6 +32,9 @@ double displayStart;
 // nextFrame() updates these before the rest of the frame runs.
 double now = 0;
 double deltaT = 0;
+
+static SystemFrameTimeSource systemFrameTimeSource;
+static FrameClock frameClock(systemFrameTimeSource);
 
 class VisualFrameView {
 public:
@@ -85,7 +88,7 @@ CthughaDisplay::CthughaDisplay()
     , needsClear(1)
     , fps(0) {
 
-    displayStart = getTime();
+    displayStart = frameClock.sample();
 }
 
 void CthughaDisplay::present(const IndexedFrame& frame) {
@@ -233,7 +236,7 @@ void CthughaDisplay::checkZoom() {
         needsClear = 1;
 }
 
-void CthughaDisplay::checkFPS() {
+void CthughaDisplay::updateFPS() {
     /*
      * compute frames/second, of at least 3 frames or 0.1 second
      */
@@ -242,28 +245,12 @@ void CthughaDisplay::checkFPS() {
         fps = double(frames) / i;
     frames++;
 
-    // Enforce maxFPS after measuring deltaT so the rest of the program sees
-    // the true time between frame starts.
-    if (maxFramesPerSecond) {
-        double delta = (1.0 / maxFramesPerSecond) - deltaT;
-        double sleepStart = getTime();
-        double sleepEnd = sleepStart;
-        if (delta > 0) {
-            usleep(int(delta * 1e6));
-            sleepEnd = getTime();
-        }
-        CTH_TRACE("checkFPS maxfps=%d deltaT-ms=%.3f requested-sleep-ms=%.3f actual-sleep-ms=%.3f fps=%.3f frames=%d\n",
-            "frame pacing", int(maxFramesPerSecond), deltaT * 1000.0,
-            (delta > 0 ? delta : 0.0) * 1000.0, (sleepEnd - sleepStart) * 1000.0,
-            fps, frames);
-    } else {
-        CTH_TRACE("checkFPS maxfps=0 deltaT-ms=%.3f requested-sleep-ms=0.000 actual-sleep-ms=0.000 fps=%.3f frames=%d\n",
-            "frame pacing", deltaT * 1000.0, fps, frames);
-    }
+    CTH_TRACE("updateFPS deltaT-ms=%.3f fps=%.3f frames=%d\n",
+        "frame pacing", deltaT * 1000.0, fps, frames);
 }
 
 void CthughaDisplay::resetFPS() {
-    displayStart = getTime(); // restart the averaging window from this instant
+    displayStart = frameClock.sample(); // restart the averaging window from this instant
     frames = 0;
 }
 
@@ -289,20 +276,16 @@ double CthughaDisplay::visualLatencySeconds() const {
 }
 
 // Start a new frame by publishing a stable timestamp for all modules that run
-// during this frame, then update FPS accounting and throttling.
+// during this frame, then update FPS accounting.
 void CthughaDisplay::nextFrame() {
 
     double previousNow = now;
-    double nower = getTime();
-    deltaT = nower - now;
-    now = nower;
+    frameClock.beginFrame();
+    frameClock.publish(now, deltaT);
     CTH_TRACE("nextFrame previous-now=%.6f sampled-now=%.6f raw-delta-ms=%.3f\n",
-        "frame pacing", previousNow, nower, deltaT * 1000.0);
+        "frame pacing", previousNow, now, deltaT * 1000.0);
 
-    double checkStart = getTime();
-    checkFPS();
-    CTH_TRACE("nextFrame checkFPS-ms=%.3f published-now=%.6f published-delta-ms=%.3f\n",
-        "frame pacing", (getTime() - checkStart) * 1000.0, now, deltaT * 1000.0);
+    updateFPS();
 }
 
 const char* CthughaDisplay::status() {

@@ -47,7 +47,9 @@ set(CTHUGHA_COMMON_SOURCES
     Border.cc
     ColorPalette.cc
     DosVga9x14Font.cc
+    FrameClock.cc
     FrameCompletion.cc
+    FramePacer.cc
     Image.cc
     IndexedDisplayFrame.cc
     OverlaySource.cc

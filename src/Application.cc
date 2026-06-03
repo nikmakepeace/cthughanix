@@ -19,6 +19,7 @@
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
 #include "Flashlight.h"
+#include "FramePacer.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "Scene.h"
@@ -37,6 +38,9 @@
 
 static void configureTerminalTextMode();
 static int initializeVisualCatalogs(const CthughaBuffer& buffer);
+
+static SystemFrameSleeper systemFrameSleeper;
+static FramePacer framePacer(systemFrameSleeper);
 
 Application::Application(int argc, char* argv[])
     : argcValue(argc)
@@ -293,6 +297,10 @@ void Application::run() {
         double frameEnd = 0.0;
         double postInterfaceStart = 0.0;
         double postInterfaceEnd = 0.0;
+        double pacingStart = 0.0;
+        double pacingEnd = 0.0;
+        int frameWasRun = 0;
+        double visualFrameStart = 0.0;
 
         DisplayEventStats eventStats = displayRuntime != NULL
             ? displayRuntime->processEvents()
@@ -310,6 +318,8 @@ void Application::run() {
             if (traceDisplayTiming)
                 frameStart = getTime();
             runFrame(1);
+            frameWasRun = 1;
+            visualFrameStart = now;
             if (traceDisplayTiming)
                 frameEnd = getTime();
         }
@@ -320,14 +330,32 @@ void Application::run() {
         if (traceDisplayTiming)
             postInterfaceEnd = getTime();
 
+        if (frameWasRun && cthugha_close == 0) {
+            if (traceDisplayTiming)
+                pacingStart = getTime();
+            FramePacingResult pacing = framePacer.paceFrameEnd(visualFrameStart,
+                getTime(), int(maxFramesPerSecond));
+            if (traceDisplayTiming) {
+                pacingEnd = getTime();
+                CTH_TRACE("pacing target-ms=%.3f requested-sleep-ms=%.3f actual-pacing-ms=%.3f maxfps=%d\n",
+                    "frame pacing",
+                    (pacing.targetFrameEndSeconds - pacing.frameStartSeconds)
+                        * 1000.0,
+                    pacing.requestedSleepSeconds * 1000.0,
+                    (pacingEnd - pacingStart) * 1000.0,
+                    pacing.maxFramesPerSecond);
+            }
+        }
+
         if (traceDisplayTiming) {
             double loopEnd = getTime();
-            CTH_TRACE("mainloop-ms=%.3f events-ms=%.3f pre-interface-ms=%.3f frame-ms=%.3f post-interface-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
+            CTH_TRACE("mainloop-ms=%.3f events-ms=%.3f pre-interface-ms=%.3f frame-ms=%.3f post-interface-ms=%.3f pacing-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
                 "display timing", (loopEnd - loopStart) * 1000.0,
                 (eventsEnd - eventsStart) * 1000.0,
                 (preInterfaceEnd - preInterfaceStart) * 1000.0,
                 (frameEnd - frameStart) * 1000.0,
                 (postInterfaceEnd - postInterfaceStart) * 1000.0,
+                (pacingEnd - pacingStart) * 1000.0,
                 eventStats.eventCount, eventStats.resizeEvents,
                 eventStats.exposeEvents);
         }
