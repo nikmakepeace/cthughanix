@@ -421,7 +421,7 @@ Give platform backends one presentation request object.
   presentation.
 - X11 no longer discovers `screen.current()` or renderer internals.
 
-## Phase 9: Move Palette Expansion And Pixel Transfer Behind The Backend
+## Phase 9: Move Palette Expansion And Pixel Transfer Behind The Backend - DONE
 
 ### Goal
 
