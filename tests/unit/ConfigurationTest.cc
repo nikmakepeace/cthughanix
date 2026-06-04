@@ -34,7 +34,6 @@ static void defaultsProduceTypedConfig() {
     assert(result.config.input.keymapFile == INPUT_CONFIG_DEFAULT_KEYMAP_FILE_PATH);
     assert(result.config.paths.extraLibraryPath == PATH_CONFIG_DEFAULT_EXTRA_LIBRARY_PATH);
     assert(result.config.paths.iniFileOverride == PATH_CONFIG_DEFAULT_INI_FILE_OVERRIDE_PATH);
-    assert(result.config.catalogs.doubleLoadEnabled == CATALOG_CONFIG_DEFAULT_DOUBLE_LOAD_ENABLED);
     assert(result.config.scene.flame.empty());
     assert(result.config.scene.generalFlame.empty());
     assert(result.config.scene.wave.empty());

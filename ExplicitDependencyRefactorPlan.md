@@ -35,7 +35,7 @@ facades, display backend state, UI/input state, and process services.
 
 ### Option And Configuration Globals
 
-- Core options: `options_save`, `double_load`, `cthugha_verbose`.
+- Core options: `options_save`, `cthugha_verbose`.
 - Audio options/config: `audioInputMode`, `soundFormat`, `soundChannels`,
   `soundSampleRate`, `soundDSPMethod`, `soundDSPFragments`,
   `soundDSPFragmentSize`, `soundDSPSync`, `soundSilent`, `audioInputLoop`,

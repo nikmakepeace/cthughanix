@@ -125,12 +125,22 @@ static void testCatalogLoadingUsesPathConfig() {
     assertSourceContains("src/waves.cc", "loadEffectChoices(object, pathConfig");
 }
 
+static void testCatalogLoadingSkipsDuplicateNamesWithoutCompressedAssetShellOut() {
+    assertSourceContains("src/EffectChoiceLoader.cc", "option.defined(feat_name)");
+    assertSourceDoesNotContain("src/EffectChoiceLoader.cc", "double_load");
+    assertSourceDoesNotContain("src/EffectChoiceLoader.cc", "isCompressed");
+    assertSourceDoesNotContain("src/EffectChoiceLoader.cc", "popen");
+    assertSourceDoesNotContain("src/EffectChoiceLoader.cc", "pclose");
+    assertSourceDoesNotContain("src/options.cc", "dbl-load");
+    assertSourceDoesNotContain("src/Option.h", "double_load");
+    assertSourceDoesNotContain("src/Configuration.h", "CatalogConfig");
+}
+
 static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc", "configureApplicationOptions(startupConfigValue.app)");
     assertSourceContains("src/Application.cc", "configureKeys(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "Keymap::init(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "configureIniFiles(startupConfigValue.paths)");
-    assertSourceContains("src/Application.cc", "configureEffectChoiceLoader(startupConfigValue.catalogs)");
     assertSourceContains("src/Application.cc", "configureAudioOptions(startupConfigValue.audio)");
     assertSourceContains("src/Application.cc", "configureCthughaDisplay(startupConfigValue.display)");
     assertSourceContains("src/Application.cc", "configureAutoChanger(startupConfigValue.autoChange)");
@@ -202,6 +212,7 @@ int main() {
     testAudioInputFileGlobalWasDeleted();
     testLegacyParserDoesNotWritePortedConfigValues();
     testCatalogLoadingUsesPathConfig();
+    testCatalogLoadingSkipsDuplicateNamesWithoutCompressedAssetShellOut();
     testApplicationProvidesStartupConfigSlices();
     testInputStartupUsesInputConfig();
     testSceneStartupUsesSceneConfig();

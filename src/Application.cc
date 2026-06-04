@@ -211,7 +211,6 @@ int Application::initialize() {
     configureApplicationOptions(startupConfigValue.app);
     configureKeys(startupConfigValue.input);
     configureIniFiles(startupConfigValue.paths);
-    configureEffectChoiceLoader(startupConfigValue.catalogs);
     configureAudioOptions(startupConfigValue.audio);
     configureCthughaDisplay(startupConfigValue.display);
     configureNcursesDisplay(startupConfigValue.display);

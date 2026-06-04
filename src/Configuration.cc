@@ -1511,9 +1511,6 @@ PathConfig::PathConfig()
     : extraLibraryPath(PATH_CONFIG_DEFAULT_EXTRA_LIBRARY_PATH)
     , iniFileOverride(PATH_CONFIG_DEFAULT_INI_FILE_OVERRIDE_PATH) { }
 
-CatalogConfig::CatalogConfig()
-    : doubleLoadEnabled(CATALOG_CONFIG_DEFAULT_DOUBLE_LOAD_ENABLED) { }
-
 SceneConfig::SceneConfig()
     : flame()
     , generalFlame()

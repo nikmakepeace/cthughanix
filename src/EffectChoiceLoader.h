@@ -6,7 +6,6 @@
 #include "EffectControl.h"
 
 struct PathConfig;
-struct CatalogConfig;
 
 #include <stdio.h>
 
@@ -36,7 +35,5 @@ int loadEffectChoices(EffectControl& option, const PathConfig& pathConfig,
 int loadEffectChoices(EffectControl& option, const PathConfig& pathConfig,
     const char* searchPath[], const char* extraPath, const char* extension,
     EffectChoiceContextLoader loader, void* context);
-
-void configureEffectChoiceLoader(const CatalogConfig& config);
 
 #endif

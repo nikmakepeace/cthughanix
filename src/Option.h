@@ -112,7 +112,6 @@ public:
 extern OptionDummy optionDummy;
 
 extern OptionOnOff options_save; // save options (and buffer) at end
-extern OptionOnOff double_load; // allow double loading
 
 void configureApplicationOptions(const AppConfig& config);
 

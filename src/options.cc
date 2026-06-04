@@ -189,7 +189,6 @@ struct option long_options[] = {
 
     // general options
     { "path", 1, 0, 'E' }, { "ini-file", 1, 0, opt_ini_file }, { "keymap", 1, 0, opt_keymap },
-    { "dbl-load", 0, &double_load.value, 1 }, { "no-dbl-load", 0, &double_load.value, 0 },
     { "save", 0, &options_save.value, 1 }, { "no-save", 0, &options_save.value, 0 },
     { "prt-file", 1, 0, opt_prt_file },
     { "esc", 0, 0, opt_esc },

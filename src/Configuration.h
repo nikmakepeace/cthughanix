@@ -100,12 +100,6 @@ struct PathConfig {
     PathConfig();
 };
 
-struct CatalogConfig {
-    int doubleLoadEnabled;
-
-    CatalogConfig();
-};
-
 struct SceneConfig {
     std::string flame;
     std::string generalFlame;
@@ -229,7 +223,6 @@ struct Config {
     AppConfig app;
     InputConfig input;
     PathConfig paths;
-    CatalogConfig catalogs;
     SceneConfig scene;
     AudioConfig audio;
     DisplayConfig display;
