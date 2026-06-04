@@ -1,7 +1,5 @@
 #include "cthugha.h"
 #include "AudioSettings.h"
-#include "AudioOptions.h"
-#include "AudioTypes.h"
 #include "Configuration.h"
 
 #include <string.h>
@@ -22,8 +20,8 @@ void AudioSettings::refreshFromConfig(const AudioConfig& config) {
 AudioSettings AudioSettings::fromConfig(const AudioConfig& config) {
     AudioSettings settings;
     settings.refreshFromConfig(config);
-    settings.soundDSPMethod = int(::soundDSPMethod);
-    settings.silent = int(soundSilent);
+    settings.soundDSPMethod = config.dspMethod;
+    settings.silent = config.silentEnabled;
 
     CTH_DEBUG("runtime settings: audio-input-mode=%d sound-dsp-method=%d silent=%d file=`%s'\n",
         settings.audioInputMode, settings.soundDSPMethod, settings.silent, settings.fileName);

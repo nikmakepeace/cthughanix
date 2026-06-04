@@ -25,6 +25,26 @@ static const char* KEY_PATH_EXTRA_LIBRARY = "paths.extra_library";
 static const char* KEY_PATH_INI_OVERRIDE = "paths.ini_file_override";
 static const char* KEY_AUDIO_INPUT_MODE = "audio.input_mode";
 static const char* KEY_AUDIO_INPUT_FILE = "audio.input_file";
+static const char* KEY_AUDIO_INPUT_LOOP = "audio.input_loop";
+static const char* KEY_AUDIO_SAMPLE_RATE = "audio.sample_rate_hz";
+static const char* KEY_AUDIO_CHANNELS = "audio.channels";
+static const char* KEY_AUDIO_SAMPLE_FORMAT = "audio.sample_format";
+static const char* KEY_AUDIO_DSP_METHOD = "audio.dsp_method";
+static const char* KEY_AUDIO_DSP_FRAGMENTS = "audio.dsp_fragments";
+static const char* KEY_AUDIO_DSP_FRAGMENT_SIZE = "audio.dsp_fragment_size";
+static const char* KEY_AUDIO_DSP_SYNC = "audio.dsp_sync";
+static const char* KEY_AUDIO_SILENT = "audio.silent";
+static const char* KEY_AUDIO_MIN_NOISE = "audio.min_noise";
+static const char* KEY_AUDIO_PULSE_LATENCY = "audio.pulse_latency_ms";
+static const char* KEY_AUDIO_PULSE_SERVER = "audio.pulse_server";
+static const char* KEY_AUDIO_OUTPUT_DUMP = "audio.output_dump_path";
+static const char* KEY_AUDIO_DSP_DEVICE = "audio.dsp_device_path";
+static const char* KEY_AUDIO_MIXER_DEVICE = "audio.mixer_device_path";
+static const char* KEY_AUDIO_MIXER_INITIAL_VOLUME
+    = "audio.mixer_initial_volume";
+static const char* KEY_AUDIO_NULL_TARGET_LATENCY = "audio.null_target_latency_ms";
+static const char* KEY_AUDIO_PULSE_TARGET_LATENCY = "audio.pulse_target_latency_ms";
+static const char* KEY_AUDIO_DSP_TARGET_LATENCY = "audio.dsp_target_latency_ms";
 static const char* KEY_DISPLAY_MODE = "display.mode";
 static const char* KEY_DISPLAY_WIDTH = "display.width";
 static const char* KEY_DISPLAY_HEIGHT = "display.height";
@@ -104,6 +124,30 @@ static std::string integerText(int value) {
     return std::to_string(value);
 }
 
+static bool parseBoolean(const std::string& text, int* result) {
+    std::string cleaned = lowercase(trim(text));
+
+    if (cleaned == "1" || cleaned == "yes" || cleaned == "on"
+        || cleaned == "true" || cleaned == "enabled"
+        || cleaned == "enable") {
+        *result = 1;
+        return true;
+    }
+
+    if (cleaned == "0" || cleaned == "no" || cleaned == "off"
+        || cleaned == "false" || cleaned == "disabled"
+        || cleaned == "disable") {
+        *result = 0;
+        return true;
+    }
+
+    return false;
+}
+
+static std::string booleanText(int value) {
+    return value ? "1" : "0";
+}
+
 static bool parseSizeSpec(const std::string& text, int* width, int* height) {
     std::string cleaned = lowercase(trim(text));
     std::string::size_type separator = cleaned.find('x');
@@ -159,6 +203,98 @@ static void setAudioMode(ConfigPatch& patch, const std::string& source,
     patch.set(KEY_AUDIO_INPUT_FILE, fileName, source);
 }
 
+static void setAudioBoolean(ConfigPatch& patch, const std::string& source,
+    const char* key, int enabled) {
+    patch.set(key, booleanText(enabled), source);
+}
+
+static void setIniBooleanOption(ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const std::string& source,
+    const std::string& optionName, const char* key,
+    const std::string& value, int defaultWhenPresent, int invert) {
+    int enabled = defaultWhenPresent;
+
+    if (!value.empty() && !parseBoolean(value, &enabled)) {
+        diagnostics.error(source, optionName, "expected yes/no value");
+        return;
+    }
+
+    if (invert)
+        enabled = !enabled;
+    setAudioBoolean(patch, source, key, enabled);
+}
+
+static void setIniStereoOption(ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const std::string& source,
+    const std::string& optionName, const std::string& value,
+    int defaultWhenPresent, int invert) {
+    int stereo = defaultWhenPresent;
+
+    if (!value.empty() && !parseBoolean(value, &stereo)) {
+        diagnostics.error(source, optionName, "expected yes/no value");
+        return;
+    }
+
+    if (invert)
+        stereo = !stereo;
+    patch.set(KEY_AUDIO_CHANNELS, stereo ? "2" : "1", source);
+}
+
+static std::string mixerInitialVolumeText(const std::string& name, int volume) {
+    return name + "=" + integerText(volume);
+}
+
+static void appendMixerInitialVolume(ConfigPatch& patch,
+    const std::string& source, const std::string& name, int volume) {
+    patch.append(KEY_AUDIO_MIXER_INITIAL_VOLUME,
+        mixerInitialVolumeText(name, volume), source);
+}
+
+static void appendStereoMixerInitialVolume(ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const std::string& source,
+    const std::string& optionName, const std::string& mixerName,
+    const std::string& value) {
+    int monoVolume = 0;
+
+    if (!parseInteger(value, &monoVolume)) {
+        diagnostics.error(source, optionName, "expected an integer mixer volume");
+        return;
+    }
+
+    appendMixerInitialVolume(patch, source, mixerName,
+        monoVolume | (monoVolume << 8));
+}
+
+static void appendNamedMixerInitialVolume(ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const std::string& source,
+    const std::string& optionName, const std::string& value) {
+    std::string cleanedValue = trim(value);
+    std::string name;
+    std::string volumeText;
+    int volume = 0;
+
+    std::string::size_type separator = cleanedValue.find(':');
+    if (separator != std::string::npos) {
+        name = trim(cleanedValue.substr(0, separator));
+        volumeText = trim(cleanedValue.substr(separator + 1));
+    } else {
+        std::istringstream input(cleanedValue);
+        input >> name >> volumeText;
+    }
+
+    if (name.empty() || volumeText.empty()) {
+        diagnostics.error(source, optionName,
+            "expected mixer volume as NAME:VOLUME");
+        return;
+    }
+    if (!parseInteger(volumeText, &volume)) {
+        diagnostics.error(source, optionName, "expected an integer mixer volume");
+        return;
+    }
+
+    appendMixerInitialVolume(patch, source, name, volume);
+}
+
 static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
     const std::string& source, const std::string& name,
     const std::string& value) {
@@ -182,6 +318,62 @@ static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
         setAudioMode(patch, source, AIM_None, "");
     } else if (key == "sound-device-number") {
         patch.set(KEY_AUDIO_INPUT_MODE, cleanedValue, source);
+    } else if (key == "loop") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_INPUT_LOOP, cleanedValue, 1, 0);
+    } else if (key == "no-loop") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_INPUT_LOOP, cleanedValue, 1, 1);
+    } else if (key == "rate" || key == "sound-sample-rate") {
+        patch.set(KEY_AUDIO_SAMPLE_RATE, cleanedValue, source);
+    } else if (key == "stereo") {
+        setIniStereoOption(patch, diagnostics, source, key, cleanedValue, 1, 0);
+    } else if (key == "no-stereo") {
+        setIniStereoOption(patch, diagnostics, source, key, cleanedValue, 1, 1);
+    } else if (key == "sound-channels") {
+        patch.set(KEY_AUDIO_CHANNELS, cleanedValue, source);
+    } else if (key == "snd-format" || key == "sound-format") {
+        patch.set(KEY_AUDIO_SAMPLE_FORMAT, cleanedValue, source);
+    } else if (key == "snd-method" || key == "sound-method") {
+        patch.set(KEY_AUDIO_DSP_METHOD, cleanedValue, source);
+    } else if (key == "snd-fragments" || key == "sound-fragments") {
+        patch.set(KEY_AUDIO_DSP_FRAGMENTS, cleanedValue, source);
+    } else if (key == "snd-fragment-size"
+        || key == "sound-fragment-size") {
+        patch.set(KEY_AUDIO_DSP_FRAGMENT_SIZE, cleanedValue, source);
+    } else if (key == "snd-sync" || key == "sound-sync") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_DSP_SYNC, cleanedValue, 1, 0);
+    } else if (key == "no-snd-sync" || key == "no-sound-sync") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_DSP_SYNC, cleanedValue, 1, 1);
+    } else if (key == "silent") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_SILENT, cleanedValue, 1, 0);
+    } else if (key == "no-silent") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_AUDIO_SILENT, cleanedValue, 1, 1);
+    } else if (key == "min-noise" || key == "minnoise") {
+        patch.set(KEY_AUDIO_MIN_NOISE, cleanedValue, source);
+    } else if (key == "pulse-latency-ms") {
+        patch.set(KEY_AUDIO_PULSE_LATENCY, cleanedValue, source);
+    } else if (key == "pulse-server") {
+        patch.set(KEY_AUDIO_PULSE_SERVER, cleanedValue, source);
+    } else if (key == "audio-output-dump") {
+        patch.set(KEY_AUDIO_OUTPUT_DUMP, cleanedValue, source);
+    } else if (key == "dev-dsp") {
+        patch.set(KEY_AUDIO_DSP_DEVICE, cleanedValue, source);
+    } else if (key == "dev-mixer") {
+        patch.set(KEY_AUDIO_MIXER_DEVICE, cleanedValue, source);
+    } else if (key == "line") {
+        appendStereoMixerInitialVolume(patch, diagnostics, source, key,
+            "line", cleanedValue);
+    } else if (key == "mic") {
+        appendStereoMixerInitialVolume(patch, diagnostics, source, key,
+            "mic", cleanedValue);
+    } else if (key == "mixer") {
+        appendNamedMixerInitialVolume(patch, diagnostics, source, key,
+            cleanedValue);
     } else if (key == "disp-mode") {
         setDisplayMode(patch, source, cleanedValue);
     } else if (key == "buff-size") {
@@ -249,6 +441,123 @@ static void applyCommandLineOption(ConfigPatch& patch,
         setAudioMode(patch, "command line", AIM_Random, "");
     } else if (arg == "--no-sound" || arg == "-x") {
         setAudioMode(patch, "command line", AIM_None, "");
+    } else if (arg == "--sound-device-number") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_INPUT_MODE, value, "command line");
+    } else if (startsWith(arg, "--sound-device-number=")) {
+        patch.set(KEY_AUDIO_INPUT_MODE, arg.substr(22), "command line");
+    } else if (arg == "--loop") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_INPUT_LOOP, 1);
+    } else if (arg == "--no-loop") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_INPUT_LOOP, 0);
+    } else if (arg == "--rate") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_SAMPLE_RATE, value, "command line");
+    } else if (startsWith(arg, "--rate=")) {
+        patch.set(KEY_AUDIO_SAMPLE_RATE, arg.substr(7), "command line");
+    } else if (arg == "--stereo" || arg == "-2") {
+        patch.set(KEY_AUDIO_CHANNELS, "2", "command line");
+    } else if (arg == "--no-stereo" || arg == "-1") {
+        patch.set(KEY_AUDIO_CHANNELS, "1", "command line");
+    } else if (arg == "--snd-format") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_SAMPLE_FORMAT, value, "command line");
+    } else if (startsWith(arg, "--snd-format=")) {
+        patch.set(KEY_AUDIO_SAMPLE_FORMAT, arg.substr(13), "command line");
+    } else if (arg == "--snd-method") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_DSP_METHOD, value, "command line");
+    } else if (startsWith(arg, "--snd-method=")) {
+        patch.set(KEY_AUDIO_DSP_METHOD, arg.substr(13), "command line");
+    } else if (arg == "--snd-fragments") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_DSP_FRAGMENTS, value, "command line");
+    } else if (startsWith(arg, "--snd-fragments=")) {
+        patch.set(KEY_AUDIO_DSP_FRAGMENTS, arg.substr(16), "command line");
+    } else if (arg == "--snd-fragment-size"
+        || arg == "--sound-fragment-size") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_DSP_FRAGMENT_SIZE, value, "command line");
+    } else if (startsWith(arg, "--snd-fragment-size=")) {
+        patch.set(KEY_AUDIO_DSP_FRAGMENT_SIZE, arg.substr(20),
+            "command line");
+    } else if (startsWith(arg, "--sound-fragment-size=")) {
+        patch.set(KEY_AUDIO_DSP_FRAGMENT_SIZE, arg.substr(22),
+            "command line");
+    } else if (arg == "--snd-sync") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_DSP_SYNC, 1);
+    } else if (arg == "--no-snd-sync") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_DSP_SYNC, 0);
+    } else if (arg == "--silent") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_SILENT, 1);
+    } else if (arg == "--no-silent") {
+        setAudioBoolean(patch, "command line", KEY_AUDIO_SILENT, 0);
+    } else if (arg == "--min-noise") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_MIN_NOISE, value, "command line");
+    } else if (startsWith(arg, "--min-noise=")) {
+        patch.set(KEY_AUDIO_MIN_NOISE, arg.substr(12), "command line");
+    } else if (arg == "--pulse-latency-ms") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_PULSE_LATENCY, value, "command line");
+    } else if (startsWith(arg, "--pulse-latency-ms=")) {
+        patch.set(KEY_AUDIO_PULSE_LATENCY, arg.substr(19), "command line");
+    } else if (arg == "--pulse-server") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_PULSE_SERVER, value, "command line");
+    } else if (startsWith(arg, "--pulse-server=")) {
+        patch.set(KEY_AUDIO_PULSE_SERVER, arg.substr(15), "command line");
+    } else if (arg == "--audio-output-dump") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_OUTPUT_DUMP, value, "command line");
+    } else if (startsWith(arg, "--audio-output-dump=")) {
+        patch.set(KEY_AUDIO_OUTPUT_DUMP, arg.substr(20), "command line");
+    } else if (arg == "--dev-dsp") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_DSP_DEVICE, value, "command line");
+    } else if (startsWith(arg, "--dev-dsp=")) {
+        patch.set(KEY_AUDIO_DSP_DEVICE, arg.substr(10), "command line");
+    } else if (arg == "--dev-mixer") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_MIXER_DEVICE, value, "command line");
+    } else if (startsWith(arg, "--dev-mixer=")) {
+        patch.set(KEY_AUDIO_MIXER_DEVICE, arg.substr(12), "command line");
+    } else if (arg == "--line") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+                arg, "line", value);
+    } else if (startsWith(arg, "--line=")) {
+        appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+            "--line", "line", arg.substr(7));
+    } else if (arg == "--mic") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+                arg, "mic", value);
+    } else if (startsWith(arg, "--mic=")) {
+        appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+            "--mic", "mic", arg.substr(6));
+    } else if (arg == "--mixer") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            appendNamedMixerInitialVolume(patch, diagnostics, "command line",
+                arg, value);
+    } else if (startsWith(arg, "--mixer=")) {
+        appendNamedMixerInitialVolume(patch, diagnostics, "command line",
+            "--mixer", arg.substr(8));
     } else if (arg == "--disp-mode") {
         std::string value;
         if (readOptionValue(args, index, arg, &value, diagnostics))
@@ -261,11 +570,25 @@ static void applyCommandLineOption(ConfigPatch& patch,
             setBufferSize(patch, "command line", value);
     } else if (startsWith(arg, "--buff-size=")) {
         setBufferSize(patch, "command line", arg.substr(12));
+    } else if (startsWith(arg, "-L")) {
+        std::string value;
+        if (readShortOptionValue(args, index, arg, &value, diagnostics))
+            appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+                "-L", "line", value);
+    } else if (startsWith(arg, "-M")) {
+        std::string value;
+        if (readShortOptionValue(args, index, arg, &value, diagnostics))
+            appendStereoMixerInitialVolume(patch, diagnostics, "command line",
+                "-M", "mic", value);
     } else if (startsWith(arg, "-E")) {
         std::string value;
         if (readShortOptionValue(args, index, arg, &value, diagnostics))
             patch.set(KEY_PATH_EXTRA_LIBRARY, withTrailingSlash(value),
                 "command line");
+    } else if (startsWith(arg, "-v")) {
+        std::string value;
+        if (readShortOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_SAMPLE_RATE, value, "command line");
     } else if (startsWith(arg, "-D")) {
         std::string value;
         if (readShortOptionValue(args, index, arg, &value, diagnostics))
@@ -341,6 +664,84 @@ static bool parseAudioMode(const std::string& text, AudioInputMode* mode) {
     return true;
 }
 
+static std::string compactFormatName(const std::string& text) {
+    std::string cleaned = lowercase(trim(text));
+    std::string result;
+
+    for (std::string::size_type i = 0; i < cleaned.size(); i++) {
+        char c = cleaned[i];
+        if (std::isalnum(static_cast<unsigned char>(c)))
+            result += c;
+    }
+
+    return result;
+}
+
+static bool parseAudioSampleFormat(const std::string& text,
+    AudioSampleFormat* format) {
+    std::string cleaned = compactFormatName(text);
+    int value = 0;
+
+    if (parseInteger(text, &value)) {
+        if (value < int(SF_u8) || value > int(SF_s16_be))
+            return false;
+        *format = AudioSampleFormat(value);
+        return true;
+    }
+
+    if (cleaned == "u8" || cleaned == "uint8" || cleaned == "unsigned8"
+        || cleaned == "unsigned8bit" || cleaned == "8bitunsigned") {
+        *format = SF_u8;
+        return true;
+    }
+    if (cleaned == "s8" || cleaned == "int8" || cleaned == "signed8"
+        || cleaned == "signed8bit" || cleaned == "8bitsigned") {
+        *format = SF_s8;
+        return true;
+    }
+    if (cleaned == "u16le" || cleaned == "uint16le"
+        || cleaned == "unsigned16le" || cleaned == "unsigned16bitle"
+        || cleaned == "16bitunsignedle") {
+        *format = SF_u16_le;
+        return true;
+    }
+    if (cleaned == "s16le" || cleaned == "int16le"
+        || cleaned == "signed16le" || cleaned == "signed16bitle"
+        || cleaned == "16bitsignedle") {
+        *format = SF_s16_le;
+        return true;
+    }
+    if (cleaned == "u16be" || cleaned == "uint16be"
+        || cleaned == "unsigned16be" || cleaned == "unsigned16bitbe"
+        || cleaned == "16bitunsignedbe") {
+        *format = SF_u16_be;
+        return true;
+    }
+    if (cleaned == "s16be" || cleaned == "int16be"
+        || cleaned == "signed16be" || cleaned == "signed16bitbe"
+        || cleaned == "16bitsignedbe") {
+        *format = SF_s16_be;
+        return true;
+    }
+
+    return false;
+}
+
+static bool parseAudioChannels(const std::string& text, int* channels) {
+    std::string cleaned = lowercase(trim(text));
+
+    if (cleaned == "mono") {
+        *channels = 1;
+        return true;
+    }
+    if (cleaned == "stereo") {
+        *channels = 2;
+        return true;
+    }
+
+    return parseInteger(cleaned, channels);
+}
+
 static void applyIntEntry(const ConfigPatch& patch,
     DeferredLogBuffer& diagnostics, const char* key, int* target) {
     const ConfigEntry* configEntry = patch.entry(key);
@@ -356,6 +757,145 @@ static void applyIntEntry(const ConfigPatch& patch,
     }
 
     *target = value;
+}
+
+static void applyBoolEntry(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const char* key, int* target) {
+    const ConfigEntry* configEntry = patch.entry(key);
+    int value = 0;
+
+    if (configEntry == NULL)
+        return;
+
+    if (!parseBoolean(configEntry->value, &value)) {
+        diagnostics.error(configEntry->source, configEntry->key,
+            "expected a yes/no value");
+        return;
+    }
+
+    *target = value;
+}
+
+static int clampIntWithWarning(int value, int minimum, int maximum,
+    const ConfigEntry& entry, DeferredLogBuffer& diagnostics);
+
+static void applyClampedIntEntry(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const char* key, int minimum,
+    int maximum, int* target) {
+    const ConfigEntry* configEntry = patch.entry(key);
+    int value = 0;
+
+    if (configEntry == NULL)
+        return;
+
+    if (!parseInteger(configEntry->value, &value)) {
+        diagnostics.error(configEntry->source, configEntry->key,
+            "expected an integer value");
+        return;
+    }
+
+    *target = clampIntWithWarning(value, minimum, maximum, *configEntry,
+        diagnostics);
+}
+
+static void applyMinimumIntEntry(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, const char* key, int minimum,
+    int* target) {
+    const ConfigEntry* configEntry = patch.entry(key);
+    int value = 0;
+
+    if (configEntry == NULL)
+        return;
+
+    if (!parseInteger(configEntry->value, &value)) {
+        diagnostics.error(configEntry->source, configEntry->key,
+            "expected an integer value");
+        return;
+    }
+
+    if (value < minimum) {
+        diagnostics.warning(configEntry->source, configEntry->key,
+            "value below supported range; clamped to minimum");
+        value = minimum;
+    }
+
+    *target = value;
+}
+
+static void applyAudioChannelsEntry(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, int* target) {
+    const ConfigEntry* configEntry = patch.entry(KEY_AUDIO_CHANNELS);
+    int value = 0;
+
+    if (configEntry == NULL)
+        return;
+
+    if (!parseAudioChannels(configEntry->value, &value)) {
+        diagnostics.error(configEntry->source, configEntry->key,
+            "expected mono, stereo, or a channel count");
+        return;
+    }
+
+    *target = clampIntWithWarning(value, SOUND_CHANNELS_MIN,
+        SOUND_CHANNELS_MAX_EXCLUSIVE - 1, *configEntry, diagnostics);
+}
+
+static void applyAudioSampleFormatEntry(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, AudioSampleFormat* target) {
+    const ConfigEntry* configEntry = patch.entry(KEY_AUDIO_SAMPLE_FORMAT);
+    AudioSampleFormat format = AUDIO_CONFIG_DEFAULT_FORMAT;
+
+    if (configEntry == NULL)
+        return;
+
+    if (!parseAudioSampleFormat(configEntry->value, &format)) {
+        diagnostics.error(configEntry->source, configEntry->key,
+            "expected a supported PCM sample format");
+        return;
+    }
+
+    *target = format;
+}
+
+static void applyMixerInitialVolumeEntries(const ConfigPatch& patch,
+    DeferredLogBuffer& diagnostics, AudioConfig* config) {
+    const std::vector<ConfigEntry>* entries
+        = patch.entriesFor(KEY_AUDIO_MIXER_INITIAL_VOLUME);
+
+    if (entries == NULL)
+        return;
+
+    for (std::vector<ConfigEntry>::const_iterator it = entries->begin();
+         it != entries->end(); ++it) {
+        std::string::size_type separator = it->value.find('=');
+        AudioMixerInitialVolumeConfig initialVolume;
+
+        if (separator == std::string::npos) {
+            diagnostics.error(it->source, it->key,
+                "expected mixer initial volume as NAME=VOLUME");
+            continue;
+        }
+
+        initialVolume.name = trim(it->value.substr(0, separator));
+        std::string volumeText = trim(it->value.substr(separator + 1));
+        if (initialVolume.name.empty()) {
+            diagnostics.error(it->source, it->key,
+                "expected mixer initial volume name");
+            continue;
+        }
+        if (!parseInteger(volumeText, &initialVolume.volume)) {
+            diagnostics.error(it->source, it->key,
+                "expected an integer mixer volume");
+            continue;
+        }
+        if (initialVolume.volume < 0) {
+            diagnostics.warning(it->source, it->key,
+                "value below supported range; clamped to minimum");
+            initialVolume.volume = 0;
+        }
+
+        config->mixerInitialVolumes.push_back(initialVolume);
+    }
 }
 
 static int clampIntWithWarning(int value, int minimum, int maximum,
@@ -534,6 +1074,11 @@ void ConfigPatch::set(const std::string& key, const std::string& value,
     entriesValue[key] = ConfigEntry(key, value, source);
 }
 
+void ConfigPatch::append(const std::string& key, const std::string& value,
+    const std::string& source) {
+    repeatedEntriesValue[key].push_back(ConfigEntry(key, value, source));
+}
+
 bool ConfigPatch::has(const std::string& key) const {
     return entriesValue.find(key) != entriesValue.end();
 }
@@ -557,11 +1102,27 @@ const std::map<std::string, ConfigEntry>& ConfigPatch::entries() const {
     return entriesValue;
 }
 
+const std::vector<ConfigEntry>* ConfigPatch::entriesFor(
+    const std::string& key) const {
+    std::map<std::string, std::vector<ConfigEntry> >::const_iterator it
+        = repeatedEntriesValue.find(key);
+    if (it == repeatedEntriesValue.end())
+        return NULL;
+    return &it->second;
+}
+
 void ConfigPatch::mergeFrom(const ConfigPatch& patch) {
     for (std::map<std::string, ConfigEntry>::const_iterator it
          = patch.entriesValue.begin();
          it != patch.entriesValue.end(); ++it) {
         entriesValue[it->first] = it->second;
+    }
+
+    for (std::map<std::string, std::vector<ConfigEntry> >::const_iterator it
+         = patch.repeatedEntriesValue.begin();
+         it != patch.repeatedEntriesValue.end(); ++it) {
+        std::vector<ConfigEntry>& entries = repeatedEntriesValue[it->first];
+        entries.insert(entries.end(), it->second.begin(), it->second.end());
     }
 }
 
@@ -686,6 +1247,46 @@ Config ConfigSchema::build(const ConfigPatch& patch,
 
     if (const std::string* value = patch.value(KEY_AUDIO_INPUT_FILE))
         config.audio.inputFile = *value;
+
+    applyBoolEntry(patch, diagnostics, KEY_AUDIO_INPUT_LOOP,
+        &config.audio.inputLoopEnabled);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_SAMPLE_RATE, 0,
+        &config.audio.sampleRateHz);
+    applyAudioChannelsEntry(patch, diagnostics, &config.audio.channels);
+    applyAudioSampleFormatEntry(patch, diagnostics, &config.audio.sampleFormat);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_DSP_METHOD, 0,
+        &config.audio.dspMethod);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_DSP_FRAGMENTS, 0,
+        &config.audio.dspFragments);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_DSP_FRAGMENT_SIZE, 0,
+        &config.audio.dspFragmentSize);
+    applyBoolEntry(patch, diagnostics, KEY_AUDIO_DSP_SYNC,
+        &config.audio.dspSyncEnabled);
+    applyBoolEntry(patch, diagnostics, KEY_AUDIO_SILENT,
+        &config.audio.silentEnabled);
+    applyClampedIntEntry(patch, diagnostics, KEY_AUDIO_MIN_NOISE, 0,
+        SOUND_MINNOISE_MAX_EXCLUSIVE - 1, &config.audio.minNoise);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_PULSE_LATENCY, 50,
+        &config.audio.pulseLatencyMs);
+    if (const ConfigEntry* entry = patch.entry(KEY_AUDIO_PULSE_LATENCY)) {
+        config.audio.pulseLatencyMs = clampIntWithWarning(
+            config.audio.pulseLatencyMs, 50, 10000, *entry, diagnostics);
+    }
+    if (const std::string* value = patch.value(KEY_AUDIO_PULSE_SERVER))
+        config.audio.pulseServer = *value;
+    if (const std::string* value = patch.value(KEY_AUDIO_OUTPUT_DUMP))
+        config.audio.outputDumpPath = *value;
+    if (const std::string* value = patch.value(KEY_AUDIO_DSP_DEVICE))
+        config.audio.dspDevicePath = *value;
+    if (const std::string* value = patch.value(KEY_AUDIO_MIXER_DEVICE))
+        config.audio.mixerDevicePath = *value;
+    applyMixerInitialVolumeEntries(patch, diagnostics, &config.audio);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_NULL_TARGET_LATENCY, 0,
+        &config.audio.nullOutputTargetLatencyMs);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_PULSE_TARGET_LATENCY, 0,
+        &config.audio.pulseOutputTargetLatencyMs);
+    applyMinimumIntEntry(patch, diagnostics, KEY_AUDIO_DSP_TARGET_LATENCY, 0,
+        &config.audio.dspOutputTargetLatencyMs);
 
     if (const ConfigEntry* entry = patch.entry(KEY_DISPLAY_MODE)) {
         int mode = DISPLAY_CONFIG_DEFAULT_MODE;
@@ -950,6 +1551,42 @@ ConfigPatch hardcodedDefaultConfigPatch() {
         "defaults");
     defaults.set(KEY_AUDIO_INPUT_FILE, AUDIO_CONFIG_DEFAULT_INPUT_FILE_PATH,
         "defaults");
+    defaults.set(KEY_AUDIO_INPUT_LOOP,
+        booleanText(AUDIO_CONFIG_DEFAULT_INPUT_LOOP_ENABLED), "defaults");
+    defaults.set(KEY_AUDIO_SAMPLE_RATE,
+        integerText(AUDIO_CONFIG_DEFAULT_SAMPLE_RATE_HZ), "defaults");
+    defaults.set(KEY_AUDIO_CHANNELS, integerText(AUDIO_CONFIG_DEFAULT_CHANNELS),
+        "defaults");
+    defaults.set(KEY_AUDIO_SAMPLE_FORMAT,
+        integerText(int(AUDIO_CONFIG_DEFAULT_FORMAT)), "defaults");
+    defaults.set(KEY_AUDIO_DSP_METHOD,
+        integerText(AUDIO_CONFIG_DEFAULT_DSP_METHOD), "defaults");
+    defaults.set(KEY_AUDIO_DSP_FRAGMENTS,
+        integerText(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENTS), "defaults");
+    defaults.set(KEY_AUDIO_DSP_FRAGMENT_SIZE,
+        integerText(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENT_SIZE), "defaults");
+    defaults.set(KEY_AUDIO_DSP_SYNC,
+        booleanText(AUDIO_CONFIG_DEFAULT_DSP_SYNC_ENABLED), "defaults");
+    defaults.set(KEY_AUDIO_SILENT,
+        booleanText(AUDIO_CONFIG_DEFAULT_SILENT_ENABLED), "defaults");
+    defaults.set(KEY_AUDIO_MIN_NOISE,
+        integerText(AUDIO_CONFIG_DEFAULT_MIN_NOISE), "defaults");
+    defaults.set(KEY_AUDIO_PULSE_LATENCY,
+        integerText(AUDIO_CONFIG_DEFAULT_PULSE_LATENCY_MS), "defaults");
+    defaults.set(KEY_AUDIO_PULSE_SERVER, AUDIO_CONFIG_DEFAULT_PULSE_SERVER_TEXT,
+        "defaults");
+    defaults.set(KEY_AUDIO_OUTPUT_DUMP, AUDIO_CONFIG_DEFAULT_OUTPUT_DUMP_PATH,
+        "defaults");
+    defaults.set(KEY_AUDIO_DSP_DEVICE, AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH,
+        "defaults");
+    defaults.set(KEY_AUDIO_MIXER_DEVICE, AUDIO_CONFIG_DEFAULT_MIXER_DEVICE_PATH,
+        "defaults");
+    defaults.set(KEY_AUDIO_NULL_TARGET_LATENCY,
+        integerText(AUDIO_CONFIG_DEFAULT_NULL_TARGET_LATENCY_MS), "defaults");
+    defaults.set(KEY_AUDIO_PULSE_TARGET_LATENCY,
+        integerText(AUDIO_CONFIG_DEFAULT_PULSE_TARGET_LATENCY_MS), "defaults");
+    defaults.set(KEY_AUDIO_DSP_TARGET_LATENCY,
+        integerText(AUDIO_CONFIG_DEFAULT_DSP_TARGET_LATENCY_MS), "defaults");
     defaults.set(KEY_DISPLAY_MODE, integerText(DISPLAY_CONFIG_DEFAULT_MODE),
         "defaults");
 

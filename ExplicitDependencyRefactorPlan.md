@@ -156,6 +156,7 @@ The module boundaries are:
 
 - Application Lifecycle
 - Configuration
+- Runtime Reconfiguration
 - Commands And Input
 - Scene
 - Audio
@@ -212,14 +213,15 @@ implicit coupling under a new name.
 ### Configuration Module
 
 - Boundary: Owns defaults, command-line parsing, ini/X-resource loading,
-  validation, path resolution, runtime option mutation rules, and persistence.
+  validation, path resolution, startup configuration schemas/descriptors, and
+  persistence formats.
 - Owns/replaces: scalar/string option globals, path globals, parser state,
   `long_options` flag-pointer coupling, ini file globals, X resource parser
   globals, and save/restore wiring for configurable state.
 - Inputs: command-line arguments, environment/resource sources, ini files, build
-  defaults, and runtime edit requests from Commands And Input.
-- Outputs: immutable startup configuration, explicit live option models,
-  validated path resolution, and serialization commands for modules that own
+  defaults, and persistence sources.
+- Outputs: immutable startup configuration, option schemas/descriptors,
+  validated path resolution, and serialization adapters for modules that own
   configurable domain state.
 - Allowed dependencies: process logging, filesystem/path adapters, and
   serialization adapters supplied by owning modules.
@@ -227,9 +229,9 @@ implicit coupling under a new name.
   mutation of module state during parsing, or persistence code walking module
   globals.
 - Lifecycle: defaults are built before parsing; command line, X resources, and
-  ini files are applied during startup; live option edits are validated between
-  frames; final persistence runs after runtime modules stop exposing mutable
-  state.
+  ini files are applied during startup; Runtime Reconfiguration consumes the
+  resulting schemas/descriptors after Configuration; final persistence runs
+  after runtime modules stop exposing mutable state.
 - Fits cleanly: none of the current candidate services fits perfectly as-is.
 - Probably belongs here: `PathConfig` if it is narrowed into a path declaration
   and resolver; `AppOptions` if split into startup config, runtime options, and
@@ -245,7 +247,7 @@ implicit coupling under a new name.
 - Missing candidates: `ConfigurationBuilder`, `ConfigSource`,
   `ConfigAcquisitionStrategy`, `ConfigPatch`, `ConfigSchema`,
   `DeferredLogBuffer`, `CommandLineParser`, `ConfigLoader`,
-  `RuntimeOptionModel`, `ConfigPersistence`, and `PathResolver`.
+  `RuntimeOptionSchema`, `ConfigPersistence`, and `PathResolver`.
 
 #### Configuration Module Findings
 
@@ -315,8 +317,9 @@ globals, stages callbacks, or performs downstream work.
 - After config is built, `Application` decides initialization order and supplies
   only the required config slice to each module root. Audio receives
   `AudioConfig`; Display receives `DisplayConfig`; Scene receives
-  `SceneInitialSelection` plus any relevant runtime option model; Commands And
-  Input receives `KeymapConfig` and command descriptors.
+  `SceneInitialSelection`; Runtime Reconfiguration receives option descriptors
+  and explicit module reconfiguration targets; Commands And Input receives
+  `KeymapConfig` and command descriptors.
 
 The produced `Config` should be a composite value, but consumers should receive
 only their slice:
@@ -336,10 +339,10 @@ only their slice:
   palette/border/flashlight/audio-processing selections and image/QOTD/quiet
   message settings. After startup this becomes Scene-owned mutable state, not
   Configuration-owned state.
-- `RuntimeOptionModel`: descriptors for settings that can be edited at runtime
-  and persisted. This belongs to Configuration, but the live values should
-  either be Configuration-owned runtime options or explicit module-owned state
-  exposed through serializers.
+- `RuntimeOptionSchema`: descriptors for settings that can be edited at
+  runtime and persisted. Configuration may define schemas and persistence keys,
+  but Runtime Reconfiguration coordinates live edits and module owners keep the
+  live values.
 - `KeymapConfig`: selected keymap file and keymap-loading policy for Commands
   And Input.
 
@@ -348,10 +351,11 @@ Important pushback/constraints:
 - `Config` should be read-only after `build()`. Mutable scene selection is not
   "the config changing"; it is Scene state changing from initial configuration
   and commands. Persisting that state should use Scene serializers.
-- Runtime-editable options need an explicit owner. Some are genuine
-  Configuration-owned runtime options, such as logging verbosity or save-on-exit.
-  Others are module state, such as the current wave or palette. The UI should
-  edit through a typed option model/command target, not by writing `Config`.
+- Runtime-editable options need an explicit owner. Process-level toggles belong
+  to Application Lifecycle or Logging; audio tuning belongs to Audio; scene
+  selections belong to Scene; display choices belong to Display. The UI should
+  edit through Runtime Reconfiguration and typed command targets, not by
+  writing `Config`.
 - `ConfigurationBuilder` must not emit downstream commands. Current
   `do_param()` actions such as loading quiet-message files, setting image
   loading, resizing `CthughaBuffer::buffer`, changing `audioProcessing`, or
@@ -436,6 +440,45 @@ Current second-slice implementation status:
 - Still pending: remove or quarantine the old `extra_lib_path` and
   `ini_file_override` globals after save/compatibility code is moved to an
   explicit persistence/source-discovery service.
+
+### Runtime Reconfiguration Module
+
+- Boundary: Owns runtime setting changes after startup. It turns UI edits,
+  key actions, command-line-style runtime commands, panel changes, automatic
+  changes, and scripted changes into typed reconfiguration requests applied to
+  the module that owns the live state.
+- Why this follows Configuration: the startup `Config` refactor makes initial
+  dependencies explicit, but it does not by itself stop `Option` from owning
+  live values, parsing, validation, UI text, side effects, and persistence.
+  This module must be addressed immediately after Configuration so the refactor
+  does not merely replace startup globals while leaving runtime mutation hidden.
+- Owns/replaces: the live-value responsibilities currently concentrated in
+  `Option`, `OptionInt`, `OptionOnOff`, `OptionTime`, `EffectControl` as an
+  `Option`, `long_options` flag-pointer mutation, UI option editing globals,
+  and ad hoc `do_param()` side effects that change running subsystems.
+- Inputs: option schemas/descriptors from Configuration, command intents from
+  Commands And Input, current snapshots from owning modules, and explicit
+  module reconfiguration targets.
+- Outputs: typed `RuntimeChangeRequest` values, validation diagnostics,
+  applied-change results, updated module snapshots, and persistence snapshots.
+- Initial scope to cover: audio source and audio tuning changes; scene/effect
+  selections such as screen, flame, wave, object, translation, palette, border,
+  flashlight, and audio-processing choices; display screen selection, zoom,
+  FPS display, text mode, and backend presentation toggles.
+- Ownership rule: Runtime Reconfiguration coordinates live edits, but it does
+  not own all live state. Audio owns audio runtime state, Scene owns effect and
+  scene selection state, Display owns display presentation state, and
+  Application owns lifecycle-only toggles. The reconfiguration layer calls
+  explicit module APIs instead of writing globals or mutating `Config`.
+- Lifecycle: constructed after Configuration has produced startup config and
+  option descriptors; attached to module roots during Application startup;
+  applies changes only at safe boundaries, normally between frames or at
+  explicit restart/reopen points; provides snapshots to persistence during
+  shutdown.
+- Not planned yet: this section is a marker for the next refactor stage. The
+  detailed API-first/red-green plan should be written immediately after the
+  Configuration work is complete and before Commands And Input, Scene, Audio,
+  or Display are refactored around the old `Option` model.
 
 ### Commands And Input Module
 
@@ -1247,11 +1290,11 @@ Do not implement split-required services as single classes.
 2. Configuration
    - API first: `ConfigurationBuilder`, `ConfigSource` strategies,
      `ConfigPatch`, `ConfigSchema`, `DeferredLogBuffer`, immutable `Config`
-     slices, `RuntimeOptionModel`, `PathResolver`, `ConfigPersistence`, and
+     slices, `RuntimeOptionSchema`, `PathResolver`, `ConfigPersistence`, and
      serializers supplied by modules.
    - Red 1 tests: command-line, ini, X-resource, path resolution, validation,
-     deferred diagnostics, source precedence, live-option mutation, and save
-     behavior operate on explicit models.
+     deferred diagnostics, source precedence, and save behavior operate on
+     explicit models.
    - Red 2 tests: audio setup, display setup, scene defaults, UI editing, and
      save-on-exit consume only their configuration slices rather than globals or
      whole-application config.
@@ -1262,7 +1305,17 @@ Do not implement split-required services as single classes.
      `ini_file`, `ini_nr`, `ini_file_path`, `optindsave`, or parser-owned X
      resource globals outside compatibility adapters.
 
-3. Commands And Input
+3. Runtime Reconfiguration
+   - Must be addressed immediately after Configuration before further module
+     refactors depend on the legacy `Option` model.
+   - Scope marker only for now: live audio source/tuning changes, scene/effect
+     selections, and display screen/presentation settings must move through
+     typed runtime change requests and explicit module owners.
+   - Recheck target: `Option` no longer owns parsing, validation, live state,
+     UI text, side effects, and persistence as one object; live changes are not
+     applied by writing globals or mutating immutable startup `Config`.
+
+4. Commands And Input
    - API first: `InputQueue`, `CommandRegistry`, `CommandDispatcher`,
      `CommandContext`, input-to-command keymaps, and option-editing state.
    - Red 1 tests: keymaps translate events into command intents without owning
@@ -1276,7 +1329,7 @@ Do not implement split-required services as single classes.
      `Interface::current`, `currentOption`, `currentEffectControl`, or static
      keymap dispatch consumers.
 
-4. Scene
+5. Scene
    - API first: `SceneController`, `SceneState`, `SceneSnapshot`,
      `SceneChangeScheduler`, `SceneSerializer`, `EffectRegistry`, and
      `VisualCatalogs`.
@@ -1291,7 +1344,7 @@ Do not implement split-required services as single classes.
      hidden preset traversal, `sceneCommandsForLegacyCallbacks()`, or global
      `autoChanger`.
 
-5. Audio
+6. Audio
    - API first: `AudioAcquisitionRuntime`, `AudioPassthrough`, raw
      `AudioFrameProvider`, `AudioProcessingPipeline`, `AudioFrameProducts`,
      `AudioAnalysisSnapshot`, mixer/device adapters, and `AudioDumpWriter`.
@@ -1306,7 +1359,7 @@ Do not implement split-required services as single classes.
      `audioMetrics`, `acousticContext`, `AudioRuntime.cc` file-scope runtime
      state, mixer globals, or audio dump globals outside owners.
 
-6. Frame Mutation
+7. Frame Mutation
    - API first: `FrameStore`, `FrameComposer`, `FrameMutationContext`,
      renderer state factories, render math tables, and explicit frame handoff.
    - Red 1 tests: renderers and composers mutate fixture frames from explicit
@@ -1321,7 +1374,7 @@ Do not implement split-required services as single classes.
      `display.cc` renderer statics, direct audio globals, or mutable math table
      globals outside explicit renderer/math owners.
 
-7. Display
+8. Display
    - API first: `DisplaySystem`, `DisplayBackend`, `DisplayGeometry`,
      native-pixel transfer, `OverlayMessageQueue`, `OverlaySink`, raw event
      output, and `ScreenshotWriter`.
@@ -1336,7 +1389,7 @@ Do not implement split-required services as single classes.
      `displayRuntime`, X11 globals, global display geometry, global overlay
      text/error state, or logger-to-overlay back references.
 
-8. Final compatibility removal
+9. Final compatibility removal
    - API first: none; this is a deletion pass backed by source-boundary tests.
    - Red tests: forbidden-token tests cover every removed global and adapter.
    - Green targets: delete compatibility aliases, stale declarations, and

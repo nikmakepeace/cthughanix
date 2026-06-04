@@ -151,6 +151,11 @@ void configureAudioOptions(const AudioConfig& config) {
     dev_dsp[PATH_MAX - 1] = '\0';
     strncpy(dev_mixer, config.mixerDevicePath.c_str(), PATH_MAX);
     dev_mixer[PATH_MAX - 1] = '\0';
+    for (std::vector<AudioMixerInitialVolumeConfig>::const_iterator it
+         = config.mixerInitialVolumes.begin();
+         it != config.mixerInitialVolumes.end(); ++it) {
+        mixer_initial_volume(it->name.c_str(), it->volume);
+    }
 
     configureAudioOutputOptions(config);
     configureAudioAnalyzer(config);

@@ -57,14 +57,18 @@ struct ConfigEntry {
 
 class ConfigPatch {
     std::map<std::string, ConfigEntry> entriesValue;
+    std::map<std::string, std::vector<ConfigEntry> > repeatedEntriesValue;
 
 public:
     void set(const std::string& key, const std::string& value,
+        const std::string& source);
+    void append(const std::string& key, const std::string& value,
         const std::string& source);
     bool has(const std::string& key) const;
     const ConfigEntry* entry(const std::string& key) const;
     const std::string* value(const std::string& key) const;
     const std::map<std::string, ConfigEntry>& entries() const;
+    const std::vector<ConfigEntry>* entriesFor(const std::string& key) const;
     void mergeFrom(const ConfigPatch& patch);
 };
 
@@ -97,6 +101,11 @@ struct CatalogConfig {
     CatalogConfig();
 };
 
+struct AudioMixerInitialVolumeConfig {
+    std::string name;
+    int volume;
+};
+
 struct AudioConfig {
     AudioInputMode inputMode;
     std::string inputFile;
@@ -116,6 +125,7 @@ struct AudioConfig {
     std::string outputDumpPath;
     std::string dspDevicePath;
     std::string mixerDevicePath;
+    std::vector<AudioMixerInitialVolumeConfig> mixerInitialVolumes;
     int nullOutputTargetLatencyMs;
     int pulseOutputTargetLatencyMs;
     int dspOutputTargetLatencyMs;

@@ -36,7 +36,11 @@ enum option_nr {
     opt_verbose = 16000,
     opt_no_verbose,
     opt_play,
+    opt_loop,
+    opt_no_loop,
+    opt_sound_device_number,
     opt_snd_fragments,
+    opt_snd_fragment_size,
     opt_mixer,
     opt_msg_time,
     opt_prt_file,
@@ -81,6 +85,7 @@ struct option long_options[] = {
     // selecting sound device options
     { "no-sound", 0, 0, 'x' },
     { "random-noise", 0, 0, opt_random_noise },
+    { "sound-device-number", 1, 0, opt_sound_device_number },
 
     { "play", 1, 0, opt_play }, { "silent", 0, 0, opt_silent },
     { "no-silent", 0, 0, opt_no_silent },
@@ -97,11 +102,13 @@ struct option long_options[] = {
     { "snd-method", 1, 0, opt_sound_method },
     { "snd-sync", 0, 0, opt_dsp_sync }, { "no-snd-sync", 0, 0, opt_no_dsp_sync },
     { "snd-fragments", 1, 0, opt_snd_fragments },
+    { "sound-fragment-size", 1, 0, opt_snd_fragment_size },
+    { "snd-fragment-size", 1, 0, opt_snd_fragment_size },
     { "dev-dsp", 1, 0, opt_dev_dsp },
 #endif
 
     // Play/exec options
-    { "loop", 0, &audioInputLoop, 1 }, { "no-loop", 0, &audioInputLoop, 0 },
+    { "loop", 0, 0, opt_loop }, { "no-loop", 0, 0, opt_no_loop },
 
 // Mixer options
 #if WITH_MIXER == 1
@@ -249,71 +256,37 @@ int do_param(int c, int value, char* str) {
         break;
 
     case '2': /* Stereo */
-        soundChannels.setValue(2);
         break;
     case '1': /* Mono */
-        soundChannels.setValue(1);
         break;
 
     case 'v': /* Sample rate */
-        soundSampleRate.setValue(value);
         break;
 
     case opt_sound_format:
-        soundFormat.change(str);
         break;
 
     case opt_pulse_server:
-        if (str != NULL) {
-            strncpy(pulse_server, str, PATH_MAX);
-            pulse_server[PATH_MAX - 1] = '\0';
-        } else {
-            pulse_server[0] = '\0';
-        }
         break;
 
     case opt_pulse_latency_ms:
-        pulse_latency_msec = value;
-        if (pulse_latency_msec < 50) {
-            CTH_WARN("PulseAudio latency below 50 ms, clamping to 50 ms.\n");
-            pulse_latency_msec = 50;
-        } else if (pulse_latency_msec > 10000) {
-            CTH_WARN("PulseAudio latency above 10000 ms, clamping to 10000 ms.\n");
-            pulse_latency_msec = 10000;
-        }
         break;
 
     case opt_audio_output_dump:
-        if (str != NULL) {
-            strncpy(audio_output_dump, str, PATH_MAX);
-            audio_output_dump[PATH_MAX - 1] = '\0';
-        } else {
-            audio_output_dump[0] = '\0';
-        }
         break;
 
     case 'L': /* Line as input */
-        mixer_initial_volume("line", value | (value << 8));
         break;
     case 'M': /* Mic as input */
-        mixer_initial_volume("mic", value | (value << 8));
         break;
-    case opt_mixer: {
-        char name[100];
-        char* p;
-        int vol;
-        if ((p = strchr(str, ':')) != 0) {
-            *p = ' ';
-        }
-        sscanf(str, "%s %d", name, &vol);
-        mixer_initial_volume(name, vol);
+    case opt_mixer:
         break;
-    }
 
     case 'x': /* no sound input */
         break;
 
     case opt_random_noise:
+    case opt_sound_device_number:
         break;
 
 
@@ -339,7 +312,6 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_min_noise:
-        sound_minnoise.change(str);
         break;
 
     case 'q': /* alternative quiet-strings */
@@ -405,37 +377,29 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_play:
+    case opt_loop:
+    case opt_no_loop:
         break;
 
     case opt_silent:
-        soundSilent.setValue(1);
-        break;
     case opt_no_silent:
-        soundSilent.setValue(0);
         break;
 
     case opt_dev_dsp:
-        strncpy(dev_dsp, str, PATH_MAX);
-        dev_dsp[PATH_MAX - 1] = '\0';
         break;
 
 #if WITH_DSP == 1
     case opt_dsp_sync:
-        soundDSPSync.setValue(1);
-        break;
-
     case opt_no_dsp_sync:
-        soundDSPSync.setValue(0);
         break;
 #endif
 
 #if WITH_MIXER == 1
     case opt_dev_mixer:
-        strncpy(dev_mixer, str, PATH_MAX);
         break;
 #endif
     case opt_snd_fragments:
-        soundDSPFragments.change(str);
+    case opt_snd_fragment_size:
         break;
 
 #ifdef CTH_XWIN
@@ -451,7 +415,6 @@ int do_param(int c, int value, char* str) {
 #endif
 
     case opt_sound_method:
-        soundDSPMethod.change(str);
         break;
 
     default: /* error or help */

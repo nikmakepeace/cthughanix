@@ -14,6 +14,13 @@ static const std::string* patchValue(const ConfigPatch& patch,
     return value;
 }
 
+static const std::vector<ConfigEntry>* patchEntries(const ConfigPatch& patch,
+    const std::string& key) {
+    const std::vector<ConfigEntry>* entries = patch.entriesFor(key);
+    assert(entries != NULL);
+    return entries;
+}
+
 static void defaultsProduceTypedConfig() {
     ConfigurationBuilder builder;
     ConfigBuildResult result = builder.addDefaults().build();
@@ -43,6 +50,10 @@ static void defaultsProduceTypedConfig() {
     assert(result.config.audio.outputDumpPath == AUDIO_CONFIG_DEFAULT_OUTPUT_DUMP_PATH);
     assert(result.config.audio.dspDevicePath == AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH);
     assert(result.config.audio.mixerDevicePath == AUDIO_CONFIG_DEFAULT_MIXER_DEVICE_PATH);
+    assert(result.config.audio.mixerInitialVolumes.empty());
+    assert(result.config.audio.nullOutputTargetLatencyMs == AUDIO_CONFIG_DEFAULT_NULL_TARGET_LATENCY_MS);
+    assert(result.config.audio.pulseOutputTargetLatencyMs == AUDIO_CONFIG_DEFAULT_PULSE_TARGET_LATENCY_MS);
+    assert(result.config.audio.dspOutputTargetLatencyMs == AUDIO_CONFIG_DEFAULT_DSP_TARGET_LATENCY_MS);
     assert(result.config.display.displayMode == DISPLAY_CONFIG_DEFAULT_MODE);
     assert(!result.config.display.hasCustomDisplaySize);
     assert(result.config.display.bufferWidth == 160);
@@ -76,6 +87,24 @@ static void iniTextSourceProducesPatchWithoutGlobals() {
         "cthugha.verbose: 3\n"
         "cthugha.path: /tmp/cth\n"
         "cthugha.play: song.wav\n"
+        "cthugha.loop: no\n"
+        "cthugha.rate: 22050\n"
+        "cthugha.no-stereo: yes\n"
+        "cthugha.snd-format: s16le\n"
+        "cthugha.snd-method: 2\n"
+        "cthugha.snd-fragments: 8\n"
+        "cthugha.sound-fragment-size: 10\n"
+        "cthugha.snd-sync: on\n"
+        "cthugha.silent: yes\n"
+        "cthugha.min-noise: 12\n"
+        "cthugha.pulse-latency-ms: 150\n"
+        "cthugha.pulse-server: local\n"
+        "cthugha.audio-output-dump: dump.raw\n"
+        "cthugha.dev-dsp: /tmp/dsp\n"
+        "cthugha.dev-mixer: /tmp/mixer\n"
+        "cthugha.line: 12\n"
+        "cthugha.mic: 34\n"
+        "cthugha.mixer: pcm:56\n"
         "cthugha.disp-mode: 800x600\n"
         "cthugha.buff-size: 2\n");
     ConfigPatch patch = source.acquire(diagnostics);
@@ -85,6 +114,27 @@ static void iniTextSourceProducesPatchWithoutGlobals() {
     assert(*patchValue(patch, "paths.extra_library") == "/tmp/cth/");
     assert(*patchValue(patch, "audio.input_mode") == "2");
     assert(*patchValue(patch, "audio.input_file") == "song.wav");
+    assert(*patchValue(patch, "audio.input_loop") == "0");
+    assert(*patchValue(patch, "audio.sample_rate_hz") == "22050");
+    assert(*patchValue(patch, "audio.channels") == "1");
+    assert(*patchValue(patch, "audio.sample_format") == "s16le");
+    assert(*patchValue(patch, "audio.dsp_method") == "2");
+    assert(*patchValue(patch, "audio.dsp_fragments") == "8");
+    assert(*patchValue(patch, "audio.dsp_fragment_size") == "10");
+    assert(*patchValue(patch, "audio.dsp_sync") == "1");
+    assert(*patchValue(patch, "audio.silent") == "1");
+    assert(*patchValue(patch, "audio.min_noise") == "12");
+    assert(*patchValue(patch, "audio.pulse_latency_ms") == "150");
+    assert(*patchValue(patch, "audio.pulse_server") == "local");
+    assert(*patchValue(patch, "audio.output_dump_path") == "dump.raw");
+    assert(*patchValue(patch, "audio.dsp_device_path") == "/tmp/dsp");
+    assert(*patchValue(patch, "audio.mixer_device_path") == "/tmp/mixer");
+    const std::vector<ConfigEntry>* mixerInitials
+        = patchEntries(patch, "audio.mixer_initial_volume");
+    assert(mixerInitials->size() == 3);
+    assert((*mixerInitials)[0].value == "line=3084");
+    assert((*mixerInitials)[1].value == "mic=8738");
+    assert((*mixerInitials)[2].value == "pcm=56");
     assert(*patchValue(patch, "display.mode") == "-1");
     assert(*patchValue(patch, "display.width") == "800");
     assert(*patchValue(patch, "display.height") == "600");
@@ -139,6 +189,75 @@ static void commandLineSourceHandlesAudioLastWriterWins() {
     assert(result.config.audio.inputFile.empty());
 }
 
+static void commandLineSourceBuildsFullAudioConfig() {
+    ConfigurationBuilder builder;
+    ConfigBuildResult result = builder.addDefaults()
+        .addCommandLine(std::vector<std::string>{
+            "cthugha",
+            "--play",
+            "song.wav",
+            "--no-loop",
+            "--rate",
+            "48000",
+            "--no-stereo",
+            "--snd-format",
+            "16bit signed (le)",
+            "--snd-method",
+            "2",
+            "--snd-fragments",
+            "8",
+            "--snd-fragment-size",
+            "10",
+            "--snd-sync",
+            "--silent",
+            "--min-noise=300",
+            "--pulse-latency-ms=40",
+            "--pulse-server",
+            "local",
+            "--audio-output-dump",
+            "dump.raw",
+            "--dev-dsp",
+            "/tmp/dsp",
+            "--dev-mixer",
+            "/tmp/mixer",
+            "--line",
+            "12",
+            "-M34",
+            "--mixer",
+            "pcm:56",
+        })
+        .build();
+
+    assert(result.ok());
+    assert(result.config.audio.inputMode == AIM_File);
+    assert(result.config.audio.inputFile == "song.wav");
+    assert(result.config.audio.inputLoopEnabled == 0);
+    assert(result.config.audio.sampleRateHz == 48000);
+    assert(result.config.audio.channels == 1);
+    assert(result.config.audio.sampleFormat == SF_s16_le);
+    assert(result.config.audio.dspMethod == 2);
+    assert(result.config.audio.dspFragments == 8);
+    assert(result.config.audio.dspFragmentSize == 10);
+    assert(result.config.audio.dspSyncEnabled == 1);
+    assert(result.config.audio.silentEnabled == 1);
+    assert(result.config.audio.minNoise == 255);
+    assert(result.config.audio.pulseLatencyMs == 50);
+    assert(result.config.audio.pulseServer == "local");
+    assert(result.config.audio.outputDumpPath == "dump.raw");
+    assert(result.config.audio.dspDevicePath == "/tmp/dsp");
+    assert(result.config.audio.mixerDevicePath == "/tmp/mixer");
+    assert(result.config.audio.mixerInitialVolumes.size() == 3);
+    assert(result.config.audio.mixerInitialVolumes[0].name == "line");
+    assert(result.config.audio.mixerInitialVolumes[0].volume == 3084);
+    assert(result.config.audio.mixerInitialVolumes[1].name == "mic");
+    assert(result.config.audio.mixerInitialVolumes[1].volume == 8738);
+    assert(result.config.audio.mixerInitialVolumes[2].name == "pcm");
+    assert(result.config.audio.mixerInitialVolumes[2].volume == 56);
+    assert(result.diagnostics.size() == 2);
+    assert(result.diagnostics[0].severity == ConfigDiagnosticWarning);
+    assert(result.diagnostics[1].severity == ConfigDiagnosticWarning);
+}
+
 static void commandLineSourceHandlesDisplayAndBufferSettings() {
     ConfigurationBuilder builder;
     ConfigBuildResult result = builder.addDefaults()
@@ -191,10 +310,12 @@ static void invalidTypedValueProducesDeferredError() {
 }
 
 int main() {
+    assert(configArgumentsFromArgv(0, NULL).empty());
     defaultsProduceTypedConfig();
     iniTextSourceProducesPatchWithoutGlobals();
     sourcePrecedenceIsDefaultsIniEnvironmentCommandLine();
     commandLineSourceHandlesAudioLastWriterWins();
+    commandLineSourceBuildsFullAudioConfig();
     commandLineSourceHandlesDisplayAndBufferSettings();
     customBufferSizeIsClampedWithDeferredWarnings();
     invalidTypedValueProducesDeferredError();

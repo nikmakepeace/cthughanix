@@ -41,6 +41,8 @@ static void testAudioRuntimeUsesAudioConfig() {
     assertSourceDoesNotContain("src/AudioSettings.cc", "fromCurrentOptions");
     assertSourceDoesNotContain("src/AudioSettings.cc", "audio_input_file");
     assertSourceDoesNotContain("src/AudioSettings.cc", "::audioInputMode");
+    assertSourceDoesNotContain("src/AudioSettings.cc", "::soundDSPMethod");
+    assertSourceDoesNotContain("src/AudioSettings.cc", "soundSilent");
 }
 
 static void testDisplayStartupUsesDisplayConfig() {
@@ -72,6 +74,22 @@ static void testLegacyParserDoesNotWritePortedConfigValues() {
     assertSourceDoesNotContain("src/options.cc", "&cthugha_verbose.value");
     assertSourceDoesNotContain("src/options.cc", "snprintf(extra_lib_path");
     assertSourceDoesNotContain("src/options.cc", "strncpy(ini_file_override");
+    assertSourceDoesNotContain("src/options.cc", "&audioInputLoop");
+    assertSourceDoesNotContain("src/options.cc", "soundChannels.setValue");
+    assertSourceDoesNotContain("src/options.cc", "soundSampleRate.setValue");
+    assertSourceDoesNotContain("src/options.cc", "soundFormat.change");
+    assertSourceDoesNotContain("src/options.cc", "strncpy(pulse_server");
+    assertSourceDoesNotContain("src/options.cc", "pulse_latency_msec =");
+    assertSourceDoesNotContain("src/options.cc", "strncpy(audio_output_dump");
+    assertSourceDoesNotContain("src/options.cc", "sound_minnoise.change");
+    assertSourceDoesNotContain("src/options.cc", "soundSilent.setValue");
+    assertSourceDoesNotContain("src/options.cc", "strncpy(dev_dsp");
+    assertSourceDoesNotContain("src/options.cc", "soundDSPSync.setValue");
+    assertSourceDoesNotContain("src/options.cc", "strncpy(dev_mixer");
+    assertSourceDoesNotContain("src/options.cc", "soundDSPFragments.change");
+    assertSourceDoesNotContain("src/options.cc", "soundDSPMethod.change");
+    assertSourceDoesNotContain("src/options.cc", "mixer_initial_volume");
+    assertSourceContains("src/AudioSystem.cc", "config.mixerInitialVolumes");
 }
 
 static void testCatalogLoadingUsesPathConfig() {
