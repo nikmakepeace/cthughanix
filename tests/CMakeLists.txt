@@ -538,7 +538,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
         ${CMAKE_SOURCE_DIR}/src/Interface.cc
         ${CMAKE_SOURCE_DIR}/src/InterfaceList.cc
-        ${CMAKE_SOURCE_DIR}/src/Screenshot.cc
         ${CMAKE_SOURCE_DIR}/src/flames.cc
         ${CMAKE_SOURCE_DIR}/src/info_title_usage.cc
         ${CMAKE_SOURCE_DIR}/src/misc.cc

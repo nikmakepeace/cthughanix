@@ -176,7 +176,6 @@ void usage() {
     PH("                     cthugha searches in LIBDIR/map, LIBDIR/img and LIBDIR/tab");
     PH(" --ini-file FILE     Read settings from FILE instead of default ini files");
     PH(" --keymap KEYMAP     Load keyboard definitions from KEYMAP file");
-    PH(" --prt-file FILE     Filename used at print screen");
     PH(" --no-esc            Disable quit on ESC");
     PH(" --save              Save settings on exit");
     PH(" --verbose[=LVL]     Print some extra information");

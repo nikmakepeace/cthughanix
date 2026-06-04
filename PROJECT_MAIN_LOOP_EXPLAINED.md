@@ -629,7 +629,6 @@ The keymap system can:
 - save/restore hotkeys;
 - request quit;
 - change sound/display options;
-- print screenshots.
 
 Look at:
 

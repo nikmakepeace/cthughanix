@@ -75,7 +75,6 @@ static void defaultsProduceTypedConfig() {
     assert(result.config.display.showFpsEnabled == DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED);
     assert(result.config.display.zoomMode == DISPLAY_CONFIG_DEFAULT_ZOOM_MODE);
     assert(result.config.display.ncursesEnabled == DISPLAY_CONFIG_DEFAULT_NCURSES_ENABLED);
-    assert(result.config.display.screenshotFilePrefix == DISPLAY_CONFIG_DEFAULT_SCREENSHOT_FILE_PREFIX);
     assert(result.config.autoChange.quietMs == AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS);
     assert(result.config.autoChange.waitMinMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS);
     assert(result.config.autoChange.waitRandomMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS);

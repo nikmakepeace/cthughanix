@@ -136,6 +136,17 @@ static void testCatalogLoadingSkipsDuplicateNamesWithoutCompressedAssetShellOut(
     assertSourceDoesNotContain("src/Configuration.h", "CatalogConfig");
 }
 
+static void testScreenshotFeatureWasRemoved() {
+    assertSourceDoesNotContain("src/options.cc", "prt" "-file");
+    assertSourceDoesNotContain("src/DisplayDevice.h", "print" "Screen");
+    assertSourceDoesNotContain("src/DisplayDeviceX11.cc", "print" "Screen");
+    assertSourceDoesNotContain("src/keymap.cc", "print" "Screen");
+    assertSourceDoesNotContain("src/Configuration.h", "screenshot" "FilePrefix");
+    assertSourceDoesNotContain("src/configuration_defaults.h",
+        "SCREENSHOT" "_FILE_PREFIX");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "Screen" "shot.cc");
+}
+
 static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc", "configureApplicationOptions(startupConfigValue.app)");
     assertSourceContains("src/Application.cc", "configureKeys(startupConfigValue.input)");
@@ -201,7 +212,6 @@ static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
     assertSourceDoesNotContain("src/keys.cc", "DEFAULT_ESCAPE_KEY_ENABLED");
     assertSourceContains("src/configuration_defaults.h", "INPUT_CONFIG_DEFAULT_KEYMAP_FILE_PATH");
     assertSourceContains("src/configuration_defaults.h", "INPUT_CONFIG_DEFAULT_ESCAPE_KEY_ENABLED");
-    assertSourceDoesNotContain("src/Screenshot.cc", "DEFAULT_SCREENSHOT_FILE_PREFIX");
 }
 
 int main() {
@@ -213,6 +223,7 @@ int main() {
     testLegacyParserDoesNotWritePortedConfigValues();
     testCatalogLoadingUsesPathConfig();
     testCatalogLoadingSkipsDuplicateNamesWithoutCompressedAssetShellOut();
+    testScreenshotFeatureWasRemoved();
     testApplicationProvidesStartupConfigSlices();
     testInputStartupUsesInputConfig();
     testSceneStartupUsesSceneConfig();

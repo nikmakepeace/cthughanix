@@ -43,8 +43,6 @@ Major CMake options:
 - `CTH_ENABLE_MIXER`: enable OSS mixer controls when soundcard headers are
   available. Default: `ON`.
 - `CTH_ENABLE_MINIMP3`: enable embedded minimp3 decoding. Default: `ON`.
-- `CTH_ENABLE_XPM`: enable XPM screenshots when Xpm is available. Default:
-  `ON`.
 - `CTH_DATA_DIR`: installed runtime data directory. Default:
   `${CMAKE_INSTALL_FULL_DATADIR}/cthughanix`.
 

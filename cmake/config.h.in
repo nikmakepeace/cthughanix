@@ -31,15 +31,11 @@
 #cmakedefine01 HAVE_SYS_WAIT_H
 #cmakedefine01 HAVE_UNISTD_H
 #cmakedefine01 HAVE_VPRINTF
-#cmakedefine01 HAVE_X11_XPM_H
-#cmakedefine01 HAVE_XPM_H
-
 #cmakedefine WORDS_BIGENDIAN 1
 
 #cmakedefine01 STDC_HEADERS
 #cmakedefine01 TIME_WITH_SYS_TIME
 
-#cmakedefine01 USE_XPM
 #cmakedefine01 WITH_DSP
 #cmakedefine01 WITH_MINIMP3
 #cmakedefine01 WITH_MIXER

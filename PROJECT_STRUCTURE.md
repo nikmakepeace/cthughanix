@@ -119,9 +119,8 @@ files.
 - `src/palettes.cc`: palette loading, metadata, filtering, random palettes, and
   palette handling.
 - `src/Image.*`: indexed image domain objects, placement, and image option adapter.
-- `src/pcx.*`: PCX decode/encode support for indexed images.
+- `src/pcx.*`: PCX decode support for indexed images.
 - `src/png.*`: indexed PNG decode support for indexed images.
-- `src/Screenshot.*`: screenshot filename state.
 
 ### Display Frontends
 

@@ -50,11 +50,6 @@ static int keymapFeatureValue(const char* name, int& known) {
     if (strcasecmp(name, "WITH_MINIMP3") == 0)
         return WITH_MINIMP3;
 #endif
-#ifdef USE_XPM
-    if (strcasecmp(name, "USE_XPM") == 0)
-        return USE_XPM;
-#endif
-
     known = 0;
     return 0;
 }
@@ -554,7 +549,6 @@ ACTION(lock) { lock.change(+1); }
 
 ACTION(writeIni) { write_ini(); } // when net-sound: re-sent request to server
 ACTION(soundReset) { audioFrameChange(); }
-ACTION(printScreen) { displayDevice->printScreen(); }
 
 ACTION(restore) { sceneCommandsForLegacyCallbacks()->restore(); }
 ACTION(toggleSave) { Interface::saveToPreset = 1 - Interface::saveToPreset; }

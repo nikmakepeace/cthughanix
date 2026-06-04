@@ -27,7 +27,6 @@ set(CTHUGHA_COMMON_SOURCES
     MessagesProvider.cc
     QotdMessagesProvider.cc
     SilenceMessage.cc
-    Screenshot.cc
     PcmSourceFactory.cc
     AudioVisualBridge.cc
     PlatformLifecycle.cc
@@ -143,10 +142,6 @@ if(CTH_BUILD_X11)
         ZLIB::ZLIB
         m
     )
-
-    if(USE_XPM)
-        target_link_libraries(xcthugha PRIVATE ${X11_Xpm_LIB})
-    endif()
 
     if(CURSES_FOUND)
         target_include_directories(xcthugha PRIVATE ${CURSES_INCLUDE_DIRS})

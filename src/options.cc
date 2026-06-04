@@ -41,7 +41,6 @@ enum option_nr {
     opt_snd_fragment_size,
     opt_mixer,
     opt_msg_time,
-    opt_prt_file,
     opt_cumulative_fire_level,
     opt_min_noise,
     opt_listen,
@@ -190,7 +189,6 @@ struct option long_options[] = {
     // general options
     { "path", 1, 0, 'E' }, { "ini-file", 1, 0, opt_ini_file }, { "keymap", 1, 0, opt_keymap },
     { "save", 0, &options_save.value, 1 }, { "no-save", 0, &options_save.value, 0 },
-    { "prt-file", 1, 0, opt_prt_file },
     { "esc", 0, 0, opt_esc },
     { "no-esc", 0, 0, opt_no_esc }, { "verbose", 2, 0, opt_verbose },
     { "no-verbose", 0, 0, opt_no_verbose }, { "help", 0, 0, '?' },
@@ -351,10 +349,6 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'S': /* buffer-size */
-        break;
-
-    case opt_prt_file:
-        strncpy(display_prt_file, str, PATH_MAX);
         break;
 
     case 'E': /* extra lib path */

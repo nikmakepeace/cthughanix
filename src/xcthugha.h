@@ -81,9 +81,6 @@ public:
     virtual void clearBox(int, int, int, int);
     virtual void postDraw();
 
-    // print screen
-    virtual int printScreen();
-
     // text output stuff
     virtual void prePrint();
     void writeCharacter(int x, int y, int text, int color);

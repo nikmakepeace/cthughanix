@@ -14,7 +14,6 @@
 #include "cthugha.h"
 #include "ColorPalette.h"
 #include "EffectControl.h"
-#include "Screenshot.h"
 
 /*
  *  initialize and shut down ncurses
@@ -108,7 +107,5 @@ struct VisualConfig;
 void configurePaletteOptions(const VisualConfig& config);
 int palette_set_metadata_set(PaletteEntry* palette, const char* value);
 int palette_set_metadata_energy(PaletteEntry* palette, const char* value);
-
-int save_pcx(unsigned char* v, int w, int h, Palette pal);
 
 #endif

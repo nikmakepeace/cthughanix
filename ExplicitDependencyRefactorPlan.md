@@ -51,7 +51,7 @@ facades, display backend state, UI/input state, and process services.
 - Visual effect selections: `screen`, `flame`, `flameGeneral`, `wave`,
   `waveScale`, `table`, `object`, `translation`, `palette`, `border`,
   `flashlight`, `audioProcessing`, `use_translates`, `use_objects`.
-- File/path config: `extra_lib_path`, `ini_file_override`, `display_prt_file`,
+- File/path config: `extra_lib_path`, `ini_file_override`,
   `Keymap::keymapFile`.
 
 ### Registries And Catalogs
@@ -328,13 +328,12 @@ only their slice:
   continuation behavior, terminal/ncurses policy, and process-level toggles.
 - `LoggingConfig`: verbosity and diagnostic sink policy.
 - `PathConfig` or `PathResolverConfig`: library paths, ini override, keymap
-  path, screenshot path, audio file paths, and resource roots.
+  path, audio file paths, and resource roots.
 - `AudioConfig`: source mode, generation/file/live input settings, sample
   format/rate/channels, output/passthrough settings, mixer/device settings,
   dump path, and acoustic-analysis thresholds such as minimum noise.
 - `DisplayConfig`: display mode, window size/position, X11 flags, font,
-  colormap/shared-memory/fullscreen/panel policy, zoom, FPS display, and
-  screenshot settings.
+  colormap/shared-memory/fullscreen/panel policy, zoom, and FPS display.
 - `SceneInitialSelection`: initial screen/flame/wave/table/object/translation/
   palette/border/flashlight/audio-processing selections and image/QOTD/quiet
   message settings. After startup this becomes Scene-owned mutable state, not
@@ -779,17 +778,16 @@ The removal order inside Audio should be:
 ### Display Module
 
 - Boundary: Owns platform/window backends, display devices, geometry, native
-  pixel transfer, overlays as rendered output, screenshots, and raw event
-  collection.
+  pixel transfer, overlays as rendered output, and raw event collection.
 - Owns/replaces: `cthughaDisplay`, `displayDevice`, `displayBackend`,
   `displayRuntime`, X11 globals, display geometry globals, native pixel tables,
   overlay text/error globals, and global overlay device swapping.
 - Inputs: display configuration, frame views from Frame Mutation, overlay
   messages, and platform events.
 - Outputs: presented frames, raw input events for Commands And Input, display
-  geometry snapshots, screenshots, and backend lifecycle status.
-- Allowed dependencies: display options, path resolver for screenshots/fonts,
-  logger diagnostics, platform/X11 adapters, and an input event sink.
+  geometry snapshots, and backend lifecycle status.
+- Allowed dependencies: display options, path resolver for fonts, logger
+  diagnostics, platform/X11 adapters, and an input event sink.
 - Forbidden dependencies: scene catalogs, audio runtime, key command dispatch,
   option mutation, or direct shutdown globals.
 - Lifecycle: configured after startup configuration; opened before audio/video
@@ -798,15 +796,15 @@ The removal order inside Audio should be:
 - Fits cleanly: none of `DisplayRuntimeOwnership` fits cleanly as currently
   drawn because it combines too many display concerns.
 - Probably belongs here: display facade/device/backend ownership, geometry,
-  native pixel transfer, overlay sink, and screenshot writer after splitting.
+  native pixel transfer, and overlay sink after splitting.
 - Split-required: `DisplayRuntimeOwnership` should become `DisplaySystem`,
-  `DisplayBackend`, `DisplayGeometry`, `OverlaySink`, and `ScreenshotWriter`.
-  `Logger` must not point at display overlays; overlays should subscribe to
-  messages or receive explicit message output.
+  `DisplayBackend`, `DisplayGeometry`, and `OverlaySink`. `Logger` must not
+  point at display overlays; overlays should subscribe to messages or receive
+  explicit message output.
 - Does not fit: input command dispatch, scene message policy, or frame
   composition.
 - Missing candidates: `DisplaySystem`, `DisplayBackend`, `DisplayGeometry`,
-  `OverlayMessageQueue`, `OverlaySink`, and `ScreenshotWriter`.
+  `OverlayMessageQueue`, and `OverlaySink`.
 
 ### Service Placement Audit
 
@@ -927,11 +925,10 @@ is allowed to settle in that module.
 - Purpose: Own resolved filesystem paths and path-search policy separate from
   the option parser.
 - Globals replaced: `extra_lib_path`, `ini_file_override`,
-  `display_prt_file`, `Keymap::keymapFile`, audio input/output filenames, and
-  scattered device/path strings currently living as globals.
-- Used by: ini loading/saving, resource loaders, display screenshot/export,
-  keymap loading, audio input/output setup, and tests that need temporary
-  resource roots.
+  `Keymap::keymapFile`, audio input/output filenames, and scattered device/path
+  strings currently living as globals.
+- Used by: ini loading/saving, resource loaders, keymap loading,
+  audio input/output setup, and tests that need temporary resource roots.
 - Provided to customers: Built by option parsing into `ApplicationContext`;
   passed as `const PathConfig&` to loaders and mutable `PathConfig&` only to
   parsers.
@@ -1172,8 +1169,8 @@ is allowed to settle in that module.
   `draw_mode`, `colormapped`, `bitmap_colors0..3`, `text_size`, `fontSize`,
   `DisplayDevice::text_on_term`, `errors`, and `ScopedOverlayDisplayDevice`.
 - Used by: `Application`, `CthughaDisplay`, `VideoDirector`, X11 callbacks,
-  overlay/message rendering, screenshots, key/display commands, and tests with
-  fake display sinks.
+  overlay/message rendering, key/display commands, and tests with fake display
+  sinks.
 - Provided to customers: `ApplicationContext` owns `DisplayRuntimeOwnership`;
   consumers receive narrow references such as `DisplaySink&`,
   `OverlaySink&`, `DisplayBackend&`, or `DisplayGeometryProvider&`.
@@ -1185,8 +1182,8 @@ is allowed to settle in that module.
   lookup tables, and overlay/error text state.
 - API surface: `open(DisplayOptions)`, `pumpEvents(InputQueue&)`,
   `display()`, `backend()`, `device()`, `geometry() const`,
-  `present(const IndexedFrame&)`, `overlaySink()`, `screenshot(Path)`,
-  `resize(Size)`, and `close()`.
+  `present(const IndexedFrame&)`, `overlaySink()`, `resize(Size)`, and
+  `close()`.
 
 ### `IniStore`
 
@@ -1376,12 +1373,12 @@ Do not implement split-required services as single classes.
 
 8. Display
    - API first: `DisplaySystem`, `DisplayBackend`, `DisplayGeometry`,
-     native-pixel transfer, `OverlayMessageQueue`, `OverlaySink`, raw event
-     output, and `ScreenshotWriter`.
+     native-pixel transfer, `OverlayMessageQueue`, `OverlaySink`, and raw event
+     output.
    - Red 1 tests: fake display systems can open, report geometry, collect raw
-     events, accept frames, render overlays, and write screenshots.
-   - Red 2 tests: `Application`, frame presenter, overlays, screenshots, X11
-     callbacks, and display commands use explicit display collaborators.
+     events, accept frames, and render overlays.
+   - Red 2 tests: `Application`, frame presenter, overlays, X11 callbacks, and
+     display commands use explicit display collaborators.
    - Green targets: split `DisplayRuntimeOwnership`, remove overlay device
      swapping, move native pixel tables/geometry/text state into display-owned
      objects, and route raw events to Commands And Input.

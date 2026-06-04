@@ -100,8 +100,6 @@ public:
      */
     virtual DisplayEventStats processEvents() { return DisplayEventStats(); }
 
-    virtual int printScreen() { return 0; }
-
     /**
      * Supplies the palette published by the active video filterchain.
      *

@@ -383,14 +383,6 @@ image files. Cthugha also searches for an ini file
 Load extra keyboard bindings from @code{KEYMAP}.
 
 
-@item --prt-file FILE
-File used to save screen at PrintScreen. 
-The extensions and a number are appended automatically.
-So the first saved file is @code{FILE.pcx}, the second is @code{FILE.1.pcx}, the
-third is @code{FILE.2.pcx} and so on. When saving under @code{xcthugha}
-the images are in Xpm format.
-
-
 @item --no-esc
 If this option is given then the esc-key is ignored. 
 You should no longer need this switch, I still keep

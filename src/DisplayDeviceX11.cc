@@ -1394,36 +1394,3 @@ std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
         new DisplayRuntimeOwnership(std::move(device), std::move(backend),
             std::move(runtime)));
 }
-
-#if HAVE_XPM_H
-#include <xpm.h>
-#else
-#if HAVE_X11_XPM_H
-#include <X11/xpm.h>
-#else
-#undef USE_XPM
-#endif
-#endif
-
-#if USE_XPM == 1
-
-int DisplayDeviceX11::printScreen() {
-    switch (shmLevel) {
-    case shmPixmap:
-        XpmWriteFileFromPixmap(xcth_display, prtFileName("xpm"), pixmap, 0, NULL);
-        break;
-    case shmImage:
-    case shmNone:
-        XpmWriteFileFromImage(xcth_display, prtFileName("xpm"), image, NULL, NULL);
-    }
-    return 0;
-}
-
-#else
-
-int DisplayDeviceX11::printScreen() {
-    CTH_ERROR("Print screen is not available. You need the Xpm library.\n");
-    return 1;
-}
-
-#endif

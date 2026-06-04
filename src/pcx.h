@@ -20,15 +20,4 @@ struct ImageLoadTarget;
 EffectChoice* read_pcx_image(FILE* file, const char* name, const char* dir,
     const char* totalName, const ImageLoadTarget& target);
 
-/**
- * Saves indexed pixels as a PCX screenshot.
- *
- * @param buffer Source 8-bit indexed pixels.
- * @param width Image width in pixels.
- * @param height Image height in pixels.
- * @param pal 256-color RGB palette.
- * @return Zero on success, nonzero on write failure.
- */
-int save_pcx(unsigned char* buffer, int width, int height, Palette pal);
-
 #endif

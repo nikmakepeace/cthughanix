@@ -161,7 +161,6 @@ struct DisplayConfig {
     int showFpsEnabled;
     int zoomMode;
     int ncursesEnabled;
-    std::string screenshotFilePrefix;
 
     DisplayConfig();
 };

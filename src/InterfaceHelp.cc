@@ -117,7 +117,6 @@ const char* InterfaceHelp::text[] = {
     N "n/N     : update sound device          \n",
     N "a/A     : save current setup to        \n",
     N "          ~/.cthugha.auto              \n",
-    N "#       : print screen (without text)  \n",
     N "                                       \n",
     N "q/ESC: Exit                            \n",
     N "                                       \n",

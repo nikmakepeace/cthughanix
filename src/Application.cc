@@ -25,7 +25,6 @@
 #include "Interface.h"
 #include "Option.h"
 #include "Scene.h"
-#include "Screenshot.h"
 #include "VideoDirector.h"
 #include "VideoFilterchain.h"
 #include "VideoFilterchainFactory.h"
@@ -214,7 +213,6 @@ int Application::initialize() {
     configureAudioOptions(startupConfigValue.audio);
     configureCthughaDisplay(startupConfigValue.display);
     configureNcursesDisplay(startupConfigValue.display);
-    configureScreenshot(startupConfigValue.display);
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
 #endif
