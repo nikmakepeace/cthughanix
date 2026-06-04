@@ -61,8 +61,7 @@ Core/common:
 
 - C and C++ compiler;
 - CMake;
-- POSIX process/file APIs;
-- gzip at runtime for `.gz` assets.
+- POSIX process/file APIs.
 
 X11 frontend:
 
@@ -117,10 +116,9 @@ local logging path rather than adding a new one.
 
 ## Build-System Gotchas To Preserve
 
-- Do not compile `options.cc` directly for every target unless replacing the
-  wrapper scheme deliberately.
-- `xwin_options.cc` and `xwin_keys.cc` are the remaining wrapper compile units
-  for X11-specific options and key handling.
+- Startup configuration is built by `src/Configuration.cc`; do not reintroduce
+  per-frontend option parser wrappers.
+- `xwin_keys.cc` is still an X11 wrapper compile unit for key handling.
 - CMake generates `default.keymap.str` under `build/src/`; in-tree builds may
   generate `src/default.keymap.str`.
 - Local object files in `src/` are not authoritative. Check source lists in

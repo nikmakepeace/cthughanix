@@ -16,21 +16,33 @@ main(argc, argv)
 ```text
   srand(time(0))
   seteuid(getuid())                    # drop elevated uid
-  get_pre_params()                     # early --path/--ini-file/--verbose/text options
-  params_request_help()                # banner/help exit before display work
-  get_params()                         # read ini files, then command line
+  buildStartupConfig(argc, argv)       # defaults, ini files, env, command line
+  cthugha_configure_logging()
+  emit diagnostics; handle failure/help before display work
+  configureKeys(InputConfig)
+  configureAudioOptions(AudioConfig)
+  configureCthughaDisplay(DisplayConfig)
+  configureDisplayDeviceX11(X11Config)
+  configureAutoChanger(AutoChangeConfig)
+  configure effect/message/transition policies
+  CthughaBuffer::buffer.setDimensions(DisplayConfig)
+  remove_continuation_ini(PathConfig)
+  initSceneRuntime()
   title()
+  videoDirector().silenceMessages().initialize()
   init_imath()
-  init_sound()
-  CthughaBuffer::initAll()
+  init_sound(AudioConfig)
+  initializeVisualCatalogs(PathConfig)
+  CthughaBuffer::buffer.allocatePixels()
+  loadEffectPolicyImages(EffectPolicy, PathConfig)
   init_border()
   init_flashlight()
-  EffectControl::changeToInitial()
-  audioProcessing.changeToInitial()
+  sceneCommands().applyStartupConfig(SceneConfig)
+  configureAudioProcessing(SceneConfig)
   Interface::set("main")
-  Keymap::init()
+  Keymap::init(InputConfig)
   cth_init(&argc, argv)                # frontend-specific display init
-  newDisplayDevice()
+  newDisplayDevice(DisplayConfig)
   newCthughaDisplay()
   initAudioVisualBridge()              # constructs AutoChanger
   PlatformLifecycle::install()         # platform pause/suspend hook
@@ -110,10 +122,10 @@ no-op lifecycle hook that future native ports can replace.
 ### Runtime Selection
 
 `audioRuntimeInit()` builds the active audio runtime through `RuntimeFactory`.
-Audio startup uses current options (`sound-device-number`, `sound-method`,
-`silent`, `--pulse-server`, and the `--play` file name). Environment detection
-checks OSS read and write availability and whether Pulse support was compiled
-in.
+Audio startup uses an `AudioConfig` slice containing source mode, file name,
+sample format, output policy, latency, device, and mixer choices. Environment
+detection checks OSS read and write availability and whether Pulse support was
+compiled in.
 
 `PcmSourceFactory` currently selects:
 
@@ -446,24 +458,20 @@ Actions are registered by static `ACTION(name)` objects in `keymap.cc`,
 
 ## Configuration Flow
 
-`get_pre_params()` handles only early options such as `--path`, `--ini-file`,
-`--verbose`, and X11 terminal-text options. `get_params()` then reads ini files
-and reprocesses the full command line, so command-line options override ini
-values.
+Startup config is acquired in `buildStartupConfig()`. A bootstrap command-line
+pass only discovers `--path` and `--ini-file`, then `ConfigurationBuilder`
+applies defaults, ini files, supported environment variables, and the full
+command line into one immutable `Config` value. `Application` handles
+diagnostics/help and passes only config slices to subsystem startup APIs.
 
-Without `--ini-file`, `read_ini()` searches:
+Without `--ini-file`, the builder searches:
 
 1. `CTH_LIBDIR/cthugha.ini`
 2. `~/.cthugha.auto`
 3. `~/.cthugha.ini`
 4. `./cthugha.ini`
 5. `--path DIR` -> `DIR/cthugha.ini`
-6. X11 resource database for `xcthugha`, via `open_ini_sys()`, only after a
-   display connection exists
-
-Initial option loading now happens before X11 startup, so this legacy X resource
-source is skipped during normal startup configuration. Later usage reads that
-run after display startup can still query it.
+6. `~/.cthugha.continue`
 
 With `--ini-file FILE`, only that file is opened. Ini chaining from inside an
 ini file is intentionally ignored with a warning.
@@ -477,4 +485,5 @@ cthugha.feature.buffer.entry: on/off
 ```
 
 The ini reader supports `?` wildcards in entry names. Pressing `a` at runtime
-can write `~/.cthugha.auto` when saving is enabled.
+can write `~/.cthugha.auto` from the startup config snapshot when saving is
+enabled.

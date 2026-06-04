@@ -13,6 +13,9 @@ already moved much of screen composition toward explicit `IndexedFrame`,
 `ScreenRenderContext`, `PresentationComposer`, and `DisplayRuntime` handoffs.
 The remaining globals are concentrated in options/effect registries, audio
 facades, display backend state, UI/input state, and process services.
+Startup configuration acquisition is no longer one of those ambient areas:
+`ConfigurationBuilder` builds the startup `Config`, and `Application` passes
+immutable slices to subsystem startup APIs.
 
 ## Remaining Ambient Dependency Inventory
 
@@ -29,30 +32,31 @@ facades, display backend state, UI/input state, and process services.
 - Randomness: `srand(time(0))`, `rand()`, and `Random()`; used by option
   randomization, auto-change, palette generation, waves, messages, and random
   audio.
-- Logging: `cthugha_verbose` plus `CTH_*` macros; effectively a global logger.
-- Shell execution: `systemf()`, used by loaders that can shell out for legacy
-  behavior.
+- Logging: `cthugha_logging_verbosity` plus `CTH_*` macros; effectively a
+  global logger adapter configured from `LoggingConfig`.
+- Shell execution: `systemf()` still exists as a process helper, though the
+  compressed-asset loader path that needed it has been removed.
 
 ### Option And Configuration Globals
 
-- Core options: `options_save`, `cthugha_verbose`.
+- Core startup choices now live in `AppConfig` and `LoggingConfig`; the
+  remaining options below are runtime/editable state or compatibility mirrors
+  populated from config slices.
 - Audio options/config: `audioInputMode`, `soundFormat`, `soundChannels`,
   `soundSampleRate`, `soundDSPMethod`, `soundDSPFragments`,
   `soundDSPFragmentSize`, `soundDSPSync`, `soundSilent`, `audioInputLoop`,
   `dev_dsp`, `dev_mixer`, `pulse_server`, `pulse_latency_msec`,
-  `audio_output_dump`, `audio_input_file`.
-- Display options/config: `display_mode`, `zoom`, `maxFramesPerSecond`,
-  `showFPS`, `text_size`, `fontSize`,
-  `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `screenSizes`,
-  `bufferSizes`, X11 flags in `xcthugha.h`, and `xcth_font`.
+  `audio_output_dump`.
+- Display options/config: `zoom`, `maxFramesPerSecond`, `showFPS`,
+  `text_size`, `fontSize`, `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`,
+  `screenSizes`, `bufferSizes`, X11 flags in `xcthugha.h`, and `xcth_font`.
 - Auto-change/message options: `changeQuiet`, `changeWaitMin`,
   `changeWaitRandom`, `changeCumulativeFireLevel`, `lock`, `change_little`,
   `changeMsgTime`, `paletteSmoothingChance`, `sound_minnoise`.
 - Visual effect selections: `screen`, `flame`, `flameGeneral`, `wave`,
   `waveScale`, `table`, `object`, `translation`, `palette`, `border`,
   `flashlight`, `audioProcessing`, `use_translates`, `use_objects`.
-- File/path config: `extra_lib_path`, `ini_file_override`,
-  `Keymap::keymapFile`.
+- File/path startup config now lives in `PathConfig`/`InputConfig` slices.
 
 ### Registries And Catalogs
 
@@ -122,12 +126,12 @@ facades, display backend state, UI/input state, and process services.
 - Key actions call directly into globals: `screen`, `zoom`, `audioProcessing`,
   `displayDevice`, `cthugha_close`, and `sceneCommandsForLegacyCallbacks()`.
 
-### Ini, Resources, And Platform State
+### Ini Persistence And Platform State
 
-- `long_options` is a global table with `getopt_long` flag pointers directly
-  into option globals.
-- `ini_file`, `ini_nr`, `ini_file_path`, `optindsave`, and X resource
-  `database` are ambient parser state.
+- `IniFiles.cc` keeps process-wide writer state and a persisted startup
+  `Config` snapshot for runtime save commands.
+- `DisplayDeviceX11::cth_init()` still lets Xt consume toolkit command-line
+  options/resources during X shell initialization.
 - `PlatformLifecycle.cc` uses process-level static signal state. The signal
   flag itself may remain internal to the platform service, but the application
   dependency on lifecycle requests should be explicit.
@@ -212,14 +216,14 @@ implicit coupling under a new name.
 
 ### Configuration Module
 
-- Boundary: Owns defaults, command-line parsing, ini/X-resource loading,
+- Boundary: Owns defaults, command-line parsing, ini loading,
   validation, path resolution, startup configuration schemas/descriptors, and
   persistence formats.
-- Owns/replaces: scalar/string option globals, path globals, parser state,
-  `long_options` flag-pointer coupling, ini file globals, X resource parser
-  globals, and save/restore wiring for configurable state.
-- Inputs: command-line arguments, environment/resource sources, ini files, build
-  defaults, and persistence sources.
+- Owns/replaces: scalar/string startup option globals, path globals, parser
+  state, legacy option-table coupling, ini reader globals, and save/restore
+  wiring for configurable state.
+- Inputs: command-line arguments, supported environment sources, ini files,
+  build defaults, and persistence sources.
 - Outputs: immutable startup configuration, option schemas/descriptors,
   validated path resolution, and serialization adapters for modules that own
   configurable domain state.
@@ -228,8 +232,8 @@ implicit coupling under a new name.
 - Forbidden dependencies: direct audio/display/scene runtime objects, hidden
   mutation of module state during parsing, or persistence code walking module
   globals.
-- Lifecycle: defaults are built before parsing; command line, X resources, and
-  ini files are applied during startup; Runtime Reconfiguration consumes the
+- Lifecycle: defaults are built before parsing; ini files, environment, and
+  command line are applied during startup; Runtime Reconfiguration consumes the
   resulting schemas/descriptors after Configuration; final persistence runs
   after runtime modules stop exposing mutable state.
 - Fits cleanly: none of the current candidate services fits perfectly as-is.
@@ -237,11 +241,10 @@ implicit coupling under a new name.
   and resolver; `AppOptions` if split into startup config, runtime options, and
   scene selection state; `IniStore` if split into config loading and
   persistence.
-- Split-required: `AppOptions` currently combines startup-only config, live
+- Split-required: `AppOptions` historically combined startup-only config, live
   runtime controls, scene selection, display/audio settings, and UI-editable
-  option metadata. `IniStore` currently combines command-line parsing, ini
-  parsing, X-resource loading, and persistence. `PathConfig` overlaps with
-  both.
+  option metadata. `IniStore` should remain split between startup config
+  loading, runtime persistence, and module-owned serializers.
 - Does not fit: `EffectRegistry` persistence should not be owned by
   Configuration; Configuration should call a Scene-provided serializer instead.
 - Missing candidates: `ConfigurationBuilder`, `ConfigSource`,
@@ -251,25 +254,33 @@ implicit coupling under a new name.
 
 #### Configuration Module Findings
 
-The Configuration module should be the first substantial module built by
-`Application`. Its job is to acquire all startup/runtime configuration needed by
-downstream modules without constructing those modules and without mutating their
-state.
+The Configuration module is now the first substantial module built by
+`Application`. Its job is to acquire startup configuration needed by downstream
+modules without constructing those modules and without mutating their state.
 
-The target startup shape is:
+The implemented startup shape is:
 
 ```cpp
-Config config = ConfigurationBuilder(strategies, schema, deferredLogs)
-    .add_defaults(hardcodedDefaults)
-    .add_ini_file(CTH_LIBDIR "/cthugha.ini", /*optional=*/ true)
-    .add_ini_file(homeAutoIni, /*optional=*/ true)
-    .add_ini_file(homeUserIni, /*optional=*/ true)
-    .add_ini_file("./cthugha.ini", /*optional=*/ true)
-    .add_ini_file(extraPathIni, /*optional=*/ true)
-    .add_x_resources(/*optional=*/ true)
-    .add_continuation_state(/*optional=*/ true)
-    .add_env_variables({"CTH_VERBOSE"})
-    .add_command_line(argc, argv)
+ConfigBuildResult startupConfig = buildStartupConfig(argc, argv);
+Application handles diagnostics/help and then supplies slices:
+
+cthugha_configure_logging(startupConfig.config.logging);
+configureAudioOptions(startupConfig.config.audio);
+configureCthughaDisplay(startupConfig.config.display);
+configureAutoChanger(startupConfig.config.autoChange);
+sceneCommands().applyStartupConfig(startupConfig.config.scene);
+Keymap::init(startupConfig.config.input);
+```
+
+Internally, `buildStartupConfig()` performs a small bootstrap pass for
+`--path`/`--ini-file`, then builds the final value through:
+
+```cpp
+ConfigurationBuilder builder(bootstrapDiagnostics);
+builder.addDefaults()
+    .addIniFile(...)
+    .addEnvironmentVariables(...)
+    .addCommandLine(argc, argv)
     .build();
 ```
 
@@ -280,35 +291,22 @@ precedence. Command-line options are the highest precedence. A command-line
 `--ini-file` override is source selection, not an ordinary runtime option: it
 replaces the default ini-file source list with the requested file.
 
-Current code implements a similar order through global side effects:
-
-1. `get_pre_params()` parses `--path`, `--ini-file`, verbosity, and early text
-   options into globals.
-2. `read_ini()` applies `CTH_LIBDIR/cthugha.ini`, `~/.cthugha.auto`,
-   `~/.cthugha.ini`, `./cthugha.ini`, `extra_lib_path/cthugha.ini`, optional X
-   resources, and continuation state.
-3. `get_params()` parses the command line again and mutates globals with final
-   precedence.
-
-The replacement should deliberately end mutation during parsing. Configuration
-building has exactly one product: a `Config` value, or a failed
+The completed replacement deliberately ends mutation during parsing.
+Configuration building has exactly one product: a `Config` value, or a failed
 `ConfigBuildResult` with diagnostics. It may preserve useful semantics such as
 source precedence, aliases, validation rules, and defaults, but it must not
-preserve the current behavior where parsing initializes subsystems, writes
-globals, stages callbacks, or performs downstream work.
+initialize subsystems, write runtime globals, stage callbacks, or perform
+downstream work.
 
 - `ConfigurationBuilder` owns source order and precedence. It does not know
   about audio, scene, display, or command objects.
 - `ConfigAcquisitionStrategy` objects know how to read one source type:
-  defaults, ini file, X resources, environment variables, command line, and
-  continuation state.
+  defaults, ini file, supported environment variables, and command line.
 - Each strategy returns a `ConfigPatch` plus diagnostics. It must not mutate
-  globals, call `do_param()`, load scene files, open audio devices, resize
-  buffers, or touch display objects.
+  globals, load scene files, open audio devices, resize buffers, or touch
+  display objects.
 - `ConfigSchema` owns option names, aliases, types, validation, clamping, and
-  deprecation/canonical-name warnings. This replaces `long_options`,
-  `do_param()`, `getini(...)`, and direct `getopt_long` flag pointers as the
-  source of truth.
+  deprecation/canonical-name warnings. This is the startup source of truth.
 - `DeferredLogBuffer` records warnings/errors/debug traces produced while
   building config. After `LoggingConfig` is known, `Application` constructs the
   real logger and flushes buffered diagnostics according to the final level.
@@ -316,10 +314,10 @@ globals, stages callbacks, or performs downstream work.
   entries in a failed `ConfigBuildResult`, not printed directly from the parser.
 - After config is built, `Application` decides initialization order and supplies
   only the required config slice to each module root. Audio receives
-  `AudioConfig`; Display receives `DisplayConfig`; Scene receives
-  `SceneInitialSelection`; Runtime Reconfiguration receives option descriptors
-  and explicit module reconfiguration targets; Commands And Input receives
-  `KeymapConfig` and command descriptors.
+  `AudioConfig`; Display receives `DisplayConfig`; Scene receives `SceneConfig`
+  plus `EffectPolicy`; Runtime Reconfiguration receives option descriptors and
+  explicit module reconfiguration targets; Commands And Input receives
+  `InputConfig` and command descriptors.
 
 The produced `Config` should be a composite value, but consumers should receive
 only their slice:
@@ -334,10 +332,11 @@ only their slice:
   dump path, and acoustic-analysis thresholds such as minimum noise.
 - `DisplayConfig`: display mode, window size/position, X11 flags, font,
   colormap/shared-memory/fullscreen/panel policy, zoom, and FPS display.
-- `SceneInitialSelection`: initial screen/flame/wave/table/object/translation/
-  palette/border/flashlight/audio-processing selections and image/QOTD/quiet
-  message settings. After startup this becomes Scene-owned mutable state, not
-  Configuration-owned state.
+- `SceneConfig`: initial screen/flame/wave/table/object/translation/palette/
+  border/flashlight/audio-processing selections. After startup this becomes
+  Scene-owned mutable state, not Configuration-owned state.
+- `EffectPolicy`, `SceneTransitionPolicy`, and `MessagesConfig`: allowed effect
+  catalogs/presets, transition behavior, and quiet-message/QOTD policy.
 - `RuntimeOptionSchema`: descriptors for settings that can be edited at
   runtime and persisted. Configuration may define schemas and persistence keys,
   but Runtime Reconfiguration coordinates live edits and module owners keep the
@@ -356,22 +355,23 @@ Important pushback/constraints:
   edit through Runtime Reconfiguration and typed command targets, not by
   writing `Config`.
 - `ConfigurationBuilder` must not emit downstream commands. Current
-  `do_param()` actions such as loading quiet-message files, setting image
+  startup side effects such as loading quiet-message files, setting image
   loading, resizing `CthughaBuffer::buffer`, changing `audioProcessing`, or
-  mutating mixer initial volumes should become config values consumed by the
-  owning module during its startup.
+  mutating mixer initial volumes are config values consumed by the owning
+  module during startup.
 - Source discovery may require a bootstrap pass, but that pass should also be
   explicit. `--path`, `--ini-file`, `--help`, and early logging/env controls
   can be parsed by a `BootstrapCommandLineSource` that returns
   `BootstrapConfig`, then the full builder runs with the selected sources.
-- X resources are a configuration source, but they are platform/display
-  adjacent. If they require an opened X display, that dependency must be
-  explicit in `XResourceConfigSource`; Configuration must not read X globals.
+- Xt toolkit options/resources remain outside Cthugha startup configuration.
+  `Application` still passes a display argument vector to X11 shell
+  initialization; if that becomes Cthugha config in the future, it should be
+  captured as an explicit X11 slice.
 
 Test targets for Configuration:
 
 - Builder precedence: defaults < library ini < home/auto ini < local/extra ini
-  < X resources/continuation where enabled < environment < command line.
+  < continuation < environment < command line.
 - `--ini-file` override uses only the requested ini file plus defaults and
   command-line/env sources.
 - Deferred diagnostics are buffered before `LoggingConfig` and flushed at the
@@ -380,65 +380,25 @@ Test targets for Configuration:
 - Invalid values fail or clamp according to schema rules with source/line
   attribution.
 - Consumers can be constructed with only `AudioConfig`, `DisplayConfig`,
-  `SceneInitialSelection`, etc.; tests should fail if a consumer needs the whole
+  `SceneConfig`, etc.; tests should fail if a consumer needs the whole
   `Config`.
 - No config source or parser writes to option globals, display globals, audio
   globals, scene globals, or keymap globals.
 
-The first Configuration refactor should create the types before changing every
-call site:
-
-1. Add `ConfigDiagnostic`, `DeferredLogBuffer`, `ConfigPatch`, `ConfigSchema`,
-   and immutable `Config` slice structs.
-2. Add source strategy interfaces and tests for defaults, ini text, environment,
-   and command-line patches using in-memory inputs.
-3. Port a narrow set of options through the builder first: logging verbosity,
-   path/ini-file source discovery, audio file/source mode, and display size.
-4. Make `Application` build `Config` before downstream module initialization
-   and pass only slices to the first consumers.
-5. Replace `get_pre_params()`, `get_params()`, `read_ini()`, and `do_param()`
-   with temporary readers that produce `ConfigPatch` values only. They must not
-   call module code or write runtime globals. Delete the old parser globals once
-   all consumers are initialized from explicit config slices.
-
-Current first-slice implementation status:
+Current startup configuration status:
 
 - Done: `ConfigDiagnostic`, `DeferredLogBuffer`, `ConfigPatch`,
-  `ConfigSchema`, typed `Config` slices, source strategy interfaces, and
-  in-memory tests for defaults, ini text, environment, and command-line sources.
-- Done: the builder covers logging verbosity, extra library path and ini-file
-  source discovery, audio input file/source mode, display mode, and buffer size.
-- Done: `Application` now builds typed startup `Config` before legacy
-  pre-parameter parsing or downstream module initialization.
-- Still pending: inject `LoggingConfig`, `PathConfig`, `AudioConfig`, and
-  `DisplayConfig` into their first real consumers, then remove the matching
-  writes from `get_pre_params()`, `get_params()`, `read_ini()`, and `do_param()`.
-  Until that happens, the old parser remains the behavioral authority for
-  unported runtime globals.
-
-Current second-slice implementation status:
-
-- Done: `Application` configures logging from `LoggingConfig` before legacy
-  parsing; logging no longer reads the `cthugha_verbose` option global.
-- Done: `Application` applies `DisplayConfig` to the visual buffer dimensions
-  before scene/display initialization and passes `DisplayConfig` into the X11
-  display factory; display startup no longer chooses its size from
-  `display_mode`.
-- Done: `Application` passes `AudioConfig` into audio startup and resume; the
-  audio runtime builds its `AudioSettings` from that slice instead of
-  `audioInputMode` and `audio_input_file`.
-- Done: legacy ini reading now has a `PathConfig` entry point for source
-  discovery, and `get_params()` uses that path slice.
-- Done: image, palette, and object catalog loading receive `PathConfig` through
-  `Application` and no longer read `extra_lib_path` in `EffectChoiceLoader`.
-- Done: the legacy parser no longer writes the already-ported config values:
-  verbosity, ini/path discovery, audio input source/file, display mode, or
-  buffer size.
-- Done: the now-dead `cthugha_verbose`, `audio_input_file`, and `display_mode`
-  globals were removed after their consumers switched to config slices.
-- Still pending: remove or quarantine the old `extra_lib_path` and
-  `ini_file_override` globals after save/compatibility code is moved to an
-  explicit persistence/source-discovery service.
+  `ConfigSchema`, typed `Config` slices, source strategy interfaces, and tests
+  for defaults, ini text, environment, command-line, and dependency boundaries.
+- Done: `Application` builds typed startup `Config`, acts on diagnostics/help,
+  and passes immutable slices to logging, input, audio, display/X11,
+  autochanger, audio analysis, effect policy, scene transition, messages,
+  scene, keymap, catalog loading, and ini persistence.
+- Done: old parser files and globals for startup config acquisition were
+  deleted or replaced with typed config/persistence entry points.
+- Remaining: runtime reconfiguration still uses `Option`/`EffectControl`
+  globals and should move through module-owned live state and typed change
+  requests.
 
 ### Runtime Reconfiguration Module
 
@@ -453,8 +413,7 @@ Current second-slice implementation status:
   does not merely replace startup globals while leaving runtime mutation hidden.
 - Owns/replaces: the live-value responsibilities currently concentrated in
   `Option`, `OptionInt`, `OptionOnOff`, `OptionTime`, `EffectControl` as an
-  `Option`, `long_options` flag-pointer mutation, UI option editing globals,
-  and ad hoc `do_param()` side effects that change running subsystems.
+  `Option`, and UI option editing globals.
 - Inputs: option schemas/descriptors from Configuration, command intents from
   Commands And Input, current snapshots from owning modules, and explicit
   module reconfiguration targets.
@@ -463,7 +422,7 @@ Current second-slice implementation status:
 - Initial scope to cover: audio source and audio tuning changes; scene/effect
   selections such as screen, flame, wave, object, translation, palette, border,
   flashlight, and audio-processing choices; display screen selection, zoom,
-  FPS display, text mode, and backend presentation toggles.
+  FPS display, and backend presentation toggles.
 - Ownership rule: Runtime Reconfiguration coordinates live edits, but it does
   not own all live state. Audio owns audio runtime state, Scene owns effect and
   scene selection state, Display owns display presentation state, and
@@ -905,8 +864,8 @@ is allowed to settle in that module.
 ### `Logger`
 
 - Purpose: Own diagnostics, verbosity, and structured application messages.
-- Globals replaced: `cthugha_verbose` as a process-wide logger switch and
-  direct `CTH_*` macro dependency on global state.
+- Globals replaced: the process-wide logging verbosity switch and direct
+  `CTH_*` macro dependency on global state.
 - Used by: application startup, option/ini loading, display backend, audio
   runtime, resource loading, effect registration, and tests that assert warning
   behavior.
@@ -1185,27 +1144,22 @@ is allowed to settle in that module.
   `present(const IndexedFrame&)`, `overlaySink()`, `resize(Size)`, and
   `close()`.
 
-### `IniStore`
+### `ConfigPersistence`
 
-- Purpose: Own ini/resource reading, writing, parser state, and persistence
-  coordination.
-- Globals replaced: `ini_file`, `ini_nr`, `ini_file_path`, `optindsave`,
-  `long_options` flag-pointer coupling where command-line and ini parsing share
-  global state, and X resource `database` as ambient parser state.
-- Used by: application startup, command-line/ini option loading,
-  `EffectRegistry` save/restore, keymap selection, UI save commands, and
-  teardown persistence.
-- Provided to customers: `ApplicationContext` owns `IniStore`; services receive
-  `IniReader&`, `IniWriter&`, or `ConfigSource&` for the operation at hand.
-- Lifecycle timing: Created before option parsing; reads defaults, command-line
-  override, X resources, and ini files during startup; serves explicit save
+- Purpose: Own ini writing and persistence coordination separate from startup
+  config acquisition.
+- Globals replaced: `IniFiles.cc` writer state, the persisted startup `Config`
+  snapshot, and direct runtime save commands that call a global no-arg writer.
+- Used by: application save-on-exit, UI save commands, stop-and-continue state,
+  and module serializers for runtime-owned state.
+- Provided to customers: `ApplicationContext` owns `ConfigPersistence`;
+  services receive `ConfigWriter&` or a narrow persistence command target.
+- Lifecycle timing: Created after startup config is built; serves explicit save
   commands during runtime; writes final state during teardown when enabled.
-- References contained: `PathConfig&`, `Logger&`, optional X resource source,
-  current file stack/state, and serialization adapters for options/effects.
-- API surface: `loadDefaults()`, `loadFile(Path)`,
-  `loadCommandLine(argc,argv, AppOptions&, EffectRegistry&)`,
-  `loadXResources(DisplayBackend&)`, `reader()`, `writer()`,
-  `save(AppOptions, EffectRegistry, KeymapRegistry)`, and `diagnostics()`.
+- References contained: `PathConfig&`, `Logger&`, current output file state, and
+  serialization adapters supplied by module owners.
+- API surface: `saveStartupSnapshot(Config)`, `saveContinuation(SceneSnapshot)`,
+  `writer()`, and `diagnostics()`.
 
 ### `PlatformLifecycle`
 
@@ -1278,29 +1232,28 @@ Do not implement split-required services as single classes.
      frame timing, random seeding, and diagnostics use injected lifecycle
      collaborators.
    - Green targets: `ShutdownController`, `PlatformLifecycle`, narrow `Clock`,
-     narrow `RandomSource`, policy-free `Logger`, and an owner for `systemf()`
-     if shell execution remains.
+     narrow `RandomSource`, policy-free `Logger`, and deletion or ownership of
+     unused shell-execution helpers.
    - Recheck target: no reads/writes of `cthugha_close`, `gettime()`,
      `getTime()`, `rand()`, `srand()`, `Random()`, lifecycle statics, or
-     `cthugha_verbose` outside owner/adapters.
+     logging verbosity outside owner/adapters.
 
 2. Configuration
    - API first: `ConfigurationBuilder`, `ConfigSource` strategies,
      `ConfigPatch`, `ConfigSchema`, `DeferredLogBuffer`, immutable `Config`
      slices, `RuntimeOptionSchema`, `PathResolver`, `ConfigPersistence`, and
      serializers supplied by modules.
-   - Red 1 tests: command-line, ini, X-resource, path resolution, validation,
+   - Red 1 tests: command-line, ini, environment, path resolution, validation,
      deferred diagnostics, source precedence, and save behavior operate on
      explicit models.
    - Red 2 tests: audio setup, display setup, scene defaults, UI editing, and
      save-on-exit consume only their configuration slices rather than globals or
      whole-application config.
-   - Green targets: split `AppOptions`, split `IniStore`, narrow `PathConfig`,
-     add source strategies, add read-only config slices, and remove direct
-     `long_options` flag-pointer mutation.
-   - Recheck target: no scalar/string option globals, path globals,
-     `ini_file`, `ini_nr`, `ini_file_path`, `optindsave`, or parser-owned X
-     resource globals outside compatibility adapters.
+   - Green targets: split runtime `Option` state from startup config, narrow
+     `PathConfig`, keep source strategies testable, keep config slices
+     read-only, and move persistence behind explicit module serializers.
+   - Recheck target: no scalar/string startup option globals, path globals, or
+     parser-owned globals outside Configuration and persistence adapters.
 
 3. Runtime Reconfiguration
    - Must be addressed immediately after Configuration before further module

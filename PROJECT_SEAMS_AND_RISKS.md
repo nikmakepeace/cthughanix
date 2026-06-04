@@ -39,8 +39,8 @@ enabled.
 
 ### Add an Indexed Image
 
-Drop `.pcx`, `.pcx.gz`, indexed `.png`, or `.png.gz` into `resources/img/`,
-current directory, installed `CTH_LIBDIR/img/`, or `--path DIR/img/`.
+Drop uncompressed `.pcx` or indexed `.png` files into `resources/img/`, current
+directory, installed `CTH_LIBDIR/img/`, or `--path DIR/img/`.
 
 Loaders: `src/pcx.cc` and `src/png.cc`.
 
@@ -218,13 +218,11 @@ Do not assume this is full inversion of control yet. The display path consumes
 `IndexedFrame`, but X11-era globals still own backend memory layout, frame
 scratch allocation, and event-loop handoff.
 
-### Build Wrappers Include `.cc` Files
+### Frontend Key Wrapper Includes `.cc`
 
-Files such as `xwin_options.cc` define a macro and include `options.cc`.
-Similarly, `xwin_keys.cc` includes `keys.cc`.
-
-Any build-system rewrite must preserve separate compile units for those
-wrappers, not simply compile every `.cc` file once.
+`xwin_keys.cc` includes `keys.cc` with X11-specific definitions. Any
+build-system rewrite must preserve that compile unit until key handling no
+longer needs a macro-specialized wrapper.
 
 ### Buffer Size Affects Asset Semantics
 
@@ -314,9 +312,8 @@ with safer metadata.
 - X11/MIT-SHM startup and image paths are platform-sensitive, though X11
   initialization is now deferred until display startup and command-line help
   exits before X is touched.
-- External command execution remains: `EffectControl::load()` uses `gzip -cd` for
-  compressed assets. Silence messages no longer execute `fortune`; opt-in QOTD
-  input is public network text and must stay strictly validated and bounded.
+- Silence messages no longer execute `fortune`; opt-in QOTD input is public
+  network text and must stay strictly validated and bounded.
 - OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on
   modern systems.
 

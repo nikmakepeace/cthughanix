@@ -51,14 +51,12 @@ deferred suspend handling
 
 ## Current Project Shape
 
-- `src/` contains the application source: 62 top-level `.cc` files and 54
-  top-level headers.
+- `src/` contains the application source: 94 `.cc` files and 89 headers.
 - Built-in translation generators live in `src/TranslateGenerator.*`.
 - `resources/map/` contains 100 `.map` palettes; palette previews are rendered
   directly from palette data.
-- `resources/img/` contains classic indexed image assets: currently 6
-  gzip-compressed `.pcx` files and 1 `.png` image. The same loader path accepts
-  indexed PNGs, including `.png.gz`.
+- `resources/img/` contains classic indexed image assets: currently 6 `.pcx`
+  files and 1 indexed `.png` image.
 - `external/minimp3/` is the embedded MP3 decoder used by the modern audio path.
 - `external/cthugha-js/` is a separate JavaScript port/reference tree.
 - `tests/headers/` contains the current local verification script for checking
@@ -117,11 +115,11 @@ Audio and visual control are separated:
   `Flame`/`Translate`/`Wave` domain objects.
 - Display frontend seam: `DisplayDevice` plus the X11 `CthughaDisplay`
   subclass.
-- Asset seams: `.map` palettes, `.pcx`/`.pcx.gz`/indexed `.png` images, and
+- Asset seams: `.map` palettes, uncompressed `.pcx`/indexed `.png` images, and
   optional `.obj` line objects.
 - Control seam: `Keymap` action registry and `Interface` screens.
-- Build seam: wrapper source files such as `xwin_options.cc` compile shared
-  implementations with target-specific macros.
+- Build seam: CMake owns target composition; `xwin_keys.cc` remains the X11 key
+  wrapper.
 
 ## Current State Notes
 

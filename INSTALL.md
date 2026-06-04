@@ -63,4 +63,5 @@ From a build tree, `xcthugha` can also find assets in the repository's
 - PulseAudio-compatible output requires `libpulse-simple`.
 - OSS DSP and mixer support depend on soundcard headers and usable device
   nodes.
-- Some compressed indexed-image assets are loaded through `gzip` at runtime.
+- Indexed-image assets are loaded directly from uncompressed `.pcx` and indexed
+  `.png` files.

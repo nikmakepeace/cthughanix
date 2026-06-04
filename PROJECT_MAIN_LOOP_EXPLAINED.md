@@ -21,7 +21,9 @@ Keep these files open:
 
 - `src/main.cc`: graphical executable entry point.
 - `src/Application.*`: startup, shutdown, and `run()`.
-- `src/Settings.*`: snapshots current audio options.
+- `src/Configuration.*`: startup config acquisition and immutable config
+  slices.
+- `src/AudioSettings.*`: snapshots audio config for runtime composition.
 - `src/AudioRuntime.*`: audio source/output lifecycle.
 - `src/RuntimeFactory.*`, `src/PcmSourceFactory.*`: audio strategy selection.
 - `src/AudioFrame.*`: facade for the current 1024-sample visual audio frame.
@@ -61,23 +63,30 @@ if application->initialize()
 ```text
 srand(time(0))
 drop elevated uid
-get_pre_params()
-params_request_help()
-get_params()
+buildStartupConfig()
+emit diagnostics; handle parse failure or --help
+configure logging, input, audio, display, autochanger, effects, messages
+set CthughaBuffer dimensions
+remove continuation ini
+init scene runtime
 title()
+initialize silence messages
 init_imath()
-init_sound()
-CthughaBuffer::initAll()
+init_sound(AudioConfig)
+initialize visual catalogs from PathConfig
+allocate CthughaBuffer pixels
+load policy-enabled images
 init_border()
 init_flashlight()
-EffectControl::changeToInitial()
-audioProcessing.changeToInitial()
+apply startup SceneConfig
+configureAudioProcessing(SceneConfig)
 Interface::set("main")
-Keymap::init()
-cth_init()
-newDisplayDevice()
+Keymap::init(InputConfig)
+cth_init()                         # Xt/X11 shell initialization
+newDisplayDevice(DisplayConfig)
 newCthughaDisplay()
 initAudioVisualBridge()
+PlatformLifecycle::install()
 ```
 
 `Application::run()` enters:
