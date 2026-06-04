@@ -354,10 +354,6 @@ Set the position of the Cthugha window. Use for example as
 @code{--position +10+20}. The normal @code{-geometry} option is not
 working (it sets the position of the control panel).
 
-@item --text-on-term
-Display all text messages in the calling xterm or print all text
-messages over the buffer or into the control panel.
-
 @item --no-decorate
 Do not decoreate the window (set is Cthugha sets the override_redirect
 flag). 

@@ -42,7 +42,7 @@ facades, display backend state, UI/input state, and process services.
   `dev_dsp`, `dev_mixer`, `pulse_server`, `pulse_latency_msec`,
   `audio_output_dump`, `audio_input_file`.
 - Display options/config: `display_mode`, `zoom`, `maxFramesPerSecond`,
-  `showFPS`, `DisplayDevice::text_on_term`, `text_size`, `fontSize`,
+  `showFPS`, `text_size`, `fontSize`,
   `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `screenSizes`,
   `bufferSizes`, X11 flags in `xcthugha.h`, and `xcth_font`.
 - Auto-change/message options: `changeQuiet`, `changeWaitMin`,
@@ -108,7 +108,7 @@ facades, display backend state, UI/input state, and process services.
 - X11 platform globals: `xcth_display`, `xcth_app_con`, `DisplayDeviceX11::xcth_toplevel`.
 - Backend frame layout globals: `disp_size`, `bypp`, `bytes_per_line`,
   `draw_mode`, `colormapped`, `bitmap_colors0..3`.
-- Text/overlay globals: `text_size`, `fontSize`, `DisplayDevice::text_on_term`,
+- Text/overlay globals: `text_size`, `fontSize`,
   static text colors, `errors`, and temporary `ScopedOverlayDisplayDevice`
   swapping the global `displayDevice`.
 - X11 panel callbacks are static and depend on global options/catalogs even
@@ -116,7 +116,7 @@ facades, display backend state, UI/input state, and process services.
 
 ### Input And UI State
 
-- Key input: `x11_key`, `key_esc`, `ncurses_use`, `keyAssoc`, `nKeyAssoc`.
+- Key input: `x11_key`, `key_esc`, `keyAssoc`, `nKeyAssoc`.
 - UI current editing state: `currentOption`, `currentEffectControl`,
   `currentOptionInterfaceElement`.
 - Key actions call directly into globals: `screen`, `zoom`, `audioProcessing`,
@@ -325,7 +325,7 @@ The produced `Config` should be a composite value, but consumers should receive
 only their slice:
 
 - `AppConfig`: application-level startup choices such as save-on-exit,
-  continuation behavior, terminal/ncurses policy, and process-level toggles.
+  continuation behavior, and process-level toggles.
 - `LoggingConfig`: verbosity and diagnostic sink policy.
 - `PathConfig` or `PathResolverConfig`: library paths, ini override, keymap
   path, audio file paths, and resource roots.
@@ -483,7 +483,7 @@ Current second-slice implementation status:
 
 - Boundary: Owns input event normalization, keymap lookup, command intent
   creation, command dispatch, and option-editing interaction state.
-- Owns/replaces: `x11_key`, `key_esc`, `ncurses_use`, `Action::head`,
+- Owns/replaces: `x11_key`, `key_esc`, `Action::head`,
   `Keymap::first`, `Keymap::current`, static keymap dispatch, key association
   globals, `Interface::head`, `Interface::current`, `currentOption`,
   `currentEffectControl`, and `currentOptionInterfaceElement`.
@@ -1143,7 +1143,7 @@ is allowed to settle in that module.
 - Globals replaced: `Action::head`, `Keymap::first`, `Keymap::current`,
   `Keymap::keymapFile`, `keyAssoc`, `nKeyAssoc`, and static
   `Keymap::action(...)` dispatch.
-- Used by: command-line/ini keymap loading, X11/ncurses input handling,
+- Used by: command-line/ini keymap loading, X11 input handling,
   key-action execution, UI tests, and help/credits displays.
 - Provided to customers: `ApplicationContext` owns the registry; input systems
   receive `KeymapRegistry&` for translation/dispatch and actions receive an
@@ -1167,7 +1167,7 @@ is allowed to settle in that module.
   `displayRuntime`, `xcth_display`, `xcth_app_con`,
   `DisplayDeviceX11::xcth_toplevel`, `disp_size`, `bypp`, `bytes_per_line`,
   `draw_mode`, `colormapped`, `bitmap_colors0..3`, `text_size`, `fontSize`,
-  `DisplayDevice::text_on_term`, `errors`, and `ScopedOverlayDisplayDevice`.
+  `errors`, and `ScopedOverlayDisplayDevice`.
 - Used by: `Application`, `CthughaDisplay`, `VideoDirector`, X11 callbacks,
   overlay/message rendering, key/display commands, and tests with fake display
   sinks.
@@ -1317,8 +1317,8 @@ Do not implement split-required services as single classes.
      `CommandContext`, input-to-command keymaps, and option-editing state.
    - Red 1 tests: keymaps translate events into command intents without owning
      command targets; dispatcher executes against explicit command context.
-   - Red 2 tests: key actions, option editing, help/credits, X11 events, and
-     ncurses input no longer touch hidden current state or runtime globals.
+   - Red 2 tests: key actions, option editing, help/credits, and X11 events no
+     longer touch hidden current state or runtime globals.
    - Green targets: split `KeymapRegistry`, split `InterfaceManager`, explicit
      command registration, and UI edit state independent of display overlays.
    - Recheck target: no `x11_key`, `key_esc`, `Action::head`,

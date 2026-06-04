@@ -80,8 +80,6 @@ protected:
     static int textColors;
 
 public:
-    static int text_on_term; // text is drawn on terminal (with ncurses)
-
     int textOnScreen;
     int darkenPalette; // palette should be darkend
     int needsFullCopy; // Complete image with border must be copied

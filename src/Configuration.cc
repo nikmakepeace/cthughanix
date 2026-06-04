@@ -108,7 +108,6 @@ static const char* KEY_MESSAGES_QOTD_PREFETCH_TIMEOUT_MS
 static const char* KEY_MESSAGES_QOTD_SERVER = "messages.qotd_server";
 static const char* KEY_MESSAGES_QOTD_PORT = "messages.qotd_port";
 #ifdef CTH_XWIN
-static const char* KEY_X11_TEXT_ON_TERM = "x11.text_on_term";
 static const char* KEY_X11_OVERRIDE_REDIRECT = "x11.override_redirect";
 static const char* KEY_X11_PRIVATE_CMAP = "x11.private_cmap";
 static const char* KEY_X11_MIT_SHM = "x11.mit_shm";
@@ -772,12 +771,6 @@ static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
     } else if (key == "no-panel") {
         setIniX11BooleanOption(patch, diagnostics, source, key,
             KEY_X11_PANEL_ENABLED, cleanedValue, 1, 1);
-    } else if (key == "text-on-term") {
-        setIniX11BooleanOption(patch, diagnostics, source, key,
-            KEY_X11_TEXT_ON_TERM, cleanedValue, 1, 0);
-    } else if (key == "no-text-on-term") {
-        setIniX11BooleanOption(patch, diagnostics, source, key,
-            KEY_X11_TEXT_ON_TERM, cleanedValue, 1, 1);
     } else if (key == "position") {
         setX11Position(patch, diagnostics, source, key, cleanedValue);
     } else if (key == "font") {
@@ -1334,10 +1327,6 @@ static void applyCommandLineOption(ConfigPatch& patch,
         setX11Boolean(patch, "command line", KEY_X11_PANEL_ENABLED, 1);
     } else if (arg == "--no-panel") {
         setX11Boolean(patch, "command line", KEY_X11_PANEL_ENABLED, 0);
-    } else if (arg == "--text-on-term") {
-        setX11Boolean(patch, "command line", KEY_X11_TEXT_ON_TERM, 1);
-    } else if (arg == "--no-text-on-term") {
-        setX11Boolean(patch, "command line", KEY_X11_TEXT_ON_TERM, 0);
     } else if (arg == "--position") {
         std::string value;
         if (readOptionValue(args, index, arg, &value, diagnostics))
@@ -2142,13 +2131,11 @@ DisplayConfig::DisplayConfig()
     , hasCustomBufferSize(false)
     , maxFramesPerSecond(DISPLAY_CONFIG_DEFAULT_MAX_FRAMES_PER_SECOND)
     , showFpsEnabled(DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED)
-    , zoomMode(DISPLAY_CONFIG_DEFAULT_ZOOM_MODE)
-    , ncursesEnabled(DISPLAY_CONFIG_DEFAULT_NCURSES_ENABLED) { }
+    , zoomMode(DISPLAY_CONFIG_DEFAULT_ZOOM_MODE) { }
 
 #ifdef CTH_XWIN
 X11Config::X11Config()
-    : textOnTerm(X11_CONFIG_DEFAULT_TEXT_ON_TERM)
-    , overrideRedirect(X11_CONFIG_DEFAULT_OVERRIDE_REDIRECT)
+    : overrideRedirect(X11_CONFIG_DEFAULT_OVERRIDE_REDIRECT)
     , privateCmap(X11_CONFIG_DEFAULT_PRIVATE_CMAP)
     , mitShm(X11_CONFIG_DEFAULT_MIT_SHM)
     , rootWindow(X11_CONFIG_DEFAULT_ROOT_WINDOW)
@@ -2462,8 +2449,6 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         config.messages.qotdPort = *value;
 
 #ifdef CTH_XWIN
-    applyBoolEntry(patch, diagnostics, KEY_X11_TEXT_ON_TERM,
-        &config.x11.textOnTerm);
     applyBoolEntry(patch, diagnostics, KEY_X11_OVERRIDE_REDIRECT,
         &config.x11.overrideRedirect);
     applyBoolEntry(patch, diagnostics, KEY_X11_PRIVATE_CMAP,
@@ -2807,8 +2792,6 @@ ConfigPatch hardcodedDefaultConfigPatch() {
         integerText(SCENE_TRANSITION_POLICY_DEFAULT_PALETTE_SMOOTH_SECONDS),
         "defaults");
 #ifdef CTH_XWIN
-    defaults.set(KEY_X11_TEXT_ON_TERM,
-        booleanText(X11_CONFIG_DEFAULT_TEXT_ON_TERM), "defaults");
     defaults.set(KEY_X11_OVERRIDE_REDIRECT,
         booleanText(X11_CONFIG_DEFAULT_OVERRIDE_REDIRECT), "defaults");
     defaults.set(KEY_X11_PRIVATE_CMAP,

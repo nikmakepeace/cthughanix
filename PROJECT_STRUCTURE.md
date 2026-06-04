@@ -150,7 +150,6 @@ The current tree only wires up the X11 frontend.
 - `src/IniFiles.cc`: ini search order, wildcard matching, validation, and
   generated `.cthugha.auto`.
 - `src/info_title_usage.cc`: title/help/usage output.
-- `src/disp-ncurses.cc`: ncurses setup/teardown.
 
 ## Build Targets and Source Groups
 

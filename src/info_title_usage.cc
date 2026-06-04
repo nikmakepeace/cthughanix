@@ -175,7 +175,6 @@ void usage() {
     PH(" --full-screen       Fill the whole screen");
     PH(" --panel             Show control panel");
     PH(" --position NN       Set position of window (e.g. --position +10+30)");
-    PH(" --text-on-term      Show text on calling xterm, don't draw over buffer");
     PH(" --no-decorate       Do not decorate window (set override_redirect flag)");
     PH(" --font F            Font to use for Cthugha");
     PH("");

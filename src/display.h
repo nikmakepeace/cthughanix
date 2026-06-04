@@ -15,16 +15,6 @@
 #include "ColorPalette.h"
 #include "EffectControl.h"
 
-/*
- *  initialize and shut down ncurses
- */
-int init_ncurses();
-void exit_ncurses();
-
-extern int ncurses_use;
-struct DisplayConfig;
-void configureNcursesDisplay(const DisplayConfig& config);
-
 extern unsigned long bitmap_colors0[256]; /* "compiled" palette */
 extern unsigned long bitmap_colors1[256];
 extern unsigned long bitmap_colors2[256];

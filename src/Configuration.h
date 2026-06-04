@@ -160,14 +160,12 @@ struct DisplayConfig {
     int maxFramesPerSecond;
     int showFpsEnabled;
     int zoomMode;
-    int ncursesEnabled;
 
     DisplayConfig();
 };
 
 #ifdef CTH_XWIN
 struct X11Config {
-    int textOnTerm;
     int overrideRedirect;
     int privateCmap;
     int mitShm;

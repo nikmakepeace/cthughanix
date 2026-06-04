@@ -135,7 +135,6 @@ static int x11_frame_dump_every = 1;
 static char x11_frame_dump_directory[PATH_MAX] = "";
 
 void configureDisplayDeviceX11(const X11Config& config) {
-    DisplayDevice::text_on_term = config.textOnTerm;
     display_override_redirect = config.overrideRedirect;
     private_cmap = config.privateCmap;
     display_mit_shm = config.mitShm;
@@ -415,23 +414,20 @@ void DisplayDeviceX11::checkDisplaySize(const DisplayConfig& config) {
 }
 
 int DisplayDeviceX11::loadFont() {
-    if (!text_on_term) {
-        font = XLoadQueryFont(xcth_display, xcth_font);
-        if (font == NULL) {
-            CTH_ERROR("Can not load font `%s'. Trying font `fixed'.\n", xcth_font);
+    font = XLoadQueryFont(xcth_display, xcth_font);
+    if (font == NULL) {
+        CTH_ERROR("Can not load font `%s'. Trying font `fixed'.\n", xcth_font);
 
-            font = XLoadQueryFont(xcth_display, "fixed");
-            if (font == NULL) {
-                CTH_ERROR("Can not load font fixed.\n");
-                return 1;
-            }
+        font = XLoadQueryFont(xcth_display, "fixed");
+        if (font == NULL) {
+            CTH_ERROR("Can not load font fixed.\n");
+            return 1;
         }
-        XSetFont(xcth_display, gc, font->fid);
-        fontSize.y = font->max_bounds.ascent + 1;
-        fontSize.x = font->max_bounds.width;
-        text_size.x = 0;
-    } else
-        font = NULL;
+    }
+    XSetFont(xcth_display, gc, font->fid);
+    fontSize.y = font->max_bounds.ascent + 1;
+    fontSize.x = font->max_bounds.width;
+    text_size.x = 0;
     return 0;
 }
 
@@ -759,7 +755,7 @@ int DisplayDeviceX11::allocImage() {
         break;
     }
 
-    if ((shmLevel != shmPixmap) && !text_on_term && !xcth_panel) {
+    if ((shmLevel != shmPixmap) && !xcth_panel) {
         textPixmap = XCreatePixmap(xcth_display, window, disp_size.x, disp_size.y, planes);
         text_size.x = disp_size.x / fontSize.x;
         text_size.y = disp_size.y / fontSize.y;
@@ -833,7 +829,7 @@ void DisplayDeviceX11::freeImage() {
 
     XSync(xcth_display, True);
 
-    if (textPixmap && (shmLevel != shmPixmap) && !text_on_term && !xcth_panel) {
+    if (textPixmap && (shmLevel != shmPixmap) && !xcth_panel) {
         XFreePixmap(xcth_display, textPixmap);
         textPixmap = 0;
     }
@@ -906,7 +902,7 @@ void DisplayDeviceX11::resizeDisplay(int new_width, int new_height) {
     disp_size.x = max(new_width, indexedDisplayWidth());
     disp_size.y = max(new_height, indexedDisplayHeight());
 
-    if (!text_on_term && !panelTextWidget) {
+    if (!panelTextWidget) {
         text_size.x = disp_size.x / fontSize.x;
         text_size.y = disp_size.y / fontSize.y;
     }

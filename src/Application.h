@@ -31,7 +31,6 @@ class Application {
     char** argvValue;
     std::vector<char*> displayArgv;
     int exitStatusValue;
-    int ncursesInitialized;
     Config startupConfigValue;
     std::vector<ConfigDiagnostic> startupConfigDiagnostics;
     std::unique_ptr<VideoFilterchain> videoFilterchain;

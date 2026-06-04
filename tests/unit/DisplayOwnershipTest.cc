@@ -7,7 +7,6 @@
 static std::vector<int> destroyedObjects;
 
 DisplayDevice* displayDevice = 0;
-int DisplayDevice::text_on_term = 0;
 int DisplayDevice::textColorRGB[][3] = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
 int DisplayDevice::textColor[3] = { 0, 0, 0 };
 int DisplayDevice::textColors = 3;

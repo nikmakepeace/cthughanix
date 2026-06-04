@@ -37,7 +37,6 @@ set(CTHUGHA_COMMON_SOURCES
     IniFiles.cc
     Interface.cc
     info_title_usage.cc
-    disp-ncurses.cc
     misc.cc
     DisplayDevice.cc
     DisplayRuntime.cc
@@ -141,11 +140,6 @@ if(CTH_BUILD_X11)
         ZLIB::ZLIB
         m
     )
-
-    if(CURSES_FOUND)
-        target_include_directories(xcthugha PRIVATE ${CURSES_INCLUDE_DIRS})
-        target_link_libraries(xcthugha PRIVATE ${CURSES_LIBRARIES})
-    endif()
 
     if(WITH_PULSE)
         target_link_libraries(xcthugha PRIVATE ${PULSE_LIBRARIES})

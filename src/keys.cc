@@ -2,7 +2,6 @@
 #include "Configuration.h"
 #include "keys.h"
 #include "display.h"
-#include "PlatformLifecycle.h"
 
 #ifdef CTH_XWIN
 #include "xcthugha.h"
@@ -156,137 +155,6 @@ int getkey_x11() {
 
 #endif /* CTH_XWIN */
 
-#if HAVE_NCURSES == 1
-
-#if HAVE_NCURSES_H
-#include <ncurses.h>
-#else
-#if HAVE_NCURSES_NCURSES_H
-#include <ncurses/ncurses.h>
-#else
-#if HAVE_CURSES_H
-#include <curses.h>
-#else
-#if HAVE_NCURSES_CURSES_H
-#include <ncurses/curses.h>
-#endif
-#endif
-#endif
-#endif
-
-int translate_key(int key) {
-
-    switch (key) {
-    case 0:
-    case -1:
-        return CK_NONE;
-    case 27:
-        return (key_esc ? CK_ESC : CK_NONE);
-    case KEY_F(1):
-        return CK_FKT(1);
-    case KEY_F(2):
-        return CK_FKT(2);
-    case KEY_F(3):
-        return CK_FKT(3);
-    case KEY_F(4):
-        return CK_FKT(4);
-    case KEY_F(5):
-        return CK_FKT(5);
-    case KEY_F(6):
-        return CK_FKT(6);
-    case KEY_F(7):
-        return CK_FKT(7);
-    case KEY_F(8):
-        return CK_FKT(8);
-    case KEY_F(9):
-        return CK_FKT(9);
-    case KEY_F(10):
-        return CK_FKT(10);
-    case KEY_F(11):
-        return CK_FKT(11);
-    case KEY_F(12):
-        return CK_FKT(12);
-    case KEY_F(13):
-        return CK_FKT(13);
-    case KEY_F(14):
-        return CK_FKT(14);
-    case KEY_F(15):
-        return CK_FKT(15);
-    case KEY_F(16):
-        return CK_FKT(16);
-    case KEY_F(17):
-        return CK_FKT(17);
-    case KEY_F(18):
-        return CK_FKT(18);
-    case KEY_F(19):
-        return CK_FKT(19);
-    case KEY_F(20):
-        return CK_FKT(20);
-
-    case KEY_UP:
-        return CK_UP;
-    case KEY_DOWN:
-        return CK_DOWN;
-    case KEY_PPAGE:
-        return CK_PGUP;
-    case KEY_NPAGE:
-        return CK_PGDN;
-    case KEY_HOME:
-        return CK_HOME;
-    case KEY_END:
-        return CK_END;
-    case KEY_RIGHT:
-        return CK_RIGHT;
-    case KEY_LEFT:
-        return CK_LEFT;
-
-    case KEY_PRINT:
-        return CK_PRINT;
-
-    case KEY_DC:
-        return CK_DELETE;
-
-    case 8:
-    case KEY_BACKSPACE:
-        return CK_BACK;
-
-    case 10:
-    case 13:
-        return CK_ENTER;
-
-    default:
-        return key;
-    }
-}
-
-/* There is a 1 sec. delay when only ESC is pressed. */
-
-int getkey_ncurs() {
-    static int next_key = CK_NONE;
-    int key;
-
-    key = next_key;
-    next_key = getch();
-
-    if ((key == 27) && (next_key > 0)) {
-        /* seems like an unrecognized special key. skip everything still
-         waiting */
-        while ((next_key = getch()) > 0)
-            ;
-
-        return CK_OTHER;
-    }
-
-    if (key == KEY_SUSPEND) { /* suspend (^Z) */
-        requestApplicationSuspend();
-        return CK_NONE;
-    }
-
-    return shift(translate_key(key), 0);
-}
-
-#endif
-
 int getkey() {
 
 #ifdef CTH_XWIN
@@ -296,11 +164,5 @@ int getkey() {
         return k;
 #endif
 
-#if HAVE_NCURSES == 1
-    // OK, now check ncurses, if it is in use
-    if (ncurses_use)
-        return getkey_ncurs();
-    else
-        return CK_NONE;
-#endif
+    return CK_NONE;
 }

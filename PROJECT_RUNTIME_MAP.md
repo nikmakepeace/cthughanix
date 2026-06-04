@@ -21,7 +21,6 @@ main(argc, argv)
   get_params()                         # read ini files, then command line
   title()
   init_imath()
-  init_ncurses() if requested
   init_sound()
   CthughaBuffer::initAll()
   init_border()
@@ -99,8 +98,7 @@ flow.
 
 `PlatformLifecycle` owns platform suspend requests.  On POSIX systems it
 installs a `SIGTSTP` handler with `sigaction`; that handler only records a
-pending suspend request.  Ncurses `^Z` handling uses the same
-`requestApplicationSuspend()` entry point instead of raising a signal directly.
+pending suspend request.
 
 `Application::runFrame()` services lifecycle requests only at the frame boundary.
 It calls application-owned callbacks to stop audio before the process suspends

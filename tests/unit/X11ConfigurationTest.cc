@@ -24,7 +24,6 @@ static void defaultsProduceX11ConfigOnlyForX11Builds() {
     ConfigBuildResult result = builder.addDefaults().build();
 
     assert(result.ok());
-    assert(result.config.x11.textOnTerm == X11_CONFIG_DEFAULT_TEXT_ON_TERM);
     assert(result.config.x11.overrideRedirect
         == X11_CONFIG_DEFAULT_OVERRIDE_REDIRECT);
     assert(result.config.x11.privateCmap == X11_CONFIG_DEFAULT_PRIVATE_CMAP);
@@ -57,7 +56,6 @@ static void iniTextSourceProducesX11Patch() {
         "cthugha.full-screen: yes\n"
         "cthugha.position: -4+9\n"
         "cthugha.panel: yes\n"
-        "cthugha.text-on-term: yes\n"
         "cthugha.font: 9x15\n");
     ConfigPatch patch = source.acquire(diagnostics);
 
@@ -71,7 +69,6 @@ static void iniTextSourceProducesX11Patch() {
     assert(*patchValue(patch, "x11.window_position_x") == "-4");
     assert(*patchValue(patch, "x11.window_position_y") == "9");
     assert(*patchValue(patch, "x11.panel_enabled") == "1");
-    assert(*patchValue(patch, "x11.text_on_term") == "1");
     assert(*patchValue(patch, "x11.font_name") == "9x15");
 }
 
@@ -88,7 +85,6 @@ static void commandLineSourceBuildsX11Config() {
             "--position",
             "+10+30",
             "--panel",
-            "--text-on-term",
             "--font",
             "fixed",
         })
@@ -104,7 +100,6 @@ static void commandLineSourceBuildsX11Config() {
     assert(result.config.x11.windowPositionX == 10);
     assert(result.config.x11.windowPositionY == 30);
     assert(result.config.x11.panelEnabled == 1);
-    assert(result.config.x11.textOnTerm == 1);
     assert(result.config.x11.fontName == "fixed");
 }
 

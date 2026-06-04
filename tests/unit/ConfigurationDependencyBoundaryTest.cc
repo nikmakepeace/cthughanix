@@ -82,6 +82,26 @@ static void testX11StartupUsesX11ConfigOnlyForX11Builds() {
     assertSourceContains("src/DisplayDeviceX11.cc", "config.frameDumpDirectory");
     assertSourceDoesNotContain("src/DisplayDeviceX11.cc",
         "getenv(\"CTHUGHA_DUMP_X11");
+    assertSourceDoesNotContain("src/Configuration.h", "textOnTerm");
+    assertSourceDoesNotContain("src/Configuration.h", "ncursesEnabled");
+    assertSourceDoesNotContain("src/Configuration.cc", "text-on-term");
+    assertSourceDoesNotContain("src/Configuration.cc", "KEY_X11_TEXT_ON_TERM");
+    assertSourceDoesNotContain("src/configuration_defaults.h", "NCURSES");
+    assertSourceDoesNotContain("src/configuration_defaults.h",
+        "X11_CONFIG_DEFAULT_TEXT_ON_TERM");
+    assertSourceDoesNotContain("src/DisplayDevice.h", "text_on_term");
+    assertSourceDoesNotContain("src/DisplayDevice.cc", "text_on_term");
+    assertSourceDoesNotContain("src/DisplayDeviceX11.cc", "text_on_term");
+    assertSourceDoesNotContain("src/info_title_usage.cc", "text-on-term");
+    assertSourceDoesNotContain("src/keys.cc", "getkey_ncurs");
+    assertSourceDoesNotContain("src/keys.cc", "ncurses");
+    assertSourceDoesNotContain("src/display.h", "init_ncurses");
+    assertSourceDoesNotContain("src/display.h", "exit_ncurses");
+    assertSourceDoesNotExist("src/disp-ncurses.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "disp-ncurses.cc");
+    assertSourceDoesNotContain("CMakeLists.txt", "find_package(Curses");
+    assertSourceDoesNotContain("CMakeLists.txt", "HAVE_NCURSES");
+    assertSourceDoesNotContain("cmake/config.h.in", "HAVE_NCURSES");
     assertSourceDoesNotContain("src/Configuration.h", "x11FontName");
     assertSourceDoesNotContain("src/Configuration.h", "x11MitShm");
     assertSourceDoesNotContain("src/options.cc", "&display_mit_shm");

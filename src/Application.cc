@@ -44,7 +44,6 @@
 
 #include <unistd.h>
 
-static void configureTerminalTextMode();
 static int initializeVisualCatalogs(const CthughaBuffer& buffer,
     const PathConfig& pathConfig);
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
@@ -92,7 +91,6 @@ Application::Application(int argc, char* argv[])
     , argvValue(argv)
     , displayArgv(argv, argv + argc)
     , exitStatusValue(1)
-    , ncursesInitialized(0)
     , platformLifecycle(PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
     , startupInitialized(0)
@@ -215,10 +213,6 @@ void Application::shutdown() {
         write_ini(startupConfigValue);
 
     shutdownAudioVisualBridge();
-    if (ncursesInitialized) {
-        exit_ncurses();
-        ncursesInitialized = 0;
-    }
     displayValue.reset();
     cthughaDisplay = NULL;
     if (displayRuntimeOwnership.get() != NULL)
@@ -265,7 +259,6 @@ int Application::initialize() {
     configureKeys(startupConfigValue.input);
     configureAudioOptions(startupConfigValue.audio);
     configureCthughaDisplay(startupConfigValue.display);
-    configureNcursesDisplay(startupConfigValue.display);
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
 #endif
@@ -288,15 +281,6 @@ int Application::initialize() {
     videoDirector().silenceMessages().initialize();
 
     init_imath();
-
-    // Terminal text mode is chosen before audio/display startup because ncurses
-    // may own the terminal while the graphical frontend owns the window.
-    configureTerminalTextMode();
-    if (ncurses_use) {
-        if (init_ncurses())
-            return 0;
-        ncursesInitialized = 1;
-    }
 
     CTH_INFO("Initializing the sound device...\n");
     if (init_sound(startupConfigValue.audio, CthughaBuffer::buffer.maxDimension()))
@@ -497,15 +481,6 @@ void Application::runFrame(int doDisplay) {
 
     // Service lifecycle requests only between frame stages.
     platformLifecycle.serviceFrameBoundary();
-}
-
-static void configureTerminalTextMode() {
-#if HAVE_NCURSES == 1
-    ncurses_use = DisplayDevice::text_on_term;
-#else
-    ncurses_use = 0;
-    DisplayDevice::text_on_term = 0;
-#endif
 }
 
 static int initializeVisualCatalogs(const CthughaBuffer& buffer,

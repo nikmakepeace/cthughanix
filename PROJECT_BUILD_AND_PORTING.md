@@ -62,7 +62,6 @@ Core/common:
 - C and C++ compiler;
 - CMake;
 - POSIX process/file APIs;
-- curses or ncurses for text UI support;
 - gzip at runtime for `.gz` assets.
 
 X11 frontend:

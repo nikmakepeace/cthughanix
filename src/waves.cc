@@ -109,8 +109,7 @@ static void init_wave_options() {
  *
  * Common fields:
  * - Entry: Effect choice name followed by description.  The X11 panel menu shows
- *   the description when present, falling back to Name(); ncurses/list-style
- *   text displays both.
+ *   the description when present, falling back to Name().
  * - Does: visible drawing behavior.
  * - Colours: how the wave turns its own values into palette indices.  tableColor(runtime, )
  *   means the current table is applied first; "raw" means the byte written to
