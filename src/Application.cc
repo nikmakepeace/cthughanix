@@ -195,6 +195,10 @@ int Application::initialize() {
     srand(time(0));
     seteuid(getuid()); // give up root privileges
 
+    ConfigBuildResult startupConfig = buildStartupConfig(argcValue, argvValue);
+    startupConfigValue = startupConfig.config;
+    startupConfigDiagnostics = startupConfig.diagnostics;
+
     // Pre-params can affect how much parsing/output should happen at all.
     if (get_pre_params(argcValue, argvValue))
         return 0;

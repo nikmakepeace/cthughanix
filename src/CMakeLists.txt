@@ -34,6 +34,7 @@ set(CTHUGHA_COMMON_SOURCES
     Mixer.cc
     imath.cc
     AudioSystem.cc
+    Configuration.cc
     IniFiles.cc
     Interface.cc
     info_title_usage.cc

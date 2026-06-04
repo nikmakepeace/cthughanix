@@ -242,8 +242,176 @@ implicit coupling under a new name.
   both.
 - Does not fit: `EffectRegistry` persistence should not be owned by
   Configuration; Configuration should call a Scene-provided serializer instead.
-- Missing candidates: `CommandLineParser`, `ConfigLoader`, `RuntimeOptionModel`,
-  `ConfigPersistence`, and `PathResolver`.
+- Missing candidates: `ConfigurationBuilder`, `ConfigSource`,
+  `ConfigAcquisitionStrategy`, `ConfigPatch`, `ConfigSchema`,
+  `DeferredLogBuffer`, `CommandLineParser`, `ConfigLoader`,
+  `RuntimeOptionModel`, `ConfigPersistence`, and `PathResolver`.
+
+#### Configuration Module Findings
+
+The Configuration module should be the first substantial module built by
+`Application`. Its job is to acquire all startup/runtime configuration needed by
+downstream modules without constructing those modules and without mutating their
+state.
+
+The target startup shape is:
+
+```cpp
+Config config = ConfigurationBuilder(strategies, schema, deferredLogs)
+    .add_defaults(hardcodedDefaults)
+    .add_ini_file(CTH_LIBDIR "/cthugha.ini", /*optional=*/ true)
+    .add_ini_file(homeAutoIni, /*optional=*/ true)
+    .add_ini_file(homeUserIni, /*optional=*/ true)
+    .add_ini_file("./cthugha.ini", /*optional=*/ true)
+    .add_ini_file(extraPathIni, /*optional=*/ true)
+    .add_x_resources(/*optional=*/ true)
+    .add_continuation_state(/*optional=*/ true)
+    .add_env_variables({"CTH_VERBOSE"})
+    .add_command_line(argc, argv)
+    .build();
+```
+
+The exact source list should be configurable and test-owned, but the precedence
+rule should be fixed: every source produces a `ConfigPatch`; later patches
+override earlier patches for the same key. Hardcoded defaults are the lowest
+precedence. Command-line options are the highest precedence. A command-line
+`--ini-file` override is source selection, not an ordinary runtime option: it
+replaces the default ini-file source list with the requested file.
+
+Current code implements a similar order through global side effects:
+
+1. `get_pre_params()` parses `--path`, `--ini-file`, verbosity, and early text
+   options into globals.
+2. `read_ini()` applies `CTH_LIBDIR/cthugha.ini`, `~/.cthugha.auto`,
+   `~/.cthugha.ini`, `./cthugha.ini`, `extra_lib_path/cthugha.ini`, optional X
+   resources, and continuation state.
+3. `get_params()` parses the command line again and mutates globals with final
+   precedence.
+
+The replacement should deliberately end mutation during parsing. Configuration
+building has exactly one product: a `Config` value, or a failed
+`ConfigBuildResult` with diagnostics. It may preserve useful semantics such as
+source precedence, aliases, validation rules, and defaults, but it must not
+preserve the current behavior where parsing initializes subsystems, writes
+globals, stages callbacks, or performs downstream work.
+
+- `ConfigurationBuilder` owns source order and precedence. It does not know
+  about audio, scene, display, or command objects.
+- `ConfigAcquisitionStrategy` objects know how to read one source type:
+  defaults, ini file, X resources, environment variables, command line, and
+  continuation state.
+- Each strategy returns a `ConfigPatch` plus diagnostics. It must not mutate
+  globals, call `do_param()`, load scene files, open audio devices, resize
+  buffers, or touch display objects.
+- `ConfigSchema` owns option names, aliases, types, validation, clamping, and
+  deprecation/canonical-name warnings. This replaces `long_options`,
+  `do_param()`, `getini(...)`, and direct `getopt_long` flag pointers as the
+  source of truth.
+- `DeferredLogBuffer` records warnings/errors/debug traces produced while
+  building config. After `LoggingConfig` is known, `Application` constructs the
+  real logger and flushes buffered diagnostics according to the final level.
+- Fatal parse errors should be returned as structured `ConfigDiagnostic`
+  entries in a failed `ConfigBuildResult`, not printed directly from the parser.
+- After config is built, `Application` decides initialization order and supplies
+  only the required config slice to each module root. Audio receives
+  `AudioConfig`; Display receives `DisplayConfig`; Scene receives
+  `SceneInitialSelection` plus any relevant runtime option model; Commands And
+  Input receives `KeymapConfig` and command descriptors.
+
+The produced `Config` should be a composite value, but consumers should receive
+only their slice:
+
+- `AppConfig`: application-level startup choices such as save-on-exit,
+  continuation behavior, terminal/ncurses policy, and process-level toggles.
+- `LoggingConfig`: verbosity and diagnostic sink policy.
+- `PathConfig` or `PathResolverConfig`: library paths, ini override, keymap
+  path, screenshot path, audio file paths, and resource roots.
+- `AudioConfig`: source mode, generation/file/live input settings, sample
+  format/rate/channels, output/passthrough settings, mixer/device settings,
+  dump path, and acoustic-analysis thresholds such as minimum noise.
+- `DisplayConfig`: display mode, window size/position, X11 flags, font,
+  colormap/shared-memory/fullscreen/panel policy, zoom, FPS display, and
+  screenshot settings.
+- `SceneInitialSelection`: initial screen/flame/wave/table/object/translation/
+  palette/border/flashlight/audio-processing selections and image/QOTD/quiet
+  message settings. After startup this becomes Scene-owned mutable state, not
+  Configuration-owned state.
+- `RuntimeOptionModel`: descriptors for settings that can be edited at runtime
+  and persisted. This belongs to Configuration, but the live values should
+  either be Configuration-owned runtime options or explicit module-owned state
+  exposed through serializers.
+- `KeymapConfig`: selected keymap file and keymap-loading policy for Commands
+  And Input.
+
+Important pushback/constraints:
+
+- `Config` should be read-only after `build()`. Mutable scene selection is not
+  "the config changing"; it is Scene state changing from initial configuration
+  and commands. Persisting that state should use Scene serializers.
+- Runtime-editable options need an explicit owner. Some are genuine
+  Configuration-owned runtime options, such as logging verbosity or save-on-exit.
+  Others are module state, such as the current wave or palette. The UI should
+  edit through a typed option model/command target, not by writing `Config`.
+- `ConfigurationBuilder` must not emit downstream commands. Current
+  `do_param()` actions such as loading quiet-message files, setting image
+  loading, resizing `CthughaBuffer::buffer`, changing `audioProcessing`, or
+  mutating mixer initial volumes should become config values consumed by the
+  owning module during its startup.
+- Source discovery may require a bootstrap pass, but that pass should also be
+  explicit. `--path`, `--ini-file`, `--help`, and early logging/env controls
+  can be parsed by a `BootstrapCommandLineSource` that returns
+  `BootstrapConfig`, then the full builder runs with the selected sources.
+- X resources are a configuration source, but they are platform/display
+  adjacent. If they require an opened X display, that dependency must be
+  explicit in `XResourceConfigSource`; Configuration must not read X globals.
+
+Test targets for Configuration:
+
+- Builder precedence: defaults < library ini < home/auto ini < local/extra ini
+  < X resources/continuation where enabled < environment < command line.
+- `--ini-file` override uses only the requested ini file plus defaults and
+  command-line/env sources.
+- Deferred diagnostics are buffered before `LoggingConfig` and flushed at the
+  final verbosity level.
+- Aliases/deprecated names produce diagnostics but canonical names win.
+- Invalid values fail or clamp according to schema rules with source/line
+  attribution.
+- Consumers can be constructed with only `AudioConfig`, `DisplayConfig`,
+  `SceneInitialSelection`, etc.; tests should fail if a consumer needs the whole
+  `Config`.
+- No config source or parser writes to option globals, display globals, audio
+  globals, scene globals, or keymap globals.
+
+The first Configuration refactor should create the types before changing every
+call site:
+
+1. Add `ConfigDiagnostic`, `DeferredLogBuffer`, `ConfigPatch`, `ConfigSchema`,
+   and immutable `Config` slice structs.
+2. Add source strategy interfaces and tests for defaults, ini text, environment,
+   and command-line patches using in-memory inputs.
+3. Port a narrow set of options through the builder first: logging verbosity,
+   path/ini-file source discovery, audio file/source mode, and display size.
+4. Make `Application` build `Config` before downstream module initialization
+   and pass only slices to the first consumers.
+5. Replace `get_pre_params()`, `get_params()`, `read_ini()`, and `do_param()`
+   with temporary readers that produce `ConfigPatch` values only. They must not
+   call module code or write runtime globals. Delete the old parser globals once
+   all consumers are initialized from explicit config slices.
+
+Current first-slice implementation status:
+
+- Done: `ConfigDiagnostic`, `DeferredLogBuffer`, `ConfigPatch`,
+  `ConfigSchema`, typed `Config` slices, source strategy interfaces, and
+  in-memory tests for defaults, ini text, environment, and command-line sources.
+- Done: the builder covers logging verbosity, extra library path and ini-file
+  source discovery, audio input file/source mode, display mode, and buffer size.
+- Done: `Application` now builds typed startup `Config` before legacy
+  pre-parameter parsing or downstream module initialization.
+- Still pending: inject `LoggingConfig`, `PathConfig`, `AudioConfig`, and
+  `DisplayConfig` into their first real consumers, then remove the matching
+  writes from `get_pre_params()`, `get_params()`, `read_ini()`, and `do_param()`.
+  Until that happens, the old parser remains the behavioral authority for
+  unported runtime globals.
 
 ### Commands And Input Module
 
@@ -333,18 +501,183 @@ implicit coupling under a new name.
 - Lifecycle: configured after Configuration; started before first visual frame;
   polled or advanced once per application tick; analysis snapshot is produced
   before scene policy and frame mutation; stopped before display teardown.
-- Fits cleanly: `AudioSystem`, `AudioFrameProvider`,
-  `AudioAnalysisState`.
-- Probably belongs here: `AudioProcessor`, `AudioDumpWriter`, mixer setup, and
-  silent frame provider.
+- Fits cleanly: low-level `PcmSource` implementations, `AudioBuffer`, and
+  `AudioFrameBuilder` as Audio-owned implementation details.
+- Probably belongs here: raw-only `AudioFrameProvider`,
+  `AudioProcessingPipeline`, `AcousticContextTracker`, `AudioDumpWriter`,
+  mixer setup, and silent frame provider.
 - Split-required: `AudioFrameProvider` should expose raw/current frames; the
   processed wave belongs to an audio processing pipeline or frame product.
   `AudioAnalysisState::minimumNoiseSatisfied(...)` is Scene policy and should
-  leave Audio. `AudioSystem` may need to split input runtime, processing
-  pipeline, output dump, and mixer/device adapters.
+  leave Audio. `AudioSystem` and `AudioRuntime` should split into acquisition,
+  passthrough, processing, analysis, output dump, and mixer/device adapters.
 - Does not fit: `AutoChanger` and `AudioVisualBridge`.
-- Missing candidates: `AudioInputRuntime`, `AudioProcessingPipeline`,
-  `AudioAnalysisSnapshot`, `AudioDeviceConfig`, and `AudioDumpWriter`.
+- Missing candidates: `AudioAcquisitionRuntime`, `AudioPassthrough`,
+  `AudioProcessingPipeline`, `AudioAnalysisSnapshot`, `AudioFrameProducts`,
+  `AudioDeviceConfig`, and `AudioDumpWriter`.
+
+#### Audio Module Findings
+
+The Audio module should be treated as a pipeline with five separate
+responsibilities. They are related, but they should not collapse into one
+runtime object:
+
+1. Audio generation
+   - Purpose: Produce PCM without depending on external live input. This covers
+     random audio and decoded file-backed audio.
+   - Current code: `RandomNoisePcmSource`, `WavPcmSource`, `Minimp3PcmSource`,
+     `RawPcmSource`, `PcmSourceFactory`.
+   - Output: interleaved PCM plus `PcmFormat`.
+   - Dependencies to inject: audio source config, resolved file paths,
+     `RandomSource&` for random generation, and `Logger&`.
+   - Must not know: display geometry, visual effect state, auto-change policy,
+     or output/playback devices.
+
+2. Audio acquisition
+   - Purpose: Turn one selected PCM source, whether generated/file/live, into
+     the raw audio frame for the current visual tick.
+   - Current code: `AudioRuntime.cc` buffered pipeline,
+     `AudioInputProcessor`, `AudioBuffer`, and `AudioFrameBuilder`.
+   - Output: `AudioFrame` or future `RawAudioFrameSnapshot` containing signed
+     8-bit stereo samples, sample count, center sample, format metadata, and
+     silence/completion status.
+   - Dependencies to inject: selected `PcmSource`, clock or sample-position
+     source, audio format/window config, logger, and shutdown requester for
+     fatal/completion handoff.
+   - Must not know: selected visual processor, acoustic policy, scene commands,
+     display presentation, or global frame facades.
+
+3. Audio passthrough
+   - Purpose: Optionally play acquired/generated PCM through an output backend.
+   - Current code: `AudioOutput`, `AudioNullOutput`, `AudioPulseOutput`,
+     `AudioDSPOutput`, output service logic in `AudioRuntime.cc`, and audio
+     dump helpers in `AudioInternal.cc`.
+   - Output: submitted PCM and completion/drain status.
+   - Dependencies to inject: output config, output backend factory, clock for
+     diagnostics/pacing, logger, optional `AudioDumpWriter`, and the PCM buffer
+     it drains.
+   - Must not know: visual frame processing, acoustic analysis, or scene
+     changes.
+   - Note: generated/file PCM can be passed through; live-input passthrough
+     should be an explicit loopback mode, not a side effect of acquisition.
+
+4. Audio processing for visuals
+   - Purpose: Convert one raw per-frame audio snapshot into the data the visual
+     domain needs for rendering.
+   - Current code: `AudioProcessor`, `AudioProcessingOption`,
+     `audioProcessing`, global FFT tables, and writes to
+     `AudioFrame::processedWaveData`.
+   - Output: future `VisualAudioFrame` or `ProcessedAudioFrame` containing the
+     processed wave data used by waves, zick, borders, and other renderers.
+   - Dependencies to inject: processing mode/config, owned FFT tables or
+     immutable lookup tables, and the raw audio frame.
+   - Must not know: acquisition runtime, output passthrough, global option
+     registry, display backend, or scene auto-change policy.
+
+5. Acoustic context
+   - Purpose: Maintain a stateful view of what the music is doing over time.
+     This is slower semantic audio state, not renderer sample data.
+   - Current code: `AudioAnalyzer`, `AudioMetrics`, `AcousticContext`,
+     `sound_minnoise`, `audioAnalyzer`, `audioMetrics`, and
+     `acousticContext`.
+   - Output: future `AudioAnalysisSnapshot` containing frame metrics,
+     smoothed intensity, attack/fire, cumulative fire, and noisy/quiet status.
+   - Dependencies to inject: raw audio frame, acoustic-analysis config such as
+     minimum noise threshold, and logger for bounded diagnostics.
+   - Must not know: `AutoChanger`, scene-change thresholds, visual filterchain
+     refresh, or display rendering.
+
+The intended per-frame data flow is:
+
+```text
+PcmSource
+  -> AudioAcquisitionRuntime
+  -> RawAudioFrameSnapshot
+      -> AudioProcessingPipeline -> ProcessedAudioFrame
+      -> AcousticContextTracker  -> AudioAnalysisSnapshot
+
+AudioAcquisitionRuntime -> optional AudioPassthrough -> AudioOutput/AudioDump
+
+Scene receives AudioAnalysisSnapshot.
+Frame Mutation receives RawAudioFrameSnapshot, ProcessedAudioFrame, and
+AudioAnalysisSnapshot through its frame context.
+Display receives pixels only.
+```
+
+Current smells confirmed in code:
+
+- `AudioRuntime.cc` owns source acquisition, output passthrough, buffering,
+  frame reconstruction, threading, visual clock alignment, playback completion,
+  and shutdown requests in one file-scope singleton.
+- `AudioFrame.cc` is a global facade over the current raw frame, processed
+  frame, silent fallback, runtime tick, and processor change notification.
+- `AudioProcessor.cc` mixes visual processing algorithms, option/catalog
+  registration, global FFT tables, random option selection, and direct access
+  to the global audio-frame facade.
+- `AudioAnalyzer.cc` mixes pure analysis, stateful acoustic context,
+  `sound_minnoise` option ownership, and global publication of metrics/context.
+- `AudioVisualBridge` is not a good module boundary. It currently processes
+  audio, analyzes audio, constructs/deletes `AutoChanger`, and calls scene
+  policy. The replacement should be separate `AudioFramePipeline` plus
+  Scene-owned `SceneChangeScheduler`.
+- `visualMaxDimension` leaking into audio startup is a real cross-boundary
+  dependency. It should become an explicit `AudioFrameWindowConfig` supplied by
+  the composition root from display/frame geometry, not an implicit display
+  dependency inside audio.
+
+Audio module objects should be split this way:
+
+- `PcmSource`: existing interface, kept as the low-level PCM producer. It
+  should be constructed through an injected source factory using explicit
+  config and paths.
+- `AudioAcquisitionRuntime`: owns selected source, buffering, sample-position
+  alignment, frame building, live/file strategy differences, and completion
+  state.
+- `AudioPassthrough`: owns optional output draining, output backend state, and
+  dump writer integration.
+- `AudioFrameProvider`: raw-frame-only view over acquisition output. It should
+  not expose processed wave data.
+- `AudioProcessingPipeline`: pure-ish per-frame processor from raw frame plus
+  processing mode to processed visual audio.
+- `AcousticContextTracker`: stateful analyzer from raw frame plus acoustic
+  config to `AudioAnalysisSnapshot`.
+- `AudioModule`: module root owned by `Application`; it wires the above
+  objects and exposes narrow interfaces, not global facades.
+
+The first audio refactor should add tests around these seams before moving code:
+
+- Service tests: deterministic `PcmSource` generation, raw frame building from
+  a fixture PCM stream, passthrough drain/completion, each visual processing
+  mode, acoustic metrics/intensity/fire/cumulative-fire behavior, and silent
+  fallback behavior.
+- Dependent tests: `Application` advances audio through an injected module;
+  frame context creation receives explicit raw/processed/acoustic snapshots;
+  `AutoChanger` or its replacement consumes only `AudioAnalysisSnapshot`;
+  `display.cc`, `Border.cc`, and waves consume audio only through frame context.
+- Boundary tests: forbid new production uses of `audioFrameCurrent()`,
+  `audioFrameRawData()`, `audioFrameProcessedWaveData()`, `audioFrameTick()`,
+  `audioFrameChange()`, `audioAnalyzer`, `audioMetrics`, `acousticContext`,
+  `audioProcessing`, `sound_minnoise`, and `audioRuntime*` outside named
+  compatibility adapters while the migration is active.
+
+The removal order inside Audio should be:
+
+1. Introduce explicit data products: `RawAudioFrameSnapshot`,
+   `ProcessedAudioFrame`, `AudioAnalysisSnapshot`, and an aggregate
+   `AudioFrameProducts` for one visual tick.
+2. Extract `AudioProcessingPipeline` from `AudioProcessor.cc` so processing
+   works on explicit raw/processed buffers without touching the frame facade or
+   option globals.
+3. Extract `AcousticContextTracker` from `AudioAnalyzer.cc` so analysis owns no
+   globals and receives minimum-noise config explicitly.
+4. Replace `AudioVisualBridge` with an audio-only per-frame pipeline that
+   returns `AudioFrameProducts`; move automatic scene-change policy into Scene.
+5. Convert `AudioFrameProvider` to raw-frame-only and pass raw/processed/audio
+   analysis products into `VideoFrameContext`.
+6. Split `AudioRuntime.cc` into acquisition and passthrough owners, preserving
+   the current file/generator and live-input strategies.
+7. Remove audio facade functions and global audio state once all consumers take
+   injected audio products or module interfaces.
 
 ### Frame Mutation Module
 
@@ -412,20 +745,20 @@ implicit coupling under a new name.
 
 - Fits cleanly: `ShutdownController` -> Application Lifecycle;
   `PlatformLifecycle` -> Application Lifecycle; `EffectRegistry` -> Scene;
-  `VisualCatalogs` -> Scene; `AudioSystem` -> Audio after runtime/internal
-  splitting; `AudioFrameProvider` -> Audio if raw-frame-only;
-  `AudioAnalysisState` -> Audio if policy-free; `CthughaBuffer` -> Frame
+  `VisualCatalogs` -> Scene; low-level `PcmSource` implementations,
+  `AudioBuffer`, and `AudioFrameBuilder` -> Audio; `CthughaBuffer` -> Frame
   Mutation as state.
 - Probably belongs: `Clock` -> Application Lifecycle; `RandomSource` ->
   Application Lifecycle; `Logger` -> Application Lifecycle/Diagnostics;
   `PathConfig` -> Configuration; `AutoChanger` -> Scene as
-  `SceneChangeScheduler`; `SceneCommands` -> Scene command target; display
-  backend/device/geometry pieces -> Display.
+  `SceneChangeScheduler`; `SceneCommands` -> Scene command target; raw-only
+  `AudioFrameProvider`, `AudioProcessingPipeline`, and
+  `AcousticContextTracker` -> Audio; display backend/device/geometry pieces ->
+  Display.
 - Split across modules: `AppOptions`, `IniStore`, `VideoDirector`,
   `DisplayRuntimeOwnership`, `InterfaceManager`, `KeymapRegistry`,
   `AudioAnalysisState` as currently written, `AudioFrameProvider` as currently
-  written, and `AudioSystem` if it keeps mixer/dump/processing/device concerns
-  in one class.
+  written, `AudioSystem`, and `AudioRuntime`.
 - Does not fit as a service: `ApplicationContext`, `AudioVisualBridge`,
   `CthughaBuffer` if treated as a peer service rather than frame storage, and
   any logger-to-overlay coupling.
@@ -888,14 +1221,19 @@ Do not implement split-required services as single classes.
      `cthugha_verbose` outside owner/adapters.
 
 2. Configuration
-   - API first: `StartupConfig`, `RuntimeOptionModel`, `PathResolver`,
-     `ConfigLoader`, `ConfigPersistence`, and serializers supplied by modules.
+   - API first: `ConfigurationBuilder`, `ConfigSource` strategies,
+     `ConfigPatch`, `ConfigSchema`, `DeferredLogBuffer`, immutable `Config`
+     slices, `RuntimeOptionModel`, `PathResolver`, `ConfigPersistence`, and
+     serializers supplied by modules.
    - Red 1 tests: command-line, ini, X-resource, path resolution, validation,
-     live-option mutation, and save behavior operate on explicit models.
+     deferred diagnostics, source precedence, live-option mutation, and save
+     behavior operate on explicit models.
    - Red 2 tests: audio setup, display setup, scene defaults, UI editing, and
-     save-on-exit consume configuration views rather than globals.
+     save-on-exit consume only their configuration slices rather than globals or
+     whole-application config.
    - Green targets: split `AppOptions`, split `IniStore`, narrow `PathConfig`,
-     and remove direct `long_options` flag-pointer mutation.
+     add source strategies, add read-only config slices, and remove direct
+     `long_options` flag-pointer mutation.
    - Recheck target: no scalar/string option globals, path globals,
      `ini_file`, `ini_nr`, `ini_file_path`, `optindsave`, or parser-owned X
      resource globals outside compatibility adapters.
@@ -930,9 +1268,9 @@ Do not implement split-required services as single classes.
      `autoChanger`.
 
 5. Audio
-   - API first: `AudioInputRuntime`, raw `AudioFrameProvider`,
-     `AudioProcessingPipeline`, `AudioAnalysisSnapshot`, mixer/device adapters,
-     and `AudioDumpWriter`.
+   - API first: `AudioAcquisitionRuntime`, `AudioPassthrough`, raw
+     `AudioFrameProvider`, `AudioProcessingPipeline`, `AudioFrameProducts`,
+     `AudioAnalysisSnapshot`, mixer/device adapters, and `AudioDumpWriter`.
    - Red 1 tests: audio runtime, frame provider, processor, analyzer, silent
      fallback, mixer/device config, and dump writer are independently fakeable.
    - Red 2 tests: `AudioVisualBridge`, `AudioProcessor`, `AudioAnalyzer`,

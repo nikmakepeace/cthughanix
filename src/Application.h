@@ -4,6 +4,7 @@
 #define __APPLICATION_H
 
 #include "PlatformLifecycle.h"
+#include "Configuration.h"
 #include "VideoFilterchainSequence.h"
 
 #include <memory>
@@ -31,6 +32,8 @@ class Application {
     std::vector<char*> displayArgv;
     int exitStatusValue;
     int ncursesInitialized;
+    Config startupConfigValue;
+    std::vector<ConfigDiagnostic> startupConfigDiagnostics;
     std::unique_ptr<VideoFilterchain> videoFilterchain;
     VideoFilterchainSequence videoFilterchainSequence;
     std::unique_ptr<AudioVisualBridge> audioVisualBridge;

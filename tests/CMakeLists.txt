@@ -438,6 +438,21 @@ endif()
 
 add_test(NAME warning_clean_smoke_test COMMAND warning_clean_smoke_test)
 
+add_executable(configuration_test
+    unit/ConfigurationTest.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+)
+
+target_include_directories(configuration_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(configuration_test PRIVATE m)
+
+add_test(NAME configuration_test COMMAND configuration_test)
+
 add_executable(wave_object_test
     unit/WaveObjectTest.cc
     ${CMAKE_SOURCE_DIR}/src/WaveObject.cc
