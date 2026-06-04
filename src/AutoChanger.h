@@ -17,6 +17,7 @@ extern OptionOnOff lock; /* change automatically */
 extern OptionOnOff change_little; /* only change one options */
 
 class SceneCommands;
+struct AutoChangeConfig;
 
 class AutoChanger {
     SceneCommands& sceneCommands;
@@ -59,5 +60,7 @@ public:
     const char* status();
 };
 extern AutoChanger* autoChanger;
+
+void configureAutoChanger(const AutoChangeConfig& config);
 
 #endif

@@ -3,7 +3,6 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
-#include "defaults.h"
 #include "imath.h"
 
 #include <sys/types.h>
@@ -39,7 +38,7 @@ int AudioDSPOutput::defaultTargetLatencyMs() const {
     case 2:
     case 3:
     default:
-        return DEFAULT_AUDIO_DSP_TARGET_LATENCY_MS;
+        return audio_dsp_target_latency_msec;
     }
 }
 
@@ -246,7 +245,7 @@ AudioDSPOutput::AudioDSPOutput(int method_, int visualMaxDimension)
 }
 
 AudioDSPOutput::~AudioDSPOutput() { }
-int AudioDSPOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_DSP_TARGET_LATENCY_MS; }
+int AudioDSPOutput::defaultTargetLatencyMs() const { return audio_dsp_target_latency_msec; }
 int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 void AudioDSPOutput::setFragment() { }
 void AudioDSPOutput::setChannels() { }

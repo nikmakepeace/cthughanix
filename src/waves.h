@@ -60,7 +60,10 @@ int init_tables();
  *
  * @return Zero on completion.
  */
-int init_wave();
+struct PathConfig;
+struct VisualConfig;
+
+int init_wave(const PathConfig& pathConfig);
 
 /** @return Currently selected 3D object line list, or NULL. */
 WObject* currentWaveObject();
@@ -76,5 +79,6 @@ extern int nr_tables;
 
 /** Enables loading/selecting 3D object files for object-capable waves. */
 extern OptionOnOff use_objects;
+void configureWaveOptions(const VisualConfig& config);
 
 #endif

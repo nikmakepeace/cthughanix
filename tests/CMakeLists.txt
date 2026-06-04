@@ -453,6 +453,25 @@ target_link_libraries(configuration_test PRIVATE m)
 
 add_test(NAME configuration_test COMMAND configuration_test)
 
+add_executable(configuration_dependency_boundary_test
+    unit/ConfigurationDependencyBoundaryTest.cc
+)
+
+target_compile_definitions(configuration_dependency_boundary_test PRIVATE
+    CTHUGHA_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_include_directories(configuration_dependency_boundary_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(configuration_dependency_boundary_test PRIVATE m)
+
+add_test(NAME configuration_dependency_boundary_test
+    COMMAND configuration_dependency_boundary_test)
+
 add_executable(wave_object_test
     unit/WaveObjectTest.cc
     ${CMAKE_SOURCE_DIR}/src/WaveObject.cc

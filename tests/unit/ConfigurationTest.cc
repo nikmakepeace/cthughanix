@@ -1,6 +1,6 @@
 #include "Configuration.h"
 
-#include "defaults.h"
+#include "configuration_defaults.h"
 
 #include <cassert>
 #include <map>
@@ -19,15 +19,55 @@ static void defaultsProduceTypedConfig() {
     ConfigBuildResult result = builder.addDefaults().build();
 
     assert(result.ok());
-    assert(result.config.logging.verbosity == DEFAULT_VERBOSE_LEVEL);
-    assert(result.config.paths.extraLibraryPath == DEFAULT_EXTRA_LIBRARY_PATH);
-    assert(result.config.paths.iniFileOverride == DEFAULT_INI_FILE_OVERRIDE_PATH);
-    assert(result.config.audio.inputMode == DEFAULT_AUDIO_INPUT_MODE);
-    assert(result.config.audio.inputFile == DEFAULT_AUDIO_INPUT_FILE_PATH);
-    assert(result.config.display.displayMode == DEFAULT_DISPLAY_MODE);
+    assert(result.config.logging.verbosity == LOGGING_CONFIG_DEFAULT_VERBOSITY);
+    assert(result.config.app.optionsSaveEnabled == APP_CONFIG_DEFAULT_OPTIONS_SAVE_ENABLED);
+    assert(result.config.app.escapeKeyEnabled == APP_CONFIG_DEFAULT_ESCAPE_KEY_ENABLED);
+    assert(result.config.app.keymapFile == PATH_CONFIG_DEFAULT_KEYMAP_FILE_PATH);
+    assert(result.config.paths.extraLibraryPath == PATH_CONFIG_DEFAULT_EXTRA_LIBRARY_PATH);
+    assert(result.config.paths.iniFileOverride == PATH_CONFIG_DEFAULT_INI_FILE_OVERRIDE_PATH);
+    assert(result.config.catalogs.doubleLoadEnabled == CATALOG_CONFIG_DEFAULT_DOUBLE_LOAD_ENABLED);
+    assert(result.config.audio.inputMode == AUDIO_CONFIG_DEFAULT_INPUT_MODE);
+    assert(result.config.audio.inputFile == AUDIO_CONFIG_DEFAULT_INPUT_FILE_PATH);
+    assert(result.config.audio.inputLoopEnabled == AUDIO_CONFIG_DEFAULT_INPUT_LOOP_ENABLED);
+    assert(result.config.audio.sampleRateHz == AUDIO_CONFIG_DEFAULT_SAMPLE_RATE_HZ);
+    assert(result.config.audio.channels == AUDIO_CONFIG_DEFAULT_CHANNELS);
+    assert(result.config.audio.sampleFormat == AUDIO_CONFIG_DEFAULT_FORMAT);
+    assert(result.config.audio.dspMethod == AUDIO_CONFIG_DEFAULT_DSP_METHOD);
+    assert(result.config.audio.dspFragments == AUDIO_CONFIG_DEFAULT_DSP_FRAGMENTS);
+    assert(result.config.audio.dspFragmentSize == AUDIO_CONFIG_DEFAULT_DSP_FRAGMENT_SIZE);
+    assert(result.config.audio.dspSyncEnabled == AUDIO_CONFIG_DEFAULT_DSP_SYNC_ENABLED);
+    assert(result.config.audio.silentEnabled == AUDIO_CONFIG_DEFAULT_SILENT_ENABLED);
+    assert(result.config.audio.minNoise == AUDIO_CONFIG_DEFAULT_MIN_NOISE);
+    assert(result.config.audio.pulseLatencyMs == AUDIO_CONFIG_DEFAULT_PULSE_LATENCY_MS);
+    assert(result.config.audio.pulseServer == AUDIO_CONFIG_DEFAULT_PULSE_SERVER_TEXT);
+    assert(result.config.audio.outputDumpPath == AUDIO_CONFIG_DEFAULT_OUTPUT_DUMP_PATH);
+    assert(result.config.audio.dspDevicePath == AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH);
+    assert(result.config.audio.mixerDevicePath == AUDIO_CONFIG_DEFAULT_MIXER_DEVICE_PATH);
+    assert(result.config.display.displayMode == DISPLAY_CONFIG_DEFAULT_MODE);
     assert(!result.config.display.hasCustomDisplaySize);
     assert(result.config.display.bufferWidth == 160);
     assert(result.config.display.bufferHeight == 100);
+    assert(result.config.display.maxFramesPerSecond == DISPLAY_CONFIG_DEFAULT_MAX_FRAMES_PER_SECOND);
+    assert(result.config.display.showFpsEnabled == DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED);
+    assert(result.config.display.zoomMode == DISPLAY_CONFIG_DEFAULT_ZOOM_MODE);
+    assert(result.config.display.textOnTerm == DISPLAY_CONFIG_DEFAULT_TEXT_ON_TERM);
+    assert(result.config.display.ncursesEnabled == DISPLAY_CONFIG_DEFAULT_NCURSES_ENABLED);
+    assert(result.config.display.screenshotFilePrefix == DISPLAY_CONFIG_DEFAULT_SCREENSHOT_FILE_PREFIX);
+    assert(result.config.display.x11FontName == DISPLAY_CONFIG_DEFAULT_X11_FONT_NAME);
+    assert(result.config.autoChange.quietMs == AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS);
+    assert(result.config.autoChange.waitMinMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS);
+    assert(result.config.autoChange.waitRandomMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS);
+    assert(result.config.autoChange.waitRandomMinimumMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MIN_MS);
+    assert(result.config.visual.changeMessageMs == VISUAL_CONFIG_DEFAULT_CHANGE_MESSAGE_MS);
+    assert(result.config.visual.quietMessageDurationMs == VISUAL_CONFIG_DEFAULT_QUIET_MESSAGE_DURATION_MS);
+    assert(result.config.visual.paletteSmoothingChance == VISUAL_CONFIG_DEFAULT_PALETTE_SMOOTHING_CHANCE);
+    assert(result.config.visual.paletteSmoothSeconds == VISUAL_CONFIG_DEFAULT_PALETTE_SMOOTH_SECONDS);
+    assert(result.config.visual.imageLoadingEnabled == VISUAL_CONFIG_DEFAULT_IMAGE_LOADING_ENABLED);
+    assert(result.config.visual.useTranslatesEnabled == VISUAL_CONFIG_DEFAULT_USE_TRANSLATES_ENABLED);
+    assert(result.config.visual.useObjectsEnabled == VISUAL_CONFIG_DEFAULT_USE_OBJECTS_ENABLED);
+    assert(result.config.messages.qotdPrefetchTimeoutMs == MESSAGES_CONFIG_DEFAULT_QOTD_PREFETCH_TIMEOUT_MS);
+    assert(result.config.messages.qotdServer == MESSAGES_CONFIG_DEFAULT_QOTD_SERVER_TEXT);
+    assert(result.config.messages.qotdPort == MESSAGES_CONFIG_DEFAULT_QOTD_PORT_TEXT);
 }
 
 static void iniTextSourceProducesPatchWithoutGlobals() {

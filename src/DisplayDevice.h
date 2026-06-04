@@ -11,6 +11,7 @@ class FramePalette;
 class Scene;
 class SceneCommands;
 class DisplayRuntimeOwnership;
+struct DisplayConfig;
 
 //
 //  Stuff about text-display
@@ -18,8 +19,6 @@ class DisplayRuntimeOwnership;
 #define TEXT_COLOR_NORMAL 0
 #define TEXT_COLOR_ERROR 1
 #define TEXT_COLOR_HIGHLIGHT 2
-
-extern int display_mode; // predefined graphics mode to use
 
 extern int display_text_time; // how long text is kept on the screen
 
@@ -133,6 +132,8 @@ public:
 extern DisplayDevice* displayDevice;
 
 extern std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
-    Scene& scene, SceneCommands& sceneCommands);
+    Scene& scene, SceneCommands& sceneCommands, const DisplayConfig& config);
+
+void configureDisplayDevice(const DisplayConfig& config);
 
 #endif

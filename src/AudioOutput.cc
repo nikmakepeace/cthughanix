@@ -3,12 +3,27 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
-#include "defaults.h"
+#include "Configuration.h"
 
-char pulse_server[PATH_MAX] = DEFAULT_PULSE_SERVER_TEXT;
-int pulse_latency_msec = DEFAULT_PULSE_LATENCY_MS;
-char audio_output_dump[PATH_MAX] = DEFAULT_AUDIO_OUTPUT_DUMP_PATH;
-char audio_input_file[PATH_MAX] = DEFAULT_AUDIO_INPUT_FILE_PATH;
+#include <string.h>
+
+char pulse_server[PATH_MAX] = "";
+int pulse_latency_msec = 0;
+char audio_output_dump[PATH_MAX] = "";
+int audio_null_target_latency_msec = 0;
+int audio_pulse_target_latency_msec = 0;
+int audio_dsp_target_latency_msec = 0;
+
+void configureAudioOutputOptions(const AudioConfig& config) {
+    strncpy(pulse_server, config.pulseServer.c_str(), PATH_MAX);
+    pulse_server[PATH_MAX - 1] = '\0';
+    pulse_latency_msec = config.pulseLatencyMs;
+    strncpy(audio_output_dump, config.outputDumpPath.c_str(), PATH_MAX);
+    audio_output_dump[PATH_MAX - 1] = '\0';
+    audio_null_target_latency_msec = config.nullOutputTargetLatencyMs;
+    audio_pulse_target_latency_msec = config.pulseOutputTargetLatencyMs;
+    audio_dsp_target_latency_msec = config.dspOutputTargetLatencyMs;
+}
 
 const char* pulse_server_name() {
     return (pulse_server[0] != '\0') ? pulse_server : NULL;
@@ -67,7 +82,7 @@ int AudioOutput::playbackComplete(const AudioBuffer& buffer, int inputFinished) 
     return inputFinished && (buffer.queuedForOutputSamples() == 0);
 }
 
-int AudioNullOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_NULL_TARGET_LATENCY_MS; }
+int AudioNullOutput::defaultTargetLatencyMs() const { return audio_null_target_latency_msec; }
 int AudioNullOutput::write(const void*, int size) { return size; }
 int AudioNullOutput::isOpen() const { return 1; }
 int AudioNullOutput::isRealtime() const { return 0; }

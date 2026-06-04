@@ -1,7 +1,7 @@
 #include "cthugha.h"
+#include "Configuration.h"
 #include "EffectChoiceLoader.h"
 #include "display.h"
-#include "defaults.h"
 #include "Interface.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -21,9 +21,9 @@ unsigned long bitmap_colors3[256]; /* "compiled" palette */
 
 EffectChoice* read_palette(FILE* file, const char* name, const char* dir, const char*);
 static const char* palette_path[] = { "./", "./resources/map/", CTH_LIBDIR "/map/", "" };
-static int paletteSetFilterCount = DEFAULT_PALETTE_SET_FILTER_COUNT;
+static int paletteSetFilterCount = 0;
 static char paletteSetFilter[PALETTE_METADATA_MAX_VALUES][PALETTE_METADATA_VALUE_SIZE];
-static char paletteSetFilterText[256] = DEFAULT_PALETTE_SET_FILTER_TEXT;
+static char paletteSetFilterText[256] = "";
 
 static int palette_line_was_truncated(const char* line) {
     size_t len = strlen(line);
@@ -253,6 +253,10 @@ int palette_set_filter(const char* value) {
     return 1;
 }
 
+void configurePaletteOptions(const VisualConfig& config) {
+    palette_set_filter(config.paletteSetFilterText.c_str());
+}
+
 static int palette_matches_set_filter(PaletteEntry* palette) {
     if (paletteSetFilterCount == 0)
         return 1;
@@ -372,13 +376,14 @@ int colormapped = 1; /* 0 .. True/Direct color
    update to the palette are done immediately without smoothing.
    */
 
-int load_palettes() {
+int load_palettes(const PathConfig& pathConfig) {
     int i, l;
     PaletteEntry* new_pal;
     ColorPalette* colors;
 
     CTH_INFO("  loading palettes...\n");
-    loadEffectChoices(palette, palette_path, "/map/", ".map", read_palette);
+    loadEffectChoices(palette, pathConfig, palette_path, "/map/", ".map",
+        read_palette);
 
     /* create one general palette */
     new_pal = new PaletteEntry("general", "");

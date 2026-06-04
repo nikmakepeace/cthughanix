@@ -27,6 +27,7 @@ extern double deltaT; // elapsed time between the last two frames, in seconds
 class IndexedFrame;
 class DisplayDevice;
 class DisplayRuntime;
+struct DisplayConfig;
 
 class CthughaDisplay : public PresentationFrameObserver {
 protected:
@@ -133,5 +134,7 @@ extern CthughaDisplay* cthughaDisplay;
 /** Allocates the frontend-specific display coordinator. */
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
     DisplayDevice& device, DisplayRuntime& runtime);
+
+void configureCthughaDisplay(const DisplayConfig& config);
 
 #endif

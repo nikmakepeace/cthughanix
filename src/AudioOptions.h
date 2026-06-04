@@ -11,6 +11,8 @@
 #define PATH_MAX 4096
 #endif
 
+struct AudioConfig;
+
 extern Option& audioInputMode;
 
 extern Option& soundFormat;
@@ -29,9 +31,13 @@ extern char dev_dsp[];
 extern char pulse_server[];
 extern int pulse_latency_msec;
 extern char audio_output_dump[];
-extern char audio_input_file[];
+extern int audio_null_target_latency_msec;
+extern int audio_pulse_target_latency_msec;
+extern int audio_dsp_target_latency_msec;
 
 const char* pulse_server_name();
 const char* pulse_server_display_name();
+void configureAudioOptions(const AudioConfig& config);
+void configureAudioOutputOptions(const AudioConfig& config);
 
 #endif

@@ -5,6 +5,8 @@
 
 #include "RuntimeFactory.h"
 
+struct AudioConfig;
+
 /**
  * Builds and starts the audio runtime from the current option snapshot.
  *
@@ -14,7 +16,8 @@
  *        before display zoom. Used to size audio frame and DSP sample windows.
  * @return 0 on success, nonzero if input, output, or processing setup fails.
  */
-int audioRuntimeInit(int initializeInputControls, int visualMaxDimension);
+int audioRuntimeInit(const AudioConfig& config, int initializeInputControls,
+    int visualMaxDimension);
 
 /**
  * Advances the audio runtime by one visual frame boundary.

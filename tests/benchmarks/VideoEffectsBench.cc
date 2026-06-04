@@ -35,8 +35,10 @@ int getini(EffectControl&) { return 1; }
 int putini(const char*, const char*) { return 0; }
 int putini(const Option&) { return 0; }
 
-int init_wave() { return 0; }
-int load_palettes() { return 0; }
+struct PathConfig;
+
+int init_wave(const PathConfig&) { return 0; }
+int load_palettes(const PathConfig&) { return 0; }
 int init_pcx() { return 0; }
 
 char extra_lib_path[PATH_MAX] = "";

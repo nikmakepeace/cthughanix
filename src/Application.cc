@@ -11,8 +11,10 @@
 #include "AudioAnalyzer.h"
 #include "AudioProcessor.h"
 #include "AudioVisualBridge.h"
+#include "AutoChanger.h"
 #include "Border.h"
 #include "EffectControl.h"
+#include "EffectChoiceLoader.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayBackend.h"
@@ -22,7 +24,9 @@
 #include "FramePacer.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
+#include "Option.h"
 #include "Scene.h"
+#include "Screenshot.h"
 #include "VideoDirector.h"
 #include "VideoFilterchain.h"
 #include "VideoFilterchainFactory.h"
@@ -31,13 +35,19 @@
 #include "flames.h"
 #include "imath.h"
 #include "keymap.h"
+#include "keys.h"
 #include "options.h"
 #include "waves.h"
+
+#ifdef CTH_XWIN
+#include "xcthugha.h"
+#endif
 
 #include <unistd.h>
 
 static void configureTerminalTextMode();
-static int initializeVisualCatalogs(const CthughaBuffer& buffer);
+static int initializeVisualCatalogs(const CthughaBuffer& buffer,
+    const PathConfig& pathConfig);
 
 static SystemFrameSleeper systemFrameSleeper;
 static FramePacer framePacer(systemFrameSleeper);
@@ -69,7 +79,7 @@ void Application::willSuspend() {
 }
 
 void Application::didResume() {
-    if (init_sound(CthughaBuffer::buffer.maxDimension()))
+    if (init_sound(startupConfigValue.audio, CthughaBuffer::buffer.maxDimension()))
         cthugha_close++;
 }
 
@@ -198,6 +208,28 @@ int Application::initialize() {
     ConfigBuildResult startupConfig = buildStartupConfig(argcValue, argvValue);
     startupConfigValue = startupConfig.config;
     startupConfigDiagnostics = startupConfig.diagnostics;
+    cthugha_configure_logging(startupConfigValue.logging);
+    configureApplicationOptions(startupConfigValue.app);
+    configureKeys(startupConfigValue.app);
+    Keymap::configure(startupConfigValue.app);
+    configureIniFiles(startupConfigValue.paths);
+    configureEffectChoiceLoader(startupConfigValue.catalogs);
+    configureAudioOptions(startupConfigValue.audio);
+    configureCthughaDisplay(startupConfigValue.display);
+    configureDisplayDevice(startupConfigValue.display);
+    configureNcursesDisplay(startupConfigValue.display);
+    configureScreenshot(startupConfigValue.display);
+#ifdef CTH_XWIN
+    configureDisplayDeviceX11(startupConfigValue.display);
+#endif
+    configureAutoChanger(startupConfigValue.autoChange);
+    configureTranslationOptions(startupConfigValue.visual);
+    configureWaveOptions(startupConfigValue.visual);
+    configurePaletteOptions(startupConfigValue.visual);
+    videoDirector().configure(startupConfigValue.visual,
+        startupConfigValue.messages);
+    CthughaBuffer::buffer.setDimensions(startupConfigValue.display.bufferWidth,
+        startupConfigValue.display.bufferHeight);
 
     // Pre-params can affect how much parsing/output should happen at all.
     if (get_pre_params(argcValue, argvValue))
@@ -214,7 +246,7 @@ int Application::initialize() {
     initSceneRuntime();
 
     // Full parameter parsing can select initial scene/audio/display options.
-    if (get_params(argcValue, argvValue))
+    if (get_params(argcValue, argvValue, startupConfigValue))
         return 0;
 
     title();
@@ -232,16 +264,16 @@ int Application::initialize() {
     }
 
     CTH_INFO("Initializing the sound device...\n");
-    if (init_sound(CthughaBuffer::buffer.maxDimension()))
+    if (init_sound(startupConfigValue.audio, CthughaBuffer::buffer.maxDimension()))
         return 0;
 
     // Visual catalogs depend on final buffer dimensions and must be available
     // before EffectControl::changeToInitial() resolves staged option names.
     CTH_INFO("Initializing cthugha Buffer...\n");
-    if (initializeVisualCatalogs(CthughaBuffer::buffer))
+    if (initializeVisualCatalogs(CthughaBuffer::buffer, startupConfigValue.paths))
         return 0;
     CthughaBuffer::buffer.allocatePixels();
-    if (videoDirector().loadImages()) {
+    if (videoDirector().loadImages(startupConfigValue.paths)) {
         exitStatusValue = 0;
         return 0;
     }
@@ -265,7 +297,8 @@ int Application::initialize() {
     int displayArgc = int(displayArgv.size());
     if (cth_init(&displayArgc, displayArgv.data()))
         return 0;
-    displayRuntimeOwnership = newDisplayDevice(scene(), sceneCommands());
+    displayRuntimeOwnership = newDisplayDevice(scene(), sceneCommands(),
+        startupConfigValue.display);
     if (displayRuntimeOwnership.get() == NULL)
         return 0;
     displayRuntimeOwnership->publishAliases();
@@ -274,7 +307,7 @@ int Application::initialize() {
     cthughaDisplay = displayValue.get();
 
     CTH_INFO("Loading effect-control usage and preset slots...\n");
-    read_effect_control_usage_and_presets();
+    read_effect_control_usage_and_presets(startupConfigValue.paths);
 
     CTH_INFO("Initializing the audio-visual bridge...\n");
     initAudioVisualBridge();
@@ -442,7 +475,8 @@ static void configureTerminalTextMode() {
 #endif
 }
 
-static int initializeVisualCatalogs(const CthughaBuffer& buffer) {
+static int initializeVisualCatalogs(const CthughaBuffer& buffer,
+    const PathConfig& pathConfig) {
     // Built-in visual choices and file-backed catalogs are application startup
     // state, not pixel-buffer state. They live here because option parsing can
     // change buffer dimensions and stage initial option names before startup.
@@ -454,10 +488,10 @@ static int initializeVisualCatalogs(const CthughaBuffer& buffer) {
     if (init_translate(buffer))
         return 1;
 
-    if (init_wave())
+    if (init_wave(pathConfig))
         return 1;
 
-    if (load_palettes())
+    if (load_palettes(pathConfig))
         return 1;
 
     return 0;

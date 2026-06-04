@@ -23,6 +23,8 @@ int init_ncurses();
 void exit_ncurses();
 
 extern int ncurses_use;
+struct DisplayConfig;
+void configureNcursesDisplay(const DisplayConfig& config);
 
 extern unsigned long bitmap_colors0[256]; /* "compiled" palette */
 extern unsigned long bitmap_colors1[256];
@@ -93,13 +95,17 @@ public:
 
 extern PaletteOption palette;
 
-int load_palettes(); /* initializiation */
+struct PathConfig;
+
+int load_palettes(const PathConfig& pathConfig); /* initializiation */
 int init_palettes();
 int exit_palettes();
 int update_palette();
 void cth_setpalette(Palette pal, int immed);
 int palette_set_filter(const char* value);
 void apply_palette_set_filter();
+struct VisualConfig;
+void configurePaletteOptions(const VisualConfig& config);
 int palette_set_metadata_set(PaletteEntry* palette, const char* value);
 int palette_set_metadata_energy(PaletteEntry* palette, const char* value);
 

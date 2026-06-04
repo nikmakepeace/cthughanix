@@ -6,11 +6,11 @@
 #include "keys.h"
 #include "imath.h"
 #include "waves.h"
-#include "Option.h"
 #include "AudioProcessor.h"
 #include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "Configuration.h"
 
 #include <errno.h>
 
@@ -32,8 +32,13 @@ void operator delete(void *d) {
 }
 #endif
 
-OptionInt cthugha_verbose("verbose", DEFAULT_VERBOSE_LEVEL, DEFAULT_OPTION_INT_NO_MAX,
-    DEFAULT_VERBOSE_MIN_LEVEL); // verbosity level
+static int cthugha_logging_verbosity = 0;
+
+void cthugha_configure_logging(const LoggingConfig& config) {
+    cthugha_logging_verbosity = config.verbosity;
+    if (cthugha_logging_verbosity < DEFAULT_VERBOSE_MIN_LEVEL)
+        cthugha_logging_verbosity = DEFAULT_VERBOSE_MIN_LEVEL;
+}
 
 static void copy_console_format(char* out, const char* in) {
     int i;
@@ -46,7 +51,7 @@ static void copy_console_format(char* out, const char* in) {
 }
 
 static int vprintfv(int lvl, const char* fmt, va_list ap) {
-    if (lvl <= int(cthugha_verbose)) {
+    if (lvl <= cthugha_logging_verbosity) {
         // I had problems with missing carrige returns on Linux console
         // so i translate it to \n\r
         char fmt_r[2 * strlen(fmt) + 1];
@@ -124,7 +129,7 @@ int printfv(int lvl, const char* fmt, ...) {
     vprintfv(lvl, fmt, ap);
     va_end(ap);
 #else
-    if (lvl <= int(cthugha_verbose))
+    if (lvl <= cthugha_logging_verbosity)
         printf(fmt);
 #endif
     return 0;
@@ -134,7 +139,7 @@ int printfv(int lvl, const char* fmt, ...) {
 // print a named-level log message
 //
 int cth_log_enabled(int lvl) {
-    return (lvl <= CTH_LOG_ERROR) || (lvl <= int(cthugha_verbose));
+    return (lvl <= CTH_LOG_ERROR) || (lvl <= cthugha_logging_verbosity);
 }
 
 int cth_log(int lvl, const char* fmt, ...) {
@@ -149,7 +154,7 @@ int cth_log(int lvl, const char* fmt, ...) {
 #else
     if (lvl <= CTH_LOG_ERROR)
         fprintf(stderr, fmt);
-    else if (lvl <= int(cthugha_verbose))
+    else if (lvl <= cthugha_logging_verbosity)
         printf(fmt);
 #endif
     return 0;
@@ -177,12 +182,12 @@ int cth_log_context(int lvl, const char* context, const char* fmt, ...) {
     if (context && context[0]) {
         if (lvl <= CTH_LOG_ERROR)
             fprintf(stderr, "%s: ", context);
-        else if (lvl <= int(cthugha_verbose))
+        else if (lvl <= cthugha_logging_verbosity)
             printf("%s: ", context);
     }
     if (lvl <= CTH_LOG_ERROR)
         fprintf(stderr, fmt);
-    else if (lvl <= int(cthugha_verbose))
+    else if (lvl <= cthugha_logging_verbosity)
         printf(fmt);
 #endif
     return 0;

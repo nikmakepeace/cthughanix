@@ -1,4 +1,5 @@
 #include "cthugha.h"
+#include "Configuration.h"
 #include "SilenceMessage.h"
 
 static const char* programNameFallback() {
@@ -19,6 +20,10 @@ SilenceMessage::SilenceMessage()
     , qotdMessages()
     , initialized(0)
     , qotdEnabled(0) { }
+
+void SilenceMessage::configure(const MessagesConfig& config) {
+    qotdMessages.configure(config);
+}
 
 void SilenceMessage::initialize() {
     if (initialized)

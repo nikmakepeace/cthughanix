@@ -1,6 +1,7 @@
 // Wave option setup, object loading, color tables, and wave renderers.
 
 #include "cthugha.h"
+#include "Configuration.h"
 #include "EffectChoiceLoader.h"
 #include "display.h"
 #include "Interface.h"
@@ -352,7 +353,11 @@ static void init_wave_options() {
 
 static void draw_line(CthughaBuffer& buffer, int x1, int y1, int x2, int y2, int c);
 
-OptionOnOff use_objects("use-objects", DEFAULT_USE_OBJECTS_ENABLED); /* use 3-D objects */
+OptionOnOff use_objects("use-objects", 0); /* use 3-D objects */
+
+void configureWaveOptions(const VisualConfig& config) {
+    use_objects.setValue(config.useObjectsEnabled);
+}
 /*
  * Object waves have two kinds of work:
  *
@@ -377,7 +382,7 @@ WObject* currentWaveObject() {
 /*
  * initialize, load objects
  */
-int init_wave() {
+int init_wave(const PathConfig& pathConfig) {
 
     init_wave_options();
     init_tables();
@@ -386,7 +391,8 @@ int init_wave() {
     if (int(use_objects)) {
 
         CTH_INFO("  loading 3-D objects...");
-        loadEffectChoices(object, object_path, "/obj/", ".obj", read_object);
+        loadEffectChoices(object, pathConfig, object_path, "/obj/", ".obj",
+            read_object);
         CTH_INFO("\n  number of 3-D objects: %d\n", object.getNEntries());
     }
 

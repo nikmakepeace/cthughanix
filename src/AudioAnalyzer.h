@@ -8,7 +8,10 @@
 
 #include "EffectControl.h"
 
+struct AudioConfig;
+
 extern OptionInt sound_minnoise; /* quiet is below this */
+void configureAudioAnalyzer(const AudioConfig& config);
 
 struct AudioMetrics {
     /** Average RMS amplitude across left and right channels, in signed 8-bit sample units. */

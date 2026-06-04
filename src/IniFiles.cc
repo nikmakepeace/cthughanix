@@ -11,19 +11,26 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "VideoDirector.h"
-#include "defaults.h"
 
 #include <unistd.h>
 #include <ctype.h>
 #include <string>
+#include <vector>
 
-char extra_lib_path[PATH_MAX] = DEFAULT_EXTRA_LIBRARY_PATH; /* extra path to search for
+char extra_lib_path[PATH_MAX] = ""; /* extra path to search for
                                                                image, tab, map and ini */
-char ini_file_override[PATH_MAX] = DEFAULT_INI_FILE_OVERRIDE_PATH;
+char ini_file_override[PATH_MAX] = "";
 
 FILE* ini_file = NULL; /* the currently open ini-file */
 static int ini_nr = -1;
 static char ini_file_path[PATH_MAX] = "";
+
+void configureIniFiles(const PathConfig& paths) {
+    strncpy(extra_lib_path, paths.extraLibraryPath.c_str(), PATH_MAX);
+    extra_lib_path[PATH_MAX - 1] = '\0';
+    strncpy(ini_file_override, paths.iniFileOverride.c_str(), PATH_MAX);
+    ini_file_override[PATH_MAX - 1] = '\0';
+}
 
 static const char* continuation_ini_file_name() {
     static std::string fname;
@@ -432,6 +439,54 @@ static int read_continuation_ini() {
     return 0;
 }
 
+static int read_ini_files_from_config(const PathConfig& paths,
+    int includeContinuation, int removeContinuation) {
+    for (std::vector<std::string>::const_iterator it = paths.iniFiles.begin();
+         it != paths.iniFiles.end(); ++it) {
+        const std::string& path = *it;
+        int isContinuation = !paths.continuationIniFile.empty()
+            && (path == paths.continuationIniFile);
+        int required = !paths.iniFileOverride.empty()
+            && (path == paths.iniFileOverride);
+
+        if (isContinuation && !includeContinuation)
+            continue;
+
+        ini_file = fopen(path.c_str(), "r");
+        if (ini_file == NULL) {
+            if (required)
+                CTH_ERRNO(errno, "Can not open ini file `%s'.", path.c_str());
+            continue;
+        }
+
+        strncpy(ini_file_path, path.c_str(), PATH_MAX);
+        ini_file_path[PATH_MAX - 1] = '\0';
+
+        if (isContinuation)
+            CTH_INFO("Loading continuation state from `%s'.\n", ini_file_path);
+
+        read_current_ini_initials();
+
+        fclose(ini_file);
+        ini_file = NULL;
+
+        if (isContinuation && removeContinuation) {
+            if (unlink(path.c_str()) != 0) {
+                CTH_ERRNO(errno, "Can not remove continuation ini `%s'.",
+                    path.c_str());
+            } else {
+                CTH_DEBUG("Removed continuation ini `%s'.\n", path.c_str());
+            }
+        }
+    }
+
+    return 0;
+}
+
+int read_ini(const PathConfig& paths) {
+    return read_ini_files_from_config(paths, 1, 1);
+}
+
 int read_ini() {
     open_ini_start();
     while (open_ini_file() == 0) {
@@ -447,6 +502,30 @@ int read_ini() {
 /*
  * read per-entry usage flags and preset slots after effect catalogs exist
  */
+int read_effect_control_usage_and_presets(const PathConfig& paths) {
+    for (std::vector<std::string>::const_iterator it = paths.iniFiles.begin();
+         it != paths.iniFiles.end(); ++it) {
+        if (!paths.continuationIniFile.empty()
+            && (*it == paths.continuationIniFile))
+            continue;
+
+        ini_file = fopen(it->c_str(), "r");
+        if (ini_file == NULL)
+            continue;
+
+        strncpy(ini_file_path, it->c_str(), PATH_MAX);
+        ini_file_path[PATH_MAX - 1] = '\0';
+
+        effectControlGetIniUsages();
+        effectControlGetPresetIni();
+
+        fclose(ini_file);
+        ini_file = NULL;
+    }
+
+    return 0;
+}
+
 int read_effect_control_usage_and_presets() {
 
     open_ini_start();

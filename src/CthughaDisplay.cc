@@ -4,6 +4,7 @@
 #include "display.h"
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
+#include "Configuration.h"
 #include "FrameClock.h"
 #include "cth_buffer.h"
 #include "imath.h"
@@ -21,10 +22,10 @@ CthughaDisplay* cthughaDisplay = NULL;
 
 CthughaDisplay::~CthughaDisplay() { }
 
-OptionInt maxFramesPerSecond("maxFPS", DEFAULT_MAX_FRAMES_PER_SECOND);
-OptionOnOff showFPS("show-fps", DEFAULT_SHOW_FPS_ENABLED);
+OptionInt maxFramesPerSecond("maxFPS", 0);
+OptionOnOff showFPS("show-fps", 0);
 
-OptionInt zoom("zoom", DEFAULT_ZOOM_MODE, ZOOM_MODE_MAX_EXCLUSIVE);
+OptionInt zoom("zoom", 0, ZOOM_MODE_MAX_EXCLUSIVE);
 
 // Frame clock shared by animation, sound processing, and display effects.
 // nextFrame() updates these before the rest of the frame runs.
@@ -33,6 +34,12 @@ double deltaT = 0;
 
 static SystemFrameTimeSource systemFrameTimeSource;
 static FrameClock frameClock(systemFrameTimeSource);
+
+void configureCthughaDisplay(const DisplayConfig& config) {
+    maxFramesPerSecond.setValue(config.maxFramesPerSecond);
+    showFPS.setValue(config.showFpsEnabled);
+    zoom.setValue(config.zoomMode);
+}
 
 class GlobalPresentationScreenSelection : public PresentationScreenSelection {
 public:

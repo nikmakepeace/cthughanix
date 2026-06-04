@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "AudioRuntime.h"
+#include "Configuration.h"
 
 #include <atomic>
 #include <chrono>
@@ -375,7 +376,8 @@ static void audioRuntimeAnnounceComplete() {
     cthugha_close++;
 }
 
-int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
+int audioRuntimeInit(const AudioConfig& config, int initializeInputControls,
+    int visualMaxDimension) {
     CTH_DEBUG("audio runtime: init requested initialize-input-controls=%d visual-max-dimension=%d\n",
         initializeInputControls, visualMaxDimension);
 
@@ -384,7 +386,7 @@ int audioRuntimeInit(int initializeInputControls, int visualMaxDimension) {
         return 0;
     }
 
-    AudioSettings settings = AudioSettings::fromCurrentOptions();
+    AudioSettings settings = AudioSettings::fromConfig(config);
     Environment environment = Environment::detect();
     RuntimeFactory runtimeFactory(settings, environment, visualMaxDimension);
     AudioSourceStrategy sourceStrategy = runtimeFactory.selectAudioSourceStrategy();

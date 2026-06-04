@@ -1,17 +1,22 @@
 // Translation option/catalog setup; generated tables are executed by Translate.
 
 #include "cthugha.h"
+#include "Configuration.h"
 #include "TranslationOptions.h"
 #include "TranslateGenerator.h"
 #include "CthughaBuffer.h"
 
 #include <vector>
 
-OptionOnOff use_translates("use-translate", DEFAULT_USE_TRANSLATES_ENABLED); /* allow translations */
+OptionOnOff use_translates("use-translate", 0); /* allow translations */
 
 static EffectChoice* _trans[] = { new TranslateEntry("none", "No Translate") };
 static EffectChoiceList translateEntries(_trans, 1);
 TranslateOption translation(-1, "translate");
+
+void configureTranslationOptions(const VisualConfig& config) {
+    use_translates.setValue(config.useTranslatesEnabled);
+}
 
 /*
  * Initialize the translate-tables.

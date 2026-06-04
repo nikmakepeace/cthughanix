@@ -19,6 +19,9 @@ extern int window_do_pos;
 extern int full_screen;
 extern char xcth_font[];
 
+struct DisplayConfig;
+void configureDisplayDeviceX11(const DisplayConfig& config);
+
 #include "DisplayDevice.h"
 #include "DisplayGeometry.h"
 
@@ -116,7 +119,7 @@ protected:
     int getAttributes();
     int CreateWindow(const char* name, int full_screen);
     Cursor xcth_cursor();
-    void checkDisplaySize();
+    void checkDisplaySize(const DisplayConfig& config);
     void markSharedMemoryForRemoval();
     int allocNonSharedImage();
     int fallbackToNonSharedImage(const char* reason, int errnum, size_t requestedBytes);
@@ -148,7 +151,8 @@ protected:
     void xcth_create_panel();
 
 public:
-    DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_);
+    DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
+        const DisplayConfig& config);
     virtual ~DisplayDeviceX11();
 
     int isInitialized() const { return initialized; }

@@ -12,6 +12,9 @@
 #include <string>
 
 class CthughaBuffer;
+struct PathConfig;
+struct VisualConfig;
+struct MessagesConfig;
 class VideoFilterchain;
 
 /**
@@ -62,6 +65,9 @@ public:
     VideoDirector();
     ~VideoDirector();
 
+    void configure(const VisualConfig& visualConfig,
+        const MessagesConfig& messagesConfig);
+
     /**
      * Starts observing a scene for filterchain-affecting changes and cues.
      *
@@ -90,7 +96,7 @@ public:
      *
      * @return Loader result from ImageOption::loadImages().
      */
-    int loadImages();
+    int loadImages(const PathConfig& pathConfig);
 
     /** @return Quiet-message provider used for silence text cues. */
     SilenceMessage& silenceMessages();

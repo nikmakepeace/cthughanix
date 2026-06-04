@@ -7,14 +7,19 @@
 #include "AudioAnalyzer.h"
 #include "CthughaDisplay.h"
 #include "AudioFrame.h"
+#include "Configuration.h"
 
 #include <math.h>
 
-OptionInt sound_minnoise("minnoise", DEFAULT_SOUND_MINNOISE, SOUND_MINNOISE_MAX_EXCLUSIVE); /* quiet is below this */
+OptionInt sound_minnoise("minnoise", 0, SOUND_MINNOISE_MAX_EXCLUSIVE); /* quiet is below this */
 
 AudioAnalyzer audioAnalyzer;
 AudioMetrics audioMetrics;
 AcousticContext acousticContext;
+
+void configureAudioAnalyzer(const AudioConfig& config) {
+    sound_minnoise.setValue(config.minNoise);
+}
 
 AudioMetrics::AudioMetrics()
     : amplitude(0)

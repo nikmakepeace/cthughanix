@@ -5,6 +5,8 @@
 
 #include "cthugha.h"
 
+struct AppConfig;
+
 class Action {
     const char* name;
     int nameLen;
@@ -89,6 +91,7 @@ public:
 
     static void set(const char* name);
     static void init();
+    static void configure(const AppConfig& config);
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "EffectControl.h"
 
 class CthughaBuffer;
+struct PathConfig;
 
 /**
  * Target buffer dimensions for image loaders.
@@ -206,7 +207,8 @@ public:
      * @param targetHeight Display/buffer height in pixels.
      * @return Combined loader result from the configured image catalog loaders.
      */
-    int loadImages(int targetWidth, int targetHeight);
+    int loadImages(const PathConfig& pathConfig, int targetWidth,
+        int targetHeight);
 };
 
 #endif

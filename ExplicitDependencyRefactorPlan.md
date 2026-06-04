@@ -413,6 +413,30 @@ Current first-slice implementation status:
   Until that happens, the old parser remains the behavioral authority for
   unported runtime globals.
 
+Current second-slice implementation status:
+
+- Done: `Application` configures logging from `LoggingConfig` before legacy
+  parsing; logging no longer reads the `cthugha_verbose` option global.
+- Done: `Application` applies `DisplayConfig` to the visual buffer dimensions
+  before scene/display initialization and passes `DisplayConfig` into the X11
+  display factory; display startup no longer chooses its size from
+  `display_mode`.
+- Done: `Application` passes `AudioConfig` into audio startup and resume; the
+  audio runtime builds its `AudioSettings` from that slice instead of
+  `audioInputMode` and `audio_input_file`.
+- Done: legacy ini reading now has a `PathConfig` entry point for source
+  discovery, and `get_params()` uses that path slice.
+- Done: image, palette, and object catalog loading receive `PathConfig` through
+  `Application` and no longer read `extra_lib_path` in `EffectChoiceLoader`.
+- Done: the legacy parser no longer writes the already-ported config values:
+  verbosity, ini/path discovery, audio input source/file, display mode, or
+  buffer size.
+- Done: the now-dead `cthugha_verbose`, `audio_input_file`, and `display_mode`
+  globals were removed after their consumers switched to config slices.
+- Still pending: remove or quarantine the old `extra_lib_path` and
+  `ini_file_override` globals after save/compatibility code is moved to an
+  explicit persistence/source-discovery service.
+
 ### Commands And Input Module
 
 - Boundary: Owns input event normalization, keymap lookup, command intent

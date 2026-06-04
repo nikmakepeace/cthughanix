@@ -3,6 +3,8 @@
 #ifndef __AUDIO_SYSTEM_H
 #define __AUDIO_SYSTEM_H
 
+struct AudioConfig;
+
 /**
  * Initializes the selected audio runtime if it is not already running.
  *
@@ -11,7 +13,7 @@
  *        and is used to size audio analysis/DSP windows to the visual scale.
  * @return 0 on success, nonzero if audio runtime initialization fails.
  */
-int init_sound(int visualMaxDimension);
+int init_sound(const AudioConfig& config, int visualMaxDimension);
 
 /**
  * Shuts down the current audio runtime.

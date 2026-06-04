@@ -2,24 +2,36 @@
 #include "imath.h"
 #include "AutoChanger.h"
 #include "AudioAnalyzer.h"
+#include "Configuration.h"
 #include "options.h"
 #include "CthughaBuffer.h"
 #include "Scene.h"
 #include "VideoDirector.h"
 
-OptionTime changeQuiet("quiet-change", DEFAULT_CHANGE_QUIET_MS); /* change after quiet-pause */
+OptionTime changeQuiet("quiet-change", 0); /* change after quiet-pause */
 
 /* Default to roughly the DOS Cthugha 5.3 dwell: 200-949 frames at the old
    320x200 VGA mode's ~70 Hz scan rate, or about 3-14 seconds. */
-OptionTime changeWaitMin("min-time", DEFAULT_CHANGE_WAIT_MIN_MS); /* min time between change */
-OptionTime changeWaitRandom("random-time", DEFAULT_CHANGE_WAIT_RANDOM_MS); /* extra random wait-time */
+OptionTime changeWaitMin("min-time", 0); /* min time between change */
+OptionTime changeWaitRandom("random-time", 1); /* extra random wait-time */
 
-OptionInt changeCumulativeFireLevel("cumulative-fire-level", DEFAULT_CHANGE_CUMULATIVE_FIRE_LEVEL);
+OptionInt changeCumulativeFireLevel("cumulative-fire-level", 0);
 
-OptionOnOff lock("lock", DEFAULT_AUTOCHANGER_LOCKED); /* change automatically */
-OptionOnOff change_little("little", DEFAULT_AUTOCHANGER_CHANGE_LITTLE); /* only change one options */
+OptionOnOff lock("lock", 0); /* change automatically */
+OptionOnOff change_little("little", 0); /* only change one options */
 
 AutoChanger* autoChanger = NULL;
+static int changeWaitRandomMinimumMs = 1;
+
+void configureAutoChanger(const AutoChangeConfig& config) {
+    changeQuiet.setValue(config.quietMs);
+    changeWaitMin.setValue(config.waitMinMs);
+    changeWaitRandom.setValue(config.waitRandomMs);
+    changeWaitRandomMinimumMs = config.waitRandomMinimumMs;
+    changeCumulativeFireLevel.setValue(config.cumulativeFireLevel);
+    lock.setValue(config.locked);
+    change_little.setValue(config.changeLittle);
+}
 
 AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
     : sceneCommands(sceneCommands_)
@@ -27,7 +39,7 @@ AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
     , lastChange(0) {
 
     if (changeWaitRandom <= 0)
-        changeWaitRandom.setValue(DEFAULT_CHANGE_WAIT_RANDOM_MIN_MS);
+        changeWaitRandom.setValue(changeWaitRandomMinimumMs);
 
     /* set initial wait-time till change */
     waitTime = changeWaitMin + rand() % changeWaitRandom;
@@ -80,7 +92,7 @@ void AutoChanger::operator()() {
         if ((now - lastChange) > int(waitTime)) {
             lastChange = now;
             waitTime = int(changeWaitMin)
-                + rand() % max(DEFAULT_CHANGE_WAIT_RANDOM_MIN_MS, int(changeWaitRandom));
+                + rand() % max(changeWaitRandomMinimumMs, int(changeWaitRandom));
             change();
             return;
         }

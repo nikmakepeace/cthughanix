@@ -2,19 +2,21 @@
 #include "Border.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "Configuration.h"
 #include "Flashlight.h"
 #include "Image.h"
 #include "VideoFilters.h"
 #include "VideoDirector.h"
 #include "VideoFrameBudget.h"
 #include "cth_buffer.h"
-#include "defaults.h"
 #include "display.h"
 #include "imath.h"
 
-OptionTime changeMsgTime("change-msg-time", DEFAULT_CHANGE_MESSAGE_MS);
+OptionTime changeMsgTime("change-msg-time", 0);
 
-double paletteSmoothingChance = DEFAULT_PALETTE_SMOOTHING_CHANCE;
+double paletteSmoothingChance = 0.0;
+static int paletteSmoothSeconds = 1;
+static int quietMessageDurationMs = 0;
 
 template <class Filter>
 static Filter* stageFilter(VideoFilterchain& filterchain, VideoFilterchainSequence::Stage stage) {
@@ -29,7 +31,7 @@ static int frameBudgetFramesPerSecond() {
 static int paletteSmoothingFrameBudget() {
     int fps = frameBudgetFramesPerSecond();
 
-    return max(fps * DEFAULT_PALETTE_SMOOTH_SECONDS, 1);
+    return max(fps * paletteSmoothSeconds, 1);
 }
 
 static int shouldSmoothPaletteChange() {
@@ -48,9 +50,9 @@ static int paletteChangeFrameBudget() {
 
 static int quietMessageFrameBudget() {
     int fps = frameBudgetFramesPerSecond();
-    int durationMs = (DEFAULT_QUIET_MESSAGE_DURATION_MS > int(changeMsgTime))
+    int durationMs = (quietMessageDurationMs > int(changeMsgTime))
         ? int(changeMsgTime)
-        : DEFAULT_QUIET_MESSAGE_DURATION_MS;
+        : quietMessageDurationMs;
 
     return max(1, (fps * (durationMs / 1000)));
 }
@@ -88,11 +90,21 @@ VideoDirector::VideoDirector()
     , appliedTextCueId(0)
     , pendingTextFrames(0)
     , pendingTextInkColor(-1)
-    , imageLoadingEnabledValue(DEFAULT_IMAGE_LOADING_ENABLED) { }
+    , imageLoadingEnabledValue(0) { }
 
 VideoDirector::~VideoDirector() {
     if (scene != 0)
         scene->removeObserver(*this);
+}
+
+void VideoDirector::configure(const VisualConfig& visualConfig,
+    const MessagesConfig& messagesConfig) {
+    changeMsgTime.setValue(visualConfig.changeMessageMs);
+    quietMessageDurationMs = visualConfig.quietMessageDurationMs;
+    paletteSmoothingChance = visualConfig.paletteSmoothingChance;
+    paletteSmoothSeconds = visualConfig.paletteSmoothSeconds;
+    imageLoadingEnabledValue = visualConfig.imageLoadingEnabled;
+    silenceMessage.configure(messagesConfig);
 }
 
 VideoDirector& videoDirector() {
@@ -142,13 +154,14 @@ void VideoDirector::setImageLoadingEnabled(int enabled) {
     imageLoadingEnabledValue = enabled ? 1 : 0;
 }
 
-int VideoDirector::loadImages() {
+int VideoDirector::loadImages(const PathConfig& pathConfig) {
     if (!imageLoadingEnabledValue)
         return 0;
 
     CTH_INFO("  loading image files...\n");
     CthughaBuffer& targetBuffer = CthughaBuffer::buffer;
-    int result = images.loadImages(targetBuffer.width(), targetBuffer.height());
+    int result = images.loadImages(pathConfig, targetBuffer.width(),
+        targetBuffer.height());
     CTH_INFO("  number of loaded image files: %d\n", images.getNEntries());
 
     return result;

@@ -3,6 +3,7 @@
 #include "Configuration.h"
 
 #include "cth_buffer.h"
+#include "configuration_defaults.h"
 #include "defaults.h"
 
 #include <algorithm>
@@ -11,6 +12,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 #ifndef CTH_LIBDIR
 #define CTH_LIBDIR ""
@@ -434,6 +436,38 @@ static std::vector<std::string> startupIniFiles(const ConfigPatch& commandLinePa
     return files;
 }
 
+static ConfigPatch acquireBootstrapCommandLineConfig(
+    const std::vector<std::string>& args, DeferredLogBuffer& diagnostics) {
+    ConfigPatch patch;
+
+    for (int i = 1; i < int(args.size()); i++) {
+        const std::string& arg = args[i];
+
+        if (arg == "--path") {
+            std::string value;
+            if (readOptionValue(args, &i, arg, &value, diagnostics))
+                patch.set(KEY_PATH_EXTRA_LIBRARY, withTrailingSlash(value),
+                    "command line");
+        } else if (startsWith(arg, "--path=")) {
+            patch.set(KEY_PATH_EXTRA_LIBRARY, withTrailingSlash(arg.substr(7)),
+                "command line");
+        } else if (arg == "--ini-file") {
+            std::string value;
+            if (readOptionValue(args, &i, arg, &value, diagnostics))
+                patch.set(KEY_PATH_INI_OVERRIDE, value, "command line");
+        } else if (startsWith(arg, "--ini-file=")) {
+            patch.set(KEY_PATH_INI_OVERRIDE, arg.substr(11), "command line");
+        } else if (startsWith(arg, "-E")) {
+            std::string value;
+            if (readShortOptionValue(args, &i, arg, &value, diagnostics))
+                patch.set(KEY_PATH_EXTRA_LIBRARY, withTrailingSlash(value),
+                    "command line");
+        }
+    }
+
+    return patch;
+}
+
 }
 
 ConfigDiagnostic::ConfigDiagnostic()
@@ -532,24 +566,92 @@ void ConfigPatch::mergeFrom(const ConfigPatch& patch) {
 }
 
 LoggingConfig::LoggingConfig()
-    : verbosity(DEFAULT_VERBOSE_LEVEL) { }
+    : verbosity(LOGGING_CONFIG_DEFAULT_VERBOSITY) { }
+
+AppConfig::AppConfig()
+    : optionsSaveEnabled(APP_CONFIG_DEFAULT_OPTIONS_SAVE_ENABLED)
+    , escapeKeyEnabled(APP_CONFIG_DEFAULT_ESCAPE_KEY_ENABLED)
+    , keymapFile(PATH_CONFIG_DEFAULT_KEYMAP_FILE_PATH) { }
 
 PathConfig::PathConfig()
-    : extraLibraryPath(DEFAULT_EXTRA_LIBRARY_PATH)
-    , iniFileOverride(DEFAULT_INI_FILE_OVERRIDE_PATH) { }
+    : extraLibraryPath(PATH_CONFIG_DEFAULT_EXTRA_LIBRARY_PATH)
+    , iniFileOverride(PATH_CONFIG_DEFAULT_INI_FILE_OVERRIDE_PATH) { }
+
+CatalogConfig::CatalogConfig()
+    : doubleLoadEnabled(CATALOG_CONFIG_DEFAULT_DOUBLE_LOAD_ENABLED) { }
 
 AudioConfig::AudioConfig()
-    : inputMode(DEFAULT_AUDIO_INPUT_MODE)
-    , inputFile(DEFAULT_AUDIO_INPUT_FILE_PATH) { }
+    : inputMode(AUDIO_CONFIG_DEFAULT_INPUT_MODE)
+    , inputFile(AUDIO_CONFIG_DEFAULT_INPUT_FILE_PATH)
+    , inputLoopEnabled(AUDIO_CONFIG_DEFAULT_INPUT_LOOP_ENABLED)
+    , sampleRateHz(AUDIO_CONFIG_DEFAULT_SAMPLE_RATE_HZ)
+    , channels(AUDIO_CONFIG_DEFAULT_CHANNELS)
+    , sampleFormat(AUDIO_CONFIG_DEFAULT_FORMAT)
+    , dspMethod(AUDIO_CONFIG_DEFAULT_DSP_METHOD)
+    , dspFragments(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENTS)
+    , dspFragmentSize(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENT_SIZE)
+    , dspSyncEnabled(AUDIO_CONFIG_DEFAULT_DSP_SYNC_ENABLED)
+    , silentEnabled(AUDIO_CONFIG_DEFAULT_SILENT_ENABLED)
+    , minNoise(AUDIO_CONFIG_DEFAULT_MIN_NOISE)
+    , mixerVolume(AUDIO_CONFIG_DEFAULT_MIXER_VOLUME)
+    , pulseLatencyMs(AUDIO_CONFIG_DEFAULT_PULSE_LATENCY_MS)
+    , pulseServer(AUDIO_CONFIG_DEFAULT_PULSE_SERVER_TEXT)
+    , outputDumpPath(AUDIO_CONFIG_DEFAULT_OUTPUT_DUMP_PATH)
+    , dspDevicePath(AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH)
+    , mixerDevicePath(AUDIO_CONFIG_DEFAULT_MIXER_DEVICE_PATH)
+    , nullOutputTargetLatencyMs(AUDIO_CONFIG_DEFAULT_NULL_TARGET_LATENCY_MS)
+    , pulseOutputTargetLatencyMs(AUDIO_CONFIG_DEFAULT_PULSE_TARGET_LATENCY_MS)
+    , dspOutputTargetLatencyMs(AUDIO_CONFIG_DEFAULT_DSP_TARGET_LATENCY_MS) { }
 
 DisplayConfig::DisplayConfig()
-    : displayMode(DEFAULT_DISPLAY_MODE)
+    : displayMode(DISPLAY_CONFIG_DEFAULT_MODE)
     , hasCustomDisplaySize(false)
     , displayWidth(0)
     , displayHeight(0)
     , bufferWidth(160)
     , bufferHeight(100)
-    , hasCustomBufferSize(false) { }
+    , hasCustomBufferSize(false)
+    , maxFramesPerSecond(DISPLAY_CONFIG_DEFAULT_MAX_FRAMES_PER_SECOND)
+    , showFpsEnabled(DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED)
+    , zoomMode(DISPLAY_CONFIG_DEFAULT_ZOOM_MODE)
+    , textOnTerm(DISPLAY_CONFIG_DEFAULT_TEXT_ON_TERM)
+    , ncursesEnabled(DISPLAY_CONFIG_DEFAULT_NCURSES_ENABLED)
+    , screenshotFilePrefix(DISPLAY_CONFIG_DEFAULT_SCREENSHOT_FILE_PREFIX)
+    , x11OverrideRedirect(DISPLAY_CONFIG_DEFAULT_X11_OVERRIDE_REDIRECT)
+    , x11PrivateCmap(DISPLAY_CONFIG_DEFAULT_X11_PRIVATE_CMAP)
+    , x11MitShm(DISPLAY_CONFIG_DEFAULT_X11_MIT_SHM)
+    , x11RootWindow(DISPLAY_CONFIG_DEFAULT_X11_ROOT_WINDOW)
+    , x11Fullscreen(DISPLAY_CONFIG_DEFAULT_X11_FULLSCREEN)
+    , x11WindowPositionEnabled(DISPLAY_CONFIG_DEFAULT_X11_WINDOW_POSITION_ENABLED)
+    , x11WindowPositionX(DISPLAY_CONFIG_DEFAULT_X11_WINDOW_POSITION_X)
+    , x11WindowPositionY(DISPLAY_CONFIG_DEFAULT_X11_WINDOW_POSITION_Y)
+    , x11PanelEnabled(DISPLAY_CONFIG_DEFAULT_X11_PANEL_ENABLED)
+    , x11FontName(DISPLAY_CONFIG_DEFAULT_X11_FONT_NAME) { }
+
+AutoChangeConfig::AutoChangeConfig()
+    : quietMs(AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS)
+    , waitMinMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS)
+    , waitRandomMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS)
+    , waitRandomMinimumMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MIN_MS)
+    , cumulativeFireLevel(AUTO_CHANGE_CONFIG_DEFAULT_CUMULATIVE_FIRE_LEVEL)
+    , locked(AUTO_CHANGE_CONFIG_DEFAULT_LOCKED)
+    , changeLittle(AUTO_CHANGE_CONFIG_DEFAULT_CHANGE_LITTLE) { }
+
+VisualConfig::VisualConfig()
+    : changeMessageMs(VISUAL_CONFIG_DEFAULT_CHANGE_MESSAGE_MS)
+    , quietMessageDurationMs(VISUAL_CONFIG_DEFAULT_QUIET_MESSAGE_DURATION_MS)
+    , paletteSmoothingChance(VISUAL_CONFIG_DEFAULT_PALETTE_SMOOTHING_CHANCE)
+    , paletteSmoothSeconds(VISUAL_CONFIG_DEFAULT_PALETTE_SMOOTH_SECONDS)
+    , imageLoadingEnabled(VISUAL_CONFIG_DEFAULT_IMAGE_LOADING_ENABLED)
+    , paletteSetFilterText(VISUAL_CONFIG_DEFAULT_PALETTE_SET_FILTER_TEXT)
+    , paletteSetFilterCount(VISUAL_CONFIG_DEFAULT_PALETTE_SET_FILTER_COUNT)
+    , useTranslatesEnabled(VISUAL_CONFIG_DEFAULT_USE_TRANSLATES_ENABLED)
+    , useObjectsEnabled(VISUAL_CONFIG_DEFAULT_USE_OBJECTS_ENABLED) { }
+
+MessagesConfig::MessagesConfig()
+    : qotdPrefetchTimeoutMs(MESSAGES_CONFIG_DEFAULT_QOTD_PREFETCH_TIMEOUT_MS)
+    , qotdServer(MESSAGES_CONFIG_DEFAULT_QOTD_SERVER_TEXT)
+    , qotdPort(MESSAGES_CONFIG_DEFAULT_QOTD_PORT_TEXT) { }
 
 bool ConfigBuildResult::ok() const {
     for (std::vector<ConfigDiagnostic>::const_iterator it = diagnostics.begin();
@@ -573,7 +675,7 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         config.paths.iniFileOverride = *value;
 
     if (const ConfigEntry* entry = patch.entry(KEY_AUDIO_INPUT_MODE)) {
-        AudioInputMode mode = DEFAULT_AUDIO_INPUT_MODE;
+        AudioInputMode mode = AUDIO_CONFIG_DEFAULT_INPUT_MODE;
         if (parseAudioMode(entry->value, &mode)) {
             config.audio.inputMode = mode;
         } else {
@@ -586,7 +688,7 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         config.audio.inputFile = *value;
 
     if (const ConfigEntry* entry = patch.entry(KEY_DISPLAY_MODE)) {
-        int mode = DEFAULT_DISPLAY_MODE;
+        int mode = DISPLAY_CONFIG_DEFAULT_MODE;
         if (parseInteger(entry->value, &mode)) {
             int maxMode = int(sizeof(screenSizePresets) / sizeof(screenSizePresets[0])) - 1;
             if (mode != -1)
@@ -741,6 +843,10 @@ CommandLineConfigSource::CommandLineConfigSource(
     const std::vector<std::string>& arguments)
     : argumentsValue(arguments) { }
 
+CommandLineConfigSource::CommandLineConfigSource(
+    std::vector<std::string>&& arguments)
+    : argumentsValue(std::move(arguments)) { }
+
 CommandLineConfigSource::CommandLineConfigSource(int argc, char* argv[])
     : argumentsValue(configArgumentsFromArgv(argc, argv)) { }
 
@@ -754,6 +860,9 @@ ConfigPatch CommandLineConfigSource::acquire(DeferredLogBuffer& diagnostics) con
 }
 
 ConfigurationBuilder::ConfigurationBuilder() { }
+
+ConfigurationBuilder::ConfigurationBuilder(const DeferredLogBuffer& diagnostics)
+    : diagnosticsValue(diagnostics) { }
 
 ConfigurationBuilder& ConfigurationBuilder::addSource(
     const ConfigAcquisitionStrategy& source) {
@@ -802,6 +911,12 @@ ConfigurationBuilder& ConfigurationBuilder::addCommandLine(
     return addSource(source);
 }
 
+ConfigurationBuilder& ConfigurationBuilder::addCommandLine(
+    std::vector<std::string>&& args) {
+    CommandLineConfigSource source(std::move(args));
+    return addSource(source);
+}
+
 ConfigurationBuilder& ConfigurationBuilder::addCommandLine(int argc,
     char* argv[]) {
     CommandLineConfigSource source(argc, argv);
@@ -824,16 +939,19 @@ ConfigBuildResult ConfigurationBuilder::build() const {
 ConfigPatch hardcodedDefaultConfigPatch() {
     ConfigPatch defaults;
 
-    defaults.set(KEY_LOGGING_VERBOSITY, integerText(DEFAULT_VERBOSE_LEVEL),
+    defaults.set(KEY_LOGGING_VERBOSITY, integerText(LOGGING_CONFIG_DEFAULT_VERBOSITY),
         "defaults");
-    defaults.set(KEY_PATH_EXTRA_LIBRARY, DEFAULT_EXTRA_LIBRARY_PATH, "defaults");
-    defaults.set(KEY_PATH_INI_OVERRIDE, DEFAULT_INI_FILE_OVERRIDE_PATH,
+    defaults.set(KEY_PATH_EXTRA_LIBRARY, PATH_CONFIG_DEFAULT_EXTRA_LIBRARY_PATH,
         "defaults");
-    defaults.set(KEY_AUDIO_INPUT_MODE, integerText(int(DEFAULT_AUDIO_INPUT_MODE)),
+    defaults.set(KEY_PATH_INI_OVERRIDE, PATH_CONFIG_DEFAULT_INI_FILE_OVERRIDE_PATH,
         "defaults");
-    defaults.set(KEY_AUDIO_INPUT_FILE, DEFAULT_AUDIO_INPUT_FILE_PATH,
+    defaults.set(KEY_AUDIO_INPUT_MODE,
+        integerText(int(AUDIO_CONFIG_DEFAULT_INPUT_MODE)),
         "defaults");
-    defaults.set(KEY_DISPLAY_MODE, integerText(DEFAULT_DISPLAY_MODE), "defaults");
+    defaults.set(KEY_AUDIO_INPUT_FILE, AUDIO_CONFIG_DEFAULT_INPUT_FILE_PATH,
+        "defaults");
+    defaults.set(KEY_DISPLAY_MODE, integerText(DISPLAY_CONFIG_DEFAULT_MODE),
+        "defaults");
 
     return defaults;
 }
@@ -848,28 +966,38 @@ std::vector<std::string> configArgumentsFromArgv(int argc, char* argv[]) {
 ConfigBuildResult buildStartupConfig(int argc, char* argv[]) {
     std::vector<std::string> args = configArgumentsFromArgv(argc, argv);
     DeferredLogBuffer bootstrapDiagnostics;
+
+    // 1. Peek at CLI to determine paths
     ConfigPatch commandLinePatch
-        = CommandLineConfigSource(args).acquire(bootstrapDiagnostics);
+        = acquireBootstrapCommandLineConfig(args, bootstrapDiagnostics);
     std::string continuationFile;
     std::vector<std::string> iniFiles
         = startupIniFiles(commandLinePatch, &continuationFile);
-    ConfigurationBuilder builder;
-    ConfigBuildResult result;
 
+    // 2. Supply the builder with our diagnostics buffer
+    ConfigurationBuilder builder(bootstrapDiagnostics);
     builder.addDefaults();
-    for (std::vector<std::string>::const_iterator it = iniFiles.begin();
-         it != iniFiles.end(); ++it) {
+
+    // Clean range-based loop with index tracking
+    bool isFirst = true;
+    for (const std::string& iniPath : iniFiles) {
         bool optional = true;
-        if (commandLinePatch.has(KEY_PATH_INI_OVERRIDE) && it == iniFiles.begin())
+        if (isFirst && commandLinePatch.has(KEY_PATH_INI_OVERRIDE))
             optional = false;
-        builder.addIniFile(*it, optional);
+
+        builder.addIniFile(iniPath, optional);
+        isFirst = false;
     }
 
-    builder.addEnvironmentVariables(std::vector<std::string>(1, "CTH_VERBOSE"));
-    builder.addCommandLine(args);
+    // Modern initializer list
+    builder.addEnvironmentVariables({ "CTH_VERBOSE" });
 
-    result = builder.build();
-    result.config.paths.iniFiles = iniFiles;
-    result.config.paths.continuationIniFile = continuationFile;
+    // Move args into the builder since we don't need them anymore
+    builder.addCommandLine(std::move(args));
+
+    // 3. Assemble result
+    ConfigBuildResult result = builder.build();
+    result.config.paths.iniFiles = std::move(iniFiles);
+    result.config.paths.continuationIniFile = std::move(continuationFile);
     return result;
 }

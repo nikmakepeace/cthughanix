@@ -7,6 +7,8 @@
 
 #include <string>
 
+struct MessagesConfig;
+
 class SilenceMessage {
     DefaultMessagesProvider defaultMessages;
     FileMessagesProvider fileMessages;
@@ -17,6 +19,7 @@ class SilenceMessage {
 public:
     SilenceMessage();
 
+    void configure(const MessagesConfig& config);
     void initialize();
     void loadFile(const char* fname);
     void setQotdEnabled(int enabled);

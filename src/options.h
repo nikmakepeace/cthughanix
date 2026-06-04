@@ -18,12 +18,13 @@
 #endif
 
 #include "cthugha.h"
+#include "Configuration.h"
 #include "EffectControl.h"
 
 extern char extra_lib_path[]; /* extra path to search for image, tab, map and ini */
 extern char ini_file_override[];
 
-int get_params(int argc, char* argv[]);
+int get_params(int argc, char* argv[], const Config& config);
 int get_pre_params(int argc, char* argv[]);
 int params_request_help(int argc, char* argv[]);
 int do_param(int c, int value, char* str);
@@ -34,7 +35,10 @@ extern struct option long_options[];
  * Stuff about ini-files
  */
 int read_ini(); /* read settings from ini-files */
+void configureIniFiles(const PathConfig& paths);
+int read_ini(const PathConfig& paths);
 int read_effect_control_usage_and_presets();
+int read_effect_control_usage_and_presets(const PathConfig& paths);
 int write_ini();
 int write_continuation_ini();
 

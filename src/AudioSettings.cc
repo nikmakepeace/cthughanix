@@ -2,28 +2,28 @@
 #include "AudioSettings.h"
 #include "AudioOptions.h"
 #include "AudioTypes.h"
-#include "defaults.h"
+#include "Configuration.h"
 
 #include <string.h>
 
 AudioSettings::AudioSettings()
-    : audioInputMode(DEFAULT_AUDIO_INPUT_MODE)
-    , soundDSPMethod(DEFAULT_SOUND_DSP_METHOD)
-    , silent(DEFAULT_SOUND_SILENT_ENABLED) {
+    : audioInputMode(0)
+    , soundDSPMethod(0)
+    , silent(0) {
     fileName[0] = '\0';
 }
 
-void AudioSettings::refreshFromCurrentOptions() {
-    audioInputMode = int(::audioInputMode);
-    soundDSPMethod = int(::soundDSPMethod);
-    silent = int(soundSilent);
-    strncpy(fileName, audio_input_file, PATH_MAX);
+void AudioSettings::refreshFromConfig(const AudioConfig& config) {
+    audioInputMode = int(config.inputMode);
+    strncpy(fileName, config.inputFile.c_str(), PATH_MAX);
     fileName[PATH_MAX - 1] = '\0';
 }
 
-AudioSettings AudioSettings::fromCurrentOptions() {
+AudioSettings AudioSettings::fromConfig(const AudioConfig& config) {
     AudioSettings settings;
-    settings.refreshFromCurrentOptions();
+    settings.refreshFromConfig(config);
+    settings.soundDSPMethod = int(::soundDSPMethod);
+    settings.silent = int(soundSilent);
 
     CTH_DEBUG("runtime settings: audio-input-mode=%d sound-dsp-method=%d silent=%d file=`%s'\n",
         settings.audioInputMode, settings.soundDSPMethod, settings.silent, settings.fileName);

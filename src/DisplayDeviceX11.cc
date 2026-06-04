@@ -5,10 +5,10 @@
 
 #include "cthugha.h"
 #include "DisplayDevice.h"
+#include "Configuration.h"
 #include "FramePalette.h"
 #include "Scene.h"
 #include "cthugha.h"
-#include "defaults.h"
 #include "display.h"
 #include "disp-sys.h"
 #include "imath.h"
@@ -117,15 +117,29 @@ xy bufferSizes[]
     = { xy(160, 100), xy(320, 240), xy(400, 300), xy(512, 384), xy(576, 450), xy(600, 512) };
 int nBufferSizes = sizeof(bufferSizes) / sizeof(xy);
 
-int display_override_redirect = DEFAULT_X11_OVERRIDE_REDIRECT; // bypass the window manager
-int private_cmap = DEFAULT_X11_PRIVATE_CMAP; // allocate a window-private colormap
-int display_mit_shm = DEFAULT_X11_MIT_SHM; // use MIT-SHM if possible
-int display_on_root = DEFAULT_X11_ROOT_WINDOW; // display on root window
-int full_screen = DEFAULT_X11_FULLSCREEN;
-int window_do_pos = DEFAULT_X11_WINDOW_POSITION_ENABLED;
-xy window_pos(DEFAULT_X11_WINDOW_POSITION_X, DEFAULT_X11_WINDOW_POSITION_Y);
-int xcth_panel = DEFAULT_X11_PANEL_ENABLED; // use control panel
-char xcth_font[256] = DEFAULT_X11_FONT_NAME;
+int display_override_redirect = 0; // bypass the window manager
+int private_cmap = 0; // allocate a window-private colormap
+int display_mit_shm = 0; // use MIT-SHM if possible
+int display_on_root = 0; // display on root window
+int full_screen = 0;
+int window_do_pos = 0;
+xy window_pos(0, 0);
+int xcth_panel = 0; // use control panel
+char xcth_font[256] = "";
+
+void configureDisplayDeviceX11(const DisplayConfig& config) {
+    display_override_redirect = config.x11OverrideRedirect;
+    private_cmap = config.x11PrivateCmap;
+    display_mit_shm = config.x11MitShm;
+    display_on_root = config.x11RootWindow;
+    full_screen = config.x11Fullscreen;
+    window_do_pos = config.x11WindowPositionEnabled;
+    window_pos.x = config.x11WindowPositionX;
+    window_pos.y = config.x11WindowPositionY;
+    xcth_panel = config.x11PanelEnabled;
+    strncpy(xcth_font, config.x11FontName.c_str(), sizeof(xcth_font));
+    xcth_font[sizeof(xcth_font) - 1] = '\0';
+}
 
 Display* xcth_display;
 
@@ -391,14 +405,18 @@ Cursor DisplayDeviceX11::xcth_cursor() {
     return XCreatePixmapCursor(xcth_display, blank_pix, blank_pix, &dummyColor, &dummyColor, 0, 0);
 }
 
-void DisplayDeviceX11::checkDisplaySize() {
-
-    if (display_mode != -1) {
-        if ((display_mode >= nScreenSizes) || (display_mode < 0))
-            display_mode = 0;
-
-        disp_size = screenSizes[display_mode];
+void DisplayDeviceX11::checkDisplaySize(const DisplayConfig& config) {
+    if (config.hasCustomDisplaySize) {
+        disp_size.x = config.displayWidth;
+        disp_size.y = config.displayHeight;
+        return;
     }
+
+    int mode = config.displayMode;
+    if ((mode >= nScreenSizes) || (mode < 0))
+        mode = 0;
+
+    disp_size = screenSizes[mode];
 }
 
 int DisplayDeviceX11::loadFont() {
@@ -428,7 +446,8 @@ void DisplayDeviceX11::freeFont() {
     font = NULL;
 }
 
-DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_)
+DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
+    const DisplayConfig& config)
     : DisplayDevice()
     , scene(scene_)
     , sceneCommands(sceneCommands_)
@@ -481,7 +500,7 @@ DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_)
     if (*(char*)&byte_order_test == 4)
         rev_byte_order = !rev_byte_order;
 
-    checkDisplaySize();
+    checkDisplaySize(config);
 
     xcth_root = DefaultRootWindow(xcth_display);
 
@@ -1361,9 +1380,9 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
 }
 
 std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
-    Scene& scene, SceneCommands& sceneCommands) {
+    Scene& scene, SceneCommands& sceneCommands, const DisplayConfig& config) {
     std::unique_ptr<DisplayDeviceX11> device(
-        new DisplayDeviceX11(scene, sceneCommands));
+        new DisplayDeviceX11(scene, sceneCommands, config));
     if (!device->isInitialized()) {
         return std::unique_ptr<DisplayRuntimeOwnership>();
     }

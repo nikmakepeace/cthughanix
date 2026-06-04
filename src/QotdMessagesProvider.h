@@ -5,6 +5,7 @@
 #include <string>
 
 class QotdMessagesProviderState;
+struct MessagesConfig;
 
 class QotdMessagesProvider {
     std::shared_ptr<QotdMessagesProviderState> state;
@@ -15,6 +16,7 @@ public:
 
     static const char* defaultServer();
 
+    void configure(const MessagesConfig& config);
     void setServer(const char* server);
     void request();
     int takeMessage(std::string& message);

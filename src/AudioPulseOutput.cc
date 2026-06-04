@@ -3,7 +3,6 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
-#include "defaults.h"
 
 #if WITH_PULSE == 1
 #include <pulse/pulseaudio.h>
@@ -703,7 +702,7 @@ AudioPulseOutput::AudioPulseOutput()
 
 AudioPulseOutput::~AudioPulseOutput() { }
 void AudioPulseOutput::closePulse() { }
-int AudioPulseOutput::defaultTargetLatencyMs() const { return DEFAULT_AUDIO_PULSE_TARGET_LATENCY_MS; }
+int AudioPulseOutput::defaultTargetLatencyMs() const { return audio_pulse_target_latency_msec; }
 int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 int AudioPulseOutput::write(const void*, int) { return 0; }
 int AudioPulseOutput::isOpen() const { return 0; }

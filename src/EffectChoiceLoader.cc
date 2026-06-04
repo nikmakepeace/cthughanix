@@ -3,11 +3,15 @@
 #include "EffectChoiceLoader.h"
 
 #include "cthugha.h"
-#include "options.h"
+#include "Configuration.h"
 
 #include <string>
 
-OptionOnOff double_load("double-load", DEFAULT_DOUBLE_LOAD_ENABLED); // allow double loading of features
+OptionOnOff double_load("double-load", 0); // allow double loading of features
+
+void configureEffectChoiceLoader(const CatalogConfig& config) {
+    double_load.setValue(config.doubleLoadEnabled);
+}
 
 // autoconf suggests this
 #if HAVE_DIRENT_H
@@ -307,8 +311,9 @@ static void loadDir(EffectControl& option, const char* dir, const char* extensio
     }
 }
 
-int loadEffectChoices(EffectControl& option, const char* searchPath[],
-    const char* extraPath, const char* extension, EffectChoiceLoader loader) {
+int loadEffectChoices(EffectControl& option, const PathConfig& pathConfig,
+    const char* searchPath[], const char* extraPath, const char* extension,
+    EffectChoiceLoader loader) {
     int path;
 
     /* load normal search path */
@@ -318,17 +323,17 @@ int loadEffectChoices(EffectControl& option, const char* searchPath[],
         path++;
     }
     /* load from extra path */
-    if (extra_lib_path[0] != '\0') {
-        std::string extraPathDir = std::string(extra_lib_path) + extraPath;
+    if (!pathConfig.extraLibraryPath.empty()) {
+        std::string extraPathDir = pathConfig.extraLibraryPath + extraPath;
         loadDir(option, extraPathDir.c_str(), extension, loader);
     }
 
     return 0;
 }
 
-int loadEffectChoices(EffectControl& option, const char* searchPath[],
-    const char* extraPath, const char* extension, EffectChoiceContextLoader loader,
-    void* context) {
+int loadEffectChoices(EffectControl& option, const PathConfig& pathConfig,
+    const char* searchPath[], const char* extraPath, const char* extension,
+    EffectChoiceContextLoader loader, void* context) {
     int path;
 
     /* load normal search path */
@@ -338,8 +343,8 @@ int loadEffectChoices(EffectControl& option, const char* searchPath[],
         path++;
     }
     /* load from extra path */
-    if (extra_lib_path[0] != '\0') {
-        std::string extraPathDir = std::string(extra_lib_path) + extraPath;
+    if (!pathConfig.extraLibraryPath.empty()) {
+        std::string extraPathDir = pathConfig.extraLibraryPath + extraPath;
         loadDir(option, extraPathDir.c_str(), extension, loader, context);
     }
 

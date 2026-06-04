@@ -74,6 +74,14 @@ struct LoggingConfig {
     LoggingConfig();
 };
 
+struct AppConfig {
+    int optionsSaveEnabled;
+    int escapeKeyEnabled;
+    std::string keymapFile;
+
+    AppConfig();
+};
+
 struct PathConfig {
     std::string extraLibraryPath;
     std::string iniFileOverride;
@@ -83,9 +91,34 @@ struct PathConfig {
     PathConfig();
 };
 
+struct CatalogConfig {
+    int doubleLoadEnabled;
+
+    CatalogConfig();
+};
+
 struct AudioConfig {
     AudioInputMode inputMode;
     std::string inputFile;
+    int inputLoopEnabled;
+    int sampleRateHz;
+    int channels;
+    AudioSampleFormat sampleFormat;
+    int dspMethod;
+    int dspFragments;
+    int dspFragmentSize;
+    int dspSyncEnabled;
+    int silentEnabled;
+    int minNoise;
+    int mixerVolume;
+    int pulseLatencyMs;
+    std::string pulseServer;
+    std::string outputDumpPath;
+    std::string dspDevicePath;
+    std::string mixerDevicePath;
+    int nullOutputTargetLatencyMs;
+    int pulseOutputTargetLatencyMs;
+    int dspOutputTargetLatencyMs;
 
     AudioConfig();
 };
@@ -98,15 +131,70 @@ struct DisplayConfig {
     int bufferWidth;
     int bufferHeight;
     bool hasCustomBufferSize;
+    int maxFramesPerSecond;
+    int showFpsEnabled;
+    int zoomMode;
+    int textOnTerm;
+    int ncursesEnabled;
+    std::string screenshotFilePrefix;
+    int x11OverrideRedirect;
+    int x11PrivateCmap;
+    int x11MitShm;
+    int x11RootWindow;
+    int x11Fullscreen;
+    int x11WindowPositionEnabled;
+    int x11WindowPositionX;
+    int x11WindowPositionY;
+    int x11PanelEnabled;
+    std::string x11FontName;
 
     DisplayConfig();
 };
 
+struct AutoChangeConfig {
+    int quietMs;
+    int waitMinMs;
+    int waitRandomMs;
+    int waitRandomMinimumMs;
+    int cumulativeFireLevel;
+    int locked;
+    int changeLittle;
+
+    AutoChangeConfig();
+};
+
+struct VisualConfig {
+    int changeMessageMs;
+    int quietMessageDurationMs;
+    double paletteSmoothingChance;
+    int paletteSmoothSeconds;
+    int imageLoadingEnabled;
+    std::string paletteSetFilterText;
+    int paletteSetFilterCount;
+    int useTranslatesEnabled;
+    int useObjectsEnabled;
+
+    VisualConfig();
+};
+
+struct MessagesConfig {
+    int qotdPrefetchTimeoutMs;
+    std::string qotdServer;
+    std::string qotdPort;
+
+    MessagesConfig();
+};
+
 struct Config {
     LoggingConfig logging;
+    AppConfig app;
     PathConfig paths;
+    CatalogConfig catalogs;
     AudioConfig audio;
     DisplayConfig display;
+    AutoChangeConfig autoChange;
+    VisualConfig visual;
+    MessagesConfig messages;
 };
 
 struct ConfigBuildResult {
@@ -168,6 +256,7 @@ class CommandLineConfigSource : public ConfigAcquisitionStrategy {
 
 public:
     explicit CommandLineConfigSource(const std::vector<std::string>& arguments);
+    explicit CommandLineConfigSource(std::vector<std::string>&& arguments);
     CommandLineConfigSource(int argc, char* argv[]);
     ConfigPatch acquire(DeferredLogBuffer& diagnostics) const;
 };
@@ -179,6 +268,7 @@ class ConfigurationBuilder {
 
 public:
     ConfigurationBuilder();
+    explicit ConfigurationBuilder(const DeferredLogBuffer& diagnostics);
 
     ConfigurationBuilder& addSource(const ConfigAcquisitionStrategy& source);
     ConfigurationBuilder& addDefaults(const ConfigPatch& defaults);
@@ -191,6 +281,7 @@ public:
     ConfigurationBuilder& addEnvironmentVariables(
         const std::vector<std::string>& names);
     ConfigurationBuilder& addCommandLine(const std::vector<std::string>& args);
+    ConfigurationBuilder& addCommandLine(std::vector<std::string>&& args);
     ConfigurationBuilder& addCommandLine(int argc, char* argv[]);
 
     const ConfigPatch& patch() const;

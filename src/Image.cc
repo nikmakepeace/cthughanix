@@ -2,6 +2,7 @@
 
 #include "Image.h"
 #include "cthugha.h"
+#include "Configuration.h"
 #include "EffectChoiceLoader.h"
 #include "imath.h"
 #include "pcx.h"
@@ -176,14 +177,15 @@ const IndexedImage* ImageOption::currentImage() {
     return (entry != 0) ? entry->image() : 0;
 }
 
-int ImageOption::loadImages(int targetWidth, int targetHeight) {
+int ImageOption::loadImages(const PathConfig& pathConfig, int targetWidth,
+    int targetHeight) {
     int result = 0;
     ImageLoadTarget target(targetWidth, targetHeight);
 
     for (const ImageFileFormat* format = imageFileFormats; format->extension != 0;
          format++) {
-        result |= loadEffectChoices(*this, imagePath, "/img/", format->extension,
-            format->loader, &target);
+        result |= loadEffectChoices(*this, pathConfig, imagePath, "/img/",
+            format->extension, format->loader, &target);
     }
 
     return result;

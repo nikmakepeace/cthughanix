@@ -123,6 +123,10 @@ int systemf(const char* fmt, ...); // combined sprintf and system
 
 #ifdef __cplusplus
 
+struct LoggingConfig;
+
+void cthugha_configure_logging(const LoggingConfig& config);
+
 inline int fclose0(FILE*& stream) {
     int ret = fclose(stream);
     stream = NULL;

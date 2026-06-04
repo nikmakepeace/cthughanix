@@ -1,7 +1,6 @@
 #include "cthugha.h"
 #include "Mixer.h"
 #include "Interface.h"
-#include "defaults.h"
 
 #if WITH_MIXER == 1
 
@@ -30,7 +29,7 @@ protected:
 
 public:
     OptionVolume()
-        : OptionInt(NULL, DEFAULT_MIXER_VOLUME)
+        : OptionInt(NULL, 0)
         , devNr(0)
         , active(0) { }
 
@@ -43,7 +42,7 @@ public:
     friend int init_mixer();
 };
 
-char dev_mixer[PATH_MAX] = DEFAULT_MIXER_DEVICE_PATH;
+char dev_mixer[PATH_MAX] = "";
 
 static const char* mixer_names[] = SOUND_DEVICE_NAMES;
 
@@ -262,7 +261,7 @@ int init_mixer() {
 // mixer disabled
 //
 
-char dev_mixer[PATH_MAX] = DEFAULT_MIXER_DEVICE_PATH;
+char dev_mixer[PATH_MAX] = "";
 
 // dummy initialization
 int init_mixer() { return 0; }

@@ -1,7 +1,12 @@
 #include "Screenshot.h"
-#include "defaults.h"
+#include "Configuration.h"
 
-char display_prt_file[PATH_MAX] = DEFAULT_SCREENSHOT_FILE_PREFIX; /* filename used by PrtScrn */
+char display_prt_file[PATH_MAX] = ""; /* filename used by PrtScrn */
+
+void configureScreenshot(const DisplayConfig& config) {
+    strncpy(display_prt_file, config.screenshotFilePrefix.c_str(), PATH_MAX);
+    display_prt_file[PATH_MAX - 1] = '\0';
+}
 
 char* prtFileName(const char* ext) {
     static char name[PATH_MAX];

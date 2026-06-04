@@ -5,9 +5,14 @@
 #include "cthugha.h"
 #include "AudioSystem.h"
 #include "AudioOptions.h"
+#include "AudioAnalyzer.h"
 #include "AudioFrame.h"
 #include "AudioRuntime.h"
+#include "Configuration.h"
 #include "Interface.h"
+#include "Mixer.h"
+
+#include <string.h>
 
 class OptionAudio : public OptionInt {
 public:
@@ -86,22 +91,22 @@ const char* OptionFormat::fmts[] = {
 };
 const int OptionFormat::nFmts = sizeof(OptionFormat::fmts) / sizeof(const char*);
 
-int audioInputLoop = DEFAULT_AUDIO_INPUT_LOOP_ENABLED;
+int audioInputLoop = 0;
 
-char dev_dsp[PATH_MAX] = DEFAULT_DSP_DEVICE_PATH;
+char dev_dsp[PATH_MAX] = "";
 
-static OptionInt audioInputModeImpl = OptionInt("sound-device-number", DEFAULT_AUDIO_INPUT_MODE, AIM_Max);
+static OptionInt audioInputModeImpl = OptionInt("sound-device-number", 0, AIM_Max);
 
-static OptionAudio soundSampleRateImpl("sound-sample-rate", DEFAULT_SOUND_SAMPLE_RATE_HZ);
-static OptionChannels soundChannelsImpl("sound-channels", DEFAULT_SOUND_CHANNELS);
-static OptionFormat soundFormatImpl("sound-format", DEFAULT_SOUND_FORMAT);
+static OptionAudio soundSampleRateImpl("sound-sample-rate", 0);
+static OptionChannels soundChannelsImpl("sound-channels", SOUND_CHANNELS_MIN);
+static OptionFormat soundFormatImpl("sound-format", 0);
 
-static OptionAudio soundDSPMethodImpl("sound-method", DEFAULT_SOUND_DSP_METHOD);
-static OptionAudio soundDSPFragmentsImpl("sound-fragments", DEFAULT_SOUND_DSP_FRAGMENTS);
-static OptionAudio soundDSPFragmentSizeImpl("sound-fragment-size", DEFAULT_SOUND_DSP_FRAGMENT_SIZE);
-static OptionOnOff soundDSPSyncImpl("sound-sync", DEFAULT_SOUND_DSP_SYNC_ENABLED);
+static OptionAudio soundDSPMethodImpl("sound-method", 0);
+static OptionAudio soundDSPFragmentsImpl("sound-fragments", 0);
+static OptionAudio soundDSPFragmentSizeImpl("sound-fragment-size", 0);
+static OptionOnOff soundDSPSyncImpl("sound-sync", 0);
 
-static OptionAudioOnOff soundSilentImpl("silent", DEFAULT_SOUND_SILENT_ENABLED);
+static OptionAudioOnOff soundSilentImpl("silent", 0);
 
 Option& audioInputMode = audioInputModeImpl;
 Option& soundSampleRate = soundSampleRateImpl;
@@ -130,11 +135,32 @@ int nElementsAudio = sizeof(elementsAudio) / sizeof(InterfaceElement*);
 
 Interface interfaceAudio("sound", "Audio Interface", NULL, elementsAudio, nElementsAudio);
 
-int init_sound(int visualMaxDimension) {
+void configureAudioOptions(const AudioConfig& config) {
+    audioInputMode.setValue(int(config.inputMode));
+    audioInputLoop = config.inputLoopEnabled ? 1 : 0;
+    soundSampleRate.setValue(config.sampleRateHz);
+    soundChannels.setValue(config.channels);
+    soundFormat.setValue(int(config.sampleFormat));
+    soundDSPMethod.setValue(config.dspMethod);
+    soundDSPFragments.setValue(config.dspFragments);
+    soundDSPFragmentSize.setValue(config.dspFragmentSize);
+    soundDSPSync.setValue(config.dspSyncEnabled);
+    soundSilent.setValue(config.silentEnabled);
+
+    strncpy(dev_dsp, config.dspDevicePath.c_str(), PATH_MAX);
+    dev_dsp[PATH_MAX - 1] = '\0';
+    strncpy(dev_mixer, config.mixerDevicePath.c_str(), PATH_MAX);
+    dev_mixer[PATH_MAX - 1] = '\0';
+
+    configureAudioOutputOptions(config);
+    configureAudioAnalyzer(config);
+}
+
+int init_sound(const AudioConfig& config, int visualMaxDimension) {
     if (audioRuntimeIsInitialized())
         return 0;
 
-    return audioRuntimeInit(1, visualMaxDimension);
+    return audioRuntimeInit(config, 1, visualMaxDimension);
 }
 
 int exit_sound() {

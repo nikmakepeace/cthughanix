@@ -1,5 +1,5 @@
 #include "cthugha.h"
-#include "defaults.h"
+#include "Configuration.h"
 #include "keymap.h"
 #include "Interface.h"
 #include "keys.h"
@@ -212,12 +212,17 @@ public:
     }
 };
 
-char Keymap::keymapFile[PATH_MAX] = DEFAULT_KEYMAP_FILE_PATH;
+char Keymap::keymapFile[PATH_MAX] = "";
 
 Action* Action::head = NULL;
 
 Keymap* Keymap::first = NULL;
 Keymap* Keymap::current = NULL;
+
+void Keymap::configure(const AppConfig& config) {
+    strncpy(keymapFile, config.keymapFile.c_str(), PATH_MAX);
+    keymapFile[PATH_MAX - 1] = '\0';
+}
 
 Keymap::Keymap(const char* n)
     : next(first)

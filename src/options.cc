@@ -34,6 +34,7 @@
 
 enum option_nr {
     opt_verbose = 16000,
+    opt_no_verbose,
     opt_play,
     opt_snd_fragments,
     opt_mixer,
@@ -164,7 +165,7 @@ struct option long_options[] = {
     { "prt-file", 1, 0, opt_prt_file },
     { "esc", 0, &key_esc, 1 },
     { "no-esc", 0, &key_esc, 0 }, { "verbose", 2, 0, opt_verbose },
-    { "no-verbose", 1, &cthugha_verbose.value, 0 }, { "help", 0, 0, '?' },
+    { "no-verbose", 0, 0, opt_no_verbose }, { "help", 0, 0, '?' },
 
     { 0, 0, 0, 0 }
 };
@@ -310,13 +311,9 @@ int do_param(int c, int value, char* str) {
     }
 
     case 'x': /* no sound input */
-        audio_input_file[0] = '\0';
-        audioInputMode.setValue(AIM_None);
         break;
 
     case opt_random_noise:
-        audio_input_file[0] = '\0';
-        audioInputMode.setValue(AIM_Random);
         break;
 
 
@@ -370,42 +367,9 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'D': /* display-mode */
-        if (strchr(str, 'x') == NULL) {
-            /* use a predefined size */
-            display_mode = value;
-        } else {
-            /* use a special size (only useful with X11) */
-            display_mode = -1;
-            disp_size.x = value;
-            disp_size.y = atoi(strchr(str, 'x') + 1);
-        }
         break;
 
     case 'S': /* buffer-size */
-        if (strchr(str, 'x') == NULL) {
-            /* use a predfined size */
-            if (value < 0)
-                value = 0;
-            if (value >= nBufferSizes)
-                value = nBufferSizes;
-            CthughaBuffer::buffer.setDimensions(bufferSizes[value].x,
-                bufferSizes[value].y);
-
-            display_mode = max(display_mode, value);
-        } else {
-            /* use a special size */
-            int bufferWidth = value;
-            int bufferHeight = atoi(strchr(str, 'x') + 1);
-            if (bufferWidth < 64)
-                bufferWidth = 64;
-            if (bufferHeight < 64)
-                bufferHeight = 64;
-            if (bufferWidth > MAX_BUFF_WIDTH)
-                bufferWidth = MAX_BUFF_WIDTH;
-            if (bufferHeight > MAX_BUFF_HEIGHT)
-                bufferHeight = MAX_BUFF_HEIGHT;
-            CthughaBuffer::buffer.setDimensions(bufferWidth, bufferHeight);
-        }
         break;
 
     case opt_prt_file:
@@ -413,15 +377,9 @@ int do_param(int c, int value, char* str) {
         break;
 
     case 'E': /* extra lib path */
-    {
-        std::string path = std::string(str) + "/";
-        snprintf(extra_lib_path, PATH_MAX, "%s", path.c_str());
         break;
-    }
 
     case opt_ini_file:
-        strncpy(ini_file_override, str, PATH_MAX);
-        ini_file_override[PATH_MAX - 1] = '\0';
         break;
 
 
@@ -430,7 +388,7 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_verbose:
-        cthugha_verbose.change(str ? str : DEFAULT_VERBOSE_COMMAND_LEVEL_TEXT);
+    case opt_no_verbose:
         break;
 
     case opt_test:
@@ -447,13 +405,6 @@ int do_param(int c, int value, char* str) {
         break;
 
     case opt_play:
-        if (str != NULL) {
-            strncpy(audio_input_file, str, PATH_MAX);
-            audio_input_file[PATH_MAX - 1] = '\0';
-        } else {
-            audio_input_file[0] = '\0';
-        }
-        audioInputMode.setValue(AIM_File);
         break;
 
     case opt_silent:
@@ -519,7 +470,7 @@ int get_pre_params(int argc, char* argv[]) {
 
     static struct option long_options_preini[] = { { "path", 1, 0, 'E' },
         { "ini-file", 1, 0, opt_ini_file },
-        { "verbose", 2, 0, opt_verbose }, { "no-verbose", 1, &cthugha_verbose.value, 0 },
+        { "verbose", 2, 0, opt_verbose }, { "no-verbose", 0, 0, opt_no_verbose },
 #ifdef CTH_XWIN
         { "text-on-term", 0, &DisplayDevice::text_on_term, 1 },
         { "no-text-on-term", 0, &DisplayDevice::text_on_term, 0 },
@@ -620,7 +571,7 @@ static void filter_x_toolkit_options(int argc, char* argv[], std::vector<char*>&
 /*
  *  Process programm-params
  */
-int get_params(int argc, char* argv[]) {
+int get_params(int argc, char* argv[], const Config& config) {
     int c;
     int option_index = 0;
 #ifdef CTH_XWIN
@@ -633,14 +584,14 @@ int get_params(int argc, char* argv[]) {
     char** parseArgv = argv;
 #endif
 
-    read_ini();
+    read_ini(config.paths);
 
     /*
      * get command line options after loading ini files
      */
     opterr = 1; /* print error msgs */
     option_index = 0;
-    optind = optindsave; /* start again at first opt */
+    optind = optindsave ? optindsave : 1; /* start again at first opt */
 
     while ((c = getopt_long(parseArgc, parseArgv,
                 "21v:L:M:xE:?S:"

@@ -8,6 +8,8 @@
 #define PATH_MAX 4096
 #endif
 
+struct AudioConfig;
+
 class AudioSettings {
 public:
     int audioInputMode;
@@ -17,8 +19,8 @@ public:
 
     AudioSettings();
 
-    void refreshFromCurrentOptions();
-    static AudioSettings fromCurrentOptions();
+    void refreshFromConfig(const AudioConfig& config);
+    static AudioSettings fromConfig(const AudioConfig& config);
 };
 
 #endif
