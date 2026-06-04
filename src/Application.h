@@ -42,6 +42,7 @@ class Application {
     std::unique_ptr<DisplayRuntimeOwnership> displayRuntimeOwnership;
     std::unique_ptr<CthughaDisplay> displayValue;
     PlatformLifecycle platformLifecycle;
+    int startupInitialized;
     int shutdownComplete;
 
     /** PlatformLifecycle trampoline for willSuspend(). */

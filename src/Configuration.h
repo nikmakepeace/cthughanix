@@ -178,6 +178,9 @@ struct X11Config {
     int windowPositionY;
     int panelEnabled;
     std::string fontName;
+    std::string frameDumpDirectory;
+    int frameDumpLimit;
+    int frameDumpEvery;
 
     X11Config();
 };

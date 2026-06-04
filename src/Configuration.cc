@@ -120,6 +120,9 @@ static const char* KEY_X11_WINDOW_POSITION_X = "x11.window_position_x";
 static const char* KEY_X11_WINDOW_POSITION_Y = "x11.window_position_y";
 static const char* KEY_X11_PANEL_ENABLED = "x11.panel_enabled";
 static const char* KEY_X11_FONT_NAME = "x11.font_name";
+static const char* KEY_X11_FRAME_DUMP_DIRECTORY = "x11.frame_dump_directory";
+static const char* KEY_X11_FRAME_DUMP_LIMIT = "x11.frame_dump_limit";
+static const char* KEY_X11_FRAME_DUMP_EVERY = "x11.frame_dump_every";
 #endif
 
 struct ConfigSize {
@@ -2154,7 +2157,10 @@ X11Config::X11Config()
     , windowPositionX(X11_CONFIG_DEFAULT_WINDOW_POSITION_X)
     , windowPositionY(X11_CONFIG_DEFAULT_WINDOW_POSITION_Y)
     , panelEnabled(X11_CONFIG_DEFAULT_PANEL_ENABLED)
-    , fontName(X11_CONFIG_DEFAULT_FONT_NAME) { }
+    , fontName(X11_CONFIG_DEFAULT_FONT_NAME)
+    , frameDumpDirectory(X11_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY)
+    , frameDumpLimit(X11_CONFIG_DEFAULT_FRAME_DUMP_LIMIT)
+    , frameDumpEvery(X11_CONFIG_DEFAULT_FRAME_DUMP_EVERY) { }
 #endif
 
 AutoChangeConfig::AutoChangeConfig()
@@ -2477,6 +2483,12 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         &config.x11.panelEnabled);
     if (const std::string* value = patch.value(KEY_X11_FONT_NAME))
         config.x11.fontName = *value;
+    if (const std::string* value = patch.value(KEY_X11_FRAME_DUMP_DIRECTORY))
+        config.x11.frameDumpDirectory = *value;
+    applyMinimumIntEntry(patch, diagnostics, KEY_X11_FRAME_DUMP_LIMIT, 1,
+        &config.x11.frameDumpLimit);
+    applyMinimumIntEntry(patch, diagnostics, KEY_X11_FRAME_DUMP_EVERY, 1,
+        &config.x11.frameDumpEvery);
 #endif
 
     return config;
@@ -2540,14 +2552,31 @@ EnvironmentConfigSource::EnvironmentConfigSource(
     const std::map<std::string, std::string>& environment)
     : environmentValue(environment) { }
 
+static void setEnvironmentPatchEntry(ConfigPatch& patch,
+    const std::map<std::string, std::string>& environment,
+    const char* environmentName, const char* configKey) {
+    std::map<std::string, std::string>::const_iterator value
+        = environment.find(environmentName);
+    if (value == environment.end())
+        return;
+
+    patch.set(configKey, value->second,
+        std::string("environment:") + environmentName);
+}
+
 ConfigPatch EnvironmentConfigSource::acquire(
     DeferredLogBuffer& /* diagnostics */) const {
     ConfigPatch patch;
-    std::map<std::string, std::string>::const_iterator verbose
-        = environmentValue.find("CTH_VERBOSE");
-
-    if (verbose != environmentValue.end())
-        patch.set(KEY_LOGGING_VERBOSITY, verbose->second, "environment:CTH_VERBOSE");
+    setEnvironmentPatchEntry(patch, environmentValue, "CTH_VERBOSE",
+        KEY_LOGGING_VERBOSITY);
+#ifdef CTH_XWIN
+    setEnvironmentPatchEntry(patch, environmentValue, "CTHUGHA_DUMP_X11_FRAMES",
+        KEY_X11_FRAME_DUMP_DIRECTORY);
+    setEnvironmentPatchEntry(patch, environmentValue,
+        "CTHUGHA_DUMP_X11_FRAME_LIMIT", KEY_X11_FRAME_DUMP_LIMIT);
+    setEnvironmentPatchEntry(patch, environmentValue,
+        "CTHUGHA_DUMP_X11_FRAME_EVERY", KEY_X11_FRAME_DUMP_EVERY);
+#endif
 
     return patch;
 }
@@ -2800,6 +2829,12 @@ ConfigPatch hardcodedDefaultConfigPatch() {
         booleanText(X11_CONFIG_DEFAULT_PANEL_ENABLED), "defaults");
     defaults.set(KEY_X11_FONT_NAME, X11_CONFIG_DEFAULT_FONT_NAME,
         "defaults");
+    defaults.set(KEY_X11_FRAME_DUMP_DIRECTORY,
+        X11_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY, "defaults");
+    defaults.set(KEY_X11_FRAME_DUMP_LIMIT,
+        integerText(X11_CONFIG_DEFAULT_FRAME_DUMP_LIMIT), "defaults");
+    defaults.set(KEY_X11_FRAME_DUMP_EVERY,
+        integerText(X11_CONFIG_DEFAULT_FRAME_DUMP_EVERY), "defaults");
 #endif
 
     return defaults;
@@ -2838,8 +2873,14 @@ ConfigBuildResult buildStartupConfig(int argc, char* argv[]) {
         isFirst = false;
     }
 
-    // Modern initializer list
-    builder.addEnvironmentVariables({ "CTH_VERBOSE" });
+    std::vector<std::string> environmentNames;
+    environmentNames.push_back("CTH_VERBOSE");
+#ifdef CTH_XWIN
+    environmentNames.push_back("CTHUGHA_DUMP_X11_FRAMES");
+    environmentNames.push_back("CTHUGHA_DUMP_X11_FRAME_LIMIT");
+    environmentNames.push_back("CTHUGHA_DUMP_X11_FRAME_EVERY");
+#endif
+    builder.addEnvironmentVariables(environmentNames);
 
     // Move args into the builder since we don't need them anymore
     builder.addCommandLine(std::move(args));

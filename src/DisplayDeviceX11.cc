@@ -126,6 +126,13 @@ int window_do_pos = 0;
 xy window_pos(0, 0);
 int xcth_panel = 0; // use control panel
 char xcth_font[256] = "";
+static int x11_frame_dump_enabled = 0;
+static int x11_frame_dump_directory_ready = 0;
+static int x11_frame_dump_frame = 0;
+static int x11_frame_dump_dumped = 0;
+static int x11_frame_dump_limit = 1;
+static int x11_frame_dump_every = 1;
+static char x11_frame_dump_directory[PATH_MAX] = "";
 
 void configureDisplayDeviceX11(const X11Config& config) {
     DisplayDevice::text_on_term = config.textOnTerm;
@@ -140,6 +147,15 @@ void configureDisplayDeviceX11(const X11Config& config) {
     xcth_panel = config.panelEnabled;
     strncpy(xcth_font, config.fontName.c_str(), sizeof(xcth_font));
     xcth_font[sizeof(xcth_font) - 1] = '\0';
+    x11_frame_dump_enabled = !config.frameDumpDirectory.empty();
+    x11_frame_dump_directory_ready = 0;
+    x11_frame_dump_frame = 0;
+    x11_frame_dump_dumped = 0;
+    x11_frame_dump_limit = max(1, config.frameDumpLimit);
+    x11_frame_dump_every = max(1, config.frameDumpEvery);
+    strncpy(x11_frame_dump_directory, config.frameDumpDirectory.c_str(),
+        sizeof(x11_frame_dump_directory));
+    x11_frame_dump_directory[sizeof(x11_frame_dump_directory) - 1] = '\0';
 }
 
 Display* xcth_display;
@@ -208,55 +224,33 @@ static void mapIndexedPixelsToPairedColorCells(const XColor* colors) {
 }
 
 static void dump_x11_frame(XImage* image) {
-    static int initialized = 0;
-    static int enabled = 0;
-    static int frame = 0;
-    static int dumped = 0;
-    static int limit = 1;
-    static int every = 1;
-    static char directory[PATH_MAX];
+    if (!x11_frame_dump_enabled || (image == NULL))
+        return;
 
-    const char* env;
-
-    if (!initialized) {
-        initialized = 1;
-        env = getenv("CTHUGHA_DUMP_X11_FRAMES");
-        if (env && env[0]) {
-            strncpy(directory, env, PATH_MAX - 1);
-            directory[PATH_MAX - 1] = '\0';
-            enabled = 1;
-
-            env = getenv("CTHUGHA_DUMP_X11_FRAME_LIMIT");
-            if (env && env[0])
-                limit = max(1, atoi(env));
-
-            env = getenv("CTHUGHA_DUMP_X11_FRAME_EVERY");
-            if (env && env[0])
-                every = max(1, atoi(env));
-
-            if ((mkdir(directory, 0777) != 0) && (errno != EEXIST)) {
-                CTH_ERRNO(errno, "Can not create X11 frame dump directory");
-                enabled = 0;
-            }
+    if (!x11_frame_dump_directory_ready) {
+        x11_frame_dump_directory_ready = 1;
+        if ((mkdir(x11_frame_dump_directory, 0777) != 0)
+            && (errno != EEXIST)) {
+            CTH_ERRNO(errno, "Can not create X11 frame dump directory");
+            x11_frame_dump_enabled = 0;
+            return;
         }
     }
 
-    if (!enabled || (image == NULL))
+    x11_frame_dump_frame++;
+    if ((x11_frame_dump_frame % x11_frame_dump_every) != 0)
         return;
-
-    frame++;
-    if ((frame % every) != 0)
-        return;
-    if (dumped >= limit)
+    if (x11_frame_dump_dumped >= x11_frame_dump_limit)
         return;
 
     char path[PATH_MAX];
-    snprintf(path, PATH_MAX, "%s/frame-%06d.ppm", directory, frame);
+    snprintf(path, PATH_MAX, "%s/frame-%06d.ppm", x11_frame_dump_directory,
+        x11_frame_dump_frame);
 
     FILE* out = fopen(path, "wb");
     if (out == NULL) {
         CTH_ERRNO(errno, "Can not create X11 frame dump");
-        enabled = 0;
+        x11_frame_dump_enabled = 0;
         return;
     }
 
@@ -280,7 +274,7 @@ static void dump_x11_frame(XImage* image) {
     }
 
     fclose(out);
-    dumped++;
+    x11_frame_dump_dumped++;
 }
 
 int cth_init(int* argc, char* argv[]) {

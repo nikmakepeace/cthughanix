@@ -95,6 +95,7 @@ Application::Application(int argc, char* argv[])
     , ncursesInitialized(0)
     , platformLifecycle(PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
+    , startupInitialized(0)
     , shutdownComplete(0) { }
 
 Application::~Application() {
@@ -210,8 +211,9 @@ void Application::shutdown() {
 
     shutdownComplete = 1;
 
-    // AutoChanger owns final option persistence, so destroy the bridge before
-    // tearing down scene commands or runtime globals it may consult.
+    if (startupInitialized && startupConfigValue.app.optionsSaveEnabled)
+        write_ini(startupConfigValue);
+
     shutdownAudioVisualBridge();
     if (ncursesInitialized) {
         exit_ncurses();
@@ -259,7 +261,7 @@ int Application::initialize() {
         return 0;
     }
 
-    configureApplicationOptions(startupConfigValue.app);
+    configure_ini_persistence(startupConfigValue);
     configureKeys(startupConfigValue.input);
     configureAudioOptions(startupConfigValue.audio);
     configureCthughaDisplay(startupConfigValue.display);
@@ -345,6 +347,7 @@ int Application::initialize() {
     // Install platform hooks last; callbacks assume audio/display state exists.
     platformLifecycle.install();
 
+    startupInitialized = 1;
     exitStatusValue = 0;
     return 1;
 }

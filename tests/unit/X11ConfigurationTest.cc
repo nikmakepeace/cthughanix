@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,12 @@ static void defaultsProduceX11ConfigOnlyForX11Builds() {
         == X11_CONFIG_DEFAULT_WINDOW_POSITION_Y);
     assert(result.config.x11.panelEnabled == X11_CONFIG_DEFAULT_PANEL_ENABLED);
     assert(result.config.x11.fontName == X11_CONFIG_DEFAULT_FONT_NAME);
+    assert(result.config.x11.frameDumpDirectory
+        == X11_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY);
+    assert(result.config.x11.frameDumpLimit
+        == X11_CONFIG_DEFAULT_FRAME_DUMP_LIMIT);
+    assert(result.config.x11.frameDumpEvery
+        == X11_CONFIG_DEFAULT_FRAME_DUMP_EVERY);
 }
 
 static void iniTextSourceProducesX11Patch() {
@@ -101,11 +108,39 @@ static void commandLineSourceBuildsX11Config() {
     assert(result.config.x11.fontName == "fixed");
 }
 
+static void environmentSourceBuildsX11FrameDumpConfig() {
+    DeferredLogBuffer diagnostics;
+    std::map<std::string, std::string> environment;
+    environment["CTHUGHA_DUMP_X11_FRAMES"] = "/tmp/cthugha-x11-frames";
+    environment["CTHUGHA_DUMP_X11_FRAME_LIMIT"] = "7";
+    environment["CTHUGHA_DUMP_X11_FRAME_EVERY"] = "3";
+
+    EnvironmentConfigSource source(environment);
+    ConfigPatch patch = source.acquire(diagnostics);
+
+    assert(diagnostics.diagnostics().empty());
+    assert(*patchValue(patch, "x11.frame_dump_directory")
+        == "/tmp/cthugha-x11-frames");
+    assert(*patchValue(patch, "x11.frame_dump_limit") == "7");
+    assert(*patchValue(patch, "x11.frame_dump_every") == "3");
+
+    ConfigBuildResult result = ConfigurationBuilder()
+        .addDefaults()
+        .addEnvironment(environment)
+        .build();
+
+    assert(result.ok());
+    assert(result.config.x11.frameDumpDirectory == "/tmp/cthugha-x11-frames");
+    assert(result.config.x11.frameDumpLimit == 7);
+    assert(result.config.x11.frameDumpEvery == 3);
+}
+
 int main() {
     fflush(stderr);
     assert(configArgumentsFromArgv(0, NULL).empty());
     defaultsProduceX11ConfigOnlyForX11Builds();
     iniTextSourceProducesX11Patch();
     commandLineSourceBuildsX11Config();
+    environmentSourceBuildsX11FrameDumpConfig();
     return 0;
 }

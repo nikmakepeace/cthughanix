@@ -4,18 +4,18 @@
 #define CTHUGHA_INI_FILES_H
 
 #include "Configuration.h"
-#include "EffectControl.h"
-#include "Option.h"
+
+struct ContinuationIniConfig {
+    SceneConfig scene;
+    int showFpsEnabled;
+
+    ContinuationIniConfig();
+};
 
 int remove_continuation_ini(const PathConfig& paths);
+void configure_ini_persistence(const Config& config);
+int write_ini(const Config& config);
 int write_ini();
-int write_continuation_ini();
-
-int getini(const char* entry, char* value);
-int getini(const char* entry, int* value);
-int getini_yesno(const char* entry, int* value);
-
-int putini(const char* entry, const char* value);
-int putini(const Option& opt);
+int write_continuation_ini(const ContinuationIniConfig& config);
 
 #endif

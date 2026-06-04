@@ -3,7 +3,6 @@
 #include "AutoChanger.h"
 #include "AudioAnalyzer.h"
 #include "Configuration.h"
-#include "IniFiles.h"
 #include "CthughaBuffer.h"
 #include "Scene.h"
 #include "VideoDirector.h"
@@ -48,11 +47,7 @@ AutoChanger::AutoChanger(SceneCommands& sceneCommands_)
     quietSince = gettime();
 }
 
-AutoChanger::~AutoChanger() {
-    if (options_save) {
-        write_ini();
-    }
-}
+AutoChanger::~AutoChanger() { }
 
 void AutoChanger::operator()() {
 

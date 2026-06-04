@@ -28,12 +28,6 @@
 EffectChoiceList paletteEntries;
 EffectChoiceList pcxEntries;
 
-int getini(const char*, char*) { return 1; }
-int getini(const char*, int*) { return 1; }
-int getini_yesno(const char*, int*) { return 1; }
-int putini(const char*, const char*) { return 0; }
-int putini(const Option&) { return 0; }
-
 struct PathConfig;
 
 int init_wave(const PathConfig&) { return 0; }

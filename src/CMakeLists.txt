@@ -5,7 +5,6 @@ set(CTHUGHA_COMMON_SOURCES
     EffectControlPolicy.cc
     EffectPresetCatalog.cc
     EffectChoiceLoader.cc
-    EffectControlIni.cc
     EffectChoice.cc
     AudioInternal.cc
     AudioOutput.cc

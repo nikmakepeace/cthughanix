@@ -7,8 +7,6 @@
 
 #include <stdio.h>
 
-struct AppConfig;
-
 //
 // class Option
 //
@@ -110,9 +108,5 @@ public:
     virtual void change(int /* by */) { }
 };
 extern OptionDummy optionDummy;
-
-extern OptionOnOff options_save; // save options (and buffer) at end
-
-void configureApplicationOptions(const AppConfig& config);
 
 #endif

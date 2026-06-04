@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+#include <string>
 #include <unistd.h>
 
 void skipSpace(const char*& str) {
@@ -510,9 +511,41 @@ void Keymap::init(const InputConfig& config) {
 // all the actions implemented
 //
 
+static std::string continuation_name(const char* name) {
+    if (name == NULL || strcmp(name, "unknown") == 0)
+        return "";
+
+    return name;
+}
+
+static ContinuationIniConfig current_continuation_ini_config() {
+    ContinuationIniConfig config;
+    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
+    if (sceneCommands != NULL) {
+        const SceneSettings& settings = sceneCommands->sceneState().settings();
+        config.scene.flame = continuation_name(settings.flameName);
+        config.scene.generalFlame = continuation_name(settings.generalFlameName);
+        config.scene.wave = continuation_name(settings.waveName);
+        config.scene.waveScale = continuation_name(settings.waveScaleName);
+        config.scene.object = continuation_name(settings.objectName);
+        config.scene.translation = continuation_name(settings.translationName);
+        config.scene.palette = continuation_name(settings.paletteName);
+        config.scene.border = continuation_name(settings.borderName);
+        config.scene.flashlight = continuation_name(settings.flashlightName);
+        config.scene.table = continuation_name(settings.tableName);
+        config.scene.image = continuation_name(
+            sceneCommands->imageOption().currentName());
+    }
+
+    config.scene.presentation = continuation_name(screen.currentName());
+    config.scene.audioProcessing = continuation_name(audioProcessing.text());
+    config.showFpsEnabled = int(showFPS);
+    return config;
+}
+
 ACTION(quit) { cthugha_close++; }
 ACTION(stopAndContinue) {
-    if (write_continuation_ini() == 0)
+    if (write_continuation_ini(current_continuation_ini_config()) == 0)
         cthugha_close++;
 }
 

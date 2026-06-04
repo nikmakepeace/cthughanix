@@ -79,6 +79,9 @@ static void testX11StartupUsesX11ConfigOnlyForX11Builds() {
         "void configureDisplayDeviceX11(const X11Config& config)");
     assertSourceContains("src/DisplayDeviceX11.cc",
         "void configureDisplayDeviceX11(const X11Config& config)");
+    assertSourceContains("src/DisplayDeviceX11.cc", "config.frameDumpDirectory");
+    assertSourceDoesNotContain("src/DisplayDeviceX11.cc",
+        "getenv(\"CTHUGHA_DUMP_X11");
     assertSourceDoesNotContain("src/Configuration.h", "x11FontName");
     assertSourceDoesNotContain("src/Configuration.h", "x11MitShm");
     assertSourceDoesNotContain("src/options.cc", "&display_mit_shm");
@@ -198,7 +201,8 @@ static void testLegacyTestOptionWasRemoved() {
 }
 
 static void testApplicationProvidesStartupConfigSlices() {
-    assertSourceContains("src/Application.cc", "configureApplicationOptions(startupConfigValue.app)");
+    assertSourceContains("src/Application.cc",
+        "startupConfigValue.app.optionsSaveEnabled");
     assertSourceContains("src/Application.cc", "configureKeys(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "Keymap::init(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "remove_continuation_ini(startupConfigValue.paths)");
@@ -223,6 +227,11 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceDoesNotContain("src/Application.cc", "applyEffectPolicy");
     assertSourceDoesNotContain("src/Application.cc",
         "read_effect_control_usage_and_presets");
+    assertSourceDoesNotContain("src/Application.cc", "configureApplicationOptions");
+    assertSourceDoesNotContain("src/Option.h", "options_save");
+    assertSourceDoesNotContain("src/Option.cc", "options_save");
+    assertSourceDoesNotContain("src/Option.h", "configureApplicationOptions");
+    assertSourceDoesNotContain("src/Option.cc", "configureApplicationOptions");
     assertSourceDoesNotContain("src/AutoChanger.cc", "configureQuietMessages");
     assertSourceDoesNotContain("src/AutoChanger.h", "MessagesConfig");
     assertSourceDoesNotContain("src/Configuration.h", "AutoChangeConfig {\n"
@@ -269,6 +278,49 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/IniFiles.cc", "effectControlGetIniInitials");
 }
 
+static void testIniPersistenceUsesStartupConfigSnapshot() {
+    assertSourceContains("src/IniFiles.h",
+        "void configure_ini_persistence(const Config& config)");
+    assertSourceContains("src/IniFiles.h", "struct ContinuationIniConfig");
+    assertSourceContains("src/IniFiles.h", "int write_ini(const Config& config)");
+    assertSourceDoesNotContain("src/IniFiles.h", "getini");
+    assertSourceDoesNotContain("src/IniFiles.h", "putini");
+    assertSourceContains("src/IniFiles.cc",
+        "int write_ini(const Config& config)");
+    assertSourceContains("src/IniFiles.cc",
+        "int write_continuation_ini(const ContinuationIniConfig& config)");
+    assertSourceContains("src/IniFiles.cc",
+        "write_scene_config_ini(config.scene)");
+    assertSourceContains("src/IniFiles.cc",
+        "write_auto_change_config_ini(config.autoChange)");
+    assertSourceContains("src/IniFiles.cc",
+        "write_effect_policy_ini(config.effectPolicy)");
+    assertSourceContains("src/Application.cc",
+        "configure_ini_persistence(startupConfigValue)");
+    assertSourceContains("src/Application.cc", "write_ini(startupConfigValue)");
+    assertSourceContains("src/keymap.cc",
+        "write_continuation_ini(current_continuation_ini_config())");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "write_ini");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "options_save");
+    assertSourceDoesNotExist("src/EffectControlIni.cc");
+    assertSourceDoesNotExist("src/EffectControlIni.h");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "EffectControlIni.cc");
+    assertSourceDoesNotContain("src/IniFiles.cc", "int getini");
+    assertSourceDoesNotContain("src/IniFiles.cc", "move_ini_file");
+    assertSourceDoesNotContain("src/IniFiles.cc", "is_in_ini");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(audioProcessing)");
+    assertSourceDoesNotContain("src/IniFiles.cc", "showFPS");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(changeWait");
+    assertSourceDoesNotContain("src/IniFiles.cc",
+        "putini(changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(changeQuiet");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(changeMsgTime");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(lock)");
+    assertSourceDoesNotContain("src/IniFiles.cc", "putini(change_little)");
+    assertSourceDoesNotContain("src/IniFiles.cc", "effectControlPutIniUsages");
+    assertSourceDoesNotContain("src/IniFiles.cc", "effectControlPutPresetIni");
+}
+
 static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
     assertSourceContains("src/configuration_defaults.h", "AUDIO_CONFIG_DEFAULT_INPUT_MODE");
     assertSourceDoesNotContain("src/AudioSystem.cc", "DEFAULT_AUDIO_INPUT_MODE");
@@ -303,6 +355,7 @@ int main() {
     testApplicationProvidesStartupConfigSlices();
     testInputStartupUsesInputConfig();
     testSceneStartupUsesSceneConfig();
+    testIniPersistenceUsesStartupConfigSnapshot();
     testConfigDefaultsAreNotConsumedAsLegacyDefaults();
     return 0;
 }
