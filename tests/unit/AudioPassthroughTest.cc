@@ -15,7 +15,6 @@ int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 double getTime() { return 0.0; }
 
-const char* audioSampleFormatText() { return "signed-8"; }
 const char* audioSampleFormatText(int) { return "signed-8"; }
 
 static PcmFormat signed8MonoFormat() {

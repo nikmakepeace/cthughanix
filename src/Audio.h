@@ -7,6 +7,8 @@
 
 #include "AudioOptions.h"
 #include "AudioFrame.h"
+#include "AudioOutputConfig.h"
+#include "AudioOutputDump.h"
 
 #include <stdio.h>
 #include <limits.h>
@@ -23,16 +25,27 @@ class AudioSettings;
 class AudioOutput {
     int outputSamplesPerSecond;
     int outputBytesPerSample;
+    int outputTargetLatencyMs;
     int outputTargetDelaySamples;
     int outputScratchSamples;
+    AudioOutputDump* outputDumpValue;
 
 protected:
-    virtual int defaultTargetLatencyMs() const = 0;
+    virtual int defaultTargetLatencyMs() const;
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
+    void dumpSubmittedPcm(const PcmFormat& format, const char* data, int bytes);
 
 public:
     /** Creates an unopened output backend base. */
     AudioOutput();
+
+    /**
+     * Creates an output backend base with explicit output config.
+     *
+     * @param targetLatencyMs Output queue target latency in milliseconds.
+     * @param outputDump Optional submitted-PCM dump collaborator.
+     */
+    AudioOutput(int targetLatencyMs, AudioOutputDump* outputDump);
 
     /** Releases output backend resources. */
     virtual ~AudioOutput();
@@ -67,6 +80,9 @@ public:
     virtual void configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples);
     /** @return Configured output sample rate in Hertz. */
     int samplesPerSecond() const { return outputSamplesPerSecond; }
+
+    /** @return Configured output queue target latency in milliseconds. */
+    int targetLatencyMs() const { return outputTargetLatencyMs; }
 
     /** @return Bytes per interleaved output sample frame. */
     int bytesPerSample() const { return outputBytesPerSample; }
@@ -119,6 +135,15 @@ protected:
     virtual int defaultTargetLatencyMs() const;
 
 public:
+    /**
+     * Creates a null output backend.
+     *
+     * @param config Output startup/session config.
+     * @param outputDump Optional submitted-PCM dump collaborator.
+     */
+    explicit AudioNullOutput(const AudioOutputConfig& config = AudioOutputConfig(),
+        AudioOutputDump* outputDump = NULL);
+
     /** Drops PCM bytes without opening a real output device. */
     virtual int write(const void* buffer, int size);
 
@@ -131,6 +156,7 @@ public:
 
 class AudioPulseOutput : public AudioOutput {
     PcmFormat pcmFormatValue;
+    AudioOutputConfig outputConfigValue;
     void* mainloop;
     void* context;
     void* stream;
@@ -156,8 +182,13 @@ public:
      * Opens a PulseAudio output stream for an explicit PCM format.
      *
      * @param format PCM format produced by the current audio session.
+     * @param config Output startup/session config.
+     * @param outputDump Optional submitted-PCM dump collaborator.
+     * @param autoOpen Nonzero to open PulseAudio immediately.
      */
-    explicit AudioPulseOutput(const PcmFormat& format);
+    explicit AudioPulseOutput(const PcmFormat& format,
+        const AudioOutputConfig& config = AudioOutputConfig(),
+        AudioOutputDump* outputDump = NULL, int autoOpen = 1);
 
     /** Stops callback drain and closes PulseAudio resources. */
     virtual ~AudioPulseOutput();
@@ -196,6 +227,15 @@ public:
 
     /** Called by the PulseAudio underflow callback. */
     void pulseUnderflow();
+
+    /** @return Configured Pulse server name, or NULL for the default server. */
+    const char* serverName() const;
+
+    /** @return Human-readable configured Pulse server name. */
+    const char* serverDisplayName() const;
+
+    /** @return PulseAudio stream target latency in milliseconds. */
+    int pulseLatencyMs() const;
 };
 
 class AudioDSPOutput : public AudioOutput {
@@ -222,10 +262,14 @@ public:
      * Opens the OSS/DSP output backend.
      *
      * @param settings Audio startup/session settings to negotiate locally.
+     * @param config Output startup/session config.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Used to choose a DSP fragment/sample window.
+     * @param outputDump Optional submitted-PCM dump collaborator.
      */
-    AudioDSPOutput(const AudioSettings& settings, int visualMaxDimension);
+    AudioDSPOutput(const AudioSettings& settings,
+        const AudioOutputConfig& config, int visualMaxDimension,
+        AudioOutputDump* outputDump = NULL);
 
     /** Closes the OSS/DSP output backend. */
     virtual ~AudioDSPOutput();
@@ -454,9 +498,6 @@ public:
 
     /** Refreshes or reopens source-local state after runtime reset. */
     virtual void update() { }
-
-    /** Initializes optional native input controls. */
-    virtual int initInputControls() { return 0; }
 };
 
 class AudioInput {
@@ -506,9 +547,6 @@ public:
 
     /** Refreshes the wrapped source and clears EOF state. */
     void update();
-
-    /** Initializes optional native input controls on the wrapped source. */
-    int initInputControls();
 };
 
 class WavPcmSource : public PcmSource {
@@ -751,9 +789,6 @@ public:
 
     /** Reopens and renegotiates the OSS/DSP capture device. */
     virtual void update();
-
-    /** Initializes optional OSS mixer controls for capture. */
-    virtual int initInputControls();
 };
 
 #endif

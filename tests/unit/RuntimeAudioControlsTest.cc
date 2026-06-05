@@ -5,11 +5,19 @@
 #include "RuntimeAudioControls.h"
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
+#include "Mixer.h"
 
 #include <assert.h>
+#include <stdarg.h>
 #include <string.h>
 
 Option::~Option() { }
+
+int cth_log_enabled(int) { return 0; }
+int cth_log(int, const char*, ...) { return 0; }
+int cth_log_context(int, const char*, const char*, ...) { return 0; }
+int cth_log_error(const char*, ...) { return 0; }
+int cth_log_errno(int, const char*, ...) { return 0; }
 
 class RecordingOption : public Option {
 public:
@@ -31,6 +39,33 @@ public:
 
     virtual const char* text() const {
         return "recording";
+    }
+};
+
+class FakeMixerDevice : public MixerDevice {
+public:
+    std::vector<MixerChannel> discoveredChannels;
+    int setVolumeCalls;
+    int setVolumeEncodedVolume;
+
+    FakeMixerDevice()
+        : discoveredChannels()
+        , setVolumeCalls(0)
+        , setVolumeEncodedVolume(0) { }
+
+    virtual int initialize(const std::string&,
+        const std::vector<MixerInitialVolume>&,
+        std::vector<MixerChannel>& channels) {
+        channels = discoveredChannels;
+        return 0;
+    }
+
+    virtual int setVolume(const std::string&, const MixerChannel&,
+        int encodedVolume, int& active) {
+        setVolumeCalls++;
+        setVolumeEncodedVolume = encodedVolume;
+        active = encodedVolume > 0;
+        return 0;
     }
 };
 
@@ -78,8 +113,41 @@ static void testGenericOptionRoutingClaimsOnlyAudioProcessing() {
     assert(unrelated.toCalls == 0);
 }
 
+static void testGenericOptionRoutingClaimsMixerOptionsAsUiChanges() {
+    AudioProcessor processor;
+    AudioProcessingState state;
+    AudioProcessingSelector selector(state, processor);
+    FakeMixerDevice device;
+    device.discoveredChannels.push_back(
+        MixerChannel("line", 1, 2 + 256 * 3, 1));
+    MixerSession mixerSession(device, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
+    assert(mixerSession.initialize() == 0);
+    MixerControls mixerControls(mixerSession);
+    DefaultRuntimeAudioControls controls(selector, &mixerControls);
+
+    RuntimeChangeSet byChanges;
+    int handled = controls.changeAudioOptionBy(
+        *mixerControls.optionAt(0), 4, byChanges);
+    assert(handled == 1);
+    assert(byChanges.uiChanged == 1);
+    assert(byChanges.audioProcessingChanged == 0);
+    assert(device.setVolumeCalls == 1);
+    assert(device.setVolumeEncodedVolume == 6 + 256 * 7);
+
+    RuntimeChangeSet toChanges;
+    handled = controls.changeAudioOptionTo(
+        *mixerControls.optionAt(0), "11", toChanges);
+    assert(handled == 1);
+    assert(toChanges.uiChanged == 1);
+    assert(toChanges.audioProcessingChanged == 0);
+    assert(device.setVolumeCalls == 2);
+    assert(device.setVolumeEncodedVolume == 11 + 256 * 11);
+}
+
 int main() {
     testDirectCommandsChangeOnlyAudioProcessing();
     testGenericOptionRoutingClaimsOnlyAudioProcessing();
+    testGenericOptionRoutingClaimsMixerOptionsAsUiChanges();
     return 0;
 }

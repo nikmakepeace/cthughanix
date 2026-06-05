@@ -1,6 +1,8 @@
 add_executable(audio_pipeline_bench
     AudioPipelineBench.cc
     ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioPulseOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioDSPOutput.cc

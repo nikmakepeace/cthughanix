@@ -29,10 +29,6 @@ int cth_log_errno(int, const char*, ...) {
     return 0;
 }
 
-int audioBytesPerSample() {
-    return 2;
-}
-
 static void fillConstant(AudioFrame& frame, int left, int right) {
     for (int i = 0; i < 1024; i++) {
         frame.raw[i][0] = char(left);

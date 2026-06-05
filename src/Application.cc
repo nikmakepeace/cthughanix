@@ -9,7 +9,6 @@
 #include "display.h"
 #include "AudioFrame.h"
 #include "AudioIngest.h"
-#include "AudioSystem.h"
 #include "AudioAnalyzer.h"
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
@@ -28,6 +27,7 @@
 #include "FramePacer.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
+#include "Mixer.h"
 #include "IniFiles.h"
 #include "Option.h"
 #include "RuntimeAudioControls.h"
@@ -176,7 +176,8 @@ void Application::initSceneRuntime() {
     runtimeShutdownValue.reset(new RuntimeCloseState());
     runtimeDisplayControlsValue.reset(new DefaultRuntimeDisplayControls());
     runtimeAudioControlsValue.reset(
-        new DefaultRuntimeAudioControls(*audioProcessingSelectorValue));
+        new DefaultRuntimeAudioControls(*audioProcessingSelectorValue,
+            mixerControlsValue.get()));
     runtimeAutoChangeControlsValue.reset(
         new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue));
     runtimeEffectControlsValue.reset(
@@ -220,6 +221,37 @@ void Application::shutdownSceneRuntime() {
     sceneValue.reset();
 }
 
+int Application::initMixerRuntime() {
+    if (mixerSessionValue.get() != NULL)
+        return 0;
+
+    if (startupConfigValue.audio.inputMode != AIM_DSPIn)
+        return 0;
+
+    CTH_INFO("Initializing OSS mixer device...\n");
+    mixerDeviceValue.reset(newMixerDevice());
+    mixerSessionValue.reset(
+        new MixerSession(*mixerDeviceValue, startupConfigValue.audio));
+    if (mixerSessionValue->initialize()) {
+        mixerControlsValue.reset();
+        mixerSessionValue.reset();
+        mixerDeviceValue.reset();
+        return 1;
+    }
+
+    mixerControlsValue.reset(new MixerControls(*mixerSessionValue));
+    mixerControlsValue->installInto(interfaceMixer);
+    return 0;
+}
+
+void Application::shutdownMixerRuntime() {
+    if (mixerControlsValue.get() != NULL)
+        mixerControlsValue->clearInterface(interfaceMixer);
+    mixerControlsValue.reset();
+    mixerSessionValue.reset();
+    mixerDeviceValue.reset();
+}
+
 void Application::initVideoFilterchain() {
     if (videoFilterchain.get() != NULL)
         return;
@@ -243,7 +275,7 @@ int Application::initAudioIngest() {
 
     audioIngestValue.reset(new AudioIngest(startupConfigValue.audio,
         CthughaBuffer::buffer.maxDimension()));
-    if (audioIngestValue->start(1)) {
+    if (audioIngestValue->start()) {
         audioIngestValue.reset();
         return 1;
     }
@@ -325,6 +357,7 @@ void Application::shutdown() {
     shutdownAudioIngest();
     shutdownVideoFilterchain();
     shutdownSceneRuntime();
+    shutdownMixerRuntime();
 }
 
 Scene& Application::scene() {
@@ -359,7 +392,6 @@ int Application::initialize() {
     }
 
     configureKeys(startupConfigValue.input);
-    configureAudioOptions(startupConfigValue.audio);
     configureCthughaDisplay(startupConfigValue.display);
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
@@ -374,6 +406,9 @@ int Application::initialize() {
         startupConfigValue.display.bufferHeight);
 
     remove_continuation_ini(startupConfigValue.paths);
+
+    if (initMixerRuntime())
+        return 0;
 
     initSceneRuntime();
 

@@ -51,6 +51,7 @@ class AudioIngest {
     AudioIngestClock* clock;
     std::unique_ptr<AudioInput> inputValue;
     std::unique_ptr<AudioOutput> injectedOutputValue;
+    std::unique_ptr<AudioOutputDump> outputDumpValue;
     std::unique_ptr<DecodedAudioHistory> historyValue;
     std::unique_ptr<AudioPassthrough> passthroughValue;
     AudioFrameBuilder frameBuilder;
@@ -69,8 +70,8 @@ class AudioIngest {
     std::thread inputThread;
     int inputThreadStarted;
 
-    int buildFromConfig(int initializeInputControls);
-    int buildFromInjectedRuntime(int initializeInputControls);
+    int buildFromConfig();
+    int buildFromInjectedRuntime();
     int initializeRuntimeObjects(AudioOutput* output, int silentPassthrough);
     int fillInput(int maxSamples);
     void pumpInputToTarget();
@@ -113,10 +114,9 @@ public:
     /**
      * Starts acquisition and optional passthrough.
      *
-     * @param initializeInputControls Nonzero to initialize source controls.
      * @return 0 on success, nonzero when requested startup audio cannot open.
      */
-    int start(int initializeInputControls = 1);
+    int start();
 
     /** Stops worker threads/callbacks and releases input/output/history. */
     void stop();

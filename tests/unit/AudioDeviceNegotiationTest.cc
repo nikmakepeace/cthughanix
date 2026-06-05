@@ -19,10 +19,7 @@ int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
 double getTime() { return 0.0; }
-const char* audioSampleFormatText() { return "test-format"; }
 const char* audioSampleFormatText(int) { return "test-format"; }
-
-int init_mixer() { return 0; }
 
 static std::string fixturePath(const char* fileName) {
     return std::string(CTH_AUDIO_FIXTURE_DIR) + "/" + fileName;
@@ -110,9 +107,12 @@ static void testDspOutputNegotiatesWithoutGlobalSetters() {
     strncpy(settings.dspDevicePath, "/tmp/cthughanix-no-such-dsp", PATH_MAX);
     settings.dspDevicePath[PATH_MAX - 1] = '\0';
 
-    AudioDSPOutput output(settings, 256);
+    AudioOutputConfig outputConfig;
+    outputConfig.dspOutputTargetLatencyMs = 37;
+    AudioDSPOutput output(settings, outputConfig, 256);
 
     assert(!output.isOpen());
+    assert(output.targetLatencyMs() == 37);
 }
 
 int main() {

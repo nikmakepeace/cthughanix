@@ -1,7 +1,6 @@
 #include "cthugha.h"
 #include "information.h"
 #include "AudioOptions.h"
-#include "Mixer.h"
 #include "Option.h"
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
@@ -90,32 +89,42 @@ void usage() {
     PH(" -x, --no-sound      Use no sound input");
     PH(" --random-noise      Use generated random-noise input");
     PH(" --play FILE         Play FILE for sound input");
-    PH(" --silent            Play silently", audioOnOffText(audioSilentEnabled()));
+    PH(" --silent            Play silently",
+        audioOnOffText(AUDIO_CONFIG_DEFAULT_SILENT_ENABLED));
     PH(" --loop, --no-loop   Play sound file over and over again or only once");
 
     PH("");
     PH("General sound device options:");
-    PH(" -v, --rate N        Set sample rate to N", PHInt(audioSampleRateHz()));
-    PH(" -1, -2, --stereo, --no-stereo Set number of sound channels", audioChannelsText());
-    PH(" --snd-format FMT    Set sound format to FMT", audioSampleFormatText());
-    PH(" --pulse-server SERVER  Set PulseAudio server", pulse_server);
+    PH(" -v, --rate N        Set sample rate to N",
+        PHInt(AUDIO_CONFIG_DEFAULT_SAMPLE_RATE_HZ));
+    PH(" -1, -2, --stereo, --no-stereo Set number of sound channels",
+        audioChannelsText(AUDIO_CONFIG_DEFAULT_CHANNELS));
+    PH(" --snd-format FMT    Set sound format to FMT",
+        audioSampleFormatText(AUDIO_CONFIG_DEFAULT_FORMAT));
+    PH(" --pulse-server SERVER  Set PulseAudio server",
+        AUDIO_CONFIG_DEFAULT_PULSE_SERVER_TEXT);
     PH(" --pulse-latency-ms N  Set PulseAudio target latency");
     PH(" --audio-output-dump FILE  Dump submitted output PCM to WAV");
     PH("");
 
 #if WITH_DSP == 1
     PH("Advanced sound device options:");
-    PH(" --snd-method M      Use method M for sound reading", PHInt(audioDspMethod()));
-    PH(" --snd-sync          Reset soundcard after reading each block", audioOnOffText(audioDspSyncEnabled()));
-    PH(" --snd-fragments     Set number of sound fragments", PHInt(audioDspFragments()));
-    PH(" --dev-dsp DEV       Set the DSP device to DEV", audioDspDevicePath());
+    PH(" --snd-method M      Use method M for sound reading",
+        PHInt(AUDIO_CONFIG_DEFAULT_DSP_METHOD));
+    PH(" --snd-sync          Reset soundcard after reading each block",
+        audioOnOffText(AUDIO_CONFIG_DEFAULT_DSP_SYNC_ENABLED));
+    PH(" --snd-fragments     Set number of sound fragments",
+        PHInt(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENTS));
+    PH(" --dev-dsp DEV       Set the DSP device to DEV",
+        AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH);
 #endif
 
     PH("");
 
 #if WITH_MIXER == 1
     PH("Mixer options:");
-    PH(" --dev-mixer DEV     Set the mixer device to DEV", dev_mixer);
+    PH(" --dev-mixer DEV     Set the mixer device to DEV",
+        AUDIO_CONFIG_DEFAULT_MIXER_DEVICE_PATH);
     PH(" --mixer DEV:VOL     Set mixer device DEV to volume VOL");
     PH(" -L, --line VOL      Use Line In as input with volume VOL");
     PH(" -M, --mic VOL       Use Mic as input with volume VOL");

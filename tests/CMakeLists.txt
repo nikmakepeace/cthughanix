@@ -573,6 +573,38 @@ target_link_libraries(runtime_command_test PRIVATE m)
 
 add_test(NAME runtime_command_test COMMAND runtime_command_test)
 
+add_executable(mixer_session_test
+    unit/MixerSessionTest.cc
+    ${CMAKE_SOURCE_DIR}/src/Mixer.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+)
+
+target_include_directories(mixer_session_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(mixer_session_test PRIVATE m)
+
+add_test(NAME mixer_session_test COMMAND mixer_session_test)
+
+add_executable(mixer_controls_test
+    unit/MixerControlsTest.cc
+    ${CMAKE_SOURCE_DIR}/src/Mixer.cc
+    ${CMAKE_SOURCE_DIR}/src/MixerControls.cc
+)
+
+target_include_directories(mixer_controls_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(mixer_controls_test PRIVATE m)
+
+add_test(NAME mixer_controls_test COMMAND mixer_controls_test)
+
 add_executable(audio_decoded_history_test
     unit/AudioDecodedHistoryTest.cc
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
@@ -595,6 +627,8 @@ add_executable(audio_passthrough_test
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioPassthrough.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
@@ -616,6 +650,8 @@ add_executable(audio_ingest_test
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioIngest.cc
     ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioPassthrough.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
@@ -642,6 +678,8 @@ add_executable(audio_device_negotiation_test
     ${CMAKE_SOURCE_DIR}/src/AudioDSPOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioSettings.cc
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
@@ -663,6 +701,59 @@ target_include_directories(audio_device_negotiation_test PRIVATE
 target_link_libraries(audio_device_negotiation_test PRIVATE m)
 
 add_test(NAME audio_device_negotiation_test COMMAND audio_device_negotiation_test)
+
+add_executable(audio_output_config_test
+    unit/AudioOutputConfigTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioDSPOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioPulseOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioSettings.cc
+    ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(audio_output_config_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+    ${PULSE_INCLUDE_DIRS}
+)
+
+target_compile_options(audio_output_config_test PRIVATE ${PULSE_CFLAGS_OTHER})
+
+target_link_libraries(audio_output_config_test PRIVATE m)
+
+if(WITH_PULSE)
+    target_link_libraries(audio_output_config_test PRIVATE ${PULSE_LIBRARIES})
+    target_link_directories(audio_output_config_test PRIVATE ${PULSE_LIBRARY_DIRS})
+endif()
+
+add_test(NAME audio_output_config_test COMMAND audio_output_config_test)
+
+add_executable(audio_output_dump_test
+    unit/AudioOutputDumpTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputConfig.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(audio_output_dump_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(audio_output_dump_test PRIVATE m)
+
+add_test(NAME audio_output_dump_test COMMAND audio_output_dump_test)
 
 add_executable(audio_visual_bridge_frame_test
     unit/AudioVisualBridgeFrameTest.cc
@@ -777,6 +868,8 @@ add_executable(runtime_audio_controls_test
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessingState.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
+    ${CMAKE_SOURCE_DIR}/src/Mixer.cc
+    ${CMAKE_SOURCE_DIR}/src/MixerControls.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeAudioControls.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
 )

@@ -4,7 +4,6 @@
 
 #include "cthugha.h"
 #include "RuntimeFactory.h"
-#include "AudioOptions.h"
 
 #include <unistd.h>
 
@@ -33,16 +32,20 @@ Environment Environment::detect(const AudioSettings& settings) {
     return environment;
 }
 
-RuntimeFactory::RuntimeFactory(const AudioSettings& settings_, const Environment& environment_,
-    int visualMaxDimension_)
+RuntimeFactory::RuntimeFactory(const AudioSettings& settings_,
+    const AudioOutputConfig& outputConfig_, const Environment& environment_,
+    int visualMaxDimension_, AudioOutputDump* outputDump_)
     : settings(settings_)
+    , outputConfig(outputConfig_)
     , environment(environment_)
-    , visualMaxDimension(visualMaxDimension_) {
-    CTH_DEBUG("runtime factory: created with audio-input-mode=%d sound-dsp-method=%d silent=%d visual-max-dimension=%d oss-input=%d oss-output=%d pulse-output=%d\n",
+    , visualMaxDimension(visualMaxDimension_)
+    , outputDump(outputDump_) {
+    CTH_DEBUG("runtime factory: created with audio-input-mode=%d sound-dsp-method=%d silent=%d visual-max-dimension=%d oss-input=%d oss-output=%d pulse-output=%d pulse-server=`%s'\n",
         settings.audioInputMode, settings.soundDSPMethod, settings.silent,
         visualMaxDimension,
         environment.ossInputAvailable, environment.ossOutputAvailable,
-        environment.pulseOutputAvailable);
+        environment.pulseOutputAvailable,
+        outputConfig.pulseServerDisplayName());
 }
 
 AudioSourceStrategy RuntimeFactory::selectAudioSourceStrategy() const {
@@ -108,17 +111,18 @@ AudioOutput* RuntimeFactory::createAudioOutput(const PcmFormat& format) const {
     if (settings.silent) {
         CTH_DEBUG("    audio output strategy: null output, because playback is silent\n");
         CTH_DEBUG("    audio output strategy: selected AudioNullOutput\n");
-        return new AudioNullOutput();
+        return new AudioNullOutput(outputConfig, outputDump);
     }
 
     if (environment.pulseOutputAvailable) {
         CTH_DEBUG("    audio output strategy: trying Pulse output on server `%s'\n",
-            pulse_server_display_name());
-        AudioPulseOutput* pulse = new AudioPulseOutput(format);
+            outputConfig.pulseServerDisplayName());
+        AudioPulseOutput* pulse = new AudioPulseOutput(format, outputConfig,
+            outputDump);
         if (pulse->isOpen()) {
             CTH_DEBUG("    audio output strategy: selected Pulse output\n");
             CTH_DEBUG("    audio output strategy: selected AudioPulseOutput server=`%s'\n",
-                pulse_server_display_name());
+                outputConfig.pulseServerDisplayName());
             return pulse;
         }
         delete pulse;
@@ -129,7 +133,8 @@ AudioOutput* RuntimeFactory::createAudioOutput(const PcmFormat& format) const {
     if (environment.ossOutputAvailable) {
         CTH_DEBUG("    audio output strategy: trying OSS DSP output with method %d\n",
             settings.soundDSPMethod);
-        AudioDSPOutput* dsp = new AudioDSPOutput(settings, visualMaxDimension);
+        AudioDSPOutput* dsp = new AudioDSPOutput(settings, outputConfig,
+            visualMaxDimension, outputDump);
         if (dsp->isOpen()) {
             CTH_DEBUG("    audio output strategy: selected AudioDSPOutput method=%d\n",
                 settings.soundDSPMethod);
@@ -142,5 +147,5 @@ AudioOutput* RuntimeFactory::createAudioOutput(const PcmFormat& format) const {
 
     CTH_DEBUG("    audio output strategy: null output, because no real output opened\n");
     CTH_DEBUG("    audio output strategy: selected AudioNullOutput fallback\n");
-    return new AudioNullOutput();
+    return new AudioNullOutput(outputConfig, outputDump);
 }

@@ -71,7 +71,22 @@ static void testAudioIngestUsesAudioConfig() {
 }
 
 static void testAudioDeviceSettingsAreStartupOnly() {
-    assertSourceContains("src/AudioOptions.h", "struct AudioDeviceConfig");
+    assertSourceDoesNotContain("src/AudioOptions.h", "struct AudioDeviceConfig");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioDeviceConfig");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioPcmFormat");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioInputModeValue");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioInputLoopEnabled");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioSet");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioSampleRateHz");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioChannels()");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioSampleFormat()");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioBytesPerSample");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioDsp");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioSilentEnabled");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audioDspDevicePath");
+    assertSourceContains("src/AudioOptions.h", "audioChannelsText(int channels)");
+    assertSourceContains("src/AudioOptions.h",
+        "audioSampleFormatText(int sampleFormat)");
     assertSourceDoesNotContain("src/AudioOptions.h", "extern Option& audioInputMode");
     assertSourceDoesNotContain("src/AudioOptions.h", "extern Option& soundFormat");
     assertSourceDoesNotContain("src/AudioOptions.h", "extern Option& soundChannels");
@@ -87,8 +102,26 @@ static void testAudioDeviceSettingsAreStartupOnly() {
     assertSourceDoesNotContain("src/AudioSystem.cc", "interfaceAudio");
     assertSourceDoesNotContain("src/AudioSystem.cc", "Audio Interface");
     assertSourceDoesNotContain("src/AudioSystem.cc", "audioFrameChange");
-    assertSourceContains("src/AudioSystem.cc",
-        "audioDeviceConfigValue.pcmFormat.sampleRate = config.sampleRateHz");
+    assertSourceDoesNotContain("src/AudioSystem.cc", "AudioDeviceConfig");
+    assertSourceDoesNotContain("src/AudioSystem.cc", "audioDeviceConfigValue");
+    assertSourceDoesNotContain("src/AudioSystem.cc", "configureAudioOptions");
+    assertSourceContains("src/AudioSystem.cc", "audioChannelsText(int channels)");
+    assertSourceContains("src/Mixer.h", "class MixerDevice");
+    assertSourceContains("src/Mixer.h", "class MixerSession");
+    assertSourceContains("src/Mixer.h", "class MixerControls");
+    assertSourceDoesNotContain("src/Mixer.h", "extern char dev_mixer");
+    assertSourceDoesNotContain("src/Mixer.h", "configureMixer");
+    assertSourceDoesNotContain("src/Mixer.h", "init_mixer");
+    assertSourceDoesNotContain("src/Mixer.h", "mixer_initial_volume");
+    assertSourceContains("src/Mixer.cc",
+        "MixerInitialVolume(it->name, it->volume)");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<MixerSession> mixerSessionValue");
+    assertSourceContains("src/Application.cc", "newMixerDevice()");
+    assertSourceContains("src/Application.cc",
+        "new MixerSession(*mixerDeviceValue, startupConfigValue.audio)");
+    assertSourceContains("src/Application.cc",
+        "mixerControlsValue->installInto(interfaceMixer)");
     assertSourceContains("src/AudioSettings.h", "PcmFormat pcmFormat");
     assertSourceContains("src/AudioIngest.h", "PcmFormat pcmFormatValue");
     assertSourceContains("src/AudioIngest.cc",
@@ -119,6 +152,54 @@ static void testAudioDeviceSettingsAreStartupOnly() {
     assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioSampleFormat");
     assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioBytesPerSample");
     assertSourceDoesNotContain("src/RuntimeFactory.cc", "audioDspDevicePath");
+    assertSourceDoesNotContain("src/Audio.h", "initInputControls");
+    assertSourceDoesNotContain("src/AudioIngest.cc", "initInputControls");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "initInputControls");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "init_mixer");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "#include \"Mixer.h\"");
+    assertSourceContains("tests/CMakeLists.txt", "mixer_session_test");
+    assertSourceContains("tests/CMakeLists.txt", "mixer_controls_test");
+}
+
+static void testAudioOutputSettingsAreSessionOwned() {
+    assertSourceContains("src/AudioOutputConfig.h", "struct AudioOutputConfig");
+    assertSourceContains("src/AudioOutputDump.h", "class AudioOutputDump");
+    assertSourceContains("src/AudioIngest.h",
+        "std::unique_ptr<AudioOutputDump> outputDumpValue");
+    assertSourceContains("src/AudioIngest.cc",
+        "AudioOutputConfig::fromConfig(configValue)");
+    assertSourceContains("src/RuntimeFactory.h",
+        "AudioOutputConfig outputConfig");
+    assertSourceContains("src/RuntimeFactory.cc",
+        "new AudioNullOutput(outputConfig, outputDump)");
+    assertSourceContains("src/RuntimeFactory.cc",
+        "new AudioPulseOutput(format, outputConfig");
+    assertSourceContains("src/RuntimeFactory.cc",
+        "new AudioDSPOutput(settings, outputConfig");
+    assertSourceContains("src/AudioOutput.cc",
+        "AudioOutput::AudioOutput(int targetLatencyMs, AudioOutputDump* outputDump)");
+    assertSourceContains("src/AudioOutput.cc",
+        "outputDumpValue->append(format, data, bytes)");
+    assertSourceContains("tests/CMakeLists.txt", "audio_output_config_test");
+    assertSourceContains("tests/CMakeLists.txt", "audio_output_dump_test");
+    assertSourceDoesNotContain("src/AudioOptions.h", "extern char pulse_server");
+    assertSourceDoesNotContain("src/AudioOptions.h", "pulse_latency_msec");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audio_output_dump");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audio_null_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audio_pulse_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioOptions.h", "audio_dsp_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "char pulse_server");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "pulse_latency_msec");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "audio_output_dump");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "audio_null_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "audio_pulse_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioOutput.cc", "audio_dsp_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioInternal.cc", "audio_output_dump");
+    assertSourceDoesNotContain("src/RuntimeFactory.cc", "pulse_server");
+    assertSourceDoesNotContain("src/AudioPulseOutput.cc", "pulse_server");
+    assertSourceDoesNotContain("src/AudioPulseOutput.cc", "pulse_latency_msec");
+    assertSourceDoesNotContain("src/AudioDSPOutput.cc", "audio_dsp_target_latency_msec");
+    assertSourceDoesNotContain("src/AudioSystem.cc", "configureAudioOutputOptions");
 }
 
 static void testAudioFrameOwnsPerFrameMetrics() {
@@ -427,7 +508,8 @@ static void testLegacyParserDoesNotWritePortedConfigValues() {
     assertSourceDoesNotContain("src/options.cc", "maxFramesPerSecond.change");
     assertSourceDoesNotContain("src/options.cc", "&key_esc");
     assertSourceDoesNotContain("src/options.cc", "Keymap::keymapFile");
-    assertSourceContains("src/AudioSystem.cc", "config.mixerInitialVolumes");
+    assertSourceContains("src/Mixer.cc",
+        "MixerInitialVolume(it->name, it->volume)");
 }
 
 static void testCatalogLoadingUsesPathConfig() {
@@ -471,7 +553,7 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc", "configureKeys(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "Keymap::init(startupConfigValue.input)");
     assertSourceContains("src/Application.cc", "remove_continuation_ini(startupConfigValue.paths)");
-    assertSourceContains("src/Application.cc", "configureAudioOptions(startupConfigValue.audio)");
+    assertSourceContains("src/Application.cc", "initMixerRuntime()");
     assertSourceContains("src/Application.cc", "configureCthughaDisplay(startupConfigValue.display)");
     assertSourceContains("src/Application.cc",
         "new OwnedAutoChangeSettings(startupConfigValue.autoChange)");
@@ -655,7 +737,9 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeDisplayControls()");
     assertSourceContains("src/Application.cc",
-        "new DefaultRuntimeAudioControls(*audioProcessingSelectorValue)");
+        "new DefaultRuntimeAudioControls(*audioProcessingSelectorValue,");
+    assertSourceContains("src/Application.cc",
+        "mixerControlsValue.get())");
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
     assertSourceContains("src/Application.cc",
@@ -724,6 +808,10 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "audioProcessingSelector.changeBy");
     assertSourceContains("src/RuntimeAudioControls.cc",
         "audioProcessingSelector.changeTo");
+    assertSourceContains("src/RuntimeAudioControls.cc",
+        "mixerControls->changeOptionBy(option, by)");
+    assertSourceContains("src/RuntimeAudioControls.cc",
+        "mixerControls->changeOptionTo(option, to)");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
         "#include \"AudioFrame.h\"");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
@@ -813,6 +901,7 @@ static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
 int main() {
     testAudioIngestUsesAudioConfig();
     testAudioDeviceSettingsAreStartupOnly();
+    testAudioOutputSettingsAreSessionOwned();
     testAudioFrameOwnsPerFrameMetrics();
     testDisplayStartupUsesDisplayConfig();
     testX11StartupUsesX11ConfigOnlyForX11Builds();

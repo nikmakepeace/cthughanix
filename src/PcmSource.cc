@@ -109,10 +109,6 @@ void AudioInput::update() {
     finished = 0;
 }
 
-int AudioInput::initInputControls() {
-    return source ? source->initInputControls() : 0;
-}
-
 WavPcmSource::WavPcmSource(const char* name_)
     : PcmSource()
     , file(NULL)

@@ -20,72 +20,7 @@
 #define PATH_MAX 4096
 #endif
 
-static AudioDeviceConfig audioDeviceConfigValue;
-
-AudioDeviceConfig::AudioDeviceConfig()
-    : inputMode(AIM_File)
-    , inputLoopEnabled(0)
-    , pcmFormat()
-    , dspMethod(0)
-    , dspFragments(16)
-    , dspFragmentSize(0)
-    , dspSyncEnabled(0)
-    , silentEnabled(0) {
-    pcmFormat.sampleRate = 44100;
-    pcmFormat.channels = 2;
-    pcmFormat.sampleFormat = SF_s16_le;
-    dspDevicePath[0] = '\0';
-}
-
-const AudioDeviceConfig& audioDeviceConfig() { return audioDeviceConfigValue; }
-const PcmFormat& audioPcmFormat() { return audioDeviceConfigValue.pcmFormat; }
-AudioInputMode audioInputModeValue() { return audioDeviceConfigValue.inputMode; }
-int audioInputLoopEnabled() { return audioDeviceConfigValue.inputLoopEnabled; }
-void audioSetInputLoopEnabled(int enabled) {
-    audioDeviceConfigValue.inputLoopEnabled = enabled ? 1 : 0;
-}
-int audioSampleRateHz() { return audioDeviceConfigValue.pcmFormat.sampleRate; }
-int audioChannels() { return audioDeviceConfigValue.pcmFormat.channels; }
-int audioSampleFormat() { return audioDeviceConfigValue.pcmFormat.sampleFormat; }
-void audioSetPcmFormat(const PcmFormat& format) {
-    audioDeviceConfigValue.pcmFormat = format;
-}
-void audioSetSampleRateHz(int sampleRateHz) {
-    audioDeviceConfigValue.pcmFormat.sampleRate = sampleRateHz;
-}
-void audioSetChannels(int channels) {
-    audioDeviceConfigValue.pcmFormat.channels = channels;
-}
-void audioSetSampleFormat(int sampleFormat) {
-    audioDeviceConfigValue.pcmFormat.sampleFormat = sampleFormat;
-}
-int audioBytesPerSample() {
-    return audioDeviceConfigValue.pcmFormat.bytesPerSample();
-}
-int audioDspMethod() { return audioDeviceConfigValue.dspMethod; }
-int audioDspFragments() { return audioDeviceConfigValue.dspFragments; }
-int audioDspFragmentSize() { return audioDeviceConfigValue.dspFragmentSize; }
-void audioSetDspFragment(int fragments, int fragmentSize) {
-    audioDeviceConfigValue.dspFragments = fragments;
-    audioDeviceConfigValue.dspFragmentSize = fragmentSize;
-}
-void audioSetDspFragments(int fragments) {
-    audioDeviceConfigValue.dspFragments = fragments;
-}
-void audioSetDspFragmentSize(int fragmentSize) {
-    audioDeviceConfigValue.dspFragmentSize = fragmentSize;
-}
-int audioDspSyncEnabled() { return audioDeviceConfigValue.dspSyncEnabled; }
-int audioSilentEnabled() { return audioDeviceConfigValue.silentEnabled; }
-const char* audioDspDevicePath() { return audioDeviceConfigValue.dspDevicePath; }
-const char* audioChannelsText() { return audioChannels() == 1 ? "mono" : "stereo"; }
 const char* audioSampleFormatText(int) { return "benchmark-format"; }
-const char* audioSampleFormatText() { return audioSampleFormatText(audioSampleFormat()); }
-const char* audioOnOffText(int enabled) { return enabled ? (char*)" on" : (char*)"off"; }
-
-int init_mixer() {
-    return 0;
-}
 
 namespace {
 

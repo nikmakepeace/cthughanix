@@ -104,7 +104,7 @@ AudioIngest::~AudioIngest() {
     stop();
 }
 
-int AudioIngest::start(int initializeInputControls) {
+int AudioIngest::start() {
     if (initializedValue)
         return 0;
 
@@ -115,19 +115,21 @@ int AudioIngest::start(int initializeInputControls) {
     frameValue.clear();
 
     if (hasConfig)
-        return buildFromConfig(initializeInputControls);
+        return buildFromConfig();
 
-    return buildFromInjectedRuntime(initializeInputControls);
+    return buildFromInjectedRuntime();
 }
 
-int AudioIngest::buildFromConfig(int initializeInputControls) {
+int AudioIngest::buildFromConfig() {
 #ifdef CTH_AUDIO_INGEST_NO_CONFIG
-    (void)initializeInputControls;
     return 1;
 #else
     AudioSettings settings = AudioSettings::fromConfig(configValue);
+    AudioOutputConfig outputConfig = AudioOutputConfig::fromConfig(configValue);
     Environment environment = Environment::detect(settings);
-    RuntimeFactory runtimeFactory(settings, environment, visualMaxDimensionValue);
+    outputDumpValue.reset(new AudioOutputDump(outputConfig.outputDumpPath));
+    RuntimeFactory runtimeFactory(settings, outputConfig, environment,
+        visualMaxDimensionValue, outputDumpValue.get());
     std::unique_ptr<AudioOutput> output;
 
     inputValue.reset(runtimeFactory.createAudioInput());
@@ -148,13 +150,6 @@ int AudioIngest::buildFromConfig(int initializeInputControls) {
         return 1;
     }
 
-    if ((inputValue.get() != NULL) && initializeInputControls
-        && inputValue->initInputControls()) {
-        CTH_DEBUG("audio ingest: native input control initialization failed\n");
-        inputValue.reset();
-        return 1;
-    }
-
     pcmFormatValue = (inputValue.get() != NULL)
         ? inputValue->format()
         : settings.pcmFormat;
@@ -171,11 +166,7 @@ int AudioIngest::buildFromConfig(int initializeInputControls) {
 #endif
 }
 
-int AudioIngest::buildFromInjectedRuntime(int initializeInputControls) {
-    if ((inputValue.get() != NULL) && initializeInputControls
-        && inputValue->initInputControls())
-        return 1;
-
+int AudioIngest::buildFromInjectedRuntime() {
     if (inputValue.get() != NULL) {
         pcmFormatValue = inputValue->format();
     } else {
@@ -258,6 +249,7 @@ void AudioIngest::stop() {
     passthroughValue.reset();
     inputChunk.reset();
     historyValue.reset();
+    outputDumpValue.reset();
     inputValue.reset();
     injectedOutputValue.reset();
     frameValue.clear();

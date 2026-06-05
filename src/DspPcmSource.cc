@@ -4,7 +4,6 @@
 #include "Audio.h"
 #include "AudioInternal.h"
 #include "AudioSettings.h"
-#include "Mixer.h"
 #include "imath.h"
 
 #include <sys/types.h>
@@ -342,11 +341,6 @@ void DspPcmSource::update() {
     init();
 }
 
-int DspPcmSource::initInputControls() {
-    CTH_INFO("Initializing OSS mixer device...\n");
-    return init_mixer();
-}
-
 DspPcmSource::~DspPcmSource() {
     if (dmaBuffer != NULL)
         munmap(dmaBuffer, dmaSize);
@@ -385,6 +379,4 @@ void DspPcmSource::init() { }
 int DspPcmSource::read(char*, int, int) { return 0; }
 int DspPcmSource::rawBufferSize(int frameRawSize, int) const { return frameRawSize; }
 void DspPcmSource::update() { }
-int DspPcmSource::initInputControls() { return 0; }
-
 #endif

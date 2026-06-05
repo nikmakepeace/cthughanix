@@ -19,7 +19,6 @@ int cth_log_errno(int, const char*, ...) { return 0; }
 static double fakeSystemTime = 0.0;
 double getTime() { return fakeSystemTime; }
 
-const char* audioSampleFormatText() { return "signed-8"; }
 const char* audioSampleFormatText(int) { return "signed-8"; }
 
 class FakeClock : public AudioIngestClock {
@@ -72,7 +71,7 @@ static void testTickBuildsFramesFromSilentPassthroughMode() {
     FakeClock clock;
     std::unique_ptr<AudioIngest> ingest(makeIngest(clock, 4096));
 
-    assert(ingest->start(0) == 0);
+    assert(ingest->start() == 0);
     assert(ingest->format().sampleRate == 1000);
     assert(ingest->format().channels == 1);
     assert(ingest->format().sampleFormat == SF_s8);
@@ -90,7 +89,7 @@ static void testFiniteSilentInputCompletesAtVisualEof() {
     FakeClock clock;
     std::unique_ptr<AudioIngest> ingest(makeIngest(clock, 1500));
 
-    assert(ingest->start(0) == 0);
+    assert(ingest->start() == 0);
     ingest->tick();
     assert(!ingest->complete());
 

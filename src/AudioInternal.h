@@ -29,14 +29,4 @@ void audioDebugSubmittedPcm(const PcmFormat& format, const char* scratch,
     int samples, int bytes, int written, int queuedSamples,
     long long submittedEndSample);
 
-/**
- * Optionally appends submitted PCM to the configured WAV dump.
- *
- * @param format PCM format represented by data.
- * @param data PCM bytes in the current output sound format.
- * @param bytes Number of bytes available at data.
- */
-void audioOutputDumpSubmittedPcm(const PcmFormat& format, const char* data,
-    int bytes);
-
 #endif

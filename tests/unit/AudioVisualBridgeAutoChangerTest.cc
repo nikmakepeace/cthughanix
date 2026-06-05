@@ -22,7 +22,6 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 double getTime() { return 0.0; }
-int audioBytesPerSample() { return 2; }
 
 static int fakeTime = 1000;
 

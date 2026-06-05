@@ -7,6 +7,9 @@
 
 #include "PcmSourceFactory.h"
 #include "AudioSettings.h"
+#include "AudioOutputConfig.h"
+
+class AudioOutputDump;
 
 class Environment {
 public:
@@ -29,8 +32,10 @@ public:
 
 class RuntimeFactory {
     AudioSettings settings;
+    AudioOutputConfig outputConfig;
     Environment environment;
     int visualMaxDimension;
+    AudioOutputDump* outputDump;
     PcmSourceFactory pcmSourceFactory;
 
 public:
@@ -38,12 +43,15 @@ public:
      * Creates a factory for one startup/runtime-selection pass.
      *
      * @param settings Snapshot of audio options used to select input/output.
+     * @param outputConfig Snapshot of audio output options used by backends.
      * @param environment Detected backend availability for this process.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Passed to DSP/audio-window constructors.
+     * @param outputDump Optional submitted-PCM dump collaborator.
      */
-    RuntimeFactory(const AudioSettings& settings, const Environment& environment,
-        int visualMaxDimension);
+    RuntimeFactory(const AudioSettings& settings,
+        const AudioOutputConfig& outputConfig, const Environment& environment,
+        int visualMaxDimension, AudioOutputDump* outputDump = NULL);
 
     /**
      * @return Newly allocated audio input wrapper. Caller owns the returned pointer.

@@ -1,48 +1,41 @@
-// Audio output base class, null output, and output option globals.
+/** @file
+ * Audio output base class and null output backend.
+ */
 
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
-#include "Configuration.h"
-
-#include <string.h>
-
-char pulse_server[PATH_MAX] = "";
-int pulse_latency_msec = 0;
-char audio_output_dump[PATH_MAX] = "";
-int audio_null_target_latency_msec = 0;
-int audio_pulse_target_latency_msec = 0;
-int audio_dsp_target_latency_msec = 0;
-
-void configureAudioOutputOptions(const AudioConfig& config) {
-    strncpy(pulse_server, config.pulseServer.c_str(), PATH_MAX);
-    pulse_server[PATH_MAX - 1] = '\0';
-    pulse_latency_msec = config.pulseLatencyMs;
-    strncpy(audio_output_dump, config.outputDumpPath.c_str(), PATH_MAX);
-    audio_output_dump[PATH_MAX - 1] = '\0';
-    audio_null_target_latency_msec = config.nullOutputTargetLatencyMs;
-    audio_pulse_target_latency_msec = config.pulseOutputTargetLatencyMs;
-    audio_dsp_target_latency_msec = config.dspOutputTargetLatencyMs;
-}
-
-const char* pulse_server_name() {
-    return (pulse_server[0] != '\0') ? pulse_server : NULL;
-}
-
-const char* pulse_server_display_name() {
-    return pulse_server_name() ? pulse_server_name() : "default";
-}
 
 AudioOutput::AudioOutput()
     : outputSamplesPerSecond(0)
     , outputBytesPerSample(1)
+    , outputTargetLatencyMs(0)
     , outputTargetDelaySamples(0)
-    , outputScratchSamples(0) { }
+    , outputScratchSamples(0)
+    , outputDumpValue(NULL) { }
+
+AudioOutput::AudioOutput(int targetLatencyMs, AudioOutputDump* outputDump)
+    : outputSamplesPerSecond(0)
+    , outputBytesPerSample(1)
+    , outputTargetLatencyMs(targetLatencyMs)
+    , outputTargetDelaySamples(0)
+    , outputScratchSamples(0)
+    , outputDumpValue(outputDump) { }
 
 AudioOutput::~AudioOutput() { }
 
+int AudioOutput::defaultTargetLatencyMs() const {
+    return outputTargetLatencyMs;
+}
+
 int AudioOutput::timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const {
     return isRealtime() ? targetDelaySamples : inputChunkSamples;
+}
+
+void AudioOutput::dumpSubmittedPcm(const PcmFormat& format, const char* data,
+    int bytes) {
+    if (outputDumpValue != NULL)
+        outputDumpValue->append(format, data, bytes);
 }
 
 void AudioOutput::configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples) {
@@ -82,7 +75,14 @@ int AudioOutput::playbackComplete(const AudioOutputStream& stream, int inputFini
     return inputFinished && (stream.queuedForOutputSamples() == 0);
 }
 
-int AudioNullOutput::defaultTargetLatencyMs() const { return audio_null_target_latency_msec; }
+AudioNullOutput::AudioNullOutput(const AudioOutputConfig& config,
+    AudioOutputDump* outputDump)
+    : AudioOutput(config.nullOutputTargetLatencyMs, outputDump) { }
+
+int AudioNullOutput::defaultTargetLatencyMs() const {
+    return AudioOutput::defaultTargetLatencyMs();
+}
+
 int AudioNullOutput::write(const void*, int size) { return size; }
 int AudioNullOutput::isOpen() const { return 1; }
 int AudioNullOutput::isRealtime() const { return 0; }
@@ -136,7 +136,7 @@ int AudioOutput::service(AudioOutputStream& stream, char* scratch, int scratchSa
         committedBytes = pcmBytesForSamples(committedSamples, bytesPerSample);
     }
     if (committedSamples > 0) {
-        audioOutputDumpSubmittedPcm(format, scratch, committedBytes);
+        dumpSubmittedPcm(format, scratch, committedBytes);
     }
 
     audioDebugSubmittedPcm(format, scratch, committedSamples, committedBytes,

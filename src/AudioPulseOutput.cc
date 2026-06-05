@@ -91,8 +91,11 @@ static int audioPulseWaitForStreamReady(pa_threaded_mainloop* mainloop,
     }
 }
 
-AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
-    : pcmFormatValue(format)
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
+    const AudioOutputConfig& config, AudioOutputDump* outputDump, int autoOpen)
+    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump)
+    , pcmFormatValue(format)
+    , outputConfigValue(config)
     , mainloop(NULL)
     , context(NULL)
     , stream(NULL)
@@ -104,7 +107,8 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
     , callbackDrainActive(0)
     , bytesPerSecondValue(0)
     , lastReportedUnderflows(0) {
-    update();
+    if (autoOpen)
+        update();
 }
 
 AudioPulseOutput::~AudioPulseOutput() {
@@ -161,10 +165,9 @@ void AudioPulseOutput::closePulse() {
 }
 
 int AudioPulseOutput::defaultTargetLatencyMs() const {
-    // Remote Pulse clients need enough server-side slack to survive network
-    // scheduling jitter. This is only an output buffer target; it does not
-    // drive visual sample selection.
-    return pulse_latency_msec;
+    // Passthrough queue latency is separate from the Pulse stream buffer
+    // latency used when opening the PulseAudio connection.
+    return AudioOutput::defaultTargetLatencyMs();
 }
 
 int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const {
@@ -188,7 +191,7 @@ void AudioPulseOutput::update() {
     }
 
     int bytesPerSampleValue = pcmFormatValue.bytesPerSample();
-    int targetSamples = (sampleSpec.rate * defaultTargetLatencyMs()) / 1000;
+    int targetSamples = (sampleSpec.rate * outputConfigValue.pulseLatencyMs) / 1000;
     int minRequestSamples = sampleSpec.rate / 20;
     if (minRequestSamples < 1)
         minRequestSamples = 1;
@@ -208,19 +211,19 @@ void AudioPulseOutput::update() {
     bufferAttr.fragsize = (uint32_t)-1;
 
     CTH_DEBUG("    audio output strategy: opening threaded Pulse server `%s'\n",
-        pulse_server_display_name());
+        serverDisplayName());
 
     mainloop = pa_threaded_mainloop_new();
     if (mainloop == NULL) {
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: no threaded mainloop\n",
-            pulse_server_display_name());
+            serverDisplayName());
         return;
     }
 
     pa_threaded_mainloop* pulseMainloop = (pa_threaded_mainloop*)mainloop;
     if (pa_threaded_mainloop_start(pulseMainloop) < 0) {
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: could not start threaded mainloop\n",
-            pulse_server_display_name());
+            serverDisplayName());
         pa_threaded_mainloop_free(pulseMainloop);
         mainloop = NULL;
         return;
@@ -237,7 +240,7 @@ void AudioPulseOutput::update() {
     if (context == NULL) {
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: no context\n",
-            pulse_server_display_name());
+            serverDisplayName());
         closePulse();
         return;
     }
@@ -245,13 +248,13 @@ void AudioPulseOutput::update() {
     pa_context* pulseContext = (pa_context*)context;
     pa_context_set_state_callback(pulseContext, audioPulseContextStateCallback,
         pulseMainloop);
-    if (pa_context_connect(pulseContext, pulse_server_name(), PA_CONTEXT_NOFLAGS,
+    if (pa_context_connect(pulseContext, serverName(), PA_CONTEXT_NOFLAGS,
             NULL)
         < 0) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to connect: %s\n",
-            pulse_server_display_name(), errorText);
+            serverDisplayName(), errorText);
         closePulse();
         return;
     }
@@ -260,7 +263,7 @@ void AudioPulseOutput::update() {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to become ready: %s\n",
-            pulse_server_display_name(), errorText);
+            serverDisplayName(), errorText);
         closePulse();
         return;
     }
@@ -270,7 +273,7 @@ void AudioPulseOutput::update() {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to create stream: %s\n",
-            pulse_server_display_name(), errorText);
+            serverDisplayName(), errorText);
         closePulse();
         return;
     }
@@ -290,7 +293,7 @@ void AudioPulseOutput::update() {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to connect stream: %s\n",
-            pulse_server_display_name(), errorText);
+            serverDisplayName(), errorText);
         closePulse();
         return;
     }
@@ -299,7 +302,7 @@ void AudioPulseOutput::update() {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
         CTH_DEBUG("    audio output strategy: Pulse server `%s' stream failed to become ready: %s\n",
-            pulse_server_display_name(), errorText);
+            serverDisplayName(), errorText);
         closePulse();
         return;
     }
@@ -314,21 +317,21 @@ void AudioPulseOutput::update() {
     pa_threaded_mainloop_unlock(pulseMainloop);
 
     CTH_DEBUG("    audio output strategy: threaded Pulse server `%s' connected successfully\n",
-        pulse_server_display_name());
+        serverDisplayName());
     CTH_DEBUG("    audio output strategy: Pulse buffer target=%u bytes (%d ms) prebuffer=%u bytes (%d ms) min-request=%u bytes (%d ms) max=%u bytes (%d ms)\n",
         actualTarget, audioPulseBytesToMs(actualTarget, bytesPerSecondValue),
         actualPrebuf, audioPulseBytesToMs(actualPrebuf, bytesPerSecondValue),
         actualMinRequest, audioPulseBytesToMs(actualMinRequest, bytesPerSecondValue),
         actualMax, audioPulseBytesToMs(actualMax, bytesPerSecondValue));
     CTH_DEBUG("    audio output strategy: opened threaded server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d target-bytes=%u prebuffer-bytes=%u min-request-bytes=%u max-bytes=%u target-ms=%d prebuffer-ms=%d min-request-ms=%d max-ms=%d configured-latency-ms=%d\n",
-        pulse_server_display_name(), sampleSpec.rate,
+        serverDisplayName(), sampleSpec.rate,
         sampleSpec.channels, sampleSpec.format, bytesPerSecondValue, actualTarget,
         actualPrebuf, actualMinRequest, actualMax,
         audioPulseBytesToMs(actualTarget, bytesPerSecondValue),
         audioPulseBytesToMs(actualPrebuf, bytesPerSecondValue),
         audioPulseBytesToMs(actualMinRequest, bytesPerSecondValue),
         audioPulseBytesToMs(actualMax, bytesPerSecondValue),
-        pulse_latency_msec);
+        outputConfigValue.pulseLatencyMs);
 }
 
 int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWritable) {
@@ -345,14 +348,14 @@ int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWri
     while (written < size) {
         if (!PA_STREAM_IS_GOOD(pa_stream_get_state(pulseStream))) {
             CTH_ERROR("Pulse passthrough write failed on server `%s': stream is not ready\n",
-                pulse_server_display_name());
+                serverDisplayName());
             break;
         }
 
         size_t writable = pa_stream_writable_size(pulseStream);
         if (writable == (size_t)-1) {
             CTH_ERROR("Pulse passthrough write failed on server `%s': %s\n",
-                pulse_server_display_name(),
+                serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
         }
@@ -382,7 +385,7 @@ int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWri
                 NULL, 0, PA_SEEK_RELATIVE)
             < 0) {
             CTH_ERROR("Pulse passthrough write failed on server `%s': %s\n",
-                pulse_server_display_name(),
+                serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
         }
@@ -426,7 +429,7 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
             break;
         if (!PA_STREAM_IS_GOOD(pa_stream_get_state(pulseStream))) {
             CTH_ERROR("Pulse passthrough stream failed on server `%s': stream is not ready\n",
-                pulse_server_display_name());
+                serverDisplayName());
             break;
         }
 
@@ -446,7 +449,7 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
         size_t streamWritableBytes = pa_stream_writable_size(pulseStream);
         if (streamWritableBytes == (size_t)-1) {
             CTH_ERROR("Pulse passthrough writable query failed on server `%s': %s\n",
-                pulse_server_display_name(),
+                serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
         }
@@ -479,7 +482,7 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
         if (committedSamples <= 0)
             break;
 
-        audioOutputDumpSubmittedPcm(callbackStream->format(), callbackScratch,
+        dumpSubmittedPcm(callbackStream->format(), callbackScratch,
             committedBytes);
         audioDebugSubmittedPcm(callbackStream->format(), callbackScratch,
             committedSamples, committedBytes, written,
@@ -599,7 +602,19 @@ void AudioPulseOutput::pulseUnderflow() {
 
     if (underflows != previous)
         CTH_WARN("Pulse output underrun on server `%s' (count=%d).\n",
-            pulse_server_display_name(), underflows);
+            serverDisplayName(), underflows);
+}
+
+const char* AudioPulseOutput::serverName() const {
+    return outputConfigValue.pulseServerName();
+}
+
+const char* AudioPulseOutput::serverDisplayName() const {
+    return outputConfigValue.pulseServerDisplayName();
+}
+
+int AudioPulseOutput::pulseLatencyMs() const {
+    return outputConfigValue.pulseLatencyMs;
 }
 
 int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, int scratchSamples,
@@ -643,14 +658,14 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
 
     if (!streamGood) {
         CTH_ERROR("Pulse passthrough stream failed on server `%s': %s\n",
-            pulse_server_display_name(),
+            serverDisplayName(),
             pa_strerror(pa_context_errno((pa_context*)context)));
         return 0;
     }
 
     if (underflows != lastReportedUnderflows.load()) {
         CTH_WARN("Pulse output underrun on server `%s' (count=%d).\n",
-            pulse_server_display_name(), underflows);
+            serverDisplayName(), underflows);
         lastReportedUnderflows.store(underflows);
     }
 
@@ -684,7 +699,7 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
         committedBytes = pcmBytesForSamples(committedSamples, bytesPerSampleValue);
     }
     if (committedSamples > 0) {
-        audioOutputDumpSubmittedPcm(outputStream.format(), scratch, committedBytes);
+        dumpSubmittedPcm(outputStream.format(), scratch, committedBytes);
     }
 
     audioDebugSubmittedPcm(outputStream.format(), scratch, committedSamples,
@@ -700,8 +715,11 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
 
 #else
 
-AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
-    : pcmFormatValue(format)
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
+    const AudioOutputConfig& config, AudioOutputDump* outputDump, int)
+    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump)
+    , pcmFormatValue(format)
+    , outputConfigValue(config)
     , mainloop(NULL)
     , context(NULL)
     , stream(NULL)
@@ -718,7 +736,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
 
 AudioPulseOutput::~AudioPulseOutput() { }
 void AudioPulseOutput::closePulse() { }
-int AudioPulseOutput::defaultTargetLatencyMs() const { return audio_pulse_target_latency_msec; }
+int AudioPulseOutput::defaultTargetLatencyMs() const { return AudioOutput::defaultTargetLatencyMs(); }
 int AudioPulseOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 int AudioPulseOutput::write(const void*, int) { return 0; }
 int AudioPulseOutput::isOpen() const { return 0; }
@@ -731,5 +749,8 @@ void AudioPulseOutput::notifyCallbackDrain() { }
 void AudioPulseOutput::stopCallbackDrain() { }
 void AudioPulseOutput::pulseWritable(size_t) { }
 void AudioPulseOutput::pulseUnderflow() { }
+const char* AudioPulseOutput::serverName() const { return outputConfigValue.pulseServerName(); }
+const char* AudioPulseOutput::serverDisplayName() const { return outputConfigValue.pulseServerDisplayName(); }
+int AudioPulseOutput::pulseLatencyMs() const { return outputConfigValue.pulseLatencyMs; }
 
 #endif

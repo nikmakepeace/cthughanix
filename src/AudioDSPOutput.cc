@@ -22,8 +22,11 @@
 
 #if WITH_DSP == 1
 
-AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings, int visualMaxDimension)
-    : handle(-1)
+AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings,
+    const AudioOutputConfig& config, int visualMaxDimension,
+    AudioOutputDump* outputDump)
+    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump)
+    , handle(-1)
     , method(settings.soundDSPMethod)
     , pcmFormatValue(settings.pcmFormat)
     , dspFragmentsValue(settings.dspFragments)
@@ -44,7 +47,7 @@ int AudioDSPOutput::defaultTargetLatencyMs() const {
     case 2:
     case 3:
     default:
-        return audio_dsp_target_latency_msec;
+        return AudioOutput::defaultTargetLatencyMs();
     }
 }
 
@@ -244,8 +247,11 @@ AudioDSPOutput::~AudioDSPOutput() {
 
 #else
 
-AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings, int visualMaxDimension)
-    : handle(-1)
+AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings,
+    const AudioOutputConfig& config, int visualMaxDimension,
+    AudioOutputDump* outputDump)
+    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump)
+    , handle(-1)
     , method(settings.soundDSPMethod)
     , pcmFormatValue(settings.pcmFormat)
     , dspFragmentsValue(settings.dspFragments)
@@ -258,7 +264,7 @@ AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings, int visualMaxDimen
 }
 
 AudioDSPOutput::~AudioDSPOutput() { }
-int AudioDSPOutput::defaultTargetLatencyMs() const { return audio_dsp_target_latency_msec; }
+int AudioDSPOutput::defaultTargetLatencyMs() const { return AudioOutput::defaultTargetLatencyMs(); }
 int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const { return targetDelaySamples; }
 void AudioDSPOutput::setFragment() { }
 void AudioDSPOutput::setChannels() { }

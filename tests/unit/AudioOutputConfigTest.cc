@@ -1,0 +1,77 @@
+/** @file
+ * Unit coverage for explicit audio output config propagation.
+ */
+
+#include "Audio.h"
+#include "AudioSettings.h"
+
+#include <assert.h>
+#include <stdarg.h>
+#include <string.h>
+
+int cth_log_enabled(int) { return 0; }
+int cth_log(int, const char*, ...) { return 0; }
+int cth_log_context(int, const char*, const char*, ...) { return 0; }
+int cth_log_error(const char*, ...) { return 0; }
+int cth_log_errno(int, const char*, ...) { return 0; }
+double getTime() { return 0.0; }
+const char* audioSampleFormatText(int) { return "signed-16"; }
+
+static PcmFormat stereo16Format() {
+    PcmFormat format;
+    format.sampleRate = 48000;
+    format.channels = 2;
+    format.sampleFormat = SF_s16_le;
+    return format;
+}
+
+static void testNullOutputReceivesTargetLatency() {
+    AudioOutputConfig config;
+    config.nullOutputTargetLatencyMs = 17;
+    AudioNullOutput output(config);
+
+    assert(output.targetLatencyMs() == 17);
+    output.configureTiming(1000, 1, 1);
+    assert(output.targetDelaySamples() == 17);
+}
+
+static void testPulseOutputReceivesServerAndLatencyWithoutOpening() {
+    AudioOutputConfig config;
+    config.pulseServer = "pulse.local";
+    config.pulseLatencyMs = 1234;
+    config.pulseOutputTargetLatencyMs = 23;
+    AudioPulseOutput output(stereo16Format(), config, NULL, 0);
+
+    assert(strcmp(output.serverName(), "pulse.local") == 0);
+    assert(strcmp(output.serverDisplayName(), "pulse.local") == 0);
+    assert(output.pulseLatencyMs() == 1234);
+    assert(output.targetLatencyMs() == 23);
+    output.configureTiming(1000, stereo16Format().bytesPerSample(), 1);
+    assert(output.targetDelaySamples() == 23);
+}
+
+static void testDspOutputReceivesTargetLatency() {
+    AudioSettings settings;
+    settings.pcmFormat = stereo16Format();
+    settings.soundDSPMethod = 0;
+    settings.dspFragments = 8;
+    settings.dspFragmentSize = 9;
+    strncpy(settings.dspDevicePath, "/tmp/cthughanix-no-such-dsp", PATH_MAX);
+    settings.dspDevicePath[PATH_MAX - 1] = '\0';
+
+    AudioOutputConfig config;
+    config.dspOutputTargetLatencyMs = 29;
+    AudioDSPOutput output(settings, config, 256);
+
+    assert(!output.isOpen());
+    assert(output.targetLatencyMs() == 29);
+    output.configureTiming(1000, stereo16Format().bytesPerSample(), 1);
+    assert(output.targetDelaySamples() == 29);
+}
+
+int main() {
+    testNullOutputReceivesTargetLatency();
+    testPulseOutputReceivesServerAndLatencyWithoutOpening();
+    testDspOutputReceivesTargetLatency();
+    return 0;
+}

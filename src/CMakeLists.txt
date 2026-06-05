@@ -7,6 +7,8 @@ set(CTHUGHA_COMMON_SOURCES
     EffectChoiceLoader.cc
     EffectChoice.cc
     AudioInternal.cc
+    AudioOutputConfig.cc
+    AudioOutputDump.cc
     AudioOutput.cc
     AudioPulseOutput.cc
     AudioDSPOutput.cc
@@ -41,6 +43,8 @@ set(CTHUGHA_COMMON_SOURCES
     AudioVisualBridge.cc
     PlatformLifecycle.cc
     Mixer.cc
+    MixerControls.cc
+    MixerInterfaceControls.cc
     imath.cc
     AudioSystem.cc
     Configuration.cc

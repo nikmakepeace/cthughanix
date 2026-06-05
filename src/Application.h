@@ -25,6 +25,9 @@ class CthughaDisplay;
 class DisplayRuntimeOwnership;
 class IndexedFrame;
 class LegacyRuntimeConfigContributor;
+class MixerControls;
+class MixerDevice;
+class MixerSession;
 class RuntimeAudioControls;
 class RuntimeAutoChangeControls;
 class RuntimeChangeMediator;
@@ -73,6 +76,9 @@ class Application {
     std::unique_ptr<RuntimeAutoChangeControls> runtimeAutoChangeControlsValue;
     std::unique_ptr<RuntimeEffectControls> runtimeEffectControlsValue;
     std::unique_ptr<RuntimeChangeMediator> runtimeChangeMediatorValue;
+    std::unique_ptr<MixerDevice> mixerDeviceValue;
+    std::unique_ptr<MixerSession> mixerSessionValue;
+    std::unique_ptr<MixerControls> mixerControlsValue;
     std::unique_ptr<DisplayRuntimeOwnership> displayRuntimeOwnership;
     std::unique_ptr<CthughaDisplay> displayValue;
     PlatformLifecycle platformLifecycle;
@@ -96,6 +102,12 @@ class Application {
 
     /** Destroys Scene/SceneCommands and disconnects legacy scene callbacks. */
     void shutdownSceneRuntime();
+
+    /** Creates and installs OSS mixer controls for DSP input sessions. */
+    int initMixerRuntime();
+
+    /** Clears and releases the Application-owned mixer runtime. */
+    void shutdownMixerRuntime();
 
     /** Destroys the visual filterchain and its owned filters. */
     void shutdownVideoFilterchain();

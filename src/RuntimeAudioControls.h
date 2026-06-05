@@ -8,6 +8,7 @@
 #include "RuntimeCommandSink.h"
 
 class AudioProcessingSelector;
+class MixerControls;
 class Option;
 
 /** Controls runtime audio-processing commands. */
@@ -56,6 +57,7 @@ public:
 /** RuntimeAudioControls implementation backed by owned audio-processing state. */
 class DefaultRuntimeAudioControls : public RuntimeAudioControls {
     AudioProcessingSelector& audioProcessingSelector;
+    MixerControls* mixerControls;
 
 public:
     /**
@@ -63,9 +65,11 @@ public:
      *
      * @param audioProcessingSelector_ Selector to mutate. The referenced object
      *        must outlive these controls.
+     * @param mixerControls_ Optional mixer controls for OSS mixer panel rows.
      */
     explicit DefaultRuntimeAudioControls(
-        AudioProcessingSelector& audioProcessingSelector_);
+        AudioProcessingSelector& audioProcessingSelector_,
+        MixerControls* mixerControls_ = 0);
 
     /**
      * Changes sound processing by relative offset.
