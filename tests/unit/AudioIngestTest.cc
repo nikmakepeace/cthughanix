@@ -19,23 +19,8 @@ int cth_log_errno(int, const char*, ...) { return 0; }
 static double fakeSystemTime = 0.0;
 double getTime() { return fakeSystemTime; }
 
-static PcmFormat currentFormat;
-static int inputLoopEnabled = 0;
-
-const PcmFormat& audioPcmFormat() { return currentFormat; }
-AudioInputMode audioInputModeValue() { return AIM_File; }
-int audioInputLoopEnabled() { return inputLoopEnabled; }
-void audioSetInputLoopEnabled(int enabled) { inputLoopEnabled = enabled ? 1 : 0; }
-int audioSampleRateHz() { return currentFormat.sampleRate; }
-int audioChannels() { return currentFormat.channels; }
-int audioSampleFormat() { return currentFormat.sampleFormat; }
 const char* audioSampleFormatText() { return "signed-8"; }
 const char* audioSampleFormatText(int) { return "signed-8"; }
-void audioSetPcmFormat(const PcmFormat& format) { currentFormat = format; }
-void audioSetSampleRateHz(int sampleRateHz) { currentFormat.sampleRate = sampleRateHz; }
-void audioSetChannels(int channels) { currentFormat.channels = channels; }
-void audioSetSampleFormat(int sampleFormat) { currentFormat.sampleFormat = sampleFormat; }
-int audioBytesPerSample() { return currentFormat.bytesPerSample(); }
 
 class FakeClock : public AudioIngestClock {
 public:
@@ -88,6 +73,9 @@ static void testTickBuildsFramesFromSilentPassthroughMode() {
     std::unique_ptr<AudioIngest> ingest(makeIngest(clock, 4096));
 
     assert(ingest->start(0) == 0);
+    assert(ingest->format().sampleRate == 1000);
+    assert(ingest->format().channels == 1);
+    assert(ingest->format().sampleFormat == SF_s8);
     ingest->tick();
     assert(ingest->currentFrame().samples > 0);
     assert(ingest->currentFrame().centerSample == 0);
@@ -112,10 +100,6 @@ static void testFiniteSilentInputCompletesAtVisualEof() {
 }
 
 int main() {
-    currentFormat.sampleRate = 1000;
-    currentFormat.channels = 1;
-    currentFormat.sampleFormat = SF_s8;
-
     testTickBuildsFramesFromSilentPassthroughMode();
     testFiniteSilentInputCompletesAtVisualEof();
     return 0;

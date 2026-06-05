@@ -20,8 +20,8 @@ static int audioPulseBytesToMs(unsigned int bytes, int bytesPerSecond) {
     return (ms > INT_MAX) ? INT_MAX : (int)ms;
 }
 
-static pa_sample_format_t audioPulseSampleFormat() {
-    switch (audioSampleFormat()) {
+static pa_sample_format_t audioPulseSampleFormat(const PcmFormat& format) {
+    switch (format.sampleFormat) {
     case SF_u8:
         return PA_SAMPLE_U8;
     case SF_s16_le:
@@ -91,8 +91,9 @@ static int audioPulseWaitForStreamReady(pa_threaded_mainloop* mainloop,
     }
 }
 
-AudioPulseOutput::AudioPulseOutput()
-    : mainloop(NULL)
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
+    : pcmFormatValue(format)
+    , mainloop(NULL)
     , context(NULL)
     , stream(NULL)
     , drainEvent(NULL)
@@ -176,17 +177,17 @@ void AudioPulseOutput::update() {
 
     closePulse();
 
-    sampleSpec.format = audioPulseSampleFormat();
-    sampleSpec.rate = audioSampleRateHz();
-    sampleSpec.channels = audioChannels();
+    sampleSpec.format = audioPulseSampleFormat(pcmFormatValue);
+    sampleSpec.rate = pcmFormatValue.sampleRate;
+    sampleSpec.channels = pcmFormatValue.channels;
 
     if (sampleSpec.format == PA_SAMPLE_INVALID) {
         CTH_DEBUG("    audio output strategy: Pulse unavailable for format `%s'\n",
-            audioSampleFormatText());
+            audioSampleFormatText(pcmFormatValue.sampleFormat));
         return;
     }
 
-    int bytesPerSampleValue = audioBytesPerSample();
+    int bytesPerSampleValue = pcmFormatValue.bytesPerSample();
     int targetSamples = (sampleSpec.rate * defaultTargetLatencyMs()) / 1000;
     int minRequestSamples = sampleSpec.rate / 20;
     if (minRequestSamples < 1)
@@ -478,9 +479,10 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
         if (committedSamples <= 0)
             break;
 
-        audioOutputDumpSubmittedPcm(callbackScratch, committedBytes);
-
-            audioDebugSubmittedPcm(callbackScratch, committedSamples, committedBytes, written,
+        audioOutputDumpSubmittedPcm(callbackStream->format(), callbackScratch,
+            committedBytes);
+        audioDebugSubmittedPcm(callbackStream->format(), callbackScratch,
+            committedSamples, committedBytes, written,
             callbackStream->queuedForOutputSamples(),
             callbackStream->submittedEndPosition());
         CTH_TRACE("pulse callback drained samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu requested-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld input-finished=%d\n",
@@ -682,10 +684,11 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
         committedBytes = pcmBytesForSamples(committedSamples, bytesPerSampleValue);
     }
     if (committedSamples > 0) {
-        audioOutputDumpSubmittedPcm(scratch, committedBytes);
+        audioOutputDumpSubmittedPcm(outputStream.format(), scratch, committedBytes);
     }
 
-    audioDebugSubmittedPcm(scratch, committedSamples, committedBytes, written, outputStream.queuedForOutputSamples(),
+    audioDebugSubmittedPcm(outputStream.format(), scratch, committedSamples,
+        committedBytes, written, outputStream.queuedForOutputSamples(),
         outputStream.submittedEndPosition());
     CTH_TRACE("pulse output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld\n",
         "audio runtime", samples, bytes, written, committedSamples, committedBytes,
@@ -697,8 +700,9 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
 
 #else
 
-AudioPulseOutput::AudioPulseOutput()
-    : mainloop(NULL)
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format)
+    : pcmFormatValue(format)
+    , mainloop(NULL)
     , context(NULL)
     , stream(NULL)
     , drainEvent(NULL)

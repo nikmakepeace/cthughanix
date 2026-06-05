@@ -6,10 +6,11 @@
 #include "Audio.h"
 #include "imath.h"
 
-DecodedAudioHistory::DecodedAudioHistory(int capacitySamples_, int bytesPerSample_,
+DecodedAudioHistory::DecodedAudioHistory(int capacitySamples_, const PcmFormat& format_,
     int retainedHistorySamples_)
     : data(NULL)
-    , bytesPerSampleValue(bytesPerSample_)
+    , pcmFormatValue(format_)
+    , bytesPerSampleValue(pcmFormatValue.bytesPerSample())
     , capacitySamples(capacitySamples_)
     , retainedHistorySamples(retainedHistorySamples_)
     , decodedEndSample(0) {
@@ -22,8 +23,9 @@ DecodedAudioHistory::DecodedAudioHistory(int capacitySamples_, int bytesPerSampl
     if (retainedHistorySamples >= capacitySamples)
         retainedHistorySamples = capacitySamples - 1;
     data = new char[pcmBytesForSamples(capacitySamples, bytesPerSampleValue)];
-    CTH_DEBUG("decoded audio history: created capacity-samples=%d bytes-per-sample=%d retained-history-samples=%d\n",
-        capacitySamples, bytesPerSampleValue, retainedHistorySamples);
+    CTH_DEBUG("decoded audio history: created capacity-samples=%d rate=%d channels=%d format=%d bytes-per-sample=%d retained-history-samples=%d\n",
+        capacitySamples, pcmFormatValue.sampleRate, pcmFormatValue.channels,
+        pcmFormatValue.sampleFormat, bytesPerSampleValue, retainedHistorySamples);
 }
 
 DecodedAudioHistory::~DecodedAudioHistory() {
@@ -129,6 +131,10 @@ void AudioOutputStream::reset(long long samplePosition) {
 
 int AudioOutputStream::bytesPerSample() const {
     return history.bytesPerSample();
+}
+
+const PcmFormat& AudioOutputStream::format() const {
+    return history.format();
 }
 
 long long AudioOutputStream::decodedEndPosition() const {
@@ -271,7 +277,8 @@ void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& hist
     }
 
     convert(frame.raw + sampleOffset,
-        rawData + pcmBytesForSamples(sampleOffset, bytesPerSample), samplesRead);
+        rawData + pcmBytesForSamples(sampleOffset, bytesPerSample), samplesRead,
+        history.format());
     memcpy(frame.processedWaveData, frame.raw, sizeof(frame.processedWaveData));
     frame.samples = sampleOffset + samplesRead;
 
@@ -280,15 +287,16 @@ void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& hist
         pcmBytesForSamples(frame.samples, bytesPerSample));
 }
 
-void AudioFrameBuilder::convert(char2* dst, void* src, int n) {
+void AudioFrameBuilder::convert(char2* dst, void* src, int n,
+    const PcmFormat& format) {
     unsigned char* data_u8 = (unsigned char*)src;
     char* data_s8 = (char*)src;
     unsigned short* data_u16 = (unsigned short*)src;
     short* data_s16 = (short*)src;
 
-    int cInc = (audioChannels() == 1) ? 0 : 1;
+    int cInc = (format.channels == 1) ? 0 : 1;
 
-    switch (audioSampleFormat()) {
+    switch (format.sampleFormat) {
     case SF_u8:
         for (int i = 0; i < n; i++) {
             dst[i][1] = int(*data_u8) - 128;

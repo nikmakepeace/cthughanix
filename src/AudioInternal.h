@@ -3,6 +3,8 @@
 #ifndef CTHUGHA_AUDIO_INTERNAL_H
 #define CTHUGHA_AUDIO_INTERNAL_H
 
+struct PcmFormat;
+
 /**
  * Converts the largest logical visual dimension into the audio sample window.
  *
@@ -15,6 +17,7 @@ int audioSampleWindowForVisualMaxDimension(int visualMaxDimension);
 /**
  * Emits bounded debug detail for PCM submitted to an output backend.
  *
+ * @param format PCM format represented by scratch.
  * @param scratch PCM bytes submitted to output.
  * @param samples Number of sample frames represented in scratch.
  * @param bytes Number of bytes represented in scratch.
@@ -22,15 +25,18 @@ int audioSampleWindowForVisualMaxDimension(int visualMaxDimension);
  * @param queuedSamples Remaining queued sample frames after submission.
  * @param submittedEndSample Absolute sample-frame position after submission.
  */
-void audioDebugSubmittedPcm(const char* scratch, int samples, int bytes, int written,
-    int queuedSamples, long long submittedEndSample);
+void audioDebugSubmittedPcm(const PcmFormat& format, const char* scratch,
+    int samples, int bytes, int written, int queuedSamples,
+    long long submittedEndSample);
 
 /**
  * Optionally appends submitted PCM to the configured WAV dump.
  *
+ * @param format PCM format represented by data.
  * @param data PCM bytes in the current output sound format.
  * @param bytes Number of bytes available at data.
  */
-void audioOutputDumpSubmittedPcm(const char* data, int bytes);
+void audioOutputDumpSubmittedPcm(const PcmFormat& format, const char* data,
+    int bytes);
 
 #endif

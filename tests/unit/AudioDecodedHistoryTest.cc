@@ -14,16 +14,24 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
-int audioChannels() { return 2; }
-int audioSampleFormat() { return SF_s8; }
-int audioBytesPerSample() { return 2; }
+static PcmFormat formatFor(int sampleRate, int channels, int sampleFormat) {
+    PcmFormat format;
+    format.sampleRate = sampleRate;
+    format.channels = channels;
+    format.sampleFormat = sampleFormat;
+    return format;
+}
 
 static void testHistoryKeepsRecentWindowWhileAppending() {
-    DecodedAudioHistory history(8, 1, 4);
+    PcmFormat format = formatFor(1000, 1, SF_s8);
+    DecodedAudioHistory history(8, format, 4);
     char first[6] = { 0, 1, 2, 3, 4, 5 };
     char second[4] = { 6, 7, 8, 9 };
     char out[8] = { 0 };
 
+    assert(history.format().sampleRate == format.sampleRate);
+    assert(history.format().channels == format.channels);
+    assert(history.format().sampleFormat == format.sampleFormat);
     assert(history.appendDecodedPcm(first, 6) == 6);
     assert(history.decodedEndPosition() == 6);
     assert(history.oldestAvailablePosition() == 2);
@@ -39,7 +47,7 @@ static void testHistoryKeepsRecentWindowWhileAppending() {
 }
 
 static void testFrameBuilderReadsCenteredHistory() {
-    DecodedAudioHistory history(4096, 2, 2048);
+    DecodedAudioHistory history(4096, formatFor(1000, 2, SF_s8), 2048);
     AudioFrameBuilder builder;
     AudioFrame frame;
     char pcm[2048];

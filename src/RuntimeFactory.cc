@@ -13,9 +13,9 @@ Environment::Environment()
     , ossOutputAvailable(0)
     , pulseOutputAvailable(0) { }
 
-Environment Environment::detect() {
+Environment Environment::detect(const AudioSettings& settings) {
     Environment environment;
-    const char* dspDevicePath = audioDspDevicePath();
+    const char* dspDevicePath = settings.dspDevicePath;
 
     if (dspDevicePath[0] != '\0') {
         environment.ossInputAvailable = (access(dspDevicePath, R_OK) == 0);
@@ -27,8 +27,8 @@ Environment Environment::detect() {
 #endif
 
     CTH_DEBUG("runtime environment: dev-dsp=`%s' oss-input=%d oss-output=%d pulse-output=%d\n",
-        dspDevicePath, environment.ossInputAvailable, environment.ossOutputAvailable,
-        environment.pulseOutputAvailable);
+        dspDevicePath, environment.ossInputAvailable,
+        environment.ossOutputAvailable, environment.pulseOutputAvailable);
 
     return environment;
 }
@@ -87,7 +87,7 @@ AudioInput* RuntimeFactory::createAudioInput() const {
     if (source != NULL) {
         CTH_DEBUG("    audio input strategy: selected AudioInput with source strategy=%s\n",
             PcmSourceFactory::strategyName(sourceStrategy));
-        return new AudioInput(source);
+        return new AudioInput(source, 1, settings.inputLoopEnabled);
     }
     if (settings.audioInputMode == AIM_File) {
         CTH_DEBUG("    audio input strategy: no native PCM source for %s file source\n",
@@ -101,7 +101,7 @@ AudioInput* RuntimeFactory::createAudioInput() const {
     return NULL;
 }
 
-AudioOutput* RuntimeFactory::createAudioOutput() const {
+AudioOutput* RuntimeFactory::createAudioOutput(const PcmFormat& format) const {
     CTH_DEBUG("    audio output strategy: selecting AudioOutput silent=%d pulse-output=%d oss-output=%d\n",
         settings.silent, environment.pulseOutputAvailable, environment.ossOutputAvailable);
 
@@ -114,7 +114,7 @@ AudioOutput* RuntimeFactory::createAudioOutput() const {
     if (environment.pulseOutputAvailable) {
         CTH_DEBUG("    audio output strategy: trying Pulse output on server `%s'\n",
             pulse_server_display_name());
-        AudioPulseOutput* pulse = new AudioPulseOutput();
+        AudioPulseOutput* pulse = new AudioPulseOutput(format);
         if (pulse->isOpen()) {
             CTH_DEBUG("    audio output strategy: selected Pulse output\n");
             CTH_DEBUG("    audio output strategy: selected AudioPulseOutput server=`%s'\n",
@@ -129,7 +129,7 @@ AudioOutput* RuntimeFactory::createAudioOutput() const {
     if (environment.ossOutputAvailable) {
         CTH_DEBUG("    audio output strategy: trying OSS DSP output with method %d\n",
             settings.soundDSPMethod);
-        AudioDSPOutput* dsp = new AudioDSPOutput(settings.soundDSPMethod, visualMaxDimension);
+        AudioDSPOutput* dsp = new AudioDSPOutput(settings, visualMaxDimension);
         if (dsp->isOpen()) {
             CTH_DEBUG("    audio output strategy: selected AudioDSPOutput method=%d\n",
                 settings.soundDSPMethod);

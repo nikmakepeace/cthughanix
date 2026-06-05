@@ -3,6 +3,7 @@
 #include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
+#include "AudioSettings.h"
 #include "Mixer.h"
 #include "imath.h"
 
@@ -26,44 +27,52 @@
 
 #if WITH_DSP == 1
 
-DspPcmSource::DspPcmSource(int visualMaxDimension)
+DspPcmSource::DspPcmSource(const AudioSettings& settings, int visualMaxDimension)
     : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
+    , method(settings.soundDSPMethod)
+    , dspFragmentsValue(settings.dspFragments)
+    , dspFragmentSizeValue(settings.dspFragmentSize)
+    , dspSyncEnabledValue(settings.dspSyncEnabled)
     , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
+    pcmFormat = settings.pcmFormat;
+    strncpy(dspDevicePathValue, settings.dspDevicePath, PATH_MAX);
+    dspDevicePathValue[PATH_MAX - 1] = '\0';
     init();
 }
 
 void DspPcmSource::setFragment() {
-    int soundDSPFragment = (audioDspFragments() << 16) | audioDspFragmentSize();
+    int soundDSPFragment = (dspFragmentsValue << 16) | dspFragmentSizeValue;
     if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
 
-    audioSetDspFragment(soundDSPFragment >> 16, soundDSPFragment & 0x7fff);
+    dspFragmentsValue = soundDSPFragment >> 16;
+    dspFragmentSizeValue = soundDSPFragment & 0x7fff;
 
-    if ((1 << audioDspFragmentSize()) * 2 * audioChannels() < sampleWindow)
+    if ((1 << dspFragmentSizeValue) * 2 * pcmFormat.channels < sampleWindow)
         CTH_WARN("  sound fragment size is not set big enough.\n");
 }
 
 void DspPcmSource::setChannels() {
-    int channels = audioChannels() - 1;
+    int channels = pcmFormat.channels - 1;
     if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
-    audioSetChannels(channels + 1);
+    pcmFormat.channels = channels + 1;
 }
 
 void DspPcmSource::setSampleRate() {
-    int sampleRate = audioSampleRateHz();
+    int sampleRate = pcmFormat.sampleRate;
     if (ioctl(handle, SNDCTL_DSP_SPEED, &sampleRate) < 0)
         CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
-    audioSetSampleRateHz(sampleRate);
+    pcmFormat.sampleRate = sampleRate;
 }
 
 void DspPcmSource::setFormat() {
     int sound_format;
 
-    switch (audioSampleFormat()) {
+    switch (pcmFormat.sampleFormat) {
     case SF_u8:
         sound_format = AFMT_U8;
         break;
@@ -102,22 +111,22 @@ void DspPcmSource::setFormat() {
 
     switch (sound_format) {
     case AFMT_U8:
-        audioSetSampleFormat(SF_u8);
+        pcmFormat.sampleFormat = SF_u8;
         break;
     case AFMT_S8:
-        audioSetSampleFormat(SF_s8);
+        pcmFormat.sampleFormat = SF_s8;
         break;
     case AFMT_U16_LE:
-        audioSetSampleFormat(SF_u16_le);
+        pcmFormat.sampleFormat = SF_u16_le;
         break;
     case AFMT_S16_LE:
-        audioSetSampleFormat(SF_s16_le);
+        pcmFormat.sampleFormat = SF_s16_le;
         break;
     case AFMT_U16_BE:
-        audioSetSampleFormat(SF_u16_be);
+        pcmFormat.sampleFormat = SF_u16_be;
         break;
     case AFMT_S16_BE:
-        audioSetSampleFormat(SF_s16_be);
+        pcmFormat.sampleFormat = SF_s16_be;
         break;
     default:
         CTH_ERROR("Unknown sound format returned by SNDCTL_DSP_SETFMT %d.\n", sound_format);
@@ -126,24 +135,24 @@ void DspPcmSource::setFormat() {
 }
 
 void DspPcmSource::init() {
-    CTH_DEBUG("  setting %s for reading...\n", audioDspDevicePath());
+    CTH_DEBUG("  setting %s for reading...\n", dspDevicePathValue);
     CTH_DEBUG("dsp pcm source: init method=%d sample-window=%d\n",
-        audioDspMethod(), sampleWindow);
+        method, sampleWindow);
 
     if (handle >= 0)
         close(handle);
     handle = -1;
 
-    if ((handle = open(audioDspDevicePath(), O_RDONLY)) < 0) {
-        CTH_ERRNO(errno, "Can't open `%s' for reading.", audioDspDevicePath());
+    if ((handle = open(dspDevicePathValue, O_RDONLY)) < 0) {
+        CTH_ERRNO(errno, "Can't open `%s' for reading.", dspDevicePathValue);
         error = 1;
         return;
     }
 
-    switch (audioDspMethod()) {
+    switch (method) {
     case 0:
         CTH_INFO("   Using sound method 0 - optimal fragment size\n");
-        audioSetDspFragmentSize(ilog2(sampleWindow) - 1);
+        dspFragmentSizeValue = ilog2(sampleWindow) - 1;
         setFragment();
         setChannels();
         setSampleRate();
@@ -152,7 +161,8 @@ void DspPcmSource::init() {
 
     case 1:
         CTH_INFO("   Using sound method 1 - small fragment size\n");
-        audioSetDspFragment(2, 4);
+        dspFragmentsValue = 2;
+        dspFragmentSizeValue = 4;
         setFragment();
         setChannels();
         setSampleRate();
@@ -199,7 +209,8 @@ void DspPcmSource::init() {
         setChannels();
         setSampleRate();
 
-        audioSetDspFragment(2, 10);
+        dspFragmentsValue = 2;
+        dspFragmentSizeValue = 10;
         setFragment();
 
         struct audio_buf_info info;
@@ -233,7 +244,7 @@ void DspPcmSource::init() {
     }
 
     default:
-        CTH_ERROR("Unknown sound method %d.", audioDspMethod());
+        CTH_ERROR("Unknown sound method %d.", method);
         CTH_ERROR("   available sound methods:\n"
                 "   0: sophisticated 1 (optimal fragment size)\n"
                 "   1: sophisticated 2 (small fragments)\n"
@@ -243,32 +254,30 @@ void DspPcmSource::init() {
         error = 1;
         return;
     }
-
-    pcmFormat = audioPcmFormat();
 }
 
 int DspPcmSource::read(char* dst, int rawSize, int samplesRequested) {
     int r = 0;
-    int bytesPerSample = audioBytesPerSample();
+    int bytesPerSample = pcmFormat.bytesPerSample();
 
-    switch (audioDspMethod()) {
+    switch (method) {
     case 0: {
         audio_buf_info bi;
-        const int nr_read = audioChannels() * samplesRequested
-            / (1 << audioDspFragmentSize());
+        const int nr_read = pcmFormat.channels * samplesRequested
+            / (1 << dspFragmentSizeValue);
 
         if (ioctl(handle, SNDCTL_DSP_GETISPACE, &bi) < 0)
             CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETISPACE failed.");
 
         if (bi.fragments > nr_read) {
             for (int i = 0; i < bi.fragments - nr_read; i++)
-                ::read(handle, dst, (1 << audioDspFragmentSize()));
-            r = (1 << audioDspFragmentSize()) * nr_read;
+                ::read(handle, dst, (1 << dspFragmentSizeValue));
+            r = (1 << dspFragmentSizeValue) * nr_read;
         } else
-            r = (1 << audioDspFragmentSize()) * bi.fragments;
+            r = (1 << dspFragmentSizeValue) * bi.fragments;
 
         if (r == 0)
-            r = (1 << audioDspFragmentSize());
+            r = (1 << dspFragmentSizeValue);
 
         if (::read(handle, dst, r) < 0)
             CTH_ERRNO(errno, "reading sound failed.");
@@ -305,16 +314,16 @@ int DspPcmSource::read(char* dst, int rawSize, int samplesRequested) {
         break;
     }
 
-    if (audioDspSyncEnabled())
+    if (dspSyncEnabledValue)
         ioctl(handle, SNDCTL_DSP_RESET);
 
     return r / bytesPerSample;
 }
 
 int DspPcmSource::rawBufferSize(int frameRawSize, int samplesRequested) const {
-    switch (audioDspMethod()) {
+    switch (method) {
     case 0:
-        return max(frameRawSize, (1 << audioDspFragmentSize()) * 4);
+        return max(frameRawSize, (1 << dspFragmentSizeValue) * 4);
     case 1:
         return max(frameRawSize, samplesRequested * 4 + 32);
     case 4:
@@ -350,12 +359,19 @@ DspPcmSource::~DspPcmSource() {
 
 #else
 
-DspPcmSource::DspPcmSource(int visualMaxDimension)
+DspPcmSource::DspPcmSource(const AudioSettings& settings, int visualMaxDimension)
     : PcmSource()
     , handle(-1)
     , dmaBuffer(NULL)
     , dmaSize(0)
+    , method(settings.soundDSPMethod)
+    , dspFragmentsValue(settings.dspFragments)
+    , dspFragmentSizeValue(settings.dspFragmentSize)
+    , dspSyncEnabledValue(settings.dspSyncEnabled)
     , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
+    pcmFormat = settings.pcmFormat;
+    strncpy(dspDevicePathValue, settings.dspDevicePath, PATH_MAX);
+    dspDevicePathValue[PATH_MAX - 1] = '\0';
     CTH_ERROR("DSP device was disabled at compile time.\n");
     error = 1;
 }

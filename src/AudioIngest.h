@@ -56,6 +56,7 @@ class AudioIngest {
     AudioFrameBuilder frameBuilder;
     std::unique_ptr<char[]> inputChunk;
     AudioFrame frameValue;
+    PcmFormat pcmFormatValue;
     int initializedValue;
     int inputChunkSamplesValue;
     int decodeAheadSamplesValue;
@@ -131,6 +132,9 @@ public:
 
     /** @return Nonzero after start() has successfully initialized objects. */
     int initialized() const { return initializedValue; }
+
+    /** @return Negotiated PCM format owned by the active ingest session. */
+    const PcmFormat& format() const;
 
     /** @return Nonzero when finite audio input has reached configured EOF. */
     int complete() const;

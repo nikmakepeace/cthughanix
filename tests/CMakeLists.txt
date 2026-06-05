@@ -637,6 +637,33 @@ target_link_libraries(audio_ingest_test PRIVATE Threads::Threads m)
 
 add_test(NAME audio_ingest_test COMMAND audio_ingest_test)
 
+add_executable(audio_device_negotiation_test
+    unit/AudioDeviceNegotiationTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioDSPOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioInternal.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioSettings.cc
+    ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
+    ${CMAKE_SOURCE_DIR}/src/DspPcmSource.cc
+    ${CMAKE_SOURCE_DIR}/src/PcmSource.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(audio_device_negotiation_test PRIVATE
+    CTH_AUDIO_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/tests/fixtures/audio"
+)
+
+target_include_directories(audio_device_negotiation_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(audio_device_negotiation_test PRIVATE m)
+
+add_test(NAME audio_device_negotiation_test COMMAND audio_device_negotiation_test)
+
 add_executable(audio_visual_bridge_frame_test
     unit/AudioVisualBridgeFrameTest.cc
     ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc

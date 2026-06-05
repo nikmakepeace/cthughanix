@@ -126,7 +126,7 @@ int AudioIngest::buildFromConfig(int initializeInputControls) {
     return 1;
 #else
     AudioSettings settings = AudioSettings::fromConfig(configValue);
-    Environment environment = Environment::detect();
+    Environment environment = Environment::detect(settings);
     RuntimeFactory runtimeFactory(settings, environment, visualMaxDimensionValue);
     std::unique_ptr<AudioOutput> output;
 
@@ -155,8 +155,12 @@ int AudioIngest::buildFromConfig(int initializeInputControls) {
         return 1;
     }
 
+    pcmFormatValue = (inputValue.get() != NULL)
+        ? inputValue->format()
+        : settings.pcmFormat;
+
     if ((inputValue.get() != NULL) && !settings.silent) {
-        output.reset(runtimeFactory.createAudioOutput());
+        output.reset(runtimeFactory.createAudioOutput(pcmFormatValue));
         if ((output.get() == NULL) || !output->isOpen()) {
             CTH_DEBUG("audio ingest: output construction failed\n");
             return settings.audioInputMode == AIM_File ? 1 : 0;
@@ -172,6 +176,14 @@ int AudioIngest::buildFromInjectedRuntime(int initializeInputControls) {
         && inputValue->initInputControls())
         return 1;
 
+    if (inputValue.get() != NULL) {
+        pcmFormatValue = inputValue->format();
+    } else {
+        pcmFormatValue.sampleRate = 44100;
+        pcmFormatValue.channels = 2;
+        pcmFormatValue.sampleFormat = SF_s16_le;
+    }
+
     int silentPassthrough = injectedOutputValue.get() == NULL;
     return initializeRuntimeObjects(injectedOutputValue.release(),
         silentPassthrough);
@@ -179,8 +191,8 @@ int AudioIngest::buildFromInjectedRuntime(int initializeInputControls) {
 
 int AudioIngest::initializeRuntimeObjects(AudioOutput* output,
     int silentPassthrough) {
-    samplesPerSecondValue = audioSampleRateHz();
-    bytesPerSampleValue = audioBytesPerSample();
+    samplesPerSecondValue = pcmFormatValue.sampleRate;
+    bytesPerSampleValue = pcmFormatValue.bytesPerSample();
     if (samplesPerSecondValue <= 0)
         samplesPerSecondValue = 44100;
     if (bytesPerSampleValue <= 0)
@@ -203,7 +215,7 @@ int AudioIngest::initializeRuntimeObjects(AudioOutput* output,
     int capacitySamples = audioIngestCapacitySamples(samplesPerSecondValue,
         retainedSamples, decodeAheadSamplesValue);
 
-    historyValue.reset(new DecodedAudioHistory(capacitySamples, bytesPerSampleValue,
+    historyValue.reset(new DecodedAudioHistory(capacitySamples, pcmFormatValue,
         retainedSamples));
     inputChunk.reset(new char[pcmBytesForSamples(inputChunkSamplesValue,
         bytesPerSampleValue)]);
@@ -225,8 +237,9 @@ int AudioIngest::initializeRuntimeObjects(AudioOutput* output,
         inputThreadStarted = 1;
     }
 
-    CTH_DEBUG("audio ingest: started input=%p passthrough=%p sample-rate=%d bytes-per-sample=%d input-chunk-samples=%d decode-ahead-samples=%d retained-samples=%d capacity-samples=%d worker-thread=%d\n",
+    CTH_DEBUG("audio ingest: started input=%p passthrough=%p sample-rate=%d channels=%d format=%d bytes-per-sample=%d input-chunk-samples=%d decode-ahead-samples=%d retained-samples=%d capacity-samples=%d worker-thread=%d\n",
         inputValue.get(), passthroughValue.get(), samplesPerSecondValue,
+        pcmFormatValue.channels, pcmFormatValue.sampleFormat,
         bytesPerSampleValue, inputChunkSamplesValue, decodeAheadSamplesValue,
         retainedSamples, capacitySamples, inputThreadStarted);
     return 0;
@@ -288,6 +301,10 @@ AudioFrame& AudioIngest::currentFrame() {
 
 const AudioFrame& AudioIngest::currentFrame() const {
     return frameValue;
+}
+
+const PcmFormat& AudioIngest::format() const {
+    return pcmFormatValue;
 }
 
 int AudioIngest::complete() const {

@@ -93,6 +93,7 @@ int AudioOutput::service(AudioOutputStream& stream, char* scratch, int scratchSa
 
     double serviceStart = getTime();
     int bytesPerSample = stream.bytesPerSample();
+    const PcmFormat& format = stream.format();
     if (bytesPerSample <= 0)
         return 0;
 
@@ -135,11 +136,11 @@ int AudioOutput::service(AudioOutputStream& stream, char* scratch, int scratchSa
         committedBytes = pcmBytesForSamples(committedSamples, bytesPerSample);
     }
     if (committedSamples > 0) {
-        audioOutputDumpSubmittedPcm(scratch, committedBytes);
+        audioOutputDumpSubmittedPcm(format, scratch, committedBytes);
     }
 
-    audioDebugSubmittedPcm(scratch, committedSamples, committedBytes, written, stream.queuedForOutputSamples(),
-        stream.submittedEndPosition());
+    audioDebugSubmittedPcm(format, scratch, committedSamples, committedBytes,
+        written, stream.queuedForOutputSamples(), stream.submittedEndPosition());
     CTH_TRACE("output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld requested-samples=%d\n", "audio runtime",
         samples, bytes, written, committedSamples, committedBytes,
         stream.queuedForOutputSamples(), startSample, stream.submittedEndPosition(),

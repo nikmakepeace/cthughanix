@@ -44,10 +44,11 @@ static unsigned int readLe32(const unsigned char* p) {
         | ((unsigned int)p[3] << 24);
 }
 
-AudioInput::AudioInput(PcmSource* source_, int takeOwnership)
+AudioInput::AudioInput(PcmSource* source_, int takeOwnership, int loopEnabled)
     : error(0)
     , source(source_)
     , sourceOwned(takeOwnership)
+    , loopEnabledValue(loopEnabled ? 1 : 0)
     , finished(0) {
     if ((source == NULL) || source->hasError()) {
         CTH_DEBUG("audio input: source construction failed\n");
@@ -55,7 +56,10 @@ AudioInput::AudioInput(PcmSource* source_, int takeOwnership)
         return;
     }
 
-    applyFormat();
+    const PcmFormat& format = source->format();
+    CTH_DEBUG("audio input: created format rate=%d channels=%d format=%d loop=%d\n",
+        format.sampleRate, format.channels, format.sampleFormat,
+        loopEnabledValue);
 }
 
 AudioInput::~AudioInput() {
@@ -64,13 +68,7 @@ AudioInput::~AudioInput() {
     source = NULL;
 }
 
-void AudioInput::applyFormat() {
-    const PcmFormat& format = source->format();
-
-    CTH_DEBUG("audio input: applying format rate=%d channels=%d format=%d\n",
-        format.sampleRate, format.channels, format.sampleFormat);
-    audioSetPcmFormat(format);
-}
+const PcmFormat& AudioInput::format() const { return source->format(); }
 
 int AudioInput::read(char* dst, int rawSize, int samplesRequested) {
     if (finished)
@@ -79,10 +77,9 @@ int AudioInput::read(char* dst, int rawSize, int samplesRequested) {
     int samplesRead = source ? source->read(dst, rawSize, samplesRequested) : 0;
 
     if ((samplesRead == 0) && source && source->canFinish()) {
-        if (audioInputLoopEnabled()) {
+        if (loopEnabledValue) {
             CTH_DEBUG("audio input: source reached end; rewinding\n");
             source->rewind();
-            applyFormat();
             samplesRead = source->read(dst, rawSize, samplesRequested);
             if (samplesRead == 0) {
                 CTH_DEBUG("audio input: source remained empty after rewind\n");
@@ -107,10 +104,8 @@ int AudioInput::rawBufferSize(int frameRawSize, int samplesRequested) const {
 int AudioInput::isFinished() const { return finished; }
 
 void AudioInput::update() {
-    if (source) {
+    if (source)
         source->update();
-        applyFormat();
-    }
     finished = 0;
 }
 
@@ -418,9 +413,10 @@ void Minimp3PcmSource::rewind() {
 #endif
 }
 
-RawPcmSource::RawPcmSource(const char* name_)
+RawPcmSource::RawPcmSource(const char* name_, const PcmFormat& format)
     : PcmSource()
     , file(NULL) {
+    pcmFormat = format;
     strncpy(name, name_ ? name_ : "", PATH_MAX - 1);
     name[PATH_MAX - 1] = '\0';
     if (open())
@@ -450,8 +446,6 @@ int RawPcmSource::open() {
 }
 
 int RawPcmSource::applyFormat() {
-    pcmFormat = audioPcmFormat();
-
     if (pcmFormat.sampleRate <= 0) {
         CTH_WARN("  Unsupported raw audio sample rate %d.\n", pcmFormat.sampleRate);
         return 1;
@@ -503,12 +497,14 @@ void RawPcmSource::rewind() {
         CTH_DEBUG("raw pcm source: rewind failed for `%s' errno=%d\n", name, errno);
 }
 
-RandomNoisePcmSource::RandomNoisePcmSource()
+RandomNoisePcmSource::RandomNoisePcmSource(const PcmFormat& requestedFormat)
     : PcmSource()
     , v1(0)
     , v2(0)
     , maxdv(2) {
-    pcmFormat.sampleRate = audioSampleRateHz();
+    pcmFormat.sampleRate = requestedFormat.sampleRate;
+    if (pcmFormat.sampleRate <= 0)
+        pcmFormat.sampleRate = 44100;
     pcmFormat.channels = 2;
     pcmFormat.sampleFormat = SF_u8;
     CTH_DEBUG("random noise pcm source: created rate=%d channels=%d format=%d\n",

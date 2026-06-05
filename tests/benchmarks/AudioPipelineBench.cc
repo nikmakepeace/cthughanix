@@ -112,10 +112,6 @@ const char* prismPcmFixturePath() {
     return path.c_str();
 }
 
-void applyFormat(const PcmFormat& format) {
-    audioSetPcmFormat(format);
-}
-
 struct PcmFixture {
     PcmFormat format;
     int sliceSamples;
@@ -131,8 +127,6 @@ struct PcmFixture {
 
         format = source.format();
         sliceSamples = samplesForAudioSlice(format);
-        applyFormat(format);
-
         frame1024.resize(format.bytesForSamples(kVideoFrameSamples));
         source.read(frame1024.data(), (int)frame1024.size(), kVideoFrameSamples);
 
@@ -210,7 +204,6 @@ struct PrismPcmFrameFixture {
             return;
         }
 
-        applyFormat(format);
         int samplesRead = (int)pcm.size() / bytesPerSample;
         if (samplesRead < kVideoFrameSamples) {
             error = std::string("prism PCM fixture too short for one visual frame: ")
@@ -218,7 +211,7 @@ struct PrismPcmFrameFixture {
             return;
         }
 
-        DecodedAudioHistory history(samplesRead, format.bytesPerSample(),
+        DecodedAudioHistory history(samplesRead, format,
             kVideoFrameSamples);
         AudioFrameBuilder builder;
         history.appendDecodedPcm(pcm.data(), samplesRead);
@@ -244,10 +237,10 @@ static int requirePrismPcmFrameFixture(benchmark::State& state) {
 
 void fillFrameFromFixture(AudioFrame& frame) {
     const PcmFixture& fixture = pcmFixture();
-    DecodedAudioHistory history(kVideoFrameSamples * 2, fixture.bytesPerSample(), kVideoFrameSamples);
+    DecodedAudioHistory history(kVideoFrameSamples * 2, fixture.format,
+        kVideoFrameSamples);
     AudioFrameBuilder builder;
 
-    applyFormat(fixture.format);
     frame.clear();
     history.appendDecodedPcm(fixture.frame1024.data(), kVideoFrameSamples);
     builder.build(frame, history, kVideoFrameSamples / 2);
@@ -323,11 +316,10 @@ static void BM_Wav_Read10ms(benchmark::State& state) {
 }
 
 static void BM_AudioInput_Read10ms(benchmark::State& state) {
-    int previousLoop = audioInputLoopEnabled();
-    audioSetInputLoopEnabled(1);
-    AudioInput input(new WavPcmSource(primaryFixturePath()));
-    int bytesPerSample = audioBytesPerSample();
-    int sliceSamples = (audioSampleRateHz() * kAudioSliceMs) / 1000;
+    const PcmFixture& fixture = pcmFixture();
+    AudioInput input(new WavPcmSource(primaryFixturePath()), 1, 1);
+    int bytesPerSample = fixture.bytesPerSample();
+    int sliceSamples = samplesForAudioSlice(fixture.format);
     std::vector<char> scratch(pcmBytesForSamples(sliceSamples, bytesPerSample));
     long long totalSamples = 0;
 
@@ -345,12 +337,11 @@ static void BM_AudioInput_Read10ms(benchmark::State& state) {
     }
 
     state.SetItemsProcessed(totalSamples);
-    audioSetInputLoopEnabled(previousLoop);
 }
 
 static void BM_DecodedAudioHistory_Append10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    DecodedAudioHistory history(kBufferCapacitySamples, fixture.bytesPerSample(),
+    DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
         kProtectedHistorySamples);
     long long totalSamples = 0;
 
@@ -371,7 +362,7 @@ static void BM_DecodedAudioHistory_Append10ms(benchmark::State& state) {
 
 static void BM_AudioOutput_NullService10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    DecodedAudioHistory history(kBufferCapacitySamples, fixture.bytesPerSample(),
+    DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
         kProtectedHistorySamples);
     AudioOutputStream stream(history);
     AudioNullOutput output;
@@ -400,7 +391,7 @@ static void BM_AudioOutput_NullService10ms(benchmark::State& state) {
 
 static void BM_AudioOutputStream_PeekCommit10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    DecodedAudioHistory history(kBufferCapacitySamples, fixture.bytesPerSample(),
+    DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
         kProtectedHistorySamples);
     AudioOutputStream stream(history);
     std::vector<char> scratch(fixture.format.bytesForSamples(fixture.sliceSamples));
@@ -429,14 +420,13 @@ static void BM_AudioOutputStream_PeekCommit10ms(benchmark::State& state) {
 
 static void BM_AudioFrameBuilder_Build1024(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    DecodedAudioHistory history(kBufferCapacitySamples, fixture.bytesPerSample(),
+    DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
         kProtectedHistorySamples);
     AudioFrameBuilder builder;
     AudioFrame frame;
     long long centerSample = kVideoFrameSamples;
     long long totalSamples = 0;
 
-    applyFormat(fixture.format);
     primeHistory(history);
 
     for (auto _ : state) {
@@ -564,10 +554,8 @@ static void BM_AudioVisualBridge_RunFrameNone(benchmark::State& state) {
 
 static void BM_EndToEnd_Process10msWavToNullOutputToBridgeNone(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    int previousLoop = audioInputLoopEnabled();
-    audioSetInputLoopEnabled(1);
-    AudioInput input(new WavPcmSource(primaryFixturePath()));
-    DecodedAudioHistory history(kBufferCapacitySamples, fixture.bytesPerSample(),
+    AudioInput input(new WavPcmSource(primaryFixturePath()), 1, 1);
+    DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
         kProtectedHistorySamples);
     AudioOutputStream stream(history);
     AudioNullOutput output;
@@ -612,7 +600,6 @@ static void BM_EndToEnd_Process10msWavToNullOutputToBridgeNone(benchmark::State&
     }
 
     state.SetItemsProcessed(totalSamples);
-    audioSetInputLoopEnabled(previousLoop);
 }
 
 BENCHMARK(BM_Wav_OpenParse);

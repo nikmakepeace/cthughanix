@@ -77,11 +77,11 @@ PcmSource* PcmSourceFactory::create(const AudioSettings& settings, int visualMax
     switch (strategy) {
     case ASS_LineIn:
         CTH_DEBUG("    pcm source strategy: creating DspPcmSource\n");
-        return new DspPcmSource(visualMaxDimension);
+        return new DspPcmSource(settings, visualMaxDimension);
 
     case ASS_Random:
         CTH_DEBUG("    pcm source strategy: creating RandomNoisePcmSource\n");
-        return new RandomNoisePcmSource();
+        return new RandomNoisePcmSource(settings.pcmFormat);
 
     case ASS_WavFile:
         CTH_DEBUG("    pcm source strategy: creating WavPcmSource file=`%s'\n",
@@ -102,7 +102,7 @@ PcmSource* PcmSourceFactory::create(const AudioSettings& settings, int visualMax
     case ASS_RawFile:
         CTH_DEBUG("    pcm source strategy: creating RawPcmSource file=`%s'\n",
             settings.fileName);
-        return new RawPcmSource(settings.fileName);
+        return new RawPcmSource(settings.fileName, settings.pcmFormat);
 
     default:
         CTH_DEBUG("    pcm source strategy: no PCM source for strategy=%s\n",

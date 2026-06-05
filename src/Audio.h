@@ -18,6 +18,7 @@
 
 class AudioOutputStream;
 class DecodedAudioHistory;
+class AudioSettings;
 
 class AudioOutput {
     int outputSamplesPerSecond;
@@ -30,7 +31,10 @@ protected:
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
+    /** Creates an unopened output backend base. */
     AudioOutput();
+
+    /** Releases output backend resources. */
     virtual ~AudioOutput();
 
     /**
@@ -41,9 +45,16 @@ public:
      * @return Number of bytes accepted, or 0/nonpositive on backend failure.
      */
     virtual int write(const void* buffer, int size) = 0;
+    /** @return Native file descriptor/handle when one exists, otherwise -1. */
     virtual int getHandle() const { return -1; }
+
+    /** @return Nonzero when the backend is open and writable. */
     virtual int isOpen() const = 0;
+
+    /** @return Nonzero when backend writes are paced by real audio hardware. */
     virtual int isRealtime() const { return 1; }
+
+    /** Refreshes or reopens backend-local runtime state. */
     virtual void update() { }
 
     /**
@@ -54,11 +65,28 @@ public:
      * @param inputChunkSamples Number of samples produced per input service chunk.
      */
     virtual void configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples);
+    /** @return Configured output sample rate in Hertz. */
     int samplesPerSecond() const { return outputSamplesPerSecond; }
+
+    /** @return Bytes per interleaved output sample frame. */
     int bytesPerSample() const { return outputBytesPerSample; }
+
+    /** @return Target queued output delay in sample frames. */
     int targetDelaySamples() const { return outputTargetDelaySamples; }
+
+    /** @return Recommended scratch buffer size in sample frames. */
     int scratchSamples() const { return outputScratchSamples; }
+
+    /** @return Desired queued output amount before playback is considered full. */
     int queuedTargetSamples() const;
+
+    /**
+     * Determines whether finite passthrough has drained.
+     *
+     * @param stream Output stream cursor being serviced.
+     * @param inputFinished Nonzero when acquisition has reached EOF.
+     * @return Nonzero when output playback has completed.
+     */
     int playbackComplete(const AudioOutputStream& stream, int inputFinished) const;
 
     /**
@@ -72,9 +100,17 @@ public:
      */
     virtual int service(AudioOutputStream& stream, char* scratch, int scratchSamples,
         int inputFinished);
+
+    /** @return Nonzero when backend can drain from an asynchronous callback. */
     virtual int supportsCallbackDrain() const { return 0; }
+
+    /** Starts optional backend-owned callback draining. */
     virtual void startCallbackDrain(AudioOutputStream&, const std::atomic<int>*, int) { }
+
+    /** Notifies optional backend-owned callback draining that more PCM exists. */
     virtual void notifyCallbackDrain() { }
+
+    /** Stops optional backend-owned callback draining. */
     virtual void stopCallbackDrain() { }
 };
 
@@ -83,12 +119,18 @@ protected:
     virtual int defaultTargetLatencyMs() const;
 
 public:
+    /** Drops PCM bytes without opening a real output device. */
     virtual int write(const void* buffer, int size);
+
+    /** @return Always nonzero because the null output is always available. */
     virtual int isOpen() const;
+
+    /** @return Zero because null output does not provide hardware pacing. */
     virtual int isRealtime() const;
 };
 
 class AudioPulseOutput : public AudioOutput {
+    PcmFormat pcmFormatValue;
     void* mainloop;
     void* context;
     void* stream;
@@ -110,27 +152,59 @@ protected:
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
 
 public:
-    AudioPulseOutput();
+    /**
+     * Opens a PulseAudio output stream for an explicit PCM format.
+     *
+     * @param format PCM format produced by the current audio session.
+     */
+    explicit AudioPulseOutput(const PcmFormat& format);
+
+    /** Stops callback drain and closes PulseAudio resources. */
     virtual ~AudioPulseOutput();
 
+    /** Writes PCM bytes into the PulseAudio stream. */
     virtual int write(const void* buffer, int size);
+
+    /** @return Nonzero when PulseAudio context and stream are connected. */
     virtual int isOpen() const;
+
+    /** @return Nonzero because PulseAudio provides presentation pacing. */
     virtual int isRealtime() const;
+
+    /** Reopens PulseAudio stream using the session PCM format. */
     virtual void update();
+
+    /** Services PulseAudio from the caller thread when callback drain is absent. */
     virtual int service(AudioOutputStream& stream, char* scratch, int scratchSamples,
         int inputFinished);
+
+    /** @return Nonzero when PulseAudio callback drain has been initialized. */
     virtual int supportsCallbackDrain() const;
+
+    /** Starts PulseAudio callback drain over the provided output stream. */
     virtual void startCallbackDrain(AudioOutputStream& stream,
         const std::atomic<int>* inputFinished, int scratchSamples);
+
+    /** Signals the callback drain event loop. */
     virtual void notifyCallbackDrain();
+
+    /** Stops PulseAudio callback drain and releases callback scratch state. */
     virtual void stopCallbackDrain();
+
+    /** Called by the PulseAudio write callback when bytes may be drained. */
     void pulseWritable(size_t requestedBytes);
+
+    /** Called by the PulseAudio underflow callback. */
     void pulseUnderflow();
 };
 
 class AudioDSPOutput : public AudioOutput {
     int handle;
     int method;
+    PcmFormat pcmFormatValue;
+    int dspFragmentsValue;
+    int dspFragmentSizeValue;
+    char dspDevicePathValue[PATH_MAX];
     int sampleWindow;
 
     void setFragment();
@@ -147,16 +221,25 @@ public:
     /**
      * Opens the OSS/DSP output backend.
      *
-     * @param method DSP output method id from the sound-method option.
+     * @param settings Audio startup/session settings to negotiate locally.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Used to choose a DSP fragment/sample window.
      */
-    AudioDSPOutput(int method, int visualMaxDimension);
+    AudioDSPOutput(const AudioSettings& settings, int visualMaxDimension);
+
+    /** Closes the OSS/DSP output backend. */
     virtual ~AudioDSPOutput();
 
+    /** Writes PCM bytes to the OSS/DSP output device. */
     virtual int write(const void* buffer, int size);
+
+    /** @return Open OSS/DSP file descriptor, or -1. */
     virtual int getHandle() const;
+
+    /** @return Nonzero when the OSS/DSP output device is open. */
     virtual int isOpen() const;
+
+    /** Reopens and renegotiates the OSS/DSP output device. */
     virtual void update();
 };
 
@@ -169,6 +252,7 @@ public:
  */
 class DecodedAudioHistory {
     char* data;
+    PcmFormat pcmFormatValue;
     int bytesPerSampleValue;
     int capacitySamples;
     int retainedHistorySamples;
@@ -183,19 +267,35 @@ public:
      * Allocates a decoded PCM ring buffer.
      *
      * @param capacitySamples Writable capacity in sample frames.
-     * @param bytesPerSample Bytes per interleaved PCM sample frame.
+     * @param format PCM format stored in the history.
      * @param retainedHistorySamples Recent decoded sample frames retained for
      *        visual-frame reconstruction.
      */
-    DecodedAudioHistory(int capacitySamples, int bytesPerSample,
+    DecodedAudioHistory(int capacitySamples, const PcmFormat& format,
         int retainedHistorySamples = 0);
+
+    /** Releases decoded PCM storage. */
     ~DecodedAudioHistory();
 
+    /** @return PCM format stored in this history. */
+    const PcmFormat& format() const { return pcmFormatValue; }
+
+    /** @return Bytes in one interleaved sample frame. */
     int bytesPerSample() const { return bytesPerSampleValue; }
+
+    /** @return Number of recent decoded sample frames retained for readers. */
     int retainedWindowSamples() const;
+
+    /** @return Remaining writable sample-frame capacity before overwrite. */
     int writableSamples() const;
+
+    /** @return Oldest absolute sample-frame position still retained. */
     long long oldestAvailablePosition() const;
+
+    /** @return Absolute sample-frame position after the decoded tail. */
     long long decodedEndPosition() const;
+
+    /** Clears decoded history and resets positions to zero. */
     void clear();
 
     /**
@@ -208,29 +308,12 @@ public:
     int appendDecodedPcm(const char* src, int samples);
 
     /**
-     * Copies queued PCM for output without advancing the submitted position.
+     * Copies retained PCM at an absolute sample-frame position.
      *
+     * @param samplePosition Absolute sample-frame position to read.
      * @param dst Destination buffer for PCM bytes.
      * @param samples Maximum number of sample frames to copy.
-     * @return Number of sample frames copied.
-     */
-    int peekForOutput(char* dst, int samples) const;
-
-    /**
-     * Marks queued PCM as submitted to the output backend.
-     *
-     * @param samples Number of sample frames accepted by output.
-     * @return Number of sample frames committed.
-     */
-    int commitOutputSamples(int samples);
-
-    /**
-     * Reads PCM from the retained history window.
-     *
-     * @param samplePosition Absolute sample-frame position to read from.
-     * @param dst Destination buffer for PCM bytes.
-     * @param samples Maximum number of sample frames to copy.
-     * @return Number of sample frames copied from retained history.
+     * @return Number of sample frames copied, or zero if unavailable.
      */
     int readPcmAt(long long samplePosition, char* dst, int samples) const;
 };
@@ -261,6 +344,9 @@ public:
 
     /** @return Bytes per interleaved PCM sample frame in the backing history. */
     int bytesPerSample() const;
+
+    /** @return PCM format in the backing history. */
+    const PcmFormat& format() const;
 
     /** @return Absolute decoded sample-frame position available through history. */
     long long decodedEndPosition() const;
@@ -303,10 +389,13 @@ class AudioFrameBuilder {
     int rawCapacity;
 
     void setRawCapacity(int rawBytes);
-    void convert(char2* dst, void* src, int n);
+    void convert(char2* dst, void* src, int n, const PcmFormat& format);
 
 public:
+    /** Creates a reusable frame builder. */
     AudioFrameBuilder();
+
+    /** Releases temporary conversion storage. */
     ~AudioFrameBuilder();
 
     /**
@@ -326,10 +415,16 @@ protected:
     PcmFormat pcmFormat;
 
 public:
+    /** Creates a source with no negotiated format and no error. */
     PcmSource();
+
+    /** Releases source resources. */
     virtual ~PcmSource();
 
+    /** @return Nonzero when source construction or negotiation failed. */
     int hasError() const { return error; }
+
+    /** @return Source-negotiated PCM format. */
     const PcmFormat& format() const { return pcmFormat; }
 
     /**
@@ -350,9 +445,17 @@ public:
      * @return Required byte capacity for a read() call.
      */
     virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+
+    /** @return Nonzero when a zero-sample read means finite EOF. */
     virtual int canFinish() const { return 0; }
+
+    /** Rewinds finite input to the beginning when supported. */
     virtual void rewind() { }
+
+    /** Refreshes or reopens source-local state after runtime reset. */
     virtual void update() { }
+
+    /** Initializes optional native input controls. */
     virtual int initInputControls() { return 0; }
 };
 
@@ -360,9 +463,8 @@ class AudioInput {
     int error;
     PcmSource* source;
     int sourceOwned;
+    int loopEnabledValue;
     int finished;
-
-    void applyFormat();
 
 public:
     /**
@@ -370,11 +472,17 @@ public:
      *
      * @param source PCM source to read from.
      * @param takeOwnership Nonzero to delete source in the AudioInput destructor.
+     * @param loopEnabled Nonzero to rewind finite sources at end-of-input.
      */
-    AudioInput(PcmSource* source, int takeOwnership = 1);
+    AudioInput(PcmSource* source, int takeOwnership = 1, int loopEnabled = 0);
+
+    /** Releases the wrapped source when ownership was transferred. */
     ~AudioInput();
 
+    /** @return Nonzero when the wrapped source could not be used. */
     int hasError() const { return error; }
+    /** @return Negotiated PCM format from the wrapped source. */
+    const PcmFormat& format() const;
 
     /**
      * Reads from the wrapped source.
@@ -392,8 +500,14 @@ public:
      * @return Required byte capacity for a read() call.
      */
     int rawBufferSize(int frameRawSize, int samplesRequested) const;
+
+    /** @return Nonzero once finite input has reached EOF. */
     int isFinished() const;
+
+    /** Refreshes the wrapped source and clears EOF state. */
     void update();
+
+    /** Initializes optional native input controls on the wrapped source. */
     int initInputControls();
 };
 
@@ -415,10 +529,17 @@ public:
      * @param name Filesystem path to a WAV file.
      */
     WavPcmSource(const char* name);
+
+    /** Closes the WAV file handle. */
     virtual ~WavPcmSource();
 
+    /** Reads interleaved PCM samples from the WAV data chunk. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
+
+    /** @return Nonzero because WAV input is finite. */
     virtual int canFinish() const;
+
+    /** Rewinds to the start of the WAV data chunk. */
     virtual void rewind();
 };
 
@@ -436,10 +557,17 @@ public:
      * @param name Filesystem path to an MP3 file.
      */
     Minimp3PcmSource(const char* name);
+
+    /** Closes the minimp3 decoder. */
     virtual ~Minimp3PcmSource();
 
+    /** Reads decoded interleaved PCM samples from the MP3 stream. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
+
+    /** @return Nonzero because MP3 file input is finite. */
     virtual int canFinish() const;
+
+    /** Rewinds the MP3 decoder to the beginning. */
     virtual void rewind();
 };
 
@@ -455,12 +583,20 @@ public:
      * Opens a raw PCM file source.
      *
      * @param name Filesystem path to raw PCM data in the current sound-format.
+     * @param format Headerless PCM format to assign to the source.
      */
-    RawPcmSource(const char* name);
+    RawPcmSource(const char* name, const PcmFormat& format);
+
+    /** Closes the raw PCM file handle. */
     virtual ~RawPcmSource();
 
+    /** Reads interleaved PCM samples using the explicit source format. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
+
+    /** @return Nonzero because raw file input is finite. */
     virtual int canFinish() const;
+
+    /** Rewinds to the beginning of the raw PCM file. */
     virtual void rewind();
 };
 
@@ -470,9 +606,18 @@ class RandomNoisePcmSource : public PcmSource {
     int maxdv;
 
 public:
-    RandomNoisePcmSource();
+    /**
+     * Creates synthetic noise input for an explicit session format.
+     *
+     * @param requestedFormat Startup/session format; sampleRate is retained,
+     *        while noise itself is generated as unsigned 8-bit stereo.
+     */
+    explicit RandomNoisePcmSource(const PcmFormat& requestedFormat);
 
+    /** Generates unsigned 8-bit stereo noise samples. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
+
+    /** Resets the synthetic noise walk state. */
     virtual void rewind();
 };
 
@@ -572,6 +717,11 @@ class DspPcmSource : public PcmSource {
     int handle;
     char* dmaBuffer;
     int dmaSize;
+    int method;
+    int dspFragmentsValue;
+    int dspFragmentSizeValue;
+    int dspSyncEnabledValue;
+    char dspDevicePathValue[PATH_MAX];
     int sampleWindow;
 
     void setFragment();
@@ -584,15 +734,25 @@ public:
     /**
      * Opens the OSS/DSP input source.
      *
+     * @param settings Audio startup/session settings to negotiate locally.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Used to size the DSP input sample window.
      */
-    DspPcmSource(int visualMaxDimension);
+    DspPcmSource(const AudioSettings& settings, int visualMaxDimension);
+
+    /** Closes OSS/DSP input resources. */
     virtual ~DspPcmSource();
 
+    /** Reads PCM samples from the OSS/DSP capture device. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
+
+    /** Computes the raw input buffer size needed by the selected DSP method. */
     virtual int rawBufferSize(int frameRawSize, int samplesRequested) const;
+
+    /** Reopens and renegotiates the OSS/DSP capture device. */
     virtual void update();
+
+    /** Initializes optional OSS mixer controls for capture. */
     virtual int initInputControls();
 };
 

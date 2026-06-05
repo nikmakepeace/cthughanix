@@ -15,12 +15,16 @@ int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 double getTime() { return 0.0; }
 
-int audioSampleRateHz() { return 1000; }
-int audioChannels() { return 1; }
-int audioSampleFormat() { return SF_s8; }
 const char* audioSampleFormatText() { return "signed-8"; }
 const char* audioSampleFormatText(int) { return "signed-8"; }
-int audioBytesPerSample() { return 1; }
+
+static PcmFormat signed8MonoFormat() {
+    PcmFormat format;
+    format.sampleRate = 1000;
+    format.channels = 1;
+    format.sampleFormat = SF_s8;
+    return format;
+}
 
 class RecordingOutput : public AudioOutput {
     int realtimeValue;
@@ -50,7 +54,7 @@ public:
 };
 
 static void testPassthroughAdvancesOnlyItsCursor() {
-    DecodedAudioHistory history(16, 1, 8);
+    DecodedAudioHistory history(16, signed8MonoFormat(), 8);
     char pcm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     std::atomic<int> inputFinished(0);
     AudioPassthrough passthrough(new RecordingOutput(), history, inputFinished);
@@ -69,7 +73,7 @@ static void testPassthroughAdvancesOnlyItsCursor() {
 }
 
 static void testPassthroughResyncsWhenHistoryMovedOn() {
-    DecodedAudioHistory history(8, 1, 3);
+    DecodedAudioHistory history(8, signed8MonoFormat(), 3);
     char first[5] = { 0, 1, 2, 3, 4 };
     char second[5] = { 5, 6, 7, 8, 9 };
     std::atomic<int> inputFinished(0);
@@ -86,7 +90,7 @@ static void testPassthroughResyncsWhenHistoryMovedOn() {
 }
 
 static void testPresentationClockSubtractsTargetDelay() {
-    DecodedAudioHistory history(16, 1, 8);
+    DecodedAudioHistory history(16, signed8MonoFormat(), 8);
     char pcm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     std::atomic<int> inputFinished(0);
     AudioPassthrough passthrough(new RecordingOutput(1), history, inputFinished);

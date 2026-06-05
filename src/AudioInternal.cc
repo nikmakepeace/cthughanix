@@ -30,14 +30,14 @@ int audioSampleWindowForVisualMaxDimension(int visualMaxDimension) {
     return 1 << ilog2(visualMaxDimension);
 }
 
-static int audioPcmPeak(const char* data, int samples) {
+static int audioPcmPeak(const PcmFormat& format, const char* data, int samples) {
     const unsigned char* bytes = (const unsigned char*)data;
     int peak = 0;
-    int channels = audioChannels();
+    int channels = format.channels;
     if ((data == NULL) || (samples <= 0) || (channels <= 0))
         return 0;
 
-    switch (audioSampleFormat()) {
+    switch (format.sampleFormat) {
     case SF_u8:
         for (int i = 0; i < samples * channels; i++) {
             int sample = (int)bytes[i] - 128;
@@ -75,8 +75,9 @@ static int audioPcmPeak(const char* data, int samples) {
     return peak;
 }
 
-void audioDebugSubmittedPcm(const char* scratch, int samples, int bytes, int written,
-    int queuedSamples, long long submittedEndSample) {
+void audioDebugSubmittedPcm(const PcmFormat& format, const char* scratch,
+    int samples, int bytes, int written, int queuedSamples,
+    long long submittedEndSample) {
     static int reports = 0;
 
     if (!CTH_LOG_ENABLED(CTH_LOG_DEBUG) || (reports >= 8))
@@ -85,7 +86,7 @@ void audioDebugSubmittedPcm(const char* scratch, int samples, int bytes, int wri
     reports++;
 
     CTH_DEBUG("    audio output: submitted samples=%d bytes=%d written=%d peak=%d queued-samples=%d submitted-end-sample=%lld\n",
-        samples, bytes, written, audioPcmPeak(scratch, samples), queuedSamples,
+        samples, bytes, written, audioPcmPeak(format, scratch, samples), queuedSamples,
         submittedEndSample);
 }
 
@@ -101,8 +102,8 @@ static void audioOutputDumpWriteLe32(FILE* out, unsigned int value) {
     fputc((value >> 24) & 255, out);
 }
 
-static int audioOutputDumpBitsPerSample() {
-    switch (audioSampleFormat()) {
+static int audioOutputDumpBitsPerSample(const PcmFormat& format) {
+    switch (format.sampleFormat) {
     case SF_u8:
         return 8;
     case SF_s16_le:
@@ -145,7 +146,8 @@ static void audioOutputDumpRefreshHeader(FILE* out, long long bytesWritten,
     fseek(out, pos, SEEK_SET);
 }
 
-void audioOutputDumpSubmittedPcm(const char* data, int bytes) {
+void audioOutputDumpSubmittedPcm(const PcmFormat& format, const char* data,
+    int bytes) {
     static FILE* out = NULL;
     static int initialized = 0;
     static int enabled = 0;
@@ -158,13 +160,13 @@ void audioOutputDumpSubmittedPcm(const char* data, int bytes) {
         initialized = 1;
         enabled = audio_output_dump[0] != '\0';
         if (enabled) {
-            sampleRate = audioSampleRateHz();
-            channels = audioChannels();
-            bitsPerSample = audioOutputDumpBitsPerSample();
+            sampleRate = format.sampleRate;
+            channels = format.channels;
+            bitsPerSample = audioOutputDumpBitsPerSample(format);
 
             if ((sampleRate <= 0) || (channels <= 0) || (bitsPerSample == 0)) {
                 CTH_WARN("Can not create audio output dump `%s' for format `%s'.\n",
-                    audio_output_dump, audioSampleFormatText());
+                    audio_output_dump, audioSampleFormatText(format.sampleFormat));
                 enabled = 0;
             }
         }
@@ -178,7 +180,7 @@ void audioOutputDumpSubmittedPcm(const char* data, int bytes) {
                 audioOutputDumpWriteHeader(out, 0, sampleRate, channels, bitsPerSample);
                 CTH_DEBUG("    audio output: dumping submitted PCM to `%s' rate=%d channels=%d bits=%d format=%s\n",
                     audio_output_dump, sampleRate, channels, bitsPerSample,
-                    audioSampleFormatText());
+                    audioSampleFormatText(format.sampleFormat));
             }
         }
     }
@@ -186,7 +188,7 @@ void audioOutputDumpSubmittedPcm(const char* data, int bytes) {
     if (!enabled || (out == NULL) || (data == NULL) || (bytes <= 0))
         return;
 
-    if (audioSampleFormat() == SF_s16_be) {
+    if (format.sampleFormat == SF_s16_be) {
         for (int i = 0; i + 1 < bytes; i += 2) {
             fputc((unsigned char)data[i + 1], out);
             fputc((unsigned char)data[i], out);

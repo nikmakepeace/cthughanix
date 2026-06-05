@@ -89,9 +89,36 @@ static void testAudioDeviceSettingsAreStartupOnly() {
     assertSourceDoesNotContain("src/AudioSystem.cc", "audioFrameChange");
     assertSourceContains("src/AudioSystem.cc",
         "audioDeviceConfigValue.pcmFormat.sampleRate = config.sampleRateHz");
-    assertSourceContains("src/PcmSource.cc", "audioSetPcmFormat(format)");
-    assertSourceContains("src/DspPcmSource.cc", "audioSetSampleRateHz(sampleRate)");
-    assertSourceContains("src/AudioDSPOutput.cc", "audioSetSampleRateHz(sampleRate)");
+    assertSourceContains("src/AudioSettings.h", "PcmFormat pcmFormat");
+    assertSourceContains("src/AudioIngest.h", "PcmFormat pcmFormatValue");
+    assertSourceContains("src/AudioIngest.cc",
+        "pcmFormatValue = (inputValue.get() != NULL)");
+    assertSourceContains("src/AudioIngest.cc",
+        "new DecodedAudioHistory(capacitySamples, pcmFormatValue");
+    assertSourceContains("src/RuntimeFactory.h",
+        "AudioOutput* createAudioOutput(const PcmFormat& format) const");
+    assertSourceContains("src/RuntimeFactory.h",
+        "static Environment detect(const AudioSettings& settings)");
+    assertSourceContains("src/PcmSource.cc", "AudioInput::format() const");
+    assertSourceContains("src/PcmSource.cc",
+        "RandomNoisePcmSource::RandomNoisePcmSource(const PcmFormat& requestedFormat)");
+    assertSourceContains("tests/CMakeLists.txt",
+        "audio_device_negotiation_test");
+    assertSourceDoesNotContain("src/PcmSource.cc", "audioSetPcmFormat");
+    assertSourceDoesNotContain("src/PcmSource.cc", "audioSampleRateHz");
+    assertSourceDoesNotContain("src/PcmSource.cc", "audioChannels");
+    assertSourceDoesNotContain("src/PcmSource.cc", "audioSampleFormat");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "audioSetSampleRateHz");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "audioSetChannels");
+    assertSourceDoesNotContain("src/DspPcmSource.cc", "audioSetSampleFormat");
+    assertSourceDoesNotContain("src/AudioDSPOutput.cc", "audioSetSampleRateHz");
+    assertSourceDoesNotContain("src/AudioDSPOutput.cc", "audioSetChannels");
+    assertSourceDoesNotContain("src/AudioDSPOutput.cc", "audioSetSampleFormat");
+    assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioSampleRateHz");
+    assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioChannels");
+    assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioSampleFormat");
+    assertSourceDoesNotContain("src/DecodedAudioHistory.cc", "audioBytesPerSample");
+    assertSourceDoesNotContain("src/RuntimeFactory.cc", "audioDspDevicePath");
 }
 
 static void testAudioFrameOwnsPerFrameMetrics() {

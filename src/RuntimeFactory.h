@@ -20,9 +20,11 @@ public:
     /**
      * Detects audio backend availability for this process.
      *
+     * @param settings Startup/session settings whose device paths should be
+     *        checked.
      * @return Environment describing available input/output backends.
      */
-    static Environment detect();
+    static Environment detect(const AudioSettings& settings);
 };
 
 class RuntimeFactory {
@@ -49,9 +51,10 @@ public:
     AudioInput* createAudioInput() const;
 
     /**
+     * @param format PCM format produced by the selected input/session.
      * @return Newly allocated audio output backend. Caller owns the returned pointer.
      */
-    AudioOutput* createAudioOutput() const;
+    AudioOutput* createAudioOutput(const PcmFormat& format) const;
 
     /**
      * @return Strategy selected from the current settings and environment.
