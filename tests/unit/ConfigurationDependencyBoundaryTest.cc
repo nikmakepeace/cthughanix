@@ -272,10 +272,10 @@ static void testAudioFrameOwnsPerFrameMetrics() {
         "std::unique_ptr<AutoChanger> autoChangerValue");
     assertSourceContains("src/AudioVisualBridge.cc",
         "autoChangerValue.reset(new AutoChanger");
-    assertSourceContains("src/Interface.cc",
-        "autoChangerStatusProviderValue->autoChangerStatus()");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "const AutoChangerStatusProvider* autoChangerStatusProviderValue");
     assertSourceContains("src/Application.cc",
-        "Interface::setAutoChangerStatusProvider(audioVisualBridge.get())");
+        "interfaceRuntimeValue->setAutoChangerStatusProvider(audioVisualBridge.get())");
     assertSourceContains("tests/CMakeLists.txt",
         "audio_frame_processor_test");
     assertSourceContains("tests/CMakeLists.txt",
@@ -335,7 +335,7 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
     assertSourceContains("src/Application.cc",
-        "Interface::setAutoChangeControls(autoChangeControlsValue.get())");
+        "interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get())");
     assertSourceContains("src/Application.cc",
         "runtimeChangeMediatorValue.get(), autoChangeSettingsValue.get()");
     assertSourceContains("src/AudioVisualBridge.cc",
@@ -786,8 +786,10 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "effectControls.changeEffectControlBy(");
     assertSourceContains("src/RuntimeChangeMediator.cc",
         "effectControls.toggleEffectChoiceUse(");
-    assertSourceContains("src/InterfaceList.cc",
+    assertSourceContains("src/InterfaceRuntime.cc",
         "RuntimeCommand::toggleEffectChoiceUse");
+    assertSourceContains("src/InterfaceList.cc",
+        "runtime->toggleContextEffectChoiceUse()");
     assertSourceDoesNotExist("src/RuntimeOptionControls.cc");
     assertSourceDoesNotExist("src/RuntimeOptionControls.h");
     assertSourceDoesNotExist("src/RuntimeEffectCatalogControls.cc");
@@ -860,7 +862,7 @@ static void testSelectionDisplaysUseRuntimeConfigRegistry() {
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "updatePanelSelectionLabels()");
     assertSourceContains("src/Application.cc",
-        "Interface::setRuntimeConfigRegistry(runtimeConfigRegistryValue.get())");
+        "interfaceRuntimeValue->setRuntimeConfigRegistry(runtimeConfigRegistryValue.get())");
     assertSourceContains("src/Application.cc",
         "*runtimeConfigRegistryValue,\n        startupConfigValue.display");
 }
@@ -876,6 +878,56 @@ static void testInterfaceInputsDoNotUseLegacyFallbacks() {
         "currentOption->change");
     assertSourceDoesNotContain("src/InterfaceList.cc",
         "currentEffectControl->setValue");
+    assertSourceDoesNotContain("src/Interface.cc", "currentOption");
+    assertSourceDoesNotContain("src/Interface.cc", "currentEffectControl");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "currentOptionInterfaceElement");
+    assertSourceDoesNotContain("src/InterfaceList.cc", "currentOption");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "currentEffectControl");
+}
+
+static void testRemainingSharedRuntimeStateWasRemoved() {
+    assertSourceDoesNotContain("src/AudioPulseOutput.cc",
+        "audioPulseUnderflowCount");
+    assertSourceContains("src/Audio.h",
+        "std::atomic<int> underflowCountValue");
+    assertSourceDoesNotContain("src/AudioVisualBridge.cc",
+        "static int debugReports");
+    assertSourceContains("src/AudioVisualBridge.h",
+        "int debugReportsValue");
+    assertSourceDoesNotContain("src/AudioInternal.cc", "static int reports");
+    assertSourceContains("src/Audio.h",
+        "class AudioSubmittedPcmDebugReporter");
+    assertSourceDoesNotContain("src/AudioInternal.h",
+        "audioDebugSubmittedPcm");
+
+    assertSourceContains("src/InterfaceRuntime.h", "class InterfaceRuntime");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<InterfaceRuntime> interfaceRuntimeValue");
+    assertSourceContains("src/Application.cc",
+        "registerDefaultInterfaces(*interfaceRuntimeValue)");
+    assertSourceContains("src/keymap.cc", "Keymap::setInterfaceRuntime");
+    assertSourceContains("src/CthughaDisplayX11.cc",
+        "runtime->current()");
+
+    assertSourceDoesNotContain("src/Interface.h", "Interface::current");
+    assertSourceDoesNotContain("src/Interface.h", "Interface::head");
+    assertSourceDoesNotContain("src/Interface.h", "static Interface*");
+    assertSourceDoesNotContain("src/Interface.h", "saveToPreset");
+    assertSourceDoesNotContain("src/Interface.h", "showStatus");
+    assertSourceDoesNotContain("src/Interface.cc", "Interface::current");
+    assertSourceDoesNotContain("src/Interface.cc", "Interface::head");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "runtimeConfigRegistryValue =");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "autoChangerStatusProviderValue =");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "autoChangeControlsValue =");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "audioProcessingSelectorValue =");
+    assertSourceDoesNotContain("src/CthughaDisplayX11.cc",
+        "Interface::current");
 }
 
 static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
@@ -922,6 +974,7 @@ int main() {
     testX11PanelInputsUseRuntimeCommands();
     testSelectionDisplaysUseRuntimeConfigRegistry();
     testInterfaceInputsDoNotUseLegacyFallbacks();
+    testRemainingSharedRuntimeStateWasRemoved();
     testConfigDefaultsAreNotConsumedAsLegacyDefaults();
     return 0;
 }

@@ -21,7 +21,8 @@ AudioVisualBridge::AudioVisualBridge(AcousticContext& acousticContext_,
     , acousticContextValue(acousticContext_)
     , audioProcessingSelectorValue(audioProcessingSelector_)
     , audioProcessorValue(audioProcessor_)
-    , minNoiseValue(minNoise_) {
+    , minNoiseValue(minNoise_)
+    , debugReportsValue(0) {
     CTH_DEBUG("audio visual bridge: creating bridge\n");
 #ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
     if (runtimeCommands_ != 0 && autoChangeSettings_ != 0)
@@ -36,15 +37,14 @@ AudioVisualBridge::~AudioVisualBridge() {
 
 void AudioVisualBridge::runFrame(AudioFrame& frame) {
     double start = CTH_LOG_ENABLED(CTH_LOG_TRACE) ? getTime() : 0.0;
-    static int debugReports = 0;
 
     audioProcessingSelectorValue.process(frame);
     double processed = CTH_LOG_ENABLED(CTH_LOG_TRACE) ? getTime() : 0.0;
 
-    if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
+    if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReportsValue < 16)) {
         AudioMetrics processedMetrics = audioProcessorValue.analyze(
             frame.processedWaveData, minNoiseValue);
-        debugReports++;
+        debugReportsValue++;
         CTH_DEBUG("processed wave audio: mode=%s amplitude=%d left=%d right=%d noisy=%d\n",
             audioProcessingSelectorValue.text(), processedMetrics.amplitude,
             processedMetrics.amplitudeLeft, processedMetrics.amplitudeRight,
@@ -54,7 +54,7 @@ void AudioVisualBridge::runFrame(AudioFrame& frame) {
     audioProcessorValue.analyze(frame, minNoiseValue);
     acousticContextValue.update(frame.metrics);
 
-    if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
+    if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReportsValue < 16)) {
         CTH_DEBUG("audio analysis: amplitude=%d left=%d right=%d noisy=%d frame-samples=%d center-sample=%lld\n",
             frame.metrics.amplitude, frame.metrics.amplitudeLeft,
             frame.metrics.amplitudeRight, frame.metrics.noisy,

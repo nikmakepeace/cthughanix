@@ -24,6 +24,7 @@ class AutoChangeSettings;
 class CthughaDisplay;
 class DisplayRuntimeOwnership;
 class IndexedFrame;
+class InterfaceRuntime;
 class LegacyRuntimeConfigContributor;
 class MixerControls;
 class MixerDevice;
@@ -68,6 +69,7 @@ class Application {
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
+    std::unique_ptr<InterfaceRuntime> interfaceRuntimeValue;
     std::unique_ptr<LegacyRuntimeConfigContributor> runtimeConfigContributorValue;
     std::unique_ptr<RuntimePersistence> runtimePersistenceValue;
     std::unique_ptr<RuntimeShutdown> runtimeShutdownValue;

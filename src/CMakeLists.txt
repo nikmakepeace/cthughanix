@@ -54,6 +54,7 @@ set(CTHUGHA_COMMON_SOURCES
     LegacyRuntimeConfigContributor.cc
     IniFiles.cc
     Interface.cc
+    InterfaceRuntime.cc
     info_title_usage.cc
     misc.cc
     DisplayDevice.cc

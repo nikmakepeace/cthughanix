@@ -10,6 +10,7 @@
 class AutoChangerStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
+class InterfaceRuntime;
 class RuntimeConfigRegistry;
 
 class InterfaceElement {
@@ -26,18 +27,7 @@ public:
 };
 
 class Interface {
-    static RuntimeConfigRegistry* runtimeConfigRegistryValue;
-    static const AutoChangerStatusProvider* autoChangerStatusProviderValue;
-    static AutoChangeControls* autoChangeControlsValue;
-    static AudioProcessingSelector* audioProcessingSelectorValue;
-
 public:
-    static int saveToPreset;
-    static int showStatus;
-
-    static Interface* current;
-    static Interface* head;
-
     const char* name;
     const char* title;
     const char* text;
@@ -46,73 +36,12 @@ public:
     int nElements;
     int sel;
 
-    Interface* next;
-
     Interface(const char* n, const char* ti, const char* te);
     Interface(const char* n, const char* ti, const char* te, InterfaceElement* el[], int nEl);
 
     virtual ~Interface();
 
     void setElements(InterfaceElement** el, int nEl);
-
-    /**
-     * Installs the registry used for displaying current runtime selections.
-     *
-     * @param registry Registry to read; NULL restores direct option fallbacks.
-     */
-    static void setRuntimeConfigRegistry(RuntimeConfigRegistry* registry);
-
-    /**
-     * Returns the registry used for displaying current runtime selections.
-     *
-     * @return Installed registry, or NULL when not yet available.
-     */
-    static const RuntimeConfigRegistry* runtimeConfigRegistry();
-
-    /**
-     * Installs the provider used for automatic scene-change status text.
-     *
-     * @param provider Provider to read; NULL hides auto-change status.
-     */
-    static void setAutoChangerStatusProvider(
-        const AutoChangerStatusProvider* provider);
-
-    /**
-     * Returns the provider used for automatic scene-change status text.
-     *
-     * @return Installed provider, or NULL when AutoChanger is unavailable.
-     */
-    static const AutoChangerStatusProvider* autoChangerStatusProvider();
-
-    /**
-     * Installs Option adapters for automatic scene-change panel controls.
-     *
-     * @param controls Controls to read; NULL disables those panel rows.
-     */
-    static void setAutoChangeControls(AutoChangeControls* controls);
-
-    /**
-     * Returns Option adapters for automatic scene-change panel controls.
-     *
-     * @return Installed controls, or NULL before runtime setup.
-     */
-    static AutoChangeControls* autoChangeControls();
-
-    /**
-     * Installs the selector used for the audio-processing option panel row.
-     *
-     * @param selector Selector to read and mutate; NULL disables the row.
-     */
-    static void setAudioProcessingSelector(AudioProcessingSelector* selector);
-
-    /**
-     * Returns the selector used for the audio-processing option panel row.
-     *
-     * @return Installed selector, or NULL before runtime setup.
-     */
-    static AudioProcessingSelector* audioProcessingSelector();
-
-    static void set(const char* n);
 
     virtual void preRun() { }
     virtual void display();
@@ -123,8 +52,11 @@ public:
      *
      * Application runs the interface before and after frame generation so input
      * handling and overlay/status updates can bracket visual work.
+     *
+     * @param runtime Runtime state owning the current interface selection and
+     *        adapter pointers.
      */
-    virtual void run();
+    virtual void run(InterfaceRuntime& runtime);
 };
 
 class InterfaceElementOption : public InterfaceElement {
@@ -166,11 +98,14 @@ public:
     void display();
 };
 
-extern Option* currentOption;
-extern EffectControl* currentEffectControl;
-extern InterfaceElementOption* currentOptionInterfaceElement;
-
 extern Interface interfaceMixer;
 extern ErrorMessages errors;
+
+/**
+ * Registers the existing concrete panel definitions into an owned runtime.
+ *
+ * @param runtime Interface runtime that will own selection/adapter state.
+ */
+void registerDefaultInterfaces(InterfaceRuntime& runtime);
 
 #endif

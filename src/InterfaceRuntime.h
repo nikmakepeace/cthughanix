@@ -1,0 +1,249 @@
+/** @file
+ * Owned runtime state for interface selection, adapters, and key context.
+ */
+
+#ifndef __INTERFACE_RUNTIME_H
+#define __INTERFACE_RUNTIME_H
+
+#include <vector>
+
+class AutoChangerStatusProvider;
+class AutoChangeControls;
+class AudioProcessingSelector;
+class EffectControl;
+class Interface;
+class InterfaceElementOption;
+class Keymap;
+class Option;
+class RuntimeConfigRegistry;
+
+/**
+ * Transient option/effect target used while an interface element routes a key.
+ */
+struct InterfaceCommandContext {
+    Option* option;
+    EffectControl* effectControl;
+    InterfaceElementOption* optionElement;
+
+    /** Creates an empty command context. */
+    InterfaceCommandContext();
+};
+
+/**
+ * Application-owned runtime state for the keyboard/interface subsystem.
+ *
+ * Concrete Interface objects are still static panel definitions in this pass,
+ * but the live registry, selected interface, runtime adapters, status flags,
+ * and option-command target are owned by this object.
+ */
+class InterfaceRuntime {
+    std::vector<Interface*> interfacesValue;
+    Interface* currentInterfaceValue;
+    RuntimeConfigRegistry* runtimeConfigRegistryValue;
+    const AutoChangerStatusProvider* autoChangerStatusProviderValue;
+    AutoChangeControls* autoChangeControlsValue;
+    AudioProcessingSelector* audioProcessingSelectorValue;
+    int saveToPresetValue;
+    int showStatusValue;
+    InterfaceCommandContext commandContextValue;
+
+    void clampCurrentSelection();
+    void clearCommandContext();
+
+public:
+    /** Creates an empty interface runtime with no selected panel. */
+    InterfaceRuntime();
+
+    /**
+     * Registers a concrete interface panel with this runtime.
+     *
+     * @param interface_ Panel definition to register; it must outlive the
+     *        runtime.
+     */
+    void registerInterface(Interface& interface_);
+
+    /**
+     * Selects a registered interface by name.
+     *
+     * @param name Case-insensitive interface name.
+     */
+    void set(const char* name);
+
+    /** @return Currently selected interface, or NULL before selection. */
+    Interface* current() { return currentInterfaceValue; }
+
+    /** @return Currently selected interface, or NULL before selection. */
+    const Interface* current() const { return currentInterfaceValue; }
+
+    /** Services the selected interface once when one is selected. */
+    void runCurrent();
+
+    /**
+     * Moves the selected row in the active interface.
+     *
+     * @param by Signed row offset.
+     */
+    void moveSelectionBy(int by);
+
+    /**
+     * Sets the selected row in the active interface.
+     *
+     * @param selection Row index, or -1 for the title/header row.
+     */
+    void setSelection(int selection);
+
+    /** Selects the title/header row in the active interface. */
+    void selectHome();
+
+    /** Selects the last element row in the active interface. */
+    void selectEnd();
+
+    /**
+     * Selects the next named interface in the supplied navigation list.
+     *
+     * @param names NULL-terminated ordered list of interface names.
+     */
+    void selectNextInList(const char* const* names);
+
+    /**
+     * Selects the previous named interface in the supplied navigation list.
+     *
+     * @param names NULL-terminated ordered list of interface names.
+     */
+    void selectPreviousInList(const char* const* names);
+
+    /**
+     * Installs the registry used for displaying current runtime selections.
+     *
+     * @param registry Registry to read; NULL restores direct option fallbacks.
+     */
+    void setRuntimeConfigRegistry(RuntimeConfigRegistry* registry);
+
+    /**
+     * Returns the registry used for displaying current runtime selections.
+     *
+     * @return Installed registry, or NULL when not yet available.
+     */
+    const RuntimeConfigRegistry* runtimeConfigRegistry() const;
+
+    /**
+     * Installs the provider used for automatic scene-change status text.
+     *
+     * @param provider Provider to read; NULL hides auto-change status.
+     */
+    void setAutoChangerStatusProvider(
+        const AutoChangerStatusProvider* provider);
+
+    /**
+     * Returns the provider used for automatic scene-change status text.
+     *
+     * @return Installed provider, or NULL when AutoChanger is unavailable.
+     */
+    const AutoChangerStatusProvider* autoChangerStatusProvider() const;
+
+    /**
+     * Installs Option adapters for automatic scene-change panel controls.
+     *
+     * @param controls Controls to read; NULL disables those panel rows.
+     */
+    void setAutoChangeControls(AutoChangeControls* controls);
+
+    /**
+     * Returns Option adapters for automatic scene-change panel controls.
+     *
+     * @return Installed controls, or NULL before runtime setup.
+     */
+    AutoChangeControls* autoChangeControls() const;
+
+    /**
+     * Installs the selector used for the audio-processing option panel row.
+     *
+     * @param selector Selector to read and mutate; NULL disables the row.
+     */
+    void setAudioProcessingSelector(AudioProcessingSelector* selector);
+
+    /**
+     * Returns the selector used for the audio-processing option panel row.
+     *
+     * @return Installed selector, or NULL before runtime setup.
+     */
+    AudioProcessingSelector* audioProcessingSelector() const;
+
+    /** Toggles whether number keys save or restore presets. */
+    void toggleSaveToPreset();
+
+    /** Clears save-to-preset mode after a preset save has been requested. */
+    void clearSaveToPreset();
+
+    /** @return Nonzero when number keys should save presets. */
+    int saveToPreset() const;
+
+    /** Toggles runtime status overlay visibility. */
+    void toggleStatus();
+
+    /** @return Nonzero when status text should be displayed. */
+    int showStatus() const;
+
+    /**
+     * Runs a key through an option element with a scoped command context.
+     *
+     * @param option Option targeted by option-element actions.
+     * @param element Element supplying increment sizes for value actions.
+     * @param keymap Keymap that should handle the key.
+     * @param key Key code to route.
+     * @return Keymap handling result.
+     */
+    int runOptionKey(Option& option, InterfaceElementOption& element,
+        Keymap& keymap, int key);
+
+    /**
+     * Runs a key through an effect-control element with scoped command context.
+     *
+     * @param effectControl Effect control targeted by effect actions.
+     * @param element Element supplying increment sizes for value actions.
+     * @param effectControlKeymap First keymap to try.
+     * @param optionKeymap Fallback option keymap.
+     * @param key Key code to route.
+     * @return Keymap handling result.
+     */
+    int runEffectControlKey(EffectControl& effectControl,
+        InterfaceElementOption& element, Keymap& effectControlKeymap,
+        Keymap& optionKeymap, int key);
+
+    /**
+     * Runs a key through an effect-choice list row with scoped command context.
+     *
+     * @param effectControl Effect control owning the selected row.
+     * @param option Use-option for the selected row.
+     * @param key Key code to route.
+     * @return Keymap handling result.
+     */
+    int runEffectChoiceKey(EffectControl& effectControl, Option& option,
+        int key);
+
+    /**
+     * Changes the current scoped option/effect target by an element increment.
+     *
+     * @param incrementIndex One-based increment slot, from inc1 to inc3.
+     * @param value Multiplier supplied by the keymap action.
+     */
+    void changeContextValueByElementIncrement(int incrementIndex, double value);
+
+    /**
+     * Sets the current scoped option/effect target from the element inc1 scale.
+     *
+     * @param value Multiplier supplied by the keymap action.
+     */
+    void setContextValueFromElement(double value);
+
+    /** Toggles the lock flag for the current scoped effect control. */
+    void toggleContextEffectControlLock();
+
+    /** Toggles use for the active effect-choice list row. */
+    void toggleContextEffectChoiceUse();
+
+    /** Activates the active effect-choice list row. */
+    void activateContextEffectChoice();
+};
+
+#endif

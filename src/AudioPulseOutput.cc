@@ -11,8 +11,6 @@
 
 #if WITH_PULSE == 1
 
-static std::atomic<int> audioPulseUnderflowCount(0);
-
 static int audioPulseBytesToMs(unsigned int bytes, int bytesPerSecond) {
     if (bytesPerSecond <= 0)
         return 0;
@@ -51,8 +49,6 @@ static void audioPulseStreamWriteCallback(pa_stream*, size_t requestedBytes, voi
 static void audioPulseStreamUnderflowCallback(pa_stream*, void* userdata) {
     if (userdata != NULL)
         ((AudioPulseOutput*)userdata)->pulseUnderflow();
-    else
-        audioPulseUnderflowCount.fetch_add(1);
 }
 
 static void audioPulseDrainDeferCallback(pa_mainloop_api* api, pa_defer_event* event,
@@ -106,6 +102,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
     , callbackScratchSamples(0)
     , callbackDrainActive(0)
     , bytesPerSecondValue(0)
+    , underflowCountValue(0)
     , lastReportedUnderflows(0) {
     if (autoOpen)
         update();
@@ -159,7 +156,7 @@ void AudioPulseOutput::closePulse() {
     }
 
     bytesPerSecondValue = 0;
-    lastReportedUnderflows.store(audioPulseUnderflowCount.load());
+    lastReportedUnderflows.store(underflowCountValue.load());
     delete[] callbackScratch;
     callbackScratch = NULL;
 }
@@ -484,7 +481,7 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
 
         dumpSubmittedPcm(callbackStream->format(), callbackScratch,
             committedBytes);
-        audioDebugSubmittedPcm(callbackStream->format(), callbackScratch,
+        reportSubmittedPcm(callbackStream->format(), callbackScratch,
             committedSamples, committedBytes, written,
             callbackStream->queuedForOutputSamples(),
             callbackStream->submittedEndPosition());
@@ -593,7 +590,7 @@ void AudioPulseOutput::pulseWritable(size_t requestedBytes) {
 }
 
 void AudioPulseOutput::pulseUnderflow() {
-    int underflows = audioPulseUnderflowCount.fetch_add(1) + 1;
+    int underflows = underflowCountValue.fetch_add(1) + 1;
     int previous = lastReportedUnderflows.exchange(underflows);
 
     drainUnlocked((size_t)-1);
@@ -653,7 +650,7 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
         if (writableBytes == (size_t)-1)
             streamGood = 0;
     }
-    underflows = audioPulseUnderflowCount.load();
+    underflows = underflowCountValue.load();
     pa_threaded_mainloop_unlock(pulseMainloop);
 
     if (!streamGood) {
@@ -702,7 +699,7 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
         dumpSubmittedPcm(outputStream.format(), scratch, committedBytes);
     }
 
-    audioDebugSubmittedPcm(outputStream.format(), scratch, committedSamples,
+    reportSubmittedPcm(outputStream.format(), scratch, committedSamples,
         committedBytes, written, outputStream.queuedForOutputSamples(),
         outputStream.submittedEndPosition());
     CTH_TRACE("pulse output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld\n",
@@ -730,6 +727,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
     , callbackScratchSamples(0)
     , callbackDrainActive(0)
     , bytesPerSecondValue(0)
+    , underflowCountValue(0)
     , lastReportedUnderflows(0) {
     CTH_DEBUG("    audio output strategy: Pulse unavailable because support is not compiled in\n");
 }
@@ -748,7 +746,7 @@ void AudioPulseOutput::startCallbackDrain(AudioOutputStream&, const std::atomic<
 void AudioPulseOutput::notifyCallbackDrain() { }
 void AudioPulseOutput::stopCallbackDrain() { }
 void AudioPulseOutput::pulseWritable(size_t) { }
-void AudioPulseOutput::pulseUnderflow() { }
+void AudioPulseOutput::pulseUnderflow() { underflowCountValue.fetch_add(1); }
 const char* AudioPulseOutput::serverName() const { return outputConfigValue.pulseServerName(); }
 const char* AudioPulseOutput::serverDisplayName() const { return outputConfigValue.pulseServerDisplayName(); }
 int AudioPulseOutput::pulseLatencyMs() const { return outputConfigValue.pulseLatencyMs; }

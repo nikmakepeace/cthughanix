@@ -38,6 +38,13 @@ void AudioOutput::dumpSubmittedPcm(const PcmFormat& format, const char* data,
         outputDumpValue->append(format, data, bytes);
 }
 
+void AudioOutput::reportSubmittedPcm(const PcmFormat& format,
+    const char* scratch, int samples, int bytes, int written,
+    int queuedSamples, long long submittedEndSample) {
+    submittedPcmDebugReporterValue.submittedPcm(format, scratch, samples,
+        bytes, written, queuedSamples, submittedEndSample);
+}
+
 void AudioOutput::configureTiming(int samplesPerSecond, int bytesPerSample, int inputChunkSamples) {
     outputSamplesPerSecond = samplesPerSecond;
     outputBytesPerSample = bytesPerSample;
@@ -139,7 +146,7 @@ int AudioOutput::service(AudioOutputStream& stream, char* scratch, int scratchSa
         dumpSubmittedPcm(format, scratch, committedBytes);
     }
 
-    audioDebugSubmittedPcm(format, scratch, committedSamples, committedBytes,
+    reportSubmittedPcm(format, scratch, committedSamples, committedBytes,
         written, stream.queuedForOutputSamples(), stream.submittedEndPosition());
     CTH_TRACE("output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld requested-samples=%d\n", "audio runtime",
         samples, bytes, written, committedSamples, committedBytes,

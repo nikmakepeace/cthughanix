@@ -22,6 +22,39 @@ class AudioOutputStream;
 class DecodedAudioHistory;
 class AudioSettings;
 
+/**
+ * Bounded debug reporter for PCM submitted to an output backend.
+ *
+ * AudioOutput owns one reporter so debug throttling is scoped to the output
+ * session instead of shared across the process.
+ */
+class AudioSubmittedPcmDebugReporter {
+    std::atomic<int> reportsValue;
+
+public:
+    /** Creates a reporter with no submitted-PCM reports emitted yet. */
+    AudioSubmittedPcmDebugReporter();
+
+    /**
+     * Emits bounded debug detail for PCM submitted to an output backend.
+     *
+     * @param format PCM format represented by scratch.
+     * @param scratch PCM bytes submitted to output.
+     * @param samples Number of sample frames represented in scratch.
+     * @param bytes Number of bytes represented in scratch.
+     * @param written Number of bytes accepted by the backend.
+     * @param queuedSamples Remaining queued sample frames after submission.
+     * @param submittedEndSample Absolute sample-frame position after
+     *        submission.
+     */
+    void submittedPcm(const PcmFormat& format, const char* scratch,
+        int samples, int bytes, int written, int queuedSamples,
+        long long submittedEndSample);
+
+    /** @return Number of submitted-PCM debug reports emitted by this reporter. */
+    int reportCount() const { return reportsValue.load(); }
+};
+
 class AudioOutput {
     int outputSamplesPerSecond;
     int outputBytesPerSample;
@@ -29,11 +62,15 @@ class AudioOutput {
     int outputTargetDelaySamples;
     int outputScratchSamples;
     AudioOutputDump* outputDumpValue;
+    AudioSubmittedPcmDebugReporter submittedPcmDebugReporterValue;
 
 protected:
     virtual int defaultTargetLatencyMs() const;
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
     void dumpSubmittedPcm(const PcmFormat& format, const char* data, int bytes);
+    void reportSubmittedPcm(const PcmFormat& format, const char* scratch,
+        int samples, int bytes, int written, int queuedSamples,
+        long long submittedEndSample);
 
 public:
     /** Creates an unopened output backend base. */
@@ -92,6 +129,11 @@ public:
 
     /** @return Recommended scratch buffer size in sample frames. */
     int scratchSamples() const { return outputScratchSamples; }
+
+    /** @return Number of submitted-PCM debug reports emitted for this output. */
+    int submittedPcmDebugReportCount() const {
+        return submittedPcmDebugReporterValue.reportCount();
+    }
 
     /** @return Desired queued output amount before playback is considered full. */
     int queuedTargetSamples() const;
@@ -167,6 +209,7 @@ class AudioPulseOutput : public AudioOutput {
     int callbackScratchSamples;
     std::atomic<int> callbackDrainActive;
     int bytesPerSecondValue;
+    std::atomic<int> underflowCountValue;
     std::atomic<int> lastReportedUnderflows;
 
     void closePulse();
@@ -227,6 +270,9 @@ public:
 
     /** Called by the PulseAudio underflow callback. */
     void pulseUnderflow();
+
+    /** @return Number of Pulse underflows observed by this output instance. */
+    int underflowCount() const { return underflowCountValue.load(); }
 
     /** @return Configured Pulse server name, or NULL for the default server. */
     const char* serverName() const;

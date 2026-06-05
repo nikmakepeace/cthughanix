@@ -7,6 +7,7 @@
 
 struct InputConfig;
 class AudioProcessingState;
+class InterfaceRuntime;
 class RuntimeCommandSink;
 
 class Action {
@@ -93,6 +94,20 @@ public:
     static void init(const InputConfig& config);
     static void setRuntimeCommandSink(RuntimeCommandSink* sink);
     static RuntimeCommandSink* runtimeCommandSink();
+
+    /**
+     * Installs the interface runtime used by global keymap actions.
+     *
+     * @param runtime Runtime to use; NULL disables interface-only actions.
+     */
+    static void setInterfaceRuntime(InterfaceRuntime* runtime);
+
+    /**
+     * Returns the interface runtime used by global keymap actions.
+     *
+     * @return Installed runtime, or NULL before Application setup.
+     */
+    static InterfaceRuntime* interfaceRuntime();
 
     /**
      * Installs the audio-processing state used for continuation saves.

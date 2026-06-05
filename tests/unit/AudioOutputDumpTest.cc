@@ -2,6 +2,7 @@
  * Unit coverage for injected audio output dump writing.
  */
 
+#include "cthugha.h"
 #include "Audio.h"
 
 #include <assert.h>
@@ -10,7 +11,11 @@
 #include <string>
 #include <unistd.h>
 
-int cth_log_enabled(int) { return 0; }
+static int debugLoggingEnabled = 0;
+
+int cth_log_enabled(int level) {
+    return debugLoggingEnabled && (level == CTH_LOG_DEBUG);
+}
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
@@ -72,7 +77,25 @@ static void testInjectedDumpWritesSubmittedPcmAsWav() {
     assert(bytes[47] == 0);
 }
 
+static void testSubmittedPcmDebugReporterIsInstanceLocal() {
+    AudioSubmittedPcmDebugReporter first;
+    AudioSubmittedPcmDebugReporter second;
+    const char pcm[4] = { 1, 0, 2, 0 };
+    PcmFormat format = mono16Format();
+
+    debugLoggingEnabled = 1;
+    for (int i = 0; i < 10; i++)
+        first.submittedPcm(format, pcm, 2, 4, 4, 0, 2);
+    assert(first.reportCount() == 8);
+    assert(second.reportCount() == 0);
+
+    second.submittedPcm(format, pcm, 2, 4, 4, 0, 2);
+    assert(second.reportCount() == 1);
+    debugLoggingEnabled = 0;
+}
+
 int main() {
     testInjectedDumpWritesSubmittedPcmAsWav();
+    testSubmittedPcmDebugReporterIsInstanceLocal();
     return 0;
 }

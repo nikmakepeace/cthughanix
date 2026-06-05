@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "display.h"
 #include "imath.h"
 #include "Border.h"
@@ -76,13 +77,11 @@ public:
         nElements = n;
 
         if ((sel < n) && (sel >= 0)) {
-            currentOption = &(effectControl->entries[sel]->use);
-            currentEffectControl = effectControl;
-
-            ret = Keymap::action("ListOption", key);
-
-            if (ret)
-                ret = Keymap::action("Option", key);
+            InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+            if (runtime != NULL) {
+                ret = runtime->runEffectChoiceKey(*effectControl,
+                    effectControl->entries[sel]->use, key);
+            }
         }
 
         if (ret)
@@ -93,32 +92,20 @@ public:
             ret = Keymap::action("default", key);
 
         nElements = 0;
-
-        currentOption = NULL;
-        currentEffectControl = NULL;
     }
 };
 Keymap InterfaceList::listOptionKeymap("ListOption");
 
 ACTION(toggleUse) {
-    if (currentEffectControl == NULL)
-        return;
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (sink != NULL)
-        sink->apply(RuntimeCommand::toggleEffectChoiceUse(
-            *currentEffectControl, Interface::current->sel));
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->toggleContextEffectChoiceUse();
 }
 
 ACTION(activate) {
-    if (currentEffectControl == NULL)
-        return;
-    if (currentOption == NULL)
-        return;
-
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (sink != NULL)
-        sink->apply(RuntimeCommand::activateEffectControl(
-            *currentEffectControl, Interface::current->sel));
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->activateContextEffectChoice();
 }
 
 #if 0
@@ -169,3 +156,17 @@ InterfaceList interfaceList9("Palette", "Select Palette", &palette);
 InterfaceList interfaceListA("Image", "Select Image", &(videoDirector().imageOption()));
 
 InterfaceList interfaceListB("Flashlight", "Select Flashlight", &flashlight);
+
+void registerListInterfaces(InterfaceRuntime& runtime) {
+    runtime.registerInterface(interfaceList0);
+    runtime.registerInterface(interfaceList1);
+    runtime.registerInterface(interfaceList2);
+    runtime.registerInterface(interfaceList3);
+    runtime.registerInterface(interfaceList4);
+    runtime.registerInterface(interfaceList6);
+    runtime.registerInterface(interfaceList7);
+    runtime.registerInterface(interfaceList8);
+    runtime.registerInterface(interfaceList9);
+    runtime.registerInterface(interfaceListA);
+    runtime.registerInterface(interfaceListB);
+}

@@ -1,6 +1,7 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "keymap.h"
+#include "InterfaceRuntime.h"
 #include "Interface.h"
 #include "keys.h"
 #include "display.h"
@@ -211,6 +212,7 @@ Keymap* Keymap::first = NULL;
 Keymap* Keymap::current = NULL;
 static RuntimeCommandSink* keymapRuntimeCommandSink = NULL;
 static const AudioProcessingState* keymapAudioProcessingState = NULL;
+static InterfaceRuntime* keymapInterfaceRuntime = NULL;
 
 Keymap::Keymap(const char* n)
     : next(first)
@@ -491,6 +493,14 @@ RuntimeCommandSink* Keymap::runtimeCommandSink() {
     return keymapRuntimeCommandSink;
 }
 
+void Keymap::setInterfaceRuntime(InterfaceRuntime* runtime) {
+    keymapInterfaceRuntime = runtime;
+}
+
+InterfaceRuntime* Keymap::interfaceRuntime() {
+    return keymapInterfaceRuntime;
+}
+
 void Keymap::setAudioProcessingState(const AudioProcessingState* state) {
     keymapAudioProcessingState = state;
 }
@@ -605,25 +615,42 @@ ACTION(lock) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock()); }
 ACTION(writeIni) { applyRuntimeCommand(RuntimeCommand::writeIni()); }
 
 ACTION(restore) { applyRuntimeCommand(RuntimeCommand::restoreScene()); }
-ACTION(toggleSave) { Interface::saveToPreset = 1 - Interface::saveToPreset; }
+ACTION(toggleSave) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->toggleSaveToPreset();
+}
 ACTION(save) { applyRuntimeCommand(RuntimeCommand::savePreset(int(v))); }
 ACTION(saveOrRestore) {
-    if (Interface::saveToPreset) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if ((runtime != NULL) && runtime->saveToPreset()) {
         applyRuntimeCommand(RuntimeCommand::savePreset(int(v)));
-        Interface::saveToPreset = 0;
+        runtime->clearSaveToPreset();
     } else {
         applyRuntimeCommand(RuntimeCommand::restorePreset(int(v)));
     }
 }
 
-ACTION(toggleStatus) { Interface::showStatus = 1 - Interface::showStatus; }
+ACTION(toggleStatus) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->toggleStatus();
+}
 ACTION(toggleFPS) { applyRuntimeCommand(RuntimeCommand::toggleShowFps()); }
 
 ACTION(changeAll) { applyRuntimeCommand(RuntimeCommand::changeAll()); }
 ACTION(changeOne) { applyRuntimeCommand(RuntimeCommand::changeOne()); }
 
-ACTION(credits) { Interface::set("credits"); }
-ACTION(setInterface) { Interface::set(p); }
+ACTION(credits) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->set("credits");
+}
+ACTION(setInterface) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->set(p);
+}
 
 ACTION(randomPalette) {
     applyRuntimeCommand(RuntimeCommand::randomPalette());

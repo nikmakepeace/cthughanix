@@ -5,6 +5,7 @@
 #include "cthugha.h"
 #include "AudioOptions.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 
 static const char* audioSampleFormatNames[] = {
     "8bit unsigned",
@@ -39,3 +40,7 @@ const char* audioOnOffText(int enabled) {
 }
 
 Interface interfacePlayList("playList", "Sound Play List", "Not yet implemented");
+
+void registerAudioInterfaces(InterfaceRuntime& runtime) {
+    runtime.registerInterface(interfacePlayList);
+}

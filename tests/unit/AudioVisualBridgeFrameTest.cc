@@ -2,6 +2,7 @@
  * Unit coverage for explicit AudioVisualBridge frame input.
  */
 
+#include "cthugha.h"
 #include "AudioVisualBridge.h"
 #include "AudioAnalyzer.h"
 #include "AudioFrame.h"
@@ -11,7 +12,11 @@
 #include <assert.h>
 #include <stdarg.h>
 
-int cth_log_enabled(int) { return 0; }
+static int debugLoggingEnabled = 0;
+
+int cth_log_enabled(int level) {
+    return debugLoggingEnabled && (level == CTH_LOG_DEBUG);
+}
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
@@ -48,7 +53,45 @@ static void testBridgeProcessesSuppliedFrame() {
     assert(acousticContext.intensity() > 0.0);
 }
 
+static void testBridgeDebugReportsAreInstanceLocal() {
+    AudioFrame firstFrame;
+    AudioFrame secondFrame;
+    AcousticContext firstAcousticContext;
+    AcousticContext secondAcousticContext;
+    AudioProcessor firstProcessor;
+    AudioProcessor secondProcessor;
+    AudioProcessingState firstProcessingState;
+    AudioProcessingState secondProcessingState;
+    AudioProcessingSelector firstProcessingSelector(firstProcessingState,
+        firstProcessor);
+    AudioProcessingSelector secondProcessingSelector(secondProcessingState,
+        secondProcessor);
+    AudioVisualBridge first(firstAcousticContext, firstProcessingSelector,
+        firstProcessor, 4);
+    AudioVisualBridge second(secondAcousticContext, secondProcessingSelector,
+        secondProcessor, 4);
+
+    fillConstant(firstFrame, 2, 3);
+    fillConstant(secondFrame, 4, 5);
+    debugLoggingEnabled = 1;
+
+    first.runFrame(firstFrame);
+    assert(first.debugReportCount() == 1);
+    assert(second.debugReportCount() == 0);
+
+    second.runFrame(secondFrame);
+    assert(first.debugReportCount() == 1);
+    assert(second.debugReportCount() == 1);
+
+    for (int i = 0; i < 24; i++)
+        first.runFrame(firstFrame);
+    assert(first.debugReportCount() == 16);
+    assert(second.debugReportCount() == 1);
+    debugLoggingEnabled = 0;
+}
+
 int main() {
     testBridgeProcessesSuppliedFrame();
+    testBridgeDebugReportsAreInstanceLocal();
     return 0;
 }

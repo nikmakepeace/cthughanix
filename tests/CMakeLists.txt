@@ -814,6 +814,20 @@ target_link_libraries(audio_visual_bridge_auto_changer_test PRIVATE m)
 add_test(NAME audio_visual_bridge_auto_changer_test
     COMMAND audio_visual_bridge_auto_changer_test)
 
+add_executable(interface_runtime_test
+    unit/InterfaceRuntimeTest.cc
+    ${CMAKE_SOURCE_DIR}/src/InterfaceRuntime.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
+)
+
+target_include_directories(interface_runtime_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+add_test(NAME interface_runtime_test COMMAND interface_runtime_test)
+
 add_executable(audio_frame_processor_test
     unit/AudioFrameProcessorTest.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc

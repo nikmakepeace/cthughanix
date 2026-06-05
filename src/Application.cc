@@ -27,6 +27,7 @@
 #include "FramePacer.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "Mixer.h"
 #include "IniFiles.h"
 #include "Option.h"
@@ -119,10 +120,15 @@ Application::Application(int argc, char* argv[])
     , platformLifecycle(PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
     , startupInitialized(0)
-    , shutdownComplete(0) { }
+    , shutdownComplete(0) {
+    interfaceRuntimeValue.reset(new InterfaceRuntime());
+    registerDefaultInterfaces(*interfaceRuntimeValue);
+    Keymap::setInterfaceRuntime(interfaceRuntimeValue.get());
+}
 
 Application::~Application() {
     shutdown();
+    Keymap::setInterfaceRuntime(NULL);
 }
 
 void Application::platformWillSuspend(void* context) {
@@ -182,8 +188,8 @@ void Application::initSceneRuntime() {
         new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue));
     runtimeEffectControlsValue.reset(
         new DefaultRuntimeEffectControls());
-    Interface::setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
-    Interface::setAudioProcessingSelector(audioProcessingSelectorValue.get());
+    interfaceRuntimeValue->setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
+    interfaceRuntimeValue->setAudioProcessingSelector(audioProcessingSelectorValue.get());
     runtimeChangeMediatorValue.reset(new RuntimeChangeMediator(
         *sceneCommandsValue, *runtimePersistenceValue,
         *runtimeShutdownValue, *runtimeDisplayControlsValue,
@@ -191,7 +197,7 @@ void Application::initSceneRuntime() {
         *runtimeEffectControlsValue));
     Keymap::setRuntimeCommandSink(runtimeChangeMediatorValue.get());
     Keymap::setAudioProcessingState(audioProcessingStateValue.get());
-    Interface::setAutoChangeControls(autoChangeControlsValue.get());
+    interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
@@ -199,10 +205,10 @@ void Application::shutdownSceneRuntime() {
     Keymap::setRuntimeCommandSink(NULL);
     Keymap::setAudioProcessingState(NULL);
     bindSceneCommandsForLegacyCallbacks(NULL);
-    Interface::setAutoChangeControls(NULL);
+    interfaceRuntimeValue->setAutoChangeControls(NULL);
     videoDirector().unbindScene();
-    Interface::setAudioProcessingSelector(NULL);
-    Interface::setRuntimeConfigRegistry(NULL);
+    interfaceRuntimeValue->setAudioProcessingSelector(NULL);
+    interfaceRuntimeValue->setRuntimeConfigRegistry(NULL);
     runtimeChangeMediatorValue.reset();
     runtimeEffectControlsValue.reset();
     runtimeAutoChangeControlsValue.reset();
@@ -295,12 +301,12 @@ void Application::initAudioVisualBridge() {
             *audioProcessingSelectorValue, *audioProcessorValue,
             startupConfigValue.audioAnalysis.minNoise,
             runtimeChangeMediatorValue.get(), autoChangeSettingsValue.get()));
-        Interface::setAutoChangerStatusProvider(audioVisualBridge.get());
+        interfaceRuntimeValue->setAutoChangerStatusProvider(audioVisualBridge.get());
     }
 }
 
 void Application::shutdownAudioVisualBridge() {
-    Interface::setAutoChangerStatusProvider(NULL);
+    interfaceRuntimeValue->setAutoChangerStatusProvider(NULL);
     audioVisualBridge.reset();
 }
 
@@ -442,7 +448,7 @@ int Application::initialize() {
     // Interface/keymaps are available before display creation so early display
     // events and option panels can route input immediately.
     CTH_INFO("Initializing interface...\n");
-    Interface::set("main");
+    interfaceRuntimeValue->set("main");
 
     CTH_INFO("Initializing keymaps...\n");
     Keymap::init(startupConfigValue.input);
@@ -502,7 +508,7 @@ void Application::run() {
 
         if (traceDisplayTiming)
             preInterfaceStart = getTime();
-        Interface::current->run();
+        interfaceRuntimeValue->runCurrent();
         if (traceDisplayTiming)
             preInterfaceEnd = getTime();
 
@@ -518,7 +524,7 @@ void Application::run() {
 
         if (traceDisplayTiming)
             postInterfaceStart = getTime();
-        Interface::current->run();
+        interfaceRuntimeValue->runCurrent();
         if (traceDisplayTiming)
             postInterfaceEnd = getTime();
 

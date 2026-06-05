@@ -50,6 +50,19 @@ static void testPulseOutputReceivesServerAndLatencyWithoutOpening() {
     assert(output.targetDelaySamples() == 23);
 }
 
+static void testPulseUnderflowCountIsInstanceLocal() {
+    AudioOutputConfig config;
+    AudioPulseOutput first(stereo16Format(), config, NULL, 0);
+    AudioPulseOutput second(stereo16Format(), config, NULL, 0);
+
+    assert(first.underflowCount() == 0);
+    assert(second.underflowCount() == 0);
+    first.pulseUnderflow();
+    first.pulseUnderflow();
+    assert(first.underflowCount() == 2);
+    assert(second.underflowCount() == 0);
+}
+
 static void testDspOutputReceivesTargetLatency() {
     AudioSettings settings;
     settings.pcmFormat = stereo16Format();
@@ -72,6 +85,7 @@ static void testDspOutputReceivesTargetLatency() {
 int main() {
     testNullOutputReceivesTargetLatency();
     testPulseOutputReceivesServerAndLatencyWithoutOpening();
+    testPulseUnderflowCountIsInstanceLocal();
     testDspOutputReceivesTargetLatency();
     return 0;
 }

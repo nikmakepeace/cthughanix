@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "AutoChangeControls.h"
 #include "AutoChangerStatusProvider.h"
 #include "keys.h"
@@ -23,18 +24,6 @@
 #include <signal.h>
 #include <string>
 
-int Interface::saveToPreset = 0;
-int Interface::showStatus = 0;
-
-Interface* Interface::current = NULL;
-
-Interface* Interface::head = NULL;
-
-RuntimeConfigRegistry* Interface::runtimeConfigRegistryValue = NULL;
-const AutoChangerStatusProvider* Interface::autoChangerStatusProviderValue = NULL;
-AutoChangeControls* Interface::autoChangeControlsValue = NULL;
-AudioProcessingSelector* Interface::audioProcessingSelectorValue = NULL;
-
 ////////////////////////////////////////////////////////////////////////////
 
 //
@@ -46,11 +35,7 @@ Interface::Interface(const char* n, const char* ti, const char* te)
     , text(te)
     , elements(NULL)
     , nElements(0)
-    , sel(-1) {
-
-    next = head; // add into list of interfaces
-    head = this;
-}
+    , sel(-1) { }
 
 Interface::Interface(const char* n, const char* ti, const char* te, InterfaceElement* el[], int nEl)
     : name(n)
@@ -58,11 +43,7 @@ Interface::Interface(const char* n, const char* ti, const char* te, InterfaceEle
     , text(te)
     , elements(el)
     , nElements(nEl)
-    , sel(-1) {
-
-    next = head; // add into list of interfaces
-    head = this;
-}
+    , sel(-1) { }
 
 Interface::~Interface() { }
 
@@ -71,141 +52,50 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
     nElements = nEl;
 }
 
-void Interface::setRuntimeConfigRegistry(RuntimeConfigRegistry* registry) {
-    runtimeConfigRegistryValue = registry;
-}
-
-const RuntimeConfigRegistry* Interface::runtimeConfigRegistry() {
-    return runtimeConfigRegistryValue;
-}
-
-void Interface::setAutoChangerStatusProvider(
-    const AutoChangerStatusProvider* provider) {
-    autoChangerStatusProviderValue = provider;
-}
-
-const AutoChangerStatusProvider* Interface::autoChangerStatusProvider() {
-    return autoChangerStatusProviderValue;
-}
-
-void Interface::setAutoChangeControls(AutoChangeControls* controls) {
-    autoChangeControlsValue = controls;
-}
-
-AutoChangeControls* Interface::autoChangeControls() {
-    return autoChangeControlsValue;
-}
-
-void Interface::setAudioProcessingSelector(AudioProcessingSelector* selector) {
-    audioProcessingSelectorValue = selector;
-}
-
-AudioProcessingSelector* Interface::audioProcessingSelector() {
-    return audioProcessingSelectorValue;
-}
-
-void Interface::set(const char* n) {
-
-    for (Interface* i = head; i != NULL; i = i->next)
-        if (strcasecmp(n, i->name) == 0) {
-            current = i;
-            return;
-        }
-    // could not find it, leave it as it is
-    CTH_ERROR("Unknown interface '%s'\n", n);
-}
-
 ErrorMessages errors;
 
 ACTION(up) {
-    if (Interface::current == NULL)
-        return;
-
-    Interface::current->sel -= int(v);
-    if (Interface::current->sel < -1)
-        Interface::current->sel = -1;
-    if (Interface::current->sel >= Interface::current->nElements)
-        Interface::current->sel = Interface::current->nElements - 1;
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->moveSelectionBy(-int(v));
 }
 
 ACTION(down) {
-    if (Interface::current == NULL)
-        return;
-
-    Interface::current->sel += int(v);
-    if (Interface::current->sel < -1)
-        Interface::current->sel = -1;
-    if (Interface::current->sel >= Interface::current->nElements)
-        Interface::current->sel = Interface::current->nElements - 1;
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->moveSelectionBy(int(v));
 }
 
 ACTION(home) {
-    if (Interface::current == NULL)
-        return;
-
-    Interface::current->sel = -1;
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->selectHome();
 }
 ACTION(end) {
-    if (Interface::current == NULL)
-        return;
-
-    Interface::current->sel = Interface::current->nElements - 1;
-}
-
-static void changeCurrentInterfaceValueBy(int step) {
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (sink == NULL)
-        return;
-
-    if (currentEffectControl) {
-        sink->apply(RuntimeCommand::changeEffectControlBy(*currentEffectControl, step));
-    } else if (currentOption) {
-        sink->apply(RuntimeCommand::changeOptionBy(*currentOption, step));
-    }
-}
-
-static void changeCurrentInterfaceValueTo(const char* text) {
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (sink == NULL)
-        return;
-
-    if (currentEffectControl) {
-        sink->apply(RuntimeCommand::changeEffectControlTo(*currentEffectControl, text));
-        sink->apply(RuntimeCommand::changeEffectControlBy(*currentEffectControl, 0));
-    } else if (currentOption) {
-        sink->apply(RuntimeCommand::changeOptionTo(*currentOption, text));
-        sink->apply(RuntimeCommand::changeOptionBy(*currentOption, 0));
-    }
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->selectEnd();
 }
 
 ACTION(chgValue1) {
-    if (currentOptionInterfaceElement == NULL)
-        return;
-
-    int step = int(v * currentOptionInterfaceElement->inc1);
-    changeCurrentInterfaceValueBy(step);
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->changeContextValueByElementIncrement(1, v);
 }
 ACTION(chgValue2) {
-    if (currentOptionInterfaceElement == NULL)
-        return;
-
-    int step = int(v * currentOptionInterfaceElement->inc2);
-    changeCurrentInterfaceValueBy(step);
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->changeContextValueByElementIncrement(2, v);
 }
 ACTION(chgValue3) {
-    if (currentOptionInterfaceElement == NULL)
-        return;
-
-    int step = int(v * currentOptionInterfaceElement->inc3);
-    changeCurrentInterfaceValueBy(step);
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->changeContextValueByElementIncrement(3, v);
 }
 ACTION(setValue) {
-    if (currentOptionInterfaceElement == NULL)
-        return;
-
-    char str[128];
-    snprintf(str, sizeof(str), "%d", int(v * currentOptionInterfaceElement->inc1));
-    changeCurrentInterfaceValueTo(str);
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->setContextValueFromElement(v);
 }
 
 static const char* InterfaceList[] = { "Help", // F1
@@ -221,18 +111,14 @@ static const char* InterfaceList[] = { "Help", // F1
     "palette", "image", "flashlight", "Help", NULL };
 
 ACTION(nextInterface) {
-    for (const char** N = InterfaceList; *N != NULL; N++)
-        if (strcasecmp(*N, Interface::current->name) == 0) {
-            Interface::set(N[1]);
-            return;
-        }
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->selectNextInList(InterfaceList);
 }
 ACTION(prevInterface) {
-    for (const char** N = InterfaceList + 1; *N != NULL; N++)
-        if (strcasecmp(*N, Interface::current->name) == 0) {
-            Interface::set(N[-1]);
-            return;
-        }
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->selectPreviousInList(InterfaceList);
 }
 
 // default display handler
@@ -255,10 +141,15 @@ void Interface::display() {
             (sel == i) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
     }
 
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    int showStatus = runtime != NULL ? runtime->showStatus() : 0;
     if (showStatus) {
         static char str[512];
-        const char* autoChangeStatus = autoChangerStatusProviderValue != NULL
-            ? autoChangerStatusProviderValue->autoChangerStatus()
+        const AutoChangerStatusProvider* provider = runtime != NULL
+            ? runtime->autoChangerStatusProvider()
+            : NULL;
+        const char* autoChangeStatus = provider != NULL
+            ? provider->autoChangerStatus()
             : "";
         snprintf(str, sizeof(str), "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
             autoChangeStatus);
@@ -266,7 +157,7 @@ void Interface::display() {
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
     }
 
-    if (saveToPreset) {
+    if ((runtime != NULL) && runtime->saveToPreset()) {
         displayDevice->print("save to preset slot (press 0..9)", text_size.y - (showStatus ? 2 : 1), 'l',
             TEXT_COLOR_NORMAL);
     }
@@ -281,7 +172,7 @@ void Interface::doKey(int key) {
 }
 
 // default runner
-void Interface::run() {
+void Interface::run(InterfaceRuntime& /* runtime */) {
 
     this->preRun();
 
@@ -324,18 +215,12 @@ const char* InterfaceElementOption::text(int selected) {
     return strRet;
 }
 
-Option* currentOption = NULL;
-EffectControl* currentEffectControl = NULL;
-InterfaceElementOption* currentOptionInterfaceElement = NULL;
-
 int InterfaceElementOption::doKey(int key) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime == NULL)
+        return 1;
 
-    currentOption = opt;
-    currentOptionInterfaceElement = this;
-    int ret = keymap.action(key);
-    currentOption = NULL;
-    currentOptionInterfaceElement = NULL;
-    return ret;
+    return runtime->runOptionKey(*opt, *this, keymap, key);
 }
 
 //
@@ -349,32 +234,27 @@ InterfaceElementEffectControl::InterfaceElementEffectControl(
     , effectControl(o) { }
 
 int InterfaceElementEffectControl::doKey(int key) {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime == NULL)
+        return 1;
 
-    currentEffectControl = effectControl;
-    currentOption = effectControl;
-    currentOptionInterfaceElement = this;
-
-    int ret = effectControlKeymap.action(key);
-    if (ret == 1)
-        ret = keymap.action(key);
-
-    currentOption = NULL;
-    currentEffectControl = NULL;
-    currentOptionInterfaceElement = NULL;
-
-    return ret;
+    return runtime->runEffectControlKey(*effectControl, *this,
+        effectControlKeymap, keymap, key);
 }
 
 ACTION(lockElement) {
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (currentEffectControl && sink != NULL)
-        sink->apply(RuntimeCommand::toggleEffectControlLock(*currentEffectControl));
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    if (runtime != NULL)
+        runtime->toggleContextEffectControlLock();
 }
 
 static const char* runtimeConfigSelectionTextForInterface(
     RuntimeConfigSelectionField field, Option* fallback) {
     static std::string text;
-    const RuntimeConfigRegistry* registry = Interface::runtimeConfigRegistry();
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    const RuntimeConfigRegistry* registry = runtime != NULL
+        ? runtime->runtimeConfigRegistry()
+        : NULL;
     if (registry == NULL) {
         text = fallback != NULL ? fallback->text() : "";
         return text.c_str();
@@ -412,7 +292,10 @@ public:
 class InterfaceElementAudioProcessingOption
     : public InterfaceElementRuntimeConfigOption {
     void updateOption() {
-        AudioProcessingSelector* selector = Interface::audioProcessingSelector();
+        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+        AudioProcessingSelector* selector = runtime != NULL
+            ? runtime->audioProcessingSelector()
+            : NULL;
         opt = (selector != NULL)
             ? static_cast<Option*>(&selector->option())
             : static_cast<Option*>(&optionDummy);
@@ -438,7 +321,10 @@ class InterfaceElementAutoChangeOption : public InterfaceElementOption {
     AutoChangeControlField field;
 
     void updateOption() {
-        AutoChangeControls* controls = Interface::autoChangeControls();
+        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+        AutoChangeControls* controls = runtime != NULL
+            ? runtime->autoChangeControls()
+            : NULL;
         opt = (controls != NULL) ? &controls->option(field) : &optionDummy;
     }
 
@@ -643,3 +529,19 @@ InterfaceElement* elementsOption[] = {
 int nElementsOption = sizeof(elementsOption) / sizeof(InterfaceElement*);
 
 Interface interfaceOption("Options", "Options", NULL, elementsOption, nElementsOption);
+
+void registerListInterfaces(InterfaceRuntime& runtime);
+void registerHelpInterface(InterfaceRuntime& runtime);
+void registerCreditsInterface(InterfaceRuntime& runtime);
+void registerAudioInterfaces(InterfaceRuntime& runtime);
+
+void registerDefaultInterfaces(InterfaceRuntime& runtime) {
+    runtime.registerInterface(interfaceMain);
+    runtime.registerInterface(interfaceMixer);
+    runtime.registerInterface(interfaceEffectControl);
+    runtime.registerInterface(interfaceOption);
+    registerAudioInterfaces(runtime);
+    registerListInterfaces(runtime);
+    registerHelpInterface(runtime);
+    registerCreditsInterface(runtime);
+}

@@ -75,15 +75,23 @@ static int audioPcmPeak(const PcmFormat& format, const char* data, int samples) 
     return peak;
 }
 
-void audioDebugSubmittedPcm(const PcmFormat& format, const char* scratch,
+AudioSubmittedPcmDebugReporter::AudioSubmittedPcmDebugReporter()
+    : reportsValue(0) { }
+
+void AudioSubmittedPcmDebugReporter::submittedPcm(const PcmFormat& format, const char* scratch,
     int samples, int bytes, int written, int queuedSamples,
     long long submittedEndSample) {
-    static int reports = 0;
-
-    if (!CTH_LOG_ENABLED(CTH_LOG_DEBUG) || (reports >= 8))
+    if (!CTH_LOG_ENABLED(CTH_LOG_DEBUG))
         return;
 
-    reports++;
+    int reports = reportsValue.load();
+    while (reports < 8) {
+        if (reportsValue.compare_exchange_weak(reports, reports + 1))
+            break;
+    }
+
+    if (reports >= 8)
+        return;
 
     CTH_DEBUG("    audio output: submitted samples=%d bytes=%d written=%d peak=%d queued-samples=%d submitted-end-sample=%lld\n",
         samples, bytes, written, audioPcmPeak(format, scratch, samples), queuedSamples,

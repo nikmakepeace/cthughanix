@@ -5,6 +5,7 @@
 #include "cth_buffer.h"
 #include "imath.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "IndexedFrame.h"
 #include "DisplayRuntime.h"
 #include "FpsOverlay.h"
@@ -46,7 +47,8 @@ public:
 class CurrentInterfaceOverlayProducer : public OverlayProducer {
 public:
     virtual void produceOverlay(OverlaySink& sink) {
-        Interface* currentInterface = Interface::current;
+        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+        Interface* currentInterface = runtime != NULL ? runtime->current() : NULL;
         if (currentInterface == 0)
             return;
 

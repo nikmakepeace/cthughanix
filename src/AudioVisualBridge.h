@@ -32,6 +32,7 @@ class AudioVisualBridge : public AutoChangerStatusProvider {
     AudioProcessingSelector& audioProcessingSelectorValue;
     AudioProcessor& audioProcessorValue;
     int minNoiseValue;
+    int debugReportsValue;
 
 #ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
     std::unique_ptr<AutoChanger> autoChangerValue;
@@ -91,6 +92,9 @@ public:
      * rebuilt or refreshed the filterchain.
      */
     void clearFilterchainRefreshRequest() { filterchainRefreshRequestedValue = 0; }
+
+    /** @return Number of per-frame debug reports emitted by this bridge. */
+    int debugReportCount() const { return debugReportsValue; }
 };
 
 #endif

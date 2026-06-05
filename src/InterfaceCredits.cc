@@ -1,6 +1,7 @@
 #include "cthugha.h"
 #include "keys.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "display.h"
 #include "DisplayDevice.h"
 #include "RuntimeCommandSink.h"
@@ -112,3 +113,7 @@ const char* InterfaceCredits::credits[] = { E
     N "Robert Bihlmeyer", N "Antonio Schifano", N "Richard Boulton", N "John Morton", N " ", N " ",
     N " ", N " ", N " ", N " ", N " ", N " " };
 int InterfaceCredits::nCredits = sizeof(InterfaceCredits::credits) / sizeof(const char*);
+
+void registerCreditsInterface(InterfaceRuntime& runtime) {
+    runtime.registerInterface(interfaceCredits);
+}

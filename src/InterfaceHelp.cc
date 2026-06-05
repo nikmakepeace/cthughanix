@@ -1,5 +1,6 @@
 #include "cthugha.h"
 #include "Interface.h"
+#include "InterfaceRuntime.h"
 #include "display.h"
 #include "keys.h"
 #include "CthughaDisplay.h"
@@ -130,3 +131,7 @@ const char* InterfaceHelp::text[] = {
     N "                                       \n",
 };
 int InterfaceHelp::nLines = sizeof(InterfaceHelp::text) / sizeof(const char*);
+
+void registerHelpInterface(InterfaceRuntime& runtime) {
+    runtime.registerInterface(interfaceHelp);
+}
