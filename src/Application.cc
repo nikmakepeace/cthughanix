@@ -28,8 +28,12 @@
 #include "Interface.h"
 #include "IniFiles.h"
 #include "Option.h"
+#include "RuntimeAudioControls.h"
+#include "RuntimeAutoChangeControls.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimeChangeMediator.h"
+#include "RuntimeDisplayControls.h"
+#include "RuntimeEffectControls.h"
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
@@ -147,10 +151,17 @@ void Application::initSceneRuntime() {
     runtimePersistenceValue.reset(
         new IniRuntimePersistence(*runtimeConfigRegistryValue));
     runtimeShutdownValue.reset(new RuntimeCloseState());
+    runtimeDisplayControlsValue.reset(new DefaultRuntimeDisplayControls());
+    runtimeAudioControlsValue.reset(new DefaultRuntimeAudioControls());
+    runtimeAutoChangeControlsValue.reset(new DefaultRuntimeAutoChangeControls());
+    runtimeEffectControlsValue.reset(
+        new DefaultRuntimeEffectControls());
     Interface::setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
     runtimeChangeMediatorValue.reset(new RuntimeChangeMediator(
         *sceneCommandsValue, *runtimePersistenceValue,
-        *runtimeShutdownValue));
+        *runtimeShutdownValue, *runtimeDisplayControlsValue,
+        *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
+        *runtimeEffectControlsValue));
     Keymap::setRuntimeCommandSink(runtimeChangeMediatorValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
@@ -161,6 +172,10 @@ void Application::shutdownSceneRuntime() {
     videoDirector().unbindScene();
     Interface::setRuntimeConfigRegistry(NULL);
     runtimeChangeMediatorValue.reset();
+    runtimeEffectControlsValue.reset();
+    runtimeAutoChangeControlsValue.reset();
+    runtimeAudioControlsValue.reset();
+    runtimeDisplayControlsValue.reset();
     runtimePersistenceValue.reset();
     runtimeShutdownValue.reset();
     runtimeConfigRegistryValue.reset();

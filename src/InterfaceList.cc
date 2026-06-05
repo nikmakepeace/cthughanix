@@ -101,11 +101,12 @@ public:
 Keymap InterfaceList::listOptionKeymap("ListOption");
 
 ACTION(toggleUse) {
-    if (currentOption == NULL)
+    if (currentEffectControl == NULL)
         return;
     RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
     if (sink != NULL)
-        sink->apply(RuntimeCommand::changeOptionBy(*currentOption, +1));
+        sink->apply(RuntimeCommand::toggleEffectChoiceUse(
+            *currentEffectControl, Interface::current->sel));
 }
 
 ACTION(activate) {

@@ -20,6 +20,10 @@ set(CTHUGHA_COMMON_SOURCES
     RuntimeFactory.cc
     Scene.cc
     RuntimeCommand.cc
+    RuntimeDisplayControls.cc
+    RuntimeAudioControls.cc
+    RuntimeAutoChangeControls.cc
+    RuntimeEffectControls.cc
     RuntimePersistence.cc
     RuntimeShutdown.cc
     RuntimeChangeMediator.cc

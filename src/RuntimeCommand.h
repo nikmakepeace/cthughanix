@@ -50,6 +50,7 @@ enum RuntimeCommandType {
     RuntimeCommandChangeEffectControlBy,
     RuntimeCommandChangeEffectControlTo,
     RuntimeCommandActivateEffectControl,
+    RuntimeCommandToggleEffectChoiceUse,
     RuntimeCommandChangeOptionBy,
     RuntimeCommandChangeOptionTo,
     RuntimeCommandToggleEffectControlLock,
@@ -300,6 +301,15 @@ struct RuntimeCommand {
      * @return Runtime command.
      */
     static RuntimeCommand activateEffectControl(EffectControl& option, int index);
+
+    /**
+     * Creates an effect-choice use toggle command.
+     *
+     * @param option Effect control containing the choice.
+     * @param index Choice index whose use flag should toggle.
+     * @return Runtime command.
+     */
+    static RuntimeCommand toggleEffectChoiceUse(EffectControl& option, int index);
 
     /**
      * Creates a relative generic Option change command.

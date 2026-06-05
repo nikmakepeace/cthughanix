@@ -1,3 +1,7 @@
+/** @file
+ * Source-level dependency boundary checks for deglobalisation work.
+ */
+
 #include <assert.h>
 #include <stdio.h>
 #include <fstream>
@@ -393,6 +397,84 @@ static void testRuntimeLifecycleRequestsUseMediator() {
     assertSourceDoesNotContain("src/RuntimeShutdown.cc", "cthugha_close++");
 }
 
+static void testRuntimeCommandsUseSubsystemControlPorts() {
+    assertSourceContains("src/Application.cc",
+        "new DefaultRuntimeDisplayControls()");
+    assertSourceContains("src/Application.cc",
+        "new DefaultRuntimeAudioControls()");
+    assertSourceContains("src/Application.cc",
+        "new DefaultRuntimeAutoChangeControls()");
+    assertSourceContains("src/Application.cc",
+        "new DefaultRuntimeEffectControls()");
+    assertSourceDoesNotContain("src/Application.cc",
+        "new DefaultRuntimeOptionControls()");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "#include \"RuntimeDisplayControls.h\"");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "#include \"RuntimeAudioControls.h\"");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "#include \"RuntimeAutoChangeControls.h\"");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "#include \"RuntimeEffectControls.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"RuntimeOptionControls.h\"");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "displayControls.changePresentationBy(command.value)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "audioControls.changeSoundProcessingBy(command.value)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "autoChangeControls.toggleLock()");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "displayControls.changeDisplayOptionBy(option, by, changes)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "audioControls.changeAudioOptionBy(option, by, changes)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "autoChangeControls.changeAutoChangeOptionBy(option, by, changes)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "effectControls.changeEffectControlBy(");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "effectControls.toggleEffectChoiceUse(");
+    assertSourceContains("src/InterfaceList.cc",
+        "RuntimeCommand::toggleEffectChoiceUse");
+    assertSourceDoesNotExist("src/RuntimeOptionControls.cc");
+    assertSourceDoesNotExist("src/RuntimeOptionControls.h");
+    assertSourceDoesNotExist("src/RuntimeEffectCatalogControls.cc");
+    assertSourceDoesNotExist("src/RuntimeEffectCatalogControls.h");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
+        "RuntimeOptionControls.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
+        "RuntimeEffectCatalogControls.cc");
+    assertSourceContains("src/CMakeLists.txt",
+        "RuntimeEffectControls.cc");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"AudioFrame.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"AudioProcessor.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"AutoChanger.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"CthughaDisplay.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"EffectControl.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"Option.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "#include \"Screen.h\"");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "audioProcessing.change");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "audioFrameChange");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "lock.change");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "showFPS.change");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "screen.change");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
+        "zoom.change");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.cc", "&screen");
+}
+
 static void testX11PanelInputsUseRuntimeCommands() {
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "RuntimeCommand::savePaletteMetadata");
@@ -466,6 +548,7 @@ int main() {
     testSceneStartupUsesSceneConfig();
     testIniPersistenceUsesRuntimePersistenceAdapter();
     testRuntimeLifecycleRequestsUseMediator();
+    testRuntimeCommandsUseSubsystemControlPorts();
     testX11PanelInputsUseRuntimeCommands();
     testSelectionDisplaysUseRuntimeConfigRegistry();
     testInterfaceInputsDoNotUseLegacyFallbacks();

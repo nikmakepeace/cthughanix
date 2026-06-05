@@ -468,11 +468,22 @@ Keymap, generic interface mutation actions, X11 panel selection/quit/palette
 metadata callbacks, credits key handling, playback completion, and AutoChanger
 now issue `RuntimeCommand` values through a `RuntimeCommandSink`.
 `RuntimeChangeMediator` implements that sink, delegates to existing
-scene/audio/display/panel owners, delegates ini persistence to
+scene commands, delegates display commands to `RuntimeDisplayControls`,
+delegates audio commands to `RuntimeAudioControls`, delegates AutoChanger
+commands to `RuntimeAutoChangeControls`, delegates legacy EffectControl state
+mutations to `RuntimeEffectControls`, delegates ini persistence to
 `RuntimePersistence`, delegates close requests to the application-owned
 `RuntimeShutdown`, handles palette metadata commands, and reports a
-`RuntimeChangeSet`. This is a coordination boundary, not full deglobalisation
-yet.
+`RuntimeChangeSet`.
+
+The default runtime control implementations still call the current global
+display/audio/auto-change/EffectControl objects. Generic `Option*` commands
+from the legacy interface are routed only through display, audio, and
+AutoChanger ownership checks; `RuntimeEffectControls` handles EffectControl
+selection, effect-choice use flags, and individual EffectControl locks. These
+adapters are deliberately thin layers so future subsystem deglobalisation can
+replace their internals without teaching `RuntimeChangeMediator` about concrete
+subsystem ownership.
 
 ## Configuration Flow
 

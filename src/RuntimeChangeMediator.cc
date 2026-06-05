@@ -4,22 +4,26 @@
 
 #include "RuntimeChangeMediator.h"
 
-#include "AudioFrame.h"
-#include "AudioProcessor.h"
-#include "AutoChanger.h"
-#include "CthughaDisplay.h"
-#include "EffectControl.h"
-#include "Option.h"
+#include "RuntimeAudioControls.h"
+#include "RuntimeAutoChangeControls.h"
+#include "RuntimeDisplayControls.h"
+#include "RuntimeEffectControls.h"
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
-#include "Screen.h"
 
 RuntimeChangeMediator::RuntimeChangeMediator(SceneCommands& sceneCommands_,
-    RuntimePersistence& runtimePersistence_, RuntimeShutdown& runtimeShutdown_)
+    RuntimePersistence& runtimePersistence_, RuntimeShutdown& runtimeShutdown_,
+    RuntimeDisplayControls& displayControls_, RuntimeAudioControls& audioControls_,
+    RuntimeAutoChangeControls& autoChangeControls_,
+    RuntimeEffectControls& effectControls_)
     : sceneCommands(sceneCommands_)
     , runtimePersistence(runtimePersistence_)
-    , runtimeShutdown(runtimeShutdown_) { }
+    , runtimeShutdown(runtimeShutdown_)
+    , displayControls(displayControls_)
+    , audioControls(audioControls_)
+    , autoChangeControls(autoChangeControls_)
+    , effectControls(effectControls_) { }
 
 RuntimeChangeSet RuntimeChangeMediator::applySceneBy(RuntimeSceneTarget target, int by) {
     RuntimeChangeSet changes;
@@ -108,6 +112,67 @@ RuntimeChangeSet RuntimeChangeMediator::applySceneTo(
     return changes;
 }
 
+RuntimeChangeSet RuntimeChangeMediator::applyNonSceneEffectControlBy(
+    EffectControl& control, int by) {
+    RuntimeChangeSet changes;
+
+    if (displayControls.changeDisplayEffectControlBy(control, by, changes))
+        return changes;
+
+    changes.merge(effectControls.changeEffectControlBy(control, by));
+    return changes;
+}
+
+RuntimeChangeSet RuntimeChangeMediator::applyNonSceneEffectControlTo(
+    EffectControl& control, const char* to) {
+    RuntimeChangeSet changes;
+
+    if (displayControls.changeDisplayEffectControlTo(control, to, changes))
+        return changes;
+
+    changes.merge(effectControls.changeEffectControlTo(control, to));
+    return changes;
+}
+
+RuntimeChangeSet RuntimeChangeMediator::activateNonSceneEffectControl(
+    EffectControl& control, int index) {
+    RuntimeChangeSet changes;
+
+    if (displayControls.activateDisplayEffectControl(control, index, changes))
+        return changes;
+
+    changes.merge(effectControls.activateEffectControl(control, index));
+    return changes;
+}
+
+RuntimeChangeSet RuntimeChangeMediator::changeOwnedOptionBy(
+    Option& option, int by) {
+    RuntimeChangeSet changes;
+
+    if (displayControls.changeDisplayOptionBy(option, by, changes))
+        return changes;
+    if (audioControls.changeAudioOptionBy(option, by, changes))
+        return changes;
+    if (autoChangeControls.changeAutoChangeOptionBy(option, by, changes))
+        return changes;
+
+    return changes;
+}
+
+RuntimeChangeSet RuntimeChangeMediator::changeOwnedOptionTo(
+    Option& option, const char* to) {
+    RuntimeChangeSet changes;
+
+    if (displayControls.changeDisplayOptionTo(option, to, changes))
+        return changes;
+    if (audioControls.changeAudioOptionTo(option, to, changes))
+        return changes;
+    if (autoChangeControls.changeAutoChangeOptionTo(option, to, changes))
+        return changes;
+
+    return changes;
+}
+
 RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
     RuntimeChangeSet changes;
 
@@ -121,35 +186,35 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
     case RuntimeCommandChangeSceneTo:
         return applySceneTo(command.sceneTarget, command.text);
     case RuntimeCommandChangeScreenBy:
-        screen.change(command.value, 0);
+        displayControls.changePresentationBy(command.value);
         changes.displayChanged = 1;
         break;
     case RuntimeCommandChangeScreenTo:
-        screen.change(command.text, 0);
+        displayControls.changePresentationTo(command.text);
         changes.displayChanged = 1;
         break;
     case RuntimeCommandChangeZoomBy:
-        zoom.change(command.value);
+        displayControls.changeZoomBy(command.value);
         changes.displayChanged = 1;
         break;
     case RuntimeCommandChangeZoomTo:
-        zoom.change(command.text);
+        displayControls.changeZoomTo(command.text);
         changes.displayChanged = 1;
         break;
     case RuntimeCommandChangeSoundProcessingBy:
-        audioProcessing.change(command.value);
+        audioControls.changeSoundProcessingBy(command.value);
         changes.audioProcessingChanged = 1;
         break;
     case RuntimeCommandChangeSoundProcessingTo:
-        audioProcessing.change(command.text);
+        audioControls.changeSoundProcessingTo(command.text);
         changes.audioProcessingChanged = 1;
         break;
     case RuntimeCommandToggleAutoChangeLock:
-        lock.change(+1);
+        autoChangeControls.toggleLock();
         changes.autoChangeChanged = 1;
         break;
     case RuntimeCommandResetAudioFrame:
-        audioFrameChange();
+        audioControls.resetAudioFrame();
         changes.audioResetRequested = 1;
         break;
     case RuntimeCommandWriteIni:
@@ -164,7 +229,7 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         }
         break;
     case RuntimeCommandToggleShowFps:
-        showFPS.change(+1);
+        displayControls.toggleFpsOverlay();
         changes.fpsChanged = 1;
         break;
     case RuntimeCommandRestoreScene:
@@ -202,8 +267,8 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
             sceneCommands.change(*command.effectControl, command.value, 0);
             changes.sceneChanges = 1;
         } else {
-            command.effectControl->change(command.value, 0);
-            changes.displayChanged = (command.effectControl == &screen);
+            changes.merge(applyNonSceneEffectControlBy(
+                *command.effectControl, command.value));
         }
         break;
     case RuntimeCommandChangeEffectControlTo:
@@ -213,8 +278,8 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
             sceneCommands.change(*command.effectControl, command.text, 0);
             changes.sceneChanges = 1;
         } else {
-            command.effectControl->change(command.text, 0);
-            changes.displayChanged = (command.effectControl == &screen);
+            changes.merge(applyNonSceneEffectControlTo(
+                *command.effectControl, command.text));
         }
         break;
     case RuntimeCommandActivateEffectControl:
@@ -223,25 +288,27 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         if (sceneCommands.isSceneOption(*command.effectControl)) {
             sceneCommands.activate(*command.effectControl, command.value);
             changes.sceneChanges = 1;
-        } else if ((command.value >= 0)
-            && (command.value < command.effectControl->getNEntries())) {
-            (*command.effectControl)[command.value]->setUse(1);
-            command.effectControl->setValue(command.value);
-            command.effectControl->change(0, 0);
-            changes.displayChanged = (command.effectControl == &screen);
+        } else {
+            changes.merge(activateNonSceneEffectControl(
+                *command.effectControl, command.value));
         }
+        break;
+    case RuntimeCommandToggleEffectChoiceUse:
+        if (command.effectControl != 0)
+            effectControls.toggleEffectChoiceUse(
+                *command.effectControl, command.value);
         break;
     case RuntimeCommandChangeOptionBy:
         if (command.option != 0)
-            command.option->change(command.value);
+            changes.merge(changeOwnedOptionBy(*command.option, command.value));
         break;
     case RuntimeCommandChangeOptionTo:
         if (command.option != 0)
-            command.option->change(command.text);
+            changes.merge(changeOwnedOptionTo(*command.option, command.text));
         break;
     case RuntimeCommandToggleEffectControlLock:
         if (command.effectControl != 0)
-            command.effectControl->lock.change(+1);
+            effectControls.toggleEffectControlLock(*command.effectControl);
         break;
     case RuntimeCommandSavePaletteMetadata:
         if (command.paletteMetadataTarget != 0) {

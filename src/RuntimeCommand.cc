@@ -160,6 +160,14 @@ RuntimeCommand RuntimeCommand::activateEffectControl(EffectControl& option, int 
     return command;
 }
 
+RuntimeCommand RuntimeCommand::toggleEffectChoiceUse(
+    EffectControl& option, int index) {
+    RuntimeCommand command(RuntimeCommandToggleEffectChoiceUse);
+    command.effectControl = &option;
+    command.value = index;
+    return command;
+}
+
 RuntimeCommand RuntimeCommand::changeOptionBy(Option& option, int by) {
     RuntimeCommand command(RuntimeCommandChangeOptionBy);
     command.option = &option;

@@ -9,15 +9,32 @@
 
 class RuntimePersistence;
 class RuntimeShutdown;
+class RuntimeDisplayControls;
+class RuntimeAudioControls;
+class RuntimeAutoChangeControls;
+class RuntimeEffectControls;
+class EffectControl;
+class Option;
 class SceneCommands;
 
 class RuntimeChangeMediator : public RuntimeCommandSink {
     SceneCommands& sceneCommands;
     RuntimePersistence& runtimePersistence;
     RuntimeShutdown& runtimeShutdown;
+    RuntimeDisplayControls& displayControls;
+    RuntimeAudioControls& audioControls;
+    RuntimeAutoChangeControls& autoChangeControls;
+    RuntimeEffectControls& effectControls;
 
     RuntimeChangeSet applySceneBy(RuntimeSceneTarget target, int by);
     RuntimeChangeSet applySceneTo(RuntimeSceneTarget target, const char* to);
+    RuntimeChangeSet applyNonSceneEffectControlBy(EffectControl& control, int by);
+    RuntimeChangeSet applyNonSceneEffectControlTo(
+        EffectControl& control, const char* to);
+    RuntimeChangeSet activateNonSceneEffectControl(
+        EffectControl& control, int index);
+    RuntimeChangeSet changeOwnedOptionBy(Option& option, int by);
+    RuntimeChangeSet changeOwnedOptionTo(Option& option, const char* to);
 
 public:
     /**
@@ -26,10 +43,18 @@ public:
      * @param sceneCommands_ Scene command facade used for scene changes.
      * @param runtimePersistence_ Persistence port used for runtime saves.
      * @param runtimeShutdown_ Shutdown port used for close requests.
+     * @param displayControls_ Display/presentation control port.
+     * @param audioControls_ Audio control port.
+     * @param autoChangeControls_ AutoChanger control port.
+     * @param effectControls_ Legacy EffectControl state port.
      */
     RuntimeChangeMediator(SceneCommands& sceneCommands_,
         RuntimePersistence& runtimePersistence_,
-        RuntimeShutdown& runtimeShutdown_);
+        RuntimeShutdown& runtimeShutdown_,
+        RuntimeDisplayControls& displayControls_,
+        RuntimeAudioControls& audioControls_,
+        RuntimeAutoChangeControls& autoChangeControls_,
+        RuntimeEffectControls& effectControls_);
 
     /**
      * Applies a runtime command and reports the areas changed by it.
