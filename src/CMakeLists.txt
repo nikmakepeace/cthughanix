@@ -17,6 +17,8 @@ set(CTHUGHA_COMMON_SOURCES
     DspPcmSource.cc
     AudioFrame.cc
     AudioSettings.cc
+    AutoChangeSettings.cc
+    AutoChangeControls.cc
     RuntimeFactory.cc
     Scene.cc
     RuntimeCommand.cc

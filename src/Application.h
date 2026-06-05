@@ -16,6 +16,8 @@
 class AudioVisualBridge;
 class AudioFrame;
 class AudioIngest;
+class AutoChangeControls;
+class AutoChangeSettings;
 class CthughaDisplay;
 class DisplayRuntimeOwnership;
 class IndexedFrame;
@@ -52,6 +54,8 @@ class Application {
     AcousticContext acousticContextValue;
     std::unique_ptr<AudioIngest> audioIngestValue;
     std::unique_ptr<AudioVisualBridge> audioVisualBridge;
+    std::unique_ptr<AutoChangeSettings> autoChangeSettingsValue;
+    std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;

@@ -182,6 +182,77 @@ static void testDisplayStartupUsesDisplayConfig() {
     assertSourceDoesNotContain("src/DisplayDeviceX11.cc", "display_mode");
 }
 
+static void testAutoChangeSettingsAreApplicationOwned() {
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<AutoChangeSettings> autoChangeSettingsValue");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<AutoChangeControls> autoChangeControlsValue");
+    assertSourceContains("src/Application.cc",
+        "new OwnedAutoChangeSettings(startupConfigValue.autoChange)");
+    assertSourceContains("src/Application.cc",
+        "new AutoChangeControls(*autoChangeSettingsValue)");
+    assertSourceContains("src/Application.cc",
+        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
+    assertSourceContains("src/Application.cc",
+        "Interface::setAutoChangeControls(autoChangeControlsValue.get())");
+    assertSourceContains("src/Application.cc",
+        "runtimeChangeMediatorValue.get(), autoChangeSettingsValue.get()");
+    assertSourceContains("src/AudioVisualBridge.cc",
+        "*autoChangeSettings_");
+    assertSourceContains("src/AutoChanger.h",
+        "const AutoChangeSettings& settings");
+    assertSourceContains("src/AutoChanger.cc", "settings.quietMs()");
+    assertSourceContains("src/AutoChanger.cc", "settings.waitMinMs()");
+    assertSourceContains("src/AutoChanger.cc", "settings.waitRandomMs()");
+    assertSourceContains("src/AutoChanger.cc", "settings.cumulativeFireLevel()");
+    assertSourceContains("src/AutoChanger.cc", "settings.locked()");
+    assertSourceContains("src/AutoChanger.cc", "settings.changeLittle()");
+    assertSourceContains("src/RuntimeAutoChangeControls.cc",
+        "autoChangeControls.changeOptionBy(option, by)");
+    assertSourceContains("src/Interface.cc",
+        "InterfaceElementAutoChangeOption");
+    assertSourceContains("src/Interface.cc",
+        "controls->option(field)");
+    assertSourceContains("src/LegacyRuntimeConfigContributor.cc",
+        "config.autoChange = autoChangeSettings.config()");
+    assertSourceContains("tests/CMakeLists.txt",
+        "runtime_auto_change_controls_test");
+    assertSourceContains("tests/unit/RuntimeAutoChangeControlsTest.cc",
+        "class FakeAutoChangeSettings");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeQuiet");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeWaitMin");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeWaitRandom");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionInt changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionOnOff lock");
+    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionOnOff change_little");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeQuiet");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeWaitMin");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeWaitRandom");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionInt changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionOnOff lock");
+    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionOnOff change_little");
+    assertSourceDoesNotContain("src/Application.cc",
+        "configureAutoChanger(startupConfigValue.autoChange)");
+    assertSourceDoesNotContain("src/Interface.cc", "&changeWaitMin");
+    assertSourceDoesNotContain("src/Interface.cc", "&changeWaitRandom");
+    assertSourceDoesNotContain("src/Interface.cc", "&changeQuiet");
+    assertSourceDoesNotContain("src/Interface.cc", "&changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/Interface.cc", "&change_little");
+    assertSourceDoesNotContain("src/Interface.cc", "&lock");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc", "changeWaitMin");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc", "changeWaitRandom");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc", "changeQuiet");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc", "change_little");
+    assertSourceDoesNotContain("src/info_title_usage.cc", "changeWaitMin.text()");
+    assertSourceDoesNotContain("src/info_title_usage.cc", "changeWaitRandom.text()");
+    assertSourceDoesNotContain("src/info_title_usage.cc", "changeQuiet.text()");
+    assertSourceDoesNotContain("src/info_title_usage.cc",
+        "changeCumulativeFireLevel.text()");
+    assertSourceDoesNotContain("src/info_title_usage.cc", "change_little.text()");
+}
+
 static void testX11StartupUsesX11ConfigOnlyForX11Builds() {
     assertSourceContains("src/Configuration.h", "#ifdef CTH_XWIN\nstruct X11Config");
     assertSourceContains("src/Configuration.h", "#ifdef CTH_XWIN\n    X11Config x11;");
@@ -342,7 +413,8 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc", "remove_continuation_ini(startupConfigValue.paths)");
     assertSourceContains("src/Application.cc", "configureAudioOptions(startupConfigValue.audio)");
     assertSourceContains("src/Application.cc", "configureCthughaDisplay(startupConfigValue.display)");
-    assertSourceContains("src/Application.cc", "configureAutoChanger(startupConfigValue.autoChange)");
+    assertSourceContains("src/Application.cc",
+        "new OwnedAutoChangeSettings(startupConfigValue.autoChange)");
     assertSourceContains("src/Application.cc",
         "startupConfigValue.audioAnalysis.minNoise");
     assertSourceContains("src/Configuration.h", "struct AudioAnalysisConfig");
@@ -516,7 +588,7 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeAudioControls()");
     assertSourceContains("src/Application.cc",
-        "new DefaultRuntimeAutoChangeControls()");
+        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeEffectControls()");
     assertSourceDoesNotContain("src/Application.cc",
@@ -681,6 +753,7 @@ int main() {
     testScreenshotFeatureWasRemoved();
     testLegacyTestOptionWasRemoved();
     testApplicationProvidesStartupConfigSlices();
+    testAutoChangeSettingsAreApplicationOwned();
     testInputStartupUsesInputConfig();
     testSceneStartupUsesSceneConfig();
     testIniPersistenceUsesRuntimePersistenceAdapter();

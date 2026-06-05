@@ -13,7 +13,8 @@
 #include "AudioAnalyzer.h"
 #include "AudioProcessor.h"
 #include "AudioVisualBridge.h"
-#include "AutoChanger.h"
+#include "AutoChangeControls.h"
+#include "AutoChangeSettings.h"
 #include "Border.h"
 #include "EffectChoiceLoader.h"
 #include "CthughaBuffer.h"
@@ -156,15 +157,21 @@ void Application::initSceneRuntime() {
     sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
         videoDirector().imageOption()));
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
+    autoChangeSettingsValue.reset(
+        new OwnedAutoChangeSettings(startupConfigValue.autoChange));
+    autoChangeControlsValue.reset(
+        new AutoChangeControls(*autoChangeSettingsValue));
     runtimeConfigContributorValue.reset(
-        new LegacyRuntimeConfigContributor(*sceneCommandsValue));
+        new LegacyRuntimeConfigContributor(*sceneCommandsValue,
+            *autoChangeSettingsValue));
     runtimeConfigRegistryValue->addContributor(*runtimeConfigContributorValue);
     runtimePersistenceValue.reset(
         new IniRuntimePersistence(*runtimeConfigRegistryValue));
     runtimeShutdownValue.reset(new RuntimeCloseState());
     runtimeDisplayControlsValue.reset(new DefaultRuntimeDisplayControls());
     runtimeAudioControlsValue.reset(new DefaultRuntimeAudioControls());
-    runtimeAutoChangeControlsValue.reset(new DefaultRuntimeAutoChangeControls());
+    runtimeAutoChangeControlsValue.reset(
+        new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue));
     runtimeEffectControlsValue.reset(
         new DefaultRuntimeEffectControls());
     Interface::setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
@@ -174,12 +181,14 @@ void Application::initSceneRuntime() {
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
         *runtimeEffectControlsValue));
     Keymap::setRuntimeCommandSink(runtimeChangeMediatorValue.get());
+    Interface::setAutoChangeControls(autoChangeControlsValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
 void Application::shutdownSceneRuntime() {
     Keymap::setRuntimeCommandSink(NULL);
     bindSceneCommandsForLegacyCallbacks(NULL);
+    Interface::setAutoChangeControls(NULL);
     videoDirector().unbindScene();
     Interface::setRuntimeConfigRegistry(NULL);
     runtimeChangeMediatorValue.reset();
@@ -191,6 +200,8 @@ void Application::shutdownSceneRuntime() {
     runtimeShutdownValue.reset();
     runtimeConfigRegistryValue.reset();
     runtimeConfigContributorValue.reset();
+    autoChangeControlsValue.reset();
+    autoChangeSettingsValue.reset();
     sceneCommandsValue.reset();
     sceneValue.reset();
 }
@@ -236,7 +247,7 @@ void Application::initAudioVisualBridge() {
     if (audioVisualBridge.get() == NULL) {
         audioVisualBridge.reset(new AudioVisualBridge(acousticContextValue,
             startupConfigValue.audioAnalysis.minNoise,
-            runtimeChangeMediatorValue.get()));
+            runtimeChangeMediatorValue.get(), autoChangeSettingsValue.get()));
         Interface::setAutoChangerStatusProvider(audioVisualBridge.get());
     }
 }
@@ -338,7 +349,6 @@ int Application::initialize() {
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
 #endif
-    configureAutoChanger(startupConfigValue.autoChange);
     configureEffectPolicy(startupConfigValue.effectPolicy);
     configureTranslationOptions(startupConfigValue.effectPolicy);
     configureWaveOptions(startupConfigValue.effectPolicy);

@@ -5,7 +5,6 @@
 #include "keys.h"
 #include "display.h"
 #include "disp-sys.h"
-#include "AutoChanger.h"
 #include "AudioProcessor.h"
 #include "Border.h"
 #include "CthughaBuffer.h"

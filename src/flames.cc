@@ -6,7 +6,6 @@
 #include "imath.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
-#include "AutoChanger.h"
 #include "flames.h"
 
 static EffectChoiceList flameEntries;

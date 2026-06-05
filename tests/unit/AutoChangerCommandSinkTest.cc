@@ -1,4 +1,5 @@
 #include "AutoChanger.h"
+#include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
 #include "RuntimeCommandSink.h"
 #include "VideoDirector.h"
@@ -70,21 +71,23 @@ public:
     }
 };
 
-static void resetAutoChangeOptions() {
-    changeQuiet.setValue(0);
-    changeWaitMin.setValue(0);
-    changeWaitRandom.setValue(1);
-    changeCumulativeFireLevel.setValue(0);
-    lock.setValue(0);
+static AutoChangeConfig autoChangeConfigWithLittle(int changeLittle) {
+    AutoChangeConfig config;
+    config.quietMs = 0;
+    config.waitMinMs = 0;
+    config.waitRandomMs = 1;
+    config.cumulativeFireLevel = 0;
+    config.locked = 0;
+    config.changeLittle = changeLittle;
+    return config;
 }
 
 static void testAutoChangerRequestsChangeOneForLittleChanges() {
-    resetAutoChangeOptions();
-    change_little.setValue(1);
+    OwnedAutoChangeSettings settings(autoChangeConfigWithLittle(1));
 
     RecordingSink sink;
     AcousticContext acousticContext;
-    AutoChanger changer(sink, acousticContext);
+    AutoChanger changer(sink, settings, acousticContext);
     changer.change();
 
     assert(sink.commands.size() == 1);
@@ -92,12 +95,11 @@ static void testAutoChangerRequestsChangeOneForLittleChanges() {
 }
 
 static void testAutoChangerRequestsChangeAllForFullChanges() {
-    resetAutoChangeOptions();
-    change_little.setValue(0);
+    OwnedAutoChangeSettings settings(autoChangeConfigWithLittle(0));
 
     RecordingSink sink;
     AcousticContext acousticContext;
-    AutoChanger changer(sink, acousticContext);
+    AutoChanger changer(sink, settings, acousticContext);
     changer.change();
 
     assert(sink.commands.size() == 1);

@@ -1,12 +1,12 @@
 #include "cthugha.h"
 #include "Interface.h"
+#include "AutoChangeControls.h"
 #include "AutoChangerStatusProvider.h"
 #include "keys.h"
 #include "imath.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
-#include "AutoChanger.h"
 #include "AudioProcessor.h"
 #include "Border.h"
 #include "Flashlight.h"
@@ -32,6 +32,7 @@ Interface* Interface::head = NULL;
 
 RuntimeConfigRegistry* Interface::runtimeConfigRegistryValue = NULL;
 const AutoChangerStatusProvider* Interface::autoChangerStatusProviderValue = NULL;
+AutoChangeControls* Interface::autoChangeControlsValue = NULL;
 
 ////////////////////////////////////////////////////////////////////////////
 
@@ -84,6 +85,14 @@ void Interface::setAutoChangerStatusProvider(
 
 const AutoChangerStatusProvider* Interface::autoChangerStatusProvider() {
     return autoChangerStatusProviderValue;
+}
+
+void Interface::setAutoChangeControls(AutoChangeControls* controls) {
+    autoChangeControlsValue = controls;
+}
+
+AutoChangeControls* Interface::autoChangeControls() {
+    return autoChangeControlsValue;
 }
 
 void Interface::set(const char* n) {
@@ -391,6 +400,31 @@ public:
     }
 };
 
+class InterfaceElementAutoChangeOption : public InterfaceElementOption {
+    AutoChangeControlField field;
+
+    void updateOption() {
+        AutoChangeControls* controls = Interface::autoChangeControls();
+        opt = (controls != NULL) ? &controls->option(field) : &optionDummy;
+    }
+
+public:
+    InterfaceElementAutoChangeOption(const char* t,
+        AutoChangeControlField field_, int i1 = 1, int i2 = 10, int i3 = 100)
+        : InterfaceElementOption(t, &optionDummy, i1, i2, i3)
+        , field(field_) { }
+
+    virtual const char* text(int selected) {
+        updateOption();
+        return InterfaceElementOption::text(selected);
+    }
+
+    virtual int doKey(int key) {
+        updateOption();
+        return InterfaceElementOption::doKey(key);
+    }
+};
+
 class InterfaceElementRuntimeConfigEffectControl
     : public InterfaceElementEffectControl {
     RuntimeConfigSelectionField field;
@@ -558,13 +592,19 @@ public:
 InterfaceElement* elementsOption[] = {
     new InterfaceElementOption("Maximal Frames/second    : %10s", &maxFramesPerSecond),
     new InterfaceElementOption("Zoom (0=max)             : %10s", &zoom),
-    new InterfaceElementOption("Minimal time btw. change : %10s", &changeWaitMin, 100, 500, 1000),
-    new InterfaceElementOption("Extra random time        : %10s", &changeWaitRandom, 100, 500, 1000),
-    new InterfaceElementOption("Quiet change time        : %10s", &changeQuiet, 100, 500, 1000),
+    new InterfaceElementAutoChangeOption("Minimal time btw. change : %10s",
+        AutoChangeControlWaitMinMs, 100, 500, 1000),
+    new InterfaceElementAutoChangeOption("Extra random time        : %10s",
+        AutoChangeControlWaitRandomMs, 100, 500, 1000),
+    new InterfaceElementAutoChangeOption("Quiet change time        : %10s",
+        AutoChangeControlQuietMs, 100, 500, 1000),
     new InterfaceElementOption("Time before silence Msg. : %10s", &changeMsgTime, 100, 500, 1000),
-    new InterfaceElementOption("Cumulative fire level    : %10s", &changeCumulativeFireLevel, 10, 50, 100),
-    new InterfaceElementOption("Little changes only      : %10s", &change_little),
-    new InterfaceElementOption("Lock                     : %10s", &lock),
+    new InterfaceElementAutoChangeOption("Cumulative fire level    : %10s",
+        AutoChangeControlCumulativeFireLevel, 10, 50, 100),
+    new InterfaceElementAutoChangeOption("Little changes only      : %10s",
+        AutoChangeControlChangeLittle),
+    new InterfaceElementAutoChangeOption("Lock                     : %10s",
+        AutoChangeControlLocked),
 };
 int nElementsOption = sizeof(elementsOption) / sizeof(InterfaceElement*);
 

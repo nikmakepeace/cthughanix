@@ -4,8 +4,8 @@
 
 #include "RuntimeConfigRegistry.h"
 
+#include "AutoChangeSettings.h"
 #include "AudioProcessor.h"
-#include "AutoChanger.h"
 #include "CthughaDisplay.h"
 #include "Image.h"
 #include "Scene.h"
@@ -28,8 +28,10 @@ static std::string persistedName(const char* name) {
 }
 
 LegacyRuntimeConfigContributor::LegacyRuntimeConfigContributor(
-    SceneCommands& sceneCommands_)
-    : sceneCommands(sceneCommands_) { }
+    SceneCommands& sceneCommands_,
+    const AutoChangeSettings& autoChangeSettings_)
+    : sceneCommands(sceneCommands_)
+    , autoChangeSettings(autoChangeSettings_) { }
 
 void LegacyRuntimeConfigContributor::contribute(Config& config) const {
     const SceneSettings& settings = sceneCommands.sceneState().settings();
@@ -52,12 +54,7 @@ void LegacyRuntimeConfigContributor::contribute(Config& config) const {
     config.display.showFpsEnabled = int(showFPS);
     config.display.zoomMode = int(zoom);
 
-    config.autoChange.quietMs = int(changeQuiet);
-    config.autoChange.waitMinMs = int(changeWaitMin);
-    config.autoChange.waitRandomMs = int(changeWaitRandom);
-    config.autoChange.cumulativeFireLevel = int(changeCumulativeFireLevel);
-    config.autoChange.locked = int(lock);
-    config.autoChange.changeLittle = int(change_little);
+    config.autoChange = autoChangeSettings.config();
 
     config.messages.quietMessageMs = int(changeMsgTime);
 

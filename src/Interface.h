@@ -8,6 +8,7 @@
 #include "keymap.h"
 
 class AutoChangerStatusProvider;
+class AutoChangeControls;
 class RuntimeConfigRegistry;
 
 class InterfaceElement {
@@ -26,6 +27,7 @@ public:
 class Interface {
     static RuntimeConfigRegistry* runtimeConfigRegistryValue;
     static const AutoChangerStatusProvider* autoChangerStatusProviderValue;
+    static AutoChangeControls* autoChangeControlsValue;
 
 public:
     static int saveToPreset;
@@ -79,6 +81,20 @@ public:
      * @return Installed provider, or NULL when AutoChanger is unavailable.
      */
     static const AutoChangerStatusProvider* autoChangerStatusProvider();
+
+    /**
+     * Installs Option adapters for automatic scene-change panel controls.
+     *
+     * @param controls Controls to read; NULL disables those panel rows.
+     */
+    static void setAutoChangeControls(AutoChangeControls* controls);
+
+    /**
+     * Returns Option adapters for automatic scene-change panel controls.
+     *
+     * @return Installed controls, or NULL before runtime setup.
+     */
+    static AutoChangeControls* autoChangeControls();
 
     static void set(const char* n);
 

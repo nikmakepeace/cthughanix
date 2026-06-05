@@ -4,7 +4,6 @@
 #include "Mixer.h"
 #include "Option.h"
 #include "DisplayDevice.h"
-#include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "VideoDirector.h"
 #include "QotdMessagesProvider.h"
@@ -70,6 +69,16 @@ static const char* PHInt(int value) {
     return s;
 }
 
+static const char* PHTimeMs(int value) {
+    static char s[64];
+    snprintf(s, sizeof(s), "%5.2f sec", double(value) / 1000.0);
+    return s;
+}
+
+static const char* PHOnOff(int value) {
+    return value ? " on" : "off";
+}
+
 void usage() {
     char qotdPrefetchTimeoutDefault[32];
     snprintf(qotdPrefetchTimeoutDefault, sizeof(qotdPrefetchTimeoutDefault),
@@ -114,11 +123,16 @@ void usage() {
 #endif
 
     PH("Automatic Changer options:");
-    PH(" -l, --lock          Start in Locked mode", lock.text());
-    PH(" --little            Only change one option at a time", change_little.text());
-    PH(" -T, --min-time N    Minimum time before changing", changeWaitMin.text());
-    PH(" -R, --random-time N Extra random time before changing", changeWaitRandom.text());
-    PH(" -Q, --quiet-time N  Change after short silence", changeQuiet.text());
+    PH(" -l, --lock          Start in Locked mode",
+        PHOnOff(AUTO_CHANGE_CONFIG_DEFAULT_LOCKED));
+    PH(" --little            Only change one option at a time",
+        PHOnOff(AUTO_CHANGE_CONFIG_DEFAULT_CHANGE_LITTLE));
+    PH(" -T, --min-time N    Minimum time before changing",
+        PHTimeMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS));
+    PH(" -R, --random-time N Extra random time before changing",
+        PHTimeMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS));
+    PH(" -Q, --quiet-time N  Change after short silence",
+        PHTimeMs(AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS));
     PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text());
     PH(" --quiet-message-duration-ms N  Quiet message display duration");
     PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE");
@@ -128,7 +142,8 @@ void usage() {
     PH(" --qotd-port PORT    Default Quote of the Day port", MESSAGES_CONFIG_DEFAULT_QOTD_PORT_TEXT);
     PH(" --qotd-prefetch-timeout-ms N  QOTD fetch timeout", qotdPrefetchTimeoutDefault);
     PH(" --min-noise N       Set level for quiet sound");
-    PH(" --cumulative-fire-level N      Set cumulative fire threshold to N", changeCumulativeFireLevel.text());
+    PH(" --cumulative-fire-level N      Set cumulative fire threshold to N",
+        PHInt(AUTO_CHANGE_CONFIG_DEFAULT_CUMULATIVE_FIRE_LEVEL));
     PH("");
 
     PH("General Effect Controls (\"Buffer\" options):");

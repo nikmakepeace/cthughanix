@@ -14,6 +14,7 @@
 class RuntimeCommandSink;
 class AudioFrame;
 class AcousticContext;
+class AutoChangeSettings;
 class AutoChanger;
 
 /**
@@ -40,11 +41,13 @@ public:
      *        frame metrics. The referenced object must outlive the bridge.
      * @param minNoise_ Noise-floor threshold used for AudioMetrics::noisy.
      * @param runtimeCommands_ Optional runtime command sink used by AutoChanger.
-     *        When NULL, audio processing and analysis still run, but automatic
-     *        scene changes are disabled.
+     *        When NULL, audio processing and analysis still run.
+     * @param autoChangeSettings_ Optional settings read by AutoChanger. When
+     *        NULL, automatic scene changes are disabled.
      */
     AudioVisualBridge(AcousticContext& acousticContext_,
-        int minNoise_, RuntimeCommandSink* runtimeCommands_ = 0);
+        int minNoise_, RuntimeCommandSink* runtimeCommands_ = 0,
+        const AutoChangeSettings* autoChangeSettings_ = 0);
 
     /** Releases bridge-owned automatic scene-change policy. */
     ~AudioVisualBridge();

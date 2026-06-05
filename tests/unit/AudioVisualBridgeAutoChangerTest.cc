@@ -3,10 +3,10 @@
  */
 
 #include "AudioVisualBridge.h"
+#include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
 #include "AudioFrame.h"
 #include "AudioProcessor.h"
-#include "AutoChanger.h"
 #include "RuntimeCommandSink.h"
 #include "VideoDirector.h"
 
@@ -56,22 +56,24 @@ static void fillConstant(AudioFrame& frame, int left, int right) {
     }
 }
 
-static void resetAutoChangeOptions() {
-    changeQuiet.setValue(0);
-    changeWaitMin.setValue(0);
-    changeWaitRandom.setValue(1);
-    changeCumulativeFireLevel.setValue(0);
-    lock.setValue(0);
-    change_little.setValue(1);
+static AutoChangeConfig autoChangeConfigWithLittleChanges() {
+    AutoChangeConfig config;
+    config.quietMs = 0;
+    config.waitMinMs = 0;
+    config.waitRandomMs = 1;
+    config.cumulativeFireLevel = 0;
+    config.locked = 0;
+    config.changeLittle = 1;
+    return config;
 }
 
 static void testBridgeRoutesAutoChangerCommandsThroughSink() {
-    resetAutoChangeOptions();
     fakeTime = 1000;
 
+    OwnedAutoChangeSettings settings(autoChangeConfigWithLittleChanges());
     RecordingSink sink;
     AcousticContext acousticContext;
-    AudioVisualBridge bridge(acousticContext, 4, &sink);
+    AudioVisualBridge bridge(acousticContext, 4, &sink, &settings);
 
     audioProcessing.change("none");
     AudioFrame frame;
@@ -86,8 +88,6 @@ static void testBridgeRoutesAutoChangerCommandsThroughSink() {
 }
 
 static void testBridgeWithoutSinkHasNoAutoChangerStatus() {
-    resetAutoChangeOptions();
-
     AcousticContext acousticContext;
     AudioVisualBridge bridge(acousticContext, 4);
 

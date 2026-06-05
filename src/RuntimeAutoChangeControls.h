@@ -7,6 +7,7 @@
 
 #include "RuntimeCommandSink.h"
 
+class AutoChangeControls;
 class Option;
 
 /** Controls runtime AutoChanger commands. */
@@ -15,7 +16,7 @@ public:
     /** Destroys the auto-change controls interface. */
     virtual ~RuntimeAutoChangeControls() { }
 
-    /** Toggles AutoChanger's global lock state. */
+    /** Toggles AutoChanger's lock setting. */
     virtual void toggleLock() = 0;
 
     /**
@@ -42,11 +43,21 @@ public:
 };
 
 /**
- * RuntimeAutoChangeControls implementation backed by current AutoChanger globals.
+ * RuntimeAutoChangeControls implementation backed by AutoChangeControls.
  */
 class DefaultRuntimeAutoChangeControls : public RuntimeAutoChangeControls {
+    AutoChangeControls& autoChangeControls;
+
 public:
-    /** Toggles AutoChanger's global lock state. */
+    /**
+     * Creates settings-backed runtime auto-change controls.
+     *
+     * @param autoChangeControls_ Option adapters backed by owned settings.
+     */
+    explicit DefaultRuntimeAutoChangeControls(
+        AutoChangeControls& autoChangeControls_);
+
+    /** Toggles AutoChanger's lock setting. */
     virtual void toggleLock();
 
     /**

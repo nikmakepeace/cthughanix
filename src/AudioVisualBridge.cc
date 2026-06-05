@@ -8,19 +8,22 @@
 #include "AudioAnalyzer.h"
 #include "AudioProcessor.h"
 #include "AudioFrame.h"
+#include "AutoChangeSettings.h"
 #ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
 #include "AutoChanger.h"
 #endif
 
 AudioVisualBridge::AudioVisualBridge(AcousticContext& acousticContext_,
-    int minNoise_, RuntimeCommandSink* runtimeCommands_)
+    int minNoise_, RuntimeCommandSink* runtimeCommands_,
+    const AutoChangeSettings* autoChangeSettings_)
     : filterchainRefreshRequestedValue(0)
     , acousticContextValue(acousticContext_)
     , minNoiseValue(minNoise_) {
     CTH_DEBUG("audio visual bridge: creating bridge\n");
 #ifndef CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
-    if (runtimeCommands_ != 0)
-        autoChangerValue.reset(new AutoChanger(*runtimeCommands_, acousticContextValue));
+    if (runtimeCommands_ != 0 && autoChangeSettings_ != 0)
+        autoChangerValue.reset(new AutoChanger(*runtimeCommands_,
+            *autoChangeSettings_, acousticContextValue));
 #endif
 }
 

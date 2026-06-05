@@ -1,4 +1,5 @@
 #include "IniFiles.h"
+#include "AutoChangeSettings.h"
 #include "RuntimeCommand.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimePersistence.h"
@@ -33,6 +34,18 @@ public:
     }
 };
 
+class RuntimeAutoChangeContributor : public RuntimeConfigContributor {
+    const AutoChangeSettings& settings;
+
+public:
+    explicit RuntimeAutoChangeContributor(const AutoChangeSettings& settings_)
+        : settings(settings_) { }
+
+    virtual void contribute(Config& config) const {
+        config.autoChange = settings.config();
+    }
+};
+
 static void testWriteCurrentConfigUsesRegistrySnapshot() {
     Config baseline;
     baseline.scene.wave = "startup-wave";
@@ -50,6 +63,33 @@ static void testWriteCurrentConfigUsesRegistrySnapshot() {
     assert(lastConfig.scene.wave == "runtime-wave");
     assert(lastConfig.display.showFpsEnabled == 1);
     assert(lastConfig.audioAnalysis.minNoise == 123);
+}
+
+static void testWriteCurrentConfigReadsOwnedAutoChangeSettings() {
+    Config baseline;
+    RuntimeConfigRegistry registry(baseline);
+    AutoChangeConfig runtimeConfig;
+    runtimeConfig.quietMs = 2500;
+    runtimeConfig.waitMinMs = 3000;
+    runtimeConfig.waitRandomMs = 4000;
+    runtimeConfig.cumulativeFireLevel = 500;
+    runtimeConfig.locked = 1;
+    runtimeConfig.changeLittle = 1;
+    OwnedAutoChangeSettings settings(runtimeConfig);
+    RuntimeAutoChangeContributor contributor(settings);
+    registry.addContributor(contributor);
+    IniRuntimePersistence persistence(registry);
+
+    iniWrites = 0;
+    assert(persistence.writeCurrentConfig() == 0);
+
+    assert(iniWrites == 1);
+    assert(lastConfig.autoChange.quietMs == 2500);
+    assert(lastConfig.autoChange.waitMinMs == 3000);
+    assert(lastConfig.autoChange.waitRandomMs == 4000);
+    assert(lastConfig.autoChange.cumulativeFireLevel == 500);
+    assert(lastConfig.autoChange.locked == 1);
+    assert(lastConfig.autoChange.changeLittle == 1);
 }
 
 static void testWriteContinuationMapsRuntimeContinuationState() {
@@ -94,6 +134,7 @@ static void testWriteContinuationMapsRuntimeContinuationState() {
 
 int main() {
     testWriteCurrentConfigUsesRegistrySnapshot();
+    testWriteCurrentConfigReadsOwnedAutoChangeSettings();
     testWriteContinuationMapsRuntimeContinuationState();
     return 0;
 }

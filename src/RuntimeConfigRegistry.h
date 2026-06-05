@@ -10,6 +10,7 @@
 #include <vector>
 
 class SceneCommands;
+class AutoChangeSettings;
 
 /**
  * Adds one runtime owner's current state to a Config snapshot.
@@ -69,14 +70,17 @@ public:
  */
 class LegacyRuntimeConfigContributor : public RuntimeConfigContributor {
     SceneCommands& sceneCommands;
+    const AutoChangeSettings& autoChangeSettings;
 
 public:
     /**
      * Creates a contributor backed by SceneCommands plus transitional globals.
      *
      * @param sceneCommands_ Scene command facade used to read live scene state.
+     * @param autoChangeSettings_ Runtime-owned automatic scene-change settings.
      */
-    explicit LegacyRuntimeConfigContributor(SceneCommands& sceneCommands_);
+    LegacyRuntimeConfigContributor(SceneCommands& sceneCommands_,
+        const AutoChangeSettings& autoChangeSettings_);
 
     /**
      * Overlays the current scene, display, auto-change, and policy values.

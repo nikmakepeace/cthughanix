@@ -6,7 +6,6 @@
 #include "imath.h"
 #include "waves.h"
 #include "AudioProcessor.h"
-#include "AutoChanger.h"
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "Configuration.h"

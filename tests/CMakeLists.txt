@@ -669,7 +669,9 @@ add_executable(audio_visual_bridge_auto_changer_test
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
     ${CMAKE_SOURCE_DIR}/src/AudioVisualBridge.cc
+    ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -712,6 +714,29 @@ target_link_libraries(audio_frame_processor_test PRIVATE m)
 
 add_test(NAME audio_frame_processor_test COMMAND audio_frame_processor_test)
 
+add_executable(runtime_auto_change_controls_test
+    unit/RuntimeAutoChangeControlsTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AutoChangeControls.cc
+    ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeAutoChangeControls.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(runtime_auto_change_controls_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(runtime_auto_change_controls_test PRIVATE m)
+
+add_test(NAME runtime_auto_change_controls_test
+    COMMAND runtime_auto_change_controls_test)
+
 add_executable(runtime_audio_controls_test
     unit/RuntimeAudioControlsTest.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeAudioControls.cc
@@ -747,6 +772,7 @@ add_test(NAME runtime_config_selection_test
 
 add_executable(runtime_persistence_test
     unit/RuntimePersistenceTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeConfigRegistry.cc
@@ -802,6 +828,8 @@ add_test(NAME runtime_change_mediator_test COMMAND runtime_change_mediator_test)
 add_executable(auto_changer_command_sink_test
     unit/AutoChangerCommandSinkTest.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
+    ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
