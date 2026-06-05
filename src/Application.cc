@@ -120,8 +120,14 @@ void Application::willSuspend() {
 
 void Application::didResume() {
     if (init_sound(startupConfigValue.audio, CthughaBuffer::buffer.maxDimension(),
-            runtimeChangeMediatorValue.get()))
-        cthugha_close++;
+            runtimeChangeMediatorValue.get())
+        && runtimeShutdownValue.get() != NULL)
+        runtimeShutdownValue->requestClose();
+}
+
+bool Application::closeRequested() const {
+    return (runtimeShutdownValue.get() != NULL)
+        && runtimeShutdownValue->closeRequested();
 }
 
 void Application::initSceneRuntime() {
@@ -140,7 +146,7 @@ void Application::initSceneRuntime() {
     runtimeConfigRegistryValue->addContributor(*runtimeConfigContributorValue);
     runtimePersistenceValue.reset(
         new IniRuntimePersistence(*runtimeConfigRegistryValue));
-    runtimeShutdownValue.reset(new CthughaRuntimeShutdown());
+    runtimeShutdownValue.reset(new RuntimeCloseState());
     Interface::setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
     runtimeChangeMediatorValue.reset(new RuntimeChangeMediator(
         *sceneCommandsValue, *runtimePersistenceValue,
@@ -371,7 +377,7 @@ void Application::run() {
     //   2. let the active interface react before frame generation;
     //   3. generate and optionally present one frame;
     //   4. let the interface draw/react again after frame-side changes.
-    while (cthugha_close == 0) {
+    while (!closeRequested()) {
         int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
         double loopStart = traceDisplayTiming ? getTime() : 0.0;
         double eventsStart = loopStart;
@@ -398,7 +404,7 @@ void Application::run() {
         if (traceDisplayTiming)
             preInterfaceEnd = getTime();
 
-        if (cthugha_close == 0) {
+        if (!closeRequested()) {
             if (traceDisplayTiming)
                 frameStart = getTime();
             runFrame(1);
@@ -414,7 +420,7 @@ void Application::run() {
         if (traceDisplayTiming)
             postInterfaceEnd = getTime();
 
-        if (frameWasRun && cthugha_close == 0) {
+        if (frameWasRun && !closeRequested()) {
             if (traceDisplayTiming)
                 pacingStart = getTime();
             FramePacingResult pacing = framePacer.paceFrameEnd(visualFrameStart,

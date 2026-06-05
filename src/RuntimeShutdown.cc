@@ -1,11 +1,16 @@
 /** @file
- * Runtime shutdown request port and legacy close-flag implementation.
+ * Runtime shutdown request port and close-state implementation.
  */
 
 #include "RuntimeShutdown.h"
 
-#include "cthugha.h"
+RuntimeCloseState::RuntimeCloseState()
+    : closeRequestedValue(false) { }
 
-void CthughaRuntimeShutdown::requestClose() {
-    cthugha_close++;
+void RuntimeCloseState::requestClose() {
+    closeRequestedValue = true;
+}
+
+bool RuntimeCloseState::closeRequested() const {
+    return closeRequestedValue;
 }

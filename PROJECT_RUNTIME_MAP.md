@@ -51,7 +51,7 @@ main(argc, argv)
 `Application::run()` owns the runtime loop:
 
 ```text
-while cthugha_close == 0
+while !runtimeShutdown.closeRequested()
   displayDevice->processEvents()
   Interface::current->run()
   runFrame(1)
@@ -469,9 +469,10 @@ metadata callbacks, credits key handling, playback completion, and AutoChanger
 now issue `RuntimeCommand` values through a `RuntimeCommandSink`.
 `RuntimeChangeMediator` implements that sink, delegates to existing
 scene/audio/display/panel owners, delegates ini persistence to
-`RuntimePersistence`, delegates close requests to `RuntimeShutdown`, handles
-palette metadata commands, and reports a `RuntimeChangeSet`. This is a
-coordination boundary, not full deglobalisation yet.
+`RuntimePersistence`, delegates close requests to the application-owned
+`RuntimeShutdown`, handles palette metadata commands, and reports a
+`RuntimeChangeSet`. This is a coordination boundary, not full deglobalisation
+yet.
 
 ## Configuration Flow
 

@@ -199,6 +199,10 @@ public:
     virtual void requestClose() {
         closeRequests++;
     }
+
+    virtual bool closeRequested() const {
+        return closeRequests != 0;
+    }
 };
 
 class MediatorHarness {

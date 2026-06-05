@@ -606,6 +606,21 @@ target_link_libraries(runtime_persistence_test PRIVATE m)
 
 add_test(NAME runtime_persistence_test COMMAND runtime_persistence_test)
 
+add_executable(runtime_shutdown_test
+    unit/RuntimeShutdownTest.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeShutdown.cc
+)
+
+target_include_directories(runtime_shutdown_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(runtime_shutdown_test PRIVATE m)
+
+add_test(NAME runtime_shutdown_test COMMAND runtime_shutdown_test)
+
 add_executable(runtime_change_mediator_test
     unit/RuntimeChangeMediatorTest.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc

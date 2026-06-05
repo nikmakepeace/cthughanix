@@ -1,5 +1,5 @@
 /** @file
- * Runtime shutdown request port and legacy close-flag implementation.
+ * Runtime shutdown request port and close-state implementation.
  */
 
 #ifndef CTHUGHA_RUNTIME_SHUTDOWN_H
@@ -13,13 +13,32 @@ public:
 
     /** Requests application shutdown. */
     virtual void requestClose() = 0;
+
+    /**
+     * Reports whether shutdown has been requested.
+     *
+     * @return True once requestClose() has been called.
+     */
+    virtual bool closeRequested() const = 0;
 };
 
-/** Runtime shutdown implementation backed by the legacy close flag. */
-class CthughaRuntimeShutdown : public RuntimeShutdown {
+/** Application-owned close request state. */
+class RuntimeCloseState : public RuntimeShutdown {
+    bool closeRequestedValue;
+
 public:
-    /** Requests shutdown by incrementing the legacy close flag. */
+    /** Creates a close state with no pending close request. */
+    RuntimeCloseState();
+
+    /** Records an application shutdown request. */
     virtual void requestClose();
+
+    /**
+     * Reports whether shutdown has been requested.
+     *
+     * @return True once requestClose() has been called.
+     */
+    virtual bool closeRequested() const;
 };
 
 #endif

@@ -68,6 +68,9 @@ class Application {
     /** Reopens audio resources after process resume. */
     void didResume();
 
+    /** @return True when the application should leave the main loop. */
+    bool closeRequested() const;
+
     /** Destroys Scene/SceneCommands and disconnects legacy scene callbacks. */
     void shutdownSceneRuntime();
 
@@ -115,7 +118,7 @@ public:
     int initialize();
 
     /**
-     * Runs the main event/frame loop until cthugha_close is set.
+     * Runs the main event/frame loop until shutdown is requested.
      *
      * Each iteration processes display events, services the active interface,
      * runs one frame, and services the interface again for post-frame updates.

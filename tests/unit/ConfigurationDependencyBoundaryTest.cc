@@ -380,11 +380,17 @@ static void testRuntimeLifecycleRequestsUseMediator() {
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc", "cthugha_close++");
     assertSourceDoesNotContain("src/InterfaceCredits.cc", "cthugha_close++");
     assertSourceDoesNotContain("src/AudioRuntime.cc", "cthugha_close++");
-    assertSourceContains("src/Application.cc", "new CthughaRuntimeShutdown()");
+    assertSourceContains("src/Application.cc", "new RuntimeCloseState()");
+    assertSourceContains("src/Application.cc",
+        "runtimeShutdownValue->requestClose()");
+    assertSourceContains("src/Application.cc", "closeRequested()");
+    assertSourceDoesNotContain("src/Application.cc", "cthugha_close++");
+    assertSourceDoesNotContain("src/Application.cc", "cthugha_close == 0");
     assertSourceContains("src/RuntimeChangeMediator.cc",
         "runtimeShutdown.requestClose()");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc", "cthugha_close++");
-    assertSourceContains("src/RuntimeShutdown.cc", "cthugha_close++");
+    assertSourceContains("src/RuntimeShutdown.cc", "closeRequestedValue");
+    assertSourceDoesNotContain("src/RuntimeShutdown.cc", "cthugha_close++");
 }
 
 static void testX11PanelInputsUseRuntimeCommands() {
