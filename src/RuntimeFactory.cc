@@ -2,6 +2,7 @@
  * Startup-time runtime composition helpers.
  */
 
+#include "config.h"
 #include "RuntimeFactory.h"
 #include "ProcessServices.h"
 

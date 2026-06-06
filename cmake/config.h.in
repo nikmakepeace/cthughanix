@@ -10,12 +10,9 @@
 #cmakedefine01 HAVE_GETTIMEOFDAY
 #cmakedefine01 HAVE_LINUX_JOYSTICK_H
 #cmakedefine01 HAVE_LINUX_SOUNDCARD_H
-#cmakedefine01 HAVE_MEMCPY
 #cmakedefine01 HAVE_MMAP
 #cmakedefine01 HAVE_NDIR_H
 #cmakedefine01 HAVE_SELECT
-#cmakedefine01 HAVE_STRCHR
-#cmakedefine01 HAVE_STRERROR
 #cmakedefine01 HAVE_STRSTR
 #cmakedefine01 HAVE_STRTOL
 #cmakedefine01 HAVE_SYS_DIR_H
@@ -28,7 +25,6 @@
 #cmakedefine01 HAVE_VPRINTF
 #cmakedefine WORDS_BIGENDIAN 1
 
-#cmakedefine01 STDC_HEADERS
 #cmakedefine01 TIME_WITH_SYS_TIME
 
 #cmakedefine01 WITH_DSP

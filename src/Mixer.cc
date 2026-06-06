@@ -1,7 +1,7 @@
 /** @file
  * Application-owned OSS mixer session and UI control adapters.
  */
-
+#include "config.h"
 #include "Mixer.h"
 #include "Configuration.h"
 #include "ProcessServices.h"

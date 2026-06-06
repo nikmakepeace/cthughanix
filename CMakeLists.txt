@@ -41,17 +41,13 @@ check_include_file(unistd.h HAVE_UNISTD_H)
 
 check_function_exists(gethostname HAVE_GETHOSTNAME)
 check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
-check_function_exists(memcpy HAVE_MEMCPY)
 check_function_exists(mmap HAVE_MMAP)
 check_function_exists(select HAVE_SELECT)
-check_function_exists(strchr HAVE_STRCHR)
-check_function_exists(strerror HAVE_STRERROR)
 check_function_exists(strstr HAVE_STRSTR)
 check_function_exists(strtol HAVE_STRTOL)
 check_function_exists(vprintf HAVE_VPRINTF)
 
 test_big_endian(CTH_WORDS_BIGENDIAN)
-set(STDC_HEADERS 1)
 set(TIME_WITH_SYS_TIME 1)
 set(WITH_SAVER 0)
 

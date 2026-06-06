@@ -141,11 +141,7 @@ void ConsoleLogSink::write(int level, const char* context, int errnum,
         fprintf(stderr, "%s", fmtWithReturns);
 #endif
         if (errnum >= 0) {
-#ifdef HAVE_STRERROR
             fprintf(stderr, " (%d - %s)\n\r", errnum, strerror(errnum));
-#else
-            fprintf(stderr, " (%d)\n\r", errnum);
-#endif
         }
         fflush(stderr);
         return;

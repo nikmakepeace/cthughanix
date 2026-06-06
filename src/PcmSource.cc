@@ -14,10 +14,6 @@
 #define WITH_MINIMP3 0
 #endif
 
-#ifndef WITH_MINIMP3
-#define WITH_MINIMP3 1
-#endif
-
 #if WITH_MINIMP3 == 1
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS

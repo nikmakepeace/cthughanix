@@ -98,11 +98,7 @@ static int vprintfee(int errnum, const char* fmt, va_list ap) {
     fprintf(stderr, fmt_r);
 #endif
 
-#ifdef HAVE_STRERROR
     fprintf(stderr, " (%d - %s)\n\r", errnum, strerror(errnum));
-#else
-    fprintf(stderr, " (%d)\n\r", errnum);
-#endif
 
     fflush(stderr);
 

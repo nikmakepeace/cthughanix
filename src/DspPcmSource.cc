@@ -1,5 +1,5 @@
 // OSS/DSP capture source.
-
+#include "config.h"
 #include "Audio.h"
 #include "AudioInternal.h"
 #include "AudioSettings.h"

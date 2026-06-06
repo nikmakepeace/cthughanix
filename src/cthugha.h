@@ -10,32 +10,10 @@
 
 // #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
-/* check if soundcard header file is available, if not disable DSP and Mixer */
-#if !defined(HAVE_LINUX_SOUNDCARD_H) && !defined(HAVE_SYS_SOUNDCARD_H)
-#undef WITH_DSP
-#undef WITH_MIXER
-#define WITH_DSP 0
-#define WITH_MIXER 0
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-
-/* Keep old portability fallbacks while CMake supplies the feature defines. */
-#if STDC_HEADERS
 #include <string.h>
-#else
-#ifndef HAVE_STRCHR
-#define strchr index
-#define strrchr rindex
-#endif
-char *strchr(), *strrchr();
-#ifndef HAVE_MEMCPY
-#define memcpy(d, s, n) bcopy((s), (d), (n))
-#define memmove(d, s, n) bcopy((s), (d), (n))
-#endif
-#endif
 
 #include <limits.h>
 #ifndef PATH_MAX
