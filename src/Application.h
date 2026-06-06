@@ -72,6 +72,7 @@ class Application {
     ConsoleLogSink logSinkValue;
     InputQueue inputQueueValue;
     CommandRegistry commandsValue;
+    CommandDispatcher dispatcherValue;
     KeymapRegistry keymapsValue;
     int exitStatusValue;
     Config startupConfigValue;

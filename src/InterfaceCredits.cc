@@ -5,6 +5,7 @@
 #include "display.h"
 #include "DisplayDevice.h"
 #include "RuntimeCommandSink.h"
+#include "keymap.h"
 
 class InterfaceCredits : public Interface {
     static const char* credits[];
@@ -15,8 +16,11 @@ public:
         : Interface("credits", NULL, NULL) { }
 
     virtual void doKey(InterfaceRuntime& runtime,
-        KeymapRegistry& /* keymaps */, int /* key */) {
-        RuntimeCommandSink* sink = runtime.runtimeCommandSink();
+        KeymapRegistry& /* keymaps */, CommandRegistry& /* commands */,
+        CommandDispatcher& /* dispatcher */, CommandContext& context,
+        int /* key */) {
+        (void)runtime;
+        RuntimeCommandSink* sink = context.runtimeCommandSink();
         if (sink != NULL)
             sink->apply(RuntimeCommand::requestClose());
     }

@@ -72,7 +72,8 @@ public:
     }
 
     virtual void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key) {
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
         int ret = key;
         int n = effectControl->getNEntries();
 
@@ -80,26 +81,30 @@ public:
 
         if ((sel < n) && (sel >= 0)) {
             ret = runtime.runEffectChoiceKey(*effectControl,
-                effectControl->entries[sel]->use, keymaps, key);
+                effectControl->entries[sel]->use, keymaps, commands,
+                dispatcher, context, sel, key);
         }
 
         if (ret)
-            ret = keymaps.action(name, key, runtime);
+            ret = dispatcher.dispatchKeymap(keymaps, commands, name, key,
+                context);
         if (ret)
-            ret = keymaps.action("list", key, runtime);
+            ret = dispatcher.dispatchKeymap(keymaps, commands, "list", key,
+                context);
         if (ret)
-            ret = keymaps.action("default", key, runtime);
+            ret = dispatcher.dispatchKeymap(keymaps, commands, "default", key,
+                context);
 
         nElements = 0;
     }
 };
 
 ACTION(toggleUse) {
-    runtime.toggleContextEffectChoiceUse();
+    context.toggleEffectChoiceUse();
 }
 
 ACTION(activate) {
-    runtime.activateContextEffectChoice();
+    context.activateEffectChoice();
 }
 
 void registerListKeyActions(CommandRegistry& registry) {

@@ -59,31 +59,31 @@ static int interfaceRuntimeMilliseconds(InterfaceRuntime& runtime) {
 }
 
 ACTION(up) {
-    runtime.moveSelectionBy(-int(v));
+    context.runtime().moveSelectionBy(-int(invocation.value));
 }
 
 ACTION(down) {
-    runtime.moveSelectionBy(int(v));
+    context.runtime().moveSelectionBy(int(invocation.value));
 }
 
 ACTION(home) {
-    runtime.selectHome();
+    context.runtime().selectHome();
 }
 ACTION(end) {
-    runtime.selectEnd();
+    context.runtime().selectEnd();
 }
 
 ACTION(chgValue1) {
-    runtime.changeContextValueByElementIncrement(1, v);
+    context.changeValueByElementIncrement(1, invocation.value);
 }
 ACTION(chgValue2) {
-    runtime.changeContextValueByElementIncrement(2, v);
+    context.changeValueByElementIncrement(2, invocation.value);
 }
 ACTION(chgValue3) {
-    runtime.changeContextValueByElementIncrement(3, v);
+    context.changeValueByElementIncrement(3, invocation.value);
 }
 ACTION(setValue) {
-    runtime.setContextValueFromElement(v);
+    context.setValueFromElement(invocation.value);
 }
 
 static const char* InterfaceList[] = { "Help", // F1
@@ -99,10 +99,10 @@ static const char* InterfaceList[] = { "Help", // F1
     "palette", "image", "flashlight", "Help", NULL };
 
 ACTION(nextInterface) {
-    runtime.selectNextInList(InterfaceList);
+    context.runtime().selectNextInList(InterfaceList);
 }
 ACTION(prevInterface) {
-    runtime.selectPreviousInList(InterfaceList);
+    context.runtime().selectPreviousInList(InterfaceList);
 }
 
 // default display handler
@@ -147,16 +147,18 @@ void Interface::display(InterfaceRuntime& runtime) {
 }
 
 void Interface::doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-    int key) {
+    CommandRegistry& commands, CommandDispatcher& dispatcher,
+    CommandContext& context, int key) {
 
-    if (keymaps.action(name, key, runtime) == 0)
+    if (dispatcher.dispatchKeymap(keymaps, commands, name, key, context) == 0)
         return;
-    keymaps.action("default", key, runtime);
+    dispatcher.dispatchKeymap(keymaps, commands, "default", key, context);
 }
 
 // default runner
 void Interface::run(InterfaceRuntime& runtime, InputQueue& inputQueue,
-    KeymapRegistry& keymaps) {
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& context) {
 
     this->preRun();
 
@@ -165,10 +167,11 @@ void Interface::run(InterfaceRuntime& runtime, InputQueue& inputQueue,
     while ((key = inputQueue.popKey()) != CK_NONE) {
 
         if ((sel >= 0) && (sel < nElements))
-            if (elements[sel]->doKey(runtime, keymaps, key) == 0)
+            if (elements[sel]->doKey(runtime, keymaps, commands,
+                    dispatcher, context, key) == 0)
                 continue;
 
-        this->doKey(runtime, keymaps, key);
+        this->doKey(runtime, keymaps, commands, dispatcher, context, key);
     }
 }
 
@@ -199,8 +202,10 @@ const char* InterfaceElementOption::text(InterfaceRuntime& /* runtime */,
 }
 
 int InterfaceElementOption::doKey(InterfaceRuntime& runtime,
-    KeymapRegistry& keymaps, int key) {
-    return runtime.runOptionKey(*opt, *this, keymaps, "OptionElement", key);
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& context, int key) {
+    return runtime.runOptionKey(*opt, *this, keymaps, commands, dispatcher,
+        context, "OptionElement", key);
 }
 
 //
@@ -212,13 +217,15 @@ InterfaceElementEffectControl::InterfaceElementEffectControl(
     , effectControl(o) { }
 
 int InterfaceElementEffectControl::doKey(InterfaceRuntime& runtime,
-    KeymapRegistry& keymaps, int key) {
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& context, int key) {
     return runtime.runEffectControlKey(*effectControl, *this, keymaps,
-        "EffectControlElement", "OptionElement", key);
+        commands, dispatcher, context, "EffectControlElement",
+        "OptionElement", key);
 }
 
 ACTION(lockElement) {
-    runtime.toggleContextEffectControlLock();
+    context.toggleEffectControlLock();
 }
 
 static const char* runtimeConfigSelectionTextForInterface(
@@ -280,9 +287,11 @@ public:
     }
 
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key) {
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
         updateOption(runtime);
-        return InterfaceElementOption::doKey(runtime, keymaps, key);
+        return InterfaceElementOption::doKey(runtime, keymaps, commands,
+            dispatcher, context, key);
     }
 };
 
@@ -306,9 +315,11 @@ public:
     }
 
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key) {
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
         updateOption(runtime);
-        return InterfaceElementOption::doKey(runtime, keymaps, key);
+        return InterfaceElementOption::doKey(runtime, keymaps, commands,
+            dispatcher, context, key);
     }
 };
 
@@ -375,17 +386,20 @@ public:
     InterfaceMain()
         : Interface("main", NULL, NULL) { }
 
-    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps, int key) {
+    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
         const char* extraKeymap = runtime.extraKeymap();
         if (extraKeymap[0] != '\0') {
-            if (keymaps.action(extraKeymap, key, runtime) == 0)
+            if (dispatcher.dispatchKeymap(keymaps, commands, extraKeymap,
+                    key, context) == 0)
                 return;
         }
-        Interface::doKey(runtime, keymaps, key);
+        Interface::doKey(runtime, keymaps, commands, dispatcher, context, key);
     }
 };
 
-ACTION(setExtraKeymap) { runtime.setExtraKeymap(p); }
+ACTION(setExtraKeymap) { context.runtime().setExtraKeymap(invocation.param); }
 
 class InterfaceEffectControl : public Interface {
 public:
@@ -467,12 +481,17 @@ public:
         O(11) = &object;
         O(12) = &flashlight;
     }
-    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps, int key) {
-        if (keymaps.action("EffectControls", key, runtime) == 0)
+    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
+        (void)runtime;
+        if (dispatcher.dispatchKeymap(keymaps, commands, "EffectControls",
+                key, context) == 0)
             return;
-        if (keymaps.action("Options", key, runtime) == 0)
+        if (dispatcher.dispatchKeymap(keymaps, commands, "Options", key,
+                context) == 0)
             return;
-        keymaps.action("default", key, runtime);
+        dispatcher.dispatchKeymap(keymaps, commands, "default", key, context);
     }
 
 };

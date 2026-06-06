@@ -9,6 +9,8 @@
 class AutoChangerStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
+class CommandContext;
+class CommandDispatcher;
 class CommandRegistry;
 class InputQueue;
 class InterfaceRuntime;
@@ -28,7 +30,9 @@ public:
         return str;
     }
     virtual int doKey(InterfaceRuntime& /* runtime */,
-        KeymapRegistry& /* keymaps */, int /* key */) { return 1; }
+        KeymapRegistry& /* keymaps */, CommandRegistry& /* commands */,
+        CommandDispatcher& /* dispatcher */, CommandContext& /* context */,
+        int /* key */) { return 1; }
 };
 
 class Interface {
@@ -51,7 +55,8 @@ public:
     virtual void preRun() { }
     virtual void display(InterfaceRuntime& runtime);
     virtual void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key);
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key);
 
     /**
      * Services the active interface once.
@@ -63,7 +68,8 @@ public:
      *        adapter pointers.
      */
     virtual void run(InterfaceRuntime& runtime, InputQueue& inputQueue,
-        KeymapRegistry& keymaps);
+        KeymapRegistry& keymaps, CommandRegistry& commands,
+        CommandDispatcher& dispatcher, CommandContext& context);
 };
 
 class InterfaceElementOption : public InterfaceElement {
@@ -77,7 +83,8 @@ public:
 
     virtual const char* text(InterfaceRuntime& runtime, int selected);
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key);
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key);
 };
 
 class InterfaceElementEffectControl : public InterfaceElementOption {
@@ -87,7 +94,8 @@ public:
     InterfaceElementEffectControl(const char* t, EffectControl* o, int i1 = 1, int i2 = 10, int i3 = 100);
 
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
-        int key);
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key);
 };
 
 class ErrorMessages {

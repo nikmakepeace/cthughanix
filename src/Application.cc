@@ -245,17 +245,13 @@ void Application::initSceneRuntime() {
         *runtimeChangeMediatorValue, *sceneCommandsValue,
         *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
         *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
-    interfaceRuntimeValue->setCommandRouter(runtimeCommandRouterValue.get());
-    interfaceRuntimeValue->setRuntimeCommandSink(runtimeChangeMediatorValue.get());
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
 void Application::shutdownSceneRuntime() {
-    interfaceRuntimeValue->setRuntimeCommandSink(NULL);
     bindSceneCommandsForLegacyCallbacks(NULL);
     interfaceRuntimeValue->setAutoChangeControls(NULL);
-    interfaceRuntimeValue->setCommandRouter(NULL);
     videoDirector().unbindScene();
     interfaceRuntimeValue->setAudioProcessingSelector(NULL);
     interfaceRuntimeValue->setRuntimeConfigRegistry(NULL);
@@ -581,9 +577,13 @@ void Application::run() {
         if (traceDisplayTiming)
             eventsEnd = secondsClockValue.nowSeconds();
 
+        CommandContext commandContext(*interfaceRuntimeValue,
+            runtimeChangeMediatorValue.get(), runtimeCommandRouterValue.get());
+
         if (traceDisplayTiming)
             preInterfaceStart = secondsClockValue.nowSeconds();
-        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue);
+        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue,
+            commandsValue, dispatcherValue, commandContext);
         if (traceDisplayTiming)
             preInterfaceEnd = secondsClockValue.nowSeconds();
 
@@ -599,7 +599,8 @@ void Application::run() {
 
         if (traceDisplayTiming)
             postInterfaceStart = secondsClockValue.nowSeconds();
-        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue);
+        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue,
+            commandsValue, dispatcherValue, commandContext);
         if (traceDisplayTiming)
             postInterfaceEnd = secondsClockValue.nowSeconds();
 

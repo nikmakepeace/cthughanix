@@ -67,9 +67,10 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
     nElements = nEl;
 }
 void Interface::display(InterfaceRuntime&) { }
-void Interface::doKey(InterfaceRuntime&, KeymapRegistry&, int) { }
+void Interface::doKey(InterfaceRuntime&, KeymapRegistry&, CommandRegistry&,
+    CommandDispatcher&, CommandContext&, int) { }
 void Interface::run(InterfaceRuntime& runtime, InputQueue&,
-    KeymapRegistry&) {
+    KeymapRegistry&, CommandRegistry&, CommandDispatcher&, CommandContext&) {
     (void)runtime;
     preRun();
 }
@@ -82,17 +83,98 @@ InterfaceElementOption::InterfaceElementOption(const char* t, Option* o,
     , inc2(i2)
     , inc3(i3) { }
 const char* InterfaceElementOption::text(InterfaceRuntime&, int) { return str; }
-int InterfaceElementOption::doKey(InterfaceRuntime&, KeymapRegistry&, int) {
+int InterfaceElementOption::doKey(InterfaceRuntime&, KeymapRegistry&,
+    CommandRegistry&, CommandDispatcher&, CommandContext&, int) {
     return 1;
+}
+
+CommandRegistry::CommandRegistry()
+    : firstValue(NULL) { }
+CommandRegistry::~CommandRegistry() { }
+void CommandRegistry::registerAction(Action*) { }
+Action* CommandRegistry::find(const char*) const { return NULL; }
+Action* CommandRegistry::findLongestPrefix(const char*) const { return NULL; }
+
+CommandContext::CommandContext(InterfaceRuntime& runtime,
+    RuntimeCommandSink* runtimeCommandSink,
+    RuntimeCommandTargetRouter* commandRouter)
+    : runtimeValue(&runtime)
+    , runtimeCommandSinkValue(runtimeCommandSink)
+    , commandRouterValue(commandRouter)
+    , optionValue(NULL)
+    , effectControlValue(NULL)
+    , optionElementValue(NULL)
+    , effectChoiceIndexValue(-1) { }
+InterfaceRuntime& CommandContext::runtime() const {
+    return *runtimeValue;
+}
+RuntimeCommandSink* CommandContext::runtimeCommandSink() const {
+    return runtimeCommandSinkValue;
+}
+RuntimeCommandTargetRouter* CommandContext::commandRouter() const {
+    return commandRouterValue;
+}
+void CommandContext::targetOption(Option& option,
+    InterfaceElementOption& element) {
+    optionValue = &option;
+    effectControlValue = NULL;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+void CommandContext::targetEffectControl(EffectControl& effectControl,
+    InterfaceElementOption& element) {
+    optionValue = &effectControl;
+    effectControlValue = &effectControl;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+void CommandContext::targetEffectChoice(EffectControl& effectControl,
+    Option& option, int selectedIndex) {
+    optionValue = &option;
+    effectControlValue = &effectControl;
+    optionElementValue = NULL;
+    effectChoiceIndexValue = selectedIndex;
+}
+void CommandContext::changeValueByElementIncrement(int incrementIndex,
+    double value) {
+    if ((optionElementValue == NULL) || (commandRouterValue == NULL))
+        return;
+
+    int increment = 0;
+    if (incrementIndex == 1)
+        increment = optionElementValue->inc1;
+    else if (incrementIndex == 2)
+        increment = optionElementValue->inc2;
+    else if (incrementIndex == 3)
+        increment = optionElementValue->inc3;
+
+    if (increment == 0)
+        return;
+
+    int step = int(value * increment);
+    if (effectControlValue != NULL)
+        commandRouterValue->changeEffectControlBy(*effectControlValue, step);
+    else if (optionValue != NULL)
+        commandRouterValue->changeOptionBy(*optionValue, step);
+}
+void CommandContext::setValueFromElement(double) { }
+void CommandContext::toggleEffectControlLock() { }
+void CommandContext::toggleEffectChoiceUse() { }
+void CommandContext::activateEffectChoice() { }
+
+int CommandDispatcher::dispatch(
+    const std::vector<ActionInvocation>&, CommandContext&) const {
+    return 1;
+}
+int CommandDispatcher::dispatchKeymap(KeymapRegistry&, CommandRegistry&,
+    const char*, int, CommandContext& context) const {
+    context.changeValueByElementIncrement(1, 1.0);
+    return 0;
 }
 
 KeymapRegistry::KeymapRegistry()
     : firstValue(NULL) { }
 KeymapRegistry::~KeymapRegistry() { }
-int KeymapRegistry::action(const char*, int, InterfaceRuntime& runtime) {
-    runtime.changeContextValueByElementIncrement(1, 1.0);
-    return 0;
-}
 
 class CapturingTargetRouter : public RuntimeCommandTargetRouter {
 public:
@@ -225,17 +307,18 @@ static void testOptionCommandContextIsScoped() {
     SimpleOption option;
     InterfaceElementOption element("value: %s", &option, 5, 10, 20);
     KeymapRegistry keymaps;
+    CommandRegistry commands;
+    CommandDispatcher dispatcher;
+    CommandContext context(runtime, NULL, &router);
 
-    runtime.setCommandRouter(&router);
-    assert(runtime.runOptionKey(option, element, keymaps, "test", 'x') == 0);
+    assert(runtime.runOptionKey(option, element, keymaps, commands,
+        dispatcher, context, "test", 'x') == 0);
     assert(router.optionByCalls == 1);
     assert(router.lastOption == &option);
     assert(router.lastValue == 5);
 
-    runtime.changeContextValueByElementIncrement(1, 1.0);
+    context.changeValueByElementIncrement(1, 1.0);
     assert(router.optionByCalls == 1);
-
-    runtime.setCommandRouter(NULL);
 }
 
 static void testMillisecondsComeFromInjectedClock() {

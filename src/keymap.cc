@@ -17,6 +17,7 @@
 #include "DisplayDevice.h"
 #include "Scene.h"
 #include "RuntimeCommandSink.h"
+#include "RuntimeCommandTargets.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -222,6 +223,7 @@ Keymap::~Keymap() {
         Binding::ActionList* action = binding->actionList;
         while (action != NULL) {
             Binding::ActionList* nextAction = action->next;
+            delete[] action->actionName;
             delete[] action->param;
             delete action;
             action = nextAction;
@@ -229,6 +231,143 @@ Keymap::~Keymap() {
 
         delete binding;
     }
+}
+
+CommandContext::CommandContext(InterfaceRuntime& runtime,
+    RuntimeCommandSink* runtimeCommandSink,
+    RuntimeCommandTargetRouter* commandRouter)
+    : runtimeValue(&runtime)
+    , runtimeCommandSinkValue(runtimeCommandSink)
+    , commandRouterValue(commandRouter)
+    , optionValue(NULL)
+    , effectControlValue(NULL)
+    , optionElementValue(NULL)
+    , effectChoiceIndexValue(-1) { }
+
+InterfaceRuntime& CommandContext::runtime() const {
+    return *runtimeValue;
+}
+
+RuntimeCommandSink* CommandContext::runtimeCommandSink() const {
+    return runtimeCommandSinkValue;
+}
+
+RuntimeCommandTargetRouter* CommandContext::commandRouter() const {
+    return commandRouterValue;
+}
+
+void CommandContext::targetOption(Option& option,
+    InterfaceElementOption& element) {
+    optionValue = &option;
+    effectControlValue = NULL;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+
+void CommandContext::targetEffectControl(EffectControl& effectControl,
+    InterfaceElementOption& element) {
+    optionValue = &effectControl;
+    effectControlValue = &effectControl;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+
+void CommandContext::targetEffectChoice(EffectControl& effectControl,
+    Option& option, int selectedIndex) {
+    optionValue = &option;
+    effectControlValue = &effectControl;
+    optionElementValue = NULL;
+    effectChoiceIndexValue = selectedIndex;
+}
+
+static int commandContextIncrement(const InterfaceElementOption& element,
+    int incrementIndex) {
+    switch (incrementIndex) {
+    case 1:
+        return element.inc1;
+    case 2:
+        return element.inc2;
+    case 3:
+        return element.inc3;
+    default:
+        return 0;
+    }
+}
+
+void CommandContext::changeValueByElementIncrement(int incrementIndex,
+    double value) {
+    if (optionElementValue == NULL)
+        return;
+
+    int increment = commandContextIncrement(*optionElementValue,
+        incrementIndex);
+    if ((increment == 0) || (commandRouterValue == NULL))
+        return;
+
+    int step = int(value * increment);
+    if (effectControlValue != NULL) {
+        commandRouterValue->changeEffectControlBy(*effectControlValue, step);
+    } else if (optionValue != NULL) {
+        commandRouterValue->changeOptionBy(*optionValue, step);
+    }
+}
+
+void CommandContext::setValueFromElement(double value) {
+    if ((optionElementValue == NULL) || (commandRouterValue == NULL))
+        return;
+
+    char text[128];
+    snprintf(text, sizeof(text), "%d", int(value * optionElementValue->inc1));
+
+    if (effectControlValue != NULL) {
+        commandRouterValue->changeEffectControlTo(*effectControlValue, text);
+        commandRouterValue->changeEffectControlBy(*effectControlValue, 0);
+    } else if (optionValue != NULL) {
+        commandRouterValue->changeOptionTo(*optionValue, text);
+        commandRouterValue->changeOptionBy(*optionValue, 0);
+    }
+}
+
+void CommandContext::toggleEffectControlLock() {
+    if ((effectControlValue != NULL) && (commandRouterValue != NULL))
+        commandRouterValue->toggleEffectControlLock(*effectControlValue);
+}
+
+void CommandContext::toggleEffectChoiceUse() {
+    if ((effectControlValue != NULL) && (effectChoiceIndexValue >= 0)
+        && (commandRouterValue != NULL))
+        commandRouterValue->toggleEffectChoiceUse(*effectControlValue,
+            effectChoiceIndexValue);
+}
+
+void CommandContext::activateEffectChoice() {
+    if ((effectControlValue != NULL) && (optionValue != NULL)
+        && (effectChoiceIndexValue >= 0) && (commandRouterValue != NULL)) {
+        commandRouterValue->activateEffectControl(*effectControlValue,
+            effectChoiceIndexValue);
+        commandRouterValue->changeOptionBy(*optionValue, 0);
+    }
+}
+
+int CommandDispatcher::dispatch(
+    const std::vector<ActionInvocation>& invocations,
+    CommandContext& context) const {
+    for (std::vector<ActionInvocation>::const_iterator it = invocations.begin();
+         it != invocations.end(); ++it)
+        it->target->act(*it, context);
+
+    return invocations.empty() ? 1 : 0;
+}
+
+int CommandDispatcher::dispatchKeymap(KeymapRegistry& keymaps,
+    CommandRegistry& commands, const char* keymapName, int key,
+    CommandContext& context) const {
+    std::vector<ActionInvocation> invocations;
+    int result = keymaps.actionsFor(keymapName, key, commands, invocations);
+    if (result != 0)
+        return result;
+
+    return dispatch(invocations, context);
 }
 
 CommandRegistry::CommandRegistry()
@@ -256,6 +395,19 @@ void CommandRegistry::registerAction(Action* action) {
 
     action->next = firstValue;
     firstValue = action;
+}
+
+Action* CommandRegistry::find(const char* name) const {
+    if (name == NULL)
+        return NULL;
+
+    for (Action* action = firstValue; action != NULL;
+         action = action->next) {
+        if (strcasecmp(action->name, name) == 0)
+            return action;
+    }
+
+    return NULL;
 }
 
 Action* CommandRegistry::findLongestPrefix(const char* text) const {
@@ -484,8 +636,12 @@ Keymap::Binding Keymap::parseBinding(const char* line,
 
             line += n + 1; // skip parameter and ')'
 
+            char* actionName = new char[strlen(A->name) + 1];
+            strcpy(actionName, A->name);
+
             // add new action to List
-            b.actionList = new Binding::ActionList(A, p, b.actionList);
+            b.actionList = new Binding::ActionList(actionName, p,
+                b.actionList);
         } else {
             CTH_ERROR("Error in keymap. Unknown command: '%s'\n", line);
             b.key = 0;
@@ -497,17 +653,26 @@ Keymap::Binding Keymap::parseBinding(const char* line,
     return b;
 }
 
-int Keymap::action(int key, InterfaceRuntime& runtime) {
+int Keymap::actionsFor(int key, CommandRegistry& commands,
+    std::vector<ActionInvocation>& invocations) const {
 
     BindingList* l = bindingList;
     while (l) {
         if (l->key == key) {
             for (Binding::ActionList* a = l->actionList; a != NULL; a = a->next) {
-                double value;
+                Action* action = commands.find(a->actionName);
+                if (action == NULL) {
+                    CTH_ERROR("Unknown command '%s' in keymap binding.\n",
+                        a->actionName);
+                    return 1;
+                }
+
+                double value = 0.0;
                 if (a->param)
                     sscanf(a->param, "%lf", &value);
 
-                a->action->act(a->param, value, runtime);
+                invocations.push_back(ActionInvocation(action, a->actionName,
+                    a->param, value));
             }
             return 0;
         }
@@ -516,12 +681,13 @@ int Keymap::action(int key, InterfaceRuntime& runtime) {
     return 1;
 }
 
-int KeymapRegistry::action(const char* keymap, int key,
-    InterfaceRuntime& runtime) {
+int KeymapRegistry::actionsFor(const char* keymap, int key,
+    CommandRegistry& commands,
+    std::vector<ActionInvocation>& invocations) const {
 
     for (Keymap* k = firstValue; k; k = k->next) {
         if (strcasecmp(keymap, k->name) == 0) {
-            return k->action(key, runtime);
+            return k->actionsFor(key, commands, invocations);
         }
     }
     return 1;
@@ -552,84 +718,84 @@ void KeymapRegistry::init(const InputConfig& config,
 //
 
 static void applyRuntimeCommand(const RuntimeCommand& command,
-    InterfaceRuntime& runtime) {
-    RuntimeCommandSink* sink = runtime.runtimeCommandSink();
+    CommandContext& context) {
+    RuntimeCommandSink* sink = context.runtimeCommandSink();
     if (sink != NULL)
         sink->apply(command);
 }
 
-ACTION(quit) { applyRuntimeCommand(RuntimeCommand::requestClose(), runtime); }
+ACTION(quit) { applyRuntimeCommand(RuntimeCommand::requestClose(), context); }
 ACTION(stopAndContinue) {
-    applyRuntimeCommand(RuntimeCommand::stopAndContinue(), runtime);
+    applyRuntimeCommand(RuntimeCommand::stopAndContinue(), context);
 }
 
-ACTION(screenChg) { applyRuntimeCommand(RuntimeCommand::changeScreenBy(int(v)), runtime); }
-ACTION(zoomChg) { applyRuntimeCommand(RuntimeCommand::changeZoomBy(int(v)), runtime); }
-ACTION(flameChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlame, int(v)), runtime); }
-ACTION(flameGeneral) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneGeneralFlame, 0), runtime); }
-ACTION(waveChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWave, int(v)), runtime); }
-ACTION(waveScaleChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWaveScale, int(v)), runtime); }
-ACTION(objectChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneObject, int(v)), runtime); }
-ACTION(translateChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTranslation, int(v)), runtime); }
-ACTION(soundProcessChg) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingBy(int(v)), runtime); }
-ACTION(borderChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneBorder, int(v)), runtime); }
-ACTION(flashlightChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlashlight, int(v)), runtime); }
-ACTION(paletteChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeScenePalette, int(v)), runtime); }
-ACTION(tableChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTable, int(v)), runtime); }
-ACTION(imageChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneImage, int(v)), runtime); }
-ACTION(lockChg) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), runtime); }
+ACTION(screenChg) { applyRuntimeCommand(RuntimeCommand::changeScreenBy(int(invocation.value)), context); }
+ACTION(zoomChg) { applyRuntimeCommand(RuntimeCommand::changeZoomBy(int(invocation.value)), context); }
+ACTION(flameChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlame, int(invocation.value)), context); }
+ACTION(flameGeneral) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneGeneralFlame, 0), context); }
+ACTION(waveChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWave, int(invocation.value)), context); }
+ACTION(waveScaleChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWaveScale, int(invocation.value)), context); }
+ACTION(objectChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneObject, int(invocation.value)), context); }
+ACTION(translateChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTranslation, int(invocation.value)), context); }
+ACTION(soundProcessChg) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingBy(int(invocation.value)), context); }
+ACTION(borderChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneBorder, int(invocation.value)), context); }
+ACTION(flashlightChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlashlight, int(invocation.value)), context); }
+ACTION(paletteChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeScenePalette, int(invocation.value)), context); }
+ACTION(tableChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTable, int(invocation.value)), context); }
+ACTION(imageChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneImage, int(invocation.value)), context); }
+ACTION(lockChg) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), context); }
 
-ACTION(screen) { applyRuntimeCommand(RuntimeCommand::changeScreenTo(p), runtime); }
-ACTION(zoom) { applyRuntimeCommand(RuntimeCommand::changeZoomTo(p), runtime); }
-ACTION(flame) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlame, p), runtime); }
-ACTION(wave) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWave, p), runtime); }
-ACTION(waveScale) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWaveScale, p), runtime); }
-ACTION(object) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneObject, p), runtime); }
-ACTION(translate) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTranslation, p), runtime); }
-ACTION(soundProcess) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingTo(p), runtime); }
-ACTION(border) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneBorder, p), runtime); }
-ACTION(flashlight) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlashlight, p), runtime); }
-ACTION(palette) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeScenePalette, p), runtime); }
-ACTION(table) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTable, p), runtime); }
-ACTION(image) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneImage, p), runtime); }
-ACTION(lock) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), runtime); }
+ACTION(screen) { applyRuntimeCommand(RuntimeCommand::changeScreenTo(invocation.param), context); }
+ACTION(zoom) { applyRuntimeCommand(RuntimeCommand::changeZoomTo(invocation.param), context); }
+ACTION(flame) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlame, invocation.param), context); }
+ACTION(wave) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWave, invocation.param), context); }
+ACTION(waveScale) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWaveScale, invocation.param), context); }
+ACTION(object) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneObject, invocation.param), context); }
+ACTION(translate) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTranslation, invocation.param), context); }
+ACTION(soundProcess) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingTo(invocation.param), context); }
+ACTION(border) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneBorder, invocation.param), context); }
+ACTION(flashlight) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlashlight, invocation.param), context); }
+ACTION(palette) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeScenePalette, invocation.param), context); }
+ACTION(table) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTable, invocation.param), context); }
+ACTION(image) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneImage, invocation.param), context); }
+ACTION(lock) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), context); }
 
-ACTION(writeIni) { applyRuntimeCommand(RuntimeCommand::writeIni(), runtime); }
+ACTION(writeIni) { applyRuntimeCommand(RuntimeCommand::writeIni(), context); }
 
-ACTION(restore) { applyRuntimeCommand(RuntimeCommand::restoreScene(), runtime); }
+ACTION(restore) { applyRuntimeCommand(RuntimeCommand::restoreScene(), context); }
 ACTION(toggleSave) {
-    runtime.toggleSaveToPreset();
+    context.runtime().toggleSaveToPreset();
 }
-ACTION(save) { applyRuntimeCommand(RuntimeCommand::savePreset(int(v)), runtime); }
+ACTION(save) { applyRuntimeCommand(RuntimeCommand::savePreset(int(invocation.value)), context); }
 ACTION(saveOrRestore) {
-    if (runtime.saveToPreset()) {
-        applyRuntimeCommand(RuntimeCommand::savePreset(int(v)), runtime);
-        runtime.clearSaveToPreset();
+    if (context.runtime().saveToPreset()) {
+        applyRuntimeCommand(RuntimeCommand::savePreset(int(invocation.value)), context);
+        context.runtime().clearSaveToPreset();
     } else {
-        applyRuntimeCommand(RuntimeCommand::restorePreset(int(v)), runtime);
+        applyRuntimeCommand(RuntimeCommand::restorePreset(int(invocation.value)), context);
     }
 }
 
 ACTION(toggleStatus) {
-    runtime.toggleStatus();
+    context.runtime().toggleStatus();
 }
-ACTION(toggleFPS) { applyRuntimeCommand(RuntimeCommand::toggleShowFps(), runtime); }
+ACTION(toggleFPS) { applyRuntimeCommand(RuntimeCommand::toggleShowFps(), context); }
 
-ACTION(changeAll) { applyRuntimeCommand(RuntimeCommand::changeAll(), runtime); }
-ACTION(changeOne) { applyRuntimeCommand(RuntimeCommand::changeOne(), runtime); }
+ACTION(changeAll) { applyRuntimeCommand(RuntimeCommand::changeAll(), context); }
+ACTION(changeOne) { applyRuntimeCommand(RuntimeCommand::changeOne(), context); }
 
 ACTION(credits) {
-    runtime.set("credits");
+    context.runtime().set("credits");
 }
 ACTION(setInterface) {
-    runtime.set(p);
+    context.runtime().set(invocation.param);
 }
 
 ACTION(randomPalette) {
-    applyRuntimeCommand(RuntimeCommand::randomPalette(), runtime);
+    applyRuntimeCommand(RuntimeCommand::randomPalette(), context);
 }
 ACTION(newRandomPalette) {
-    applyRuntimeCommand(RuntimeCommand::addRandomPalette(), runtime);
+    applyRuntimeCommand(RuntimeCommand::addRandomPalette(), context);
 }
 
 void registerDefaultKeyActions(CommandRegistry& registry) {

@@ -10,6 +10,9 @@
 class AutoChangerStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
+class CommandContext;
+class CommandDispatcher;
+class CommandRegistry;
 class EffectControl;
 class Interface;
 class InterfaceElementOption;
@@ -18,21 +21,6 @@ class KeymapRegistry;
 class MillisecondClock;
 class Option;
 class RuntimeConfigRegistry;
-class RuntimeCommandSink;
-class RuntimeCommandTargetRouter;
-
-/**
- * Transient option/effect target used while an interface element routes a key.
- */
-struct InterfaceCommandContext {
-    Option* option;
-    EffectControl* effectControl;
-    InterfaceElementOption* optionElement;
-
-    /** Creates an empty command context. */
-    InterfaceCommandContext();
-};
-
 /**
  * Application-owned runtime state for the keyboard/interface subsystem.
  *
@@ -48,8 +36,6 @@ class InterfaceRuntime {
     const AutoChangerStatusProvider* autoChangerStatusProviderValue;
     AutoChangeControls* autoChangeControlsValue;
     AudioProcessingSelector* audioProcessingSelectorValue;
-    RuntimeCommandSink* runtimeCommandSinkValue;
-    RuntimeCommandTargetRouter* commandRouterValue;
     MillisecondClock& clock;
     int saveToPresetValue;
     int showStatusValue;
@@ -58,10 +44,8 @@ class InterfaceRuntime {
     int helpScrollingValue;
     double creditsPositionValue;
     int creditsFirstTimeValue;
-    InterfaceCommandContext commandContextValue;
 
     void clampCurrentSelection();
-    void clearCommandContext();
 
 public:
     /**
@@ -119,7 +103,9 @@ public:
     const Interface* current() const { return currentInterfaceValue; }
 
     /** Services the selected interface once when one is selected. */
-    void runCurrent(InputQueue& inputQueue, KeymapRegistry& keymaps);
+    void runCurrent(InputQueue& inputQueue, KeymapRegistry& keymaps,
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context);
 
     /**
      * Moves the selected row in the active interface.
@@ -212,34 +198,6 @@ public:
      */
     AudioProcessingSelector* audioProcessingSelector() const;
 
-    /**
-     * Installs the sink used by key actions that emit runtime commands.
-     *
-     * @param sink Sink to use; NULL disables runtime-command actions.
-     */
-    void setRuntimeCommandSink(RuntimeCommandSink* sink);
-
-    /**
-     * Returns the sink used by key actions that emit runtime commands.
-     *
-     * @return Installed sink, or NULL before runtime command setup.
-     */
-    RuntimeCommandSink* runtimeCommandSink() const;
-
-    /**
-     * Installs the router used for scoped option/effect commands.
-     *
-     * @param router Router to use; NULL disables scoped runtime commands.
-     */
-    void setCommandRouter(RuntimeCommandTargetRouter* router);
-
-    /**
-     * Returns the router used for scoped option/effect commands.
-     *
-     * @return Installed router, or NULL before runtime command setup.
-     */
-    RuntimeCommandTargetRouter* commandRouter() const;
-
     /** Toggles whether number keys save or restore presets. */
     void toggleSaveToPreset();
 
@@ -315,7 +273,9 @@ public:
      * @return Keymap handling result.
      */
     int runOptionKey(Option& option, InterfaceElementOption& element,
-        KeymapRegistry& keymaps, const char* keymapName, int key);
+        KeymapRegistry& keymaps, CommandRegistry& commands,
+        CommandDispatcher& dispatcher, CommandContext& context,
+        const char* keymapName, int key);
 
     /**
      * Runs a key through an effect-control element with scoped command context.
@@ -329,8 +289,9 @@ public:
      */
     int runEffectControlKey(EffectControl& effectControl,
         InterfaceElementOption& element, KeymapRegistry& keymaps,
-        const char* effectControlKeymapName, const char* optionKeymapName,
-        int key);
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, const char* effectControlKeymapName,
+        const char* optionKeymapName, int key);
 
     /**
      * Runs a key through an effect-choice list row with scoped command context.
@@ -341,31 +302,9 @@ public:
      * @return Keymap handling result.
      */
     int runEffectChoiceKey(EffectControl& effectControl, Option& option,
-        KeymapRegistry& keymaps, int key);
-
-    /**
-     * Changes the current scoped option/effect target by an element increment.
-     *
-     * @param incrementIndex One-based increment slot, from inc1 to inc3.
-     * @param value Multiplier supplied by the keymap action.
-     */
-    void changeContextValueByElementIncrement(int incrementIndex, double value);
-
-    /**
-     * Sets the current scoped option/effect target from the element inc1 scale.
-     *
-     * @param value Multiplier supplied by the keymap action.
-     */
-    void setContextValueFromElement(double value);
-
-    /** Toggles the lock flag for the current scoped effect control. */
-    void toggleContextEffectControlLock();
-
-    /** Toggles use for the active effect-choice list row. */
-    void toggleContextEffectChoiceUse();
-
-    /** Activates the active effect-choice list row. */
-    void activateContextEffectChoice();
+        KeymapRegistry& keymaps, CommandRegistry& commands,
+        CommandDispatcher& dispatcher, CommandContext& context,
+        int selectedIndex, int key);
 };
 
 #endif

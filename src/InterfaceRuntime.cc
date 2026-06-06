@@ -15,19 +15,12 @@
 #include <string.h>
 #include <strings.h>
 
-InterfaceCommandContext::InterfaceCommandContext()
-    : option(NULL)
-    , effectControl(NULL)
-    , optionElement(NULL) { }
-
 InterfaceRuntime::InterfaceRuntime(MillisecondClock& clock_)
     : currentInterfaceValue(NULL)
     , runtimeConfigRegistryValue(NULL)
     , autoChangerStatusProviderValue(NULL)
     , autoChangeControlsValue(NULL)
     , audioProcessingSelectorValue(NULL)
-    , runtimeCommandSinkValue(NULL)
-    , commandRouterValue(NULL)
     , clock(clock_)
     , saveToPresetValue(0)
     , showStatusValue(0)
@@ -105,9 +98,11 @@ void InterfaceRuntime::set(const char* name) {
 }
 
 void InterfaceRuntime::runCurrent(InputQueue& inputQueue,
-    KeymapRegistry& keymaps) {
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& context) {
     if (currentInterfaceValue != NULL)
-        currentInterfaceValue->run(*this, inputQueue, keymaps);
+        currentInterfaceValue->run(*this, inputQueue, keymaps, commands,
+            dispatcher, context);
 }
 
 void InterfaceRuntime::clampCurrentSelection() {
@@ -203,22 +198,6 @@ AudioProcessingSelector* InterfaceRuntime::audioProcessingSelector() const {
     return audioProcessingSelectorValue;
 }
 
-void InterfaceRuntime::setRuntimeCommandSink(RuntimeCommandSink* sink) {
-    runtimeCommandSinkValue = sink;
-}
-
-RuntimeCommandSink* InterfaceRuntime::runtimeCommandSink() const {
-    return runtimeCommandSinkValue;
-}
-
-void InterfaceRuntime::setCommandRouter(RuntimeCommandTargetRouter* router) {
-    commandRouterValue = router;
-}
-
-RuntimeCommandTargetRouter* InterfaceRuntime::commandRouter() const {
-    return commandRouterValue;
-}
-
 void InterfaceRuntime::toggleSaveToPreset() {
     saveToPresetValue = 1 - saveToPresetValue;
 }
@@ -293,127 +272,44 @@ int InterfaceRuntime::milliseconds() const {
     return clock.milliseconds();
 }
 
-void InterfaceRuntime::clearCommandContext() {
-    commandContextValue = InterfaceCommandContext();
-}
-
 int InterfaceRuntime::runOptionKey(Option& option, InterfaceElementOption& element,
-    KeymapRegistry& keymaps, const char* keymapName, int key) {
-    commandContextValue.option = &option;
-    commandContextValue.effectControl = NULL;
-    commandContextValue.optionElement = &element;
-    int result = keymaps.action(keymapName, key, *this);
-    clearCommandContext();
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& baseContext,
+    const char* keymapName, int key) {
+    CommandContext context = baseContext;
+    context.targetOption(option, element);
+    int result = dispatcher.dispatchKeymap(keymaps, commands, keymapName, key,
+        context);
     return result;
 }
 
 int InterfaceRuntime::runEffectControlKey(EffectControl& effectControl,
     InterfaceElementOption& element, KeymapRegistry& keymaps,
-    const char* effectControlKeymapName, const char* optionKeymapName,
-    int key) {
-    commandContextValue.option = &effectControl;
-    commandContextValue.effectControl = &effectControl;
-    commandContextValue.optionElement = &element;
-
-    int result = keymaps.action(effectControlKeymapName, key, *this);
+    CommandRegistry& commands, CommandDispatcher& dispatcher,
+    CommandContext& baseContext, const char* effectControlKeymapName,
+    const char* optionKeymapName, int key) {
+    CommandContext context = baseContext;
+    context.targetEffectControl(effectControl, element);
+    int result = dispatcher.dispatchKeymap(keymaps, commands,
+        effectControlKeymapName, key, context);
     if (result == 1)
-        result = keymaps.action(optionKeymapName, key, *this);
+        result = dispatcher.dispatchKeymap(keymaps, commands,
+            optionKeymapName, key, context);
 
-    clearCommandContext();
     return result;
 }
 
 int InterfaceRuntime::runEffectChoiceKey(EffectControl& effectControl,
-    Option& option, KeymapRegistry& keymaps, int key) {
-    commandContextValue.option = &option;
-    commandContextValue.effectControl = &effectControl;
-    commandContextValue.optionElement = NULL;
-
-    int result = keymaps.action("ListOption", key, *this);
+    Option& option, KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& baseContext,
+    int selectedIndex, int key) {
+    CommandContext context = baseContext;
+    context.targetEffectChoice(effectControl, option, selectedIndex);
+    int result = dispatcher.dispatchKeymap(keymaps, commands, "ListOption",
+        key, context);
     if (result)
-        result = keymaps.action("Option", key, *this);
+        result = dispatcher.dispatchKeymap(keymaps, commands, "Option", key,
+            context);
 
-    clearCommandContext();
     return result;
-}
-
-static int interfaceRuntimeIncrement(const InterfaceElementOption& element,
-    int incrementIndex) {
-    switch (incrementIndex) {
-    case 1:
-        return element.inc1;
-    case 2:
-        return element.inc2;
-    case 3:
-        return element.inc3;
-    default:
-        return 0;
-    }
-}
-
-void InterfaceRuntime::changeContextValueByElementIncrement(
-    int incrementIndex, double value) {
-    if (commandContextValue.optionElement == NULL)
-        return;
-
-    int increment = interfaceRuntimeIncrement(
-        *commandContextValue.optionElement, incrementIndex);
-    if ((increment == 0) || (commandRouterValue == NULL))
-        return;
-
-    int step = int(value * increment);
-    if (commandContextValue.effectControl != NULL) {
-        commandRouterValue->changeEffectControlBy(
-            *commandContextValue.effectControl, step);
-    } else if (commandContextValue.option != NULL) {
-        commandRouterValue->changeOptionBy(*commandContextValue.option, step);
-    }
-}
-
-void InterfaceRuntime::setContextValueFromElement(double value) {
-    if ((commandContextValue.optionElement == NULL)
-        || (commandRouterValue == NULL))
-        return;
-
-    char text[128];
-    snprintf(text, sizeof(text), "%d",
-        int(value * commandContextValue.optionElement->inc1));
-
-    if (commandContextValue.effectControl != NULL) {
-        commandRouterValue->changeEffectControlTo(
-            *commandContextValue.effectControl, text);
-        commandRouterValue->changeEffectControlBy(
-            *commandContextValue.effectControl, 0);
-    } else if (commandContextValue.option != NULL) {
-        commandRouterValue->changeOptionTo(*commandContextValue.option, text);
-        commandRouterValue->changeOptionBy(*commandContextValue.option, 0);
-    }
-}
-
-void InterfaceRuntime::toggleContextEffectControlLock() {
-    if ((commandContextValue.effectControl != NULL)
-        && (commandRouterValue != NULL))
-        commandRouterValue->toggleEffectControlLock(
-            *commandContextValue.effectControl);
-}
-
-void InterfaceRuntime::toggleContextEffectChoiceUse() {
-    if ((commandContextValue.effectControl == NULL)
-        || (currentInterfaceValue == NULL)
-        || (commandRouterValue == NULL))
-        return;
-
-    commandRouterValue->toggleEffectChoiceUse(
-        *commandContextValue.effectControl, currentInterfaceValue->sel);
-}
-
-void InterfaceRuntime::activateContextEffectChoice() {
-    if ((commandContextValue.effectControl == NULL)
-        || (commandContextValue.option == NULL)
-        || (currentInterfaceValue == NULL)
-        || (commandRouterValue == NULL))
-        return;
-
-    commandRouterValue->activateEffectControl(
-        *commandContextValue.effectControl, currentInterfaceValue->sel);
 }

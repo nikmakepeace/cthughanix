@@ -37,12 +37,12 @@ public:
 
 };
 
-ACTION(toggleScrolling) { runtime.toggleHelpScrolling(); }
+ACTION(toggleScrolling) { context.runtime().toggleHelpScrolling(); }
 ACTION(scrollUp) {
-    runtime.scrollHelpBy(-1.0, InterfaceHelp::lineCount());
+    context.runtime().scrollHelpBy(-1.0, InterfaceHelp::lineCount());
 }
 ACTION(scrollDown) {
-    runtime.scrollHelpBy(1.0, InterfaceHelp::lineCount());
+    context.runtime().scrollHelpBy(1.0, InterfaceHelp::lineCount());
 }
 
 void registerHelpKeyActions(CommandRegistry& registry) {
