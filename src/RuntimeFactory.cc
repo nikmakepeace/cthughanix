@@ -52,6 +52,11 @@ RuntimeFactory::RuntimeFactory(const AudioSettings& settings_,
         environment.ossInputAvailable, environment.ossOutputAvailable,
         environment.pulseOutputAvailable,
         outputConfig.pulseServerDisplayName());
+    log.debug("runtime factory: output config pulse-latency-ms=%d pulse-target-latency-ms=%d null-target-latency-ms=%d dsp-target-latency-ms=%d output-dump=`%s'\n",
+        outputConfig.pulseLatencyMs, outputConfig.pulseOutputTargetLatencyMs,
+        outputConfig.nullOutputTargetLatencyMs,
+        outputConfig.dspOutputTargetLatencyMs,
+        outputConfig.outputDumpPath.empty() ? "" : outputConfig.outputDumpPath.c_str());
 }
 
 AudioSourceStrategy RuntimeFactory::selectAudioSourceStrategy() const {

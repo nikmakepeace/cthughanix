@@ -142,6 +142,9 @@ public:
     /** @return Target queued output delay in sample frames. */
     int targetDelaySamples() const { return outputTargetDelaySamples; }
 
+    /** @return Estimated delay between submitted samples and audible playback. */
+    virtual int presentationDelaySamples() const { return outputTargetDelaySamples; }
+
     /** @return Recommended scratch buffer size in sample frames. */
     int scratchSamples() const { return outputScratchSamples; }
 
@@ -227,6 +230,7 @@ class AudioPulseOutput : public AudioOutput {
     int callbackScratchSamples;
     std::atomic<int> callbackDrainActive;
     int bytesPerSecondValue;
+    std::atomic<int> pulsePresentationDelaySamples;
     std::atomic<int> underflowCountValue;
     std::atomic<int> lastReportedUnderflows;
 
@@ -303,6 +307,9 @@ public:
 
     /** @return PulseAudio stream target latency in milliseconds. */
     int pulseLatencyMs() const;
+
+    /** @return PulseAudio stream delay used by the visual presentation clock. */
+    virtual int presentationDelaySamples() const;
 };
 
 class AudioDSPOutput : public AudioOutput {

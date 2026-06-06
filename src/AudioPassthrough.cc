@@ -118,7 +118,7 @@ long long AudioPassthrough::presentationSamplePosition() const {
     long long sample = streamValue.submittedEndPosition();
 
     if (enabled())
-        sample -= outputValue->targetDelaySamples();
+        sample -= outputValue->presentationDelaySamples();
     if (sample < 0)
         sample = 0;
 

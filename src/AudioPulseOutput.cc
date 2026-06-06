@@ -18,6 +18,12 @@ static int audioPulseBytesToMs(unsigned int bytes, int bytesPerSecond) {
     return (ms > INT_MAX) ? INT_MAX : (int)ms;
 }
 
+static int audioPulseBytesToSamples(unsigned int bytes, int bytesPerSample) {
+    if (bytesPerSample <= 0)
+        return 0;
+    return (int)(bytes / (unsigned int)bytesPerSample);
+}
+
 static pa_sample_format_t audioPulseSampleFormat(const PcmFormat& format) {
     switch (format.sampleFormat) {
     case SF_u8:
@@ -103,6 +109,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format, SecondsClock& clock_
     , callbackScratchSamples(0)
     , callbackDrainActive(0)
     , bytesPerSecondValue(0)
+    , pulsePresentationDelaySamples(0)
     , underflowCountValue(0)
     , lastReportedUnderflows(0) {
     if (autoOpen)
@@ -208,6 +215,9 @@ void AudioPulseOutput::update() {
     bufferAttr.minreq = minRequestBytes;
     bufferAttr.fragsize = (uint32_t)-1;
 
+    logSink().debug("    audio output strategy: Pulse latency request configured-latency-ms=%d target-samples=%d target-bytes=%u prebuffer-bytes=%u min-request-samples=%d min-request-bytes=%u\n",
+        outputConfigValue.pulseLatencyMs, targetSamples, targetBytes,
+        prebufferBytes, minRequestSamples, minRequestBytes);
     logSink().debug("    audio output strategy: opening threaded Pulse server `%s'\n",
         serverDisplayName());
 
@@ -311,6 +321,11 @@ void AudioPulseOutput::update() {
     unsigned int actualPrebuf = actualBufferAttr ? actualBufferAttr->prebuf : bufferAttr.prebuf;
     unsigned int actualMinRequest = actualBufferAttr ? actualBufferAttr->minreq : bufferAttr.minreq;
     unsigned int actualMax = actualBufferAttr ? actualBufferAttr->maxlength : bufferAttr.maxlength;
+    int presentationDelaySamples = audioPulseBytesToSamples(actualTarget,
+        bytesPerSampleValue);
+    if (presentationDelaySamples <= 0)
+        presentationDelaySamples = targetSamples;
+    pulsePresentationDelaySamples.store(presentationDelaySamples);
 
     pa_threaded_mainloop_unlock(pulseMainloop);
 
@@ -321,7 +336,7 @@ void AudioPulseOutput::update() {
         actualPrebuf, audioPulseBytesToMs(actualPrebuf, bytesPerSecondValue),
         actualMinRequest, audioPulseBytesToMs(actualMinRequest, bytesPerSecondValue),
         actualMax, audioPulseBytesToMs(actualMax, bytesPerSecondValue));
-    logSink().debug("    audio output strategy: opened threaded server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d target-bytes=%u prebuffer-bytes=%u min-request-bytes=%u max-bytes=%u target-ms=%d prebuffer-ms=%d min-request-ms=%d max-ms=%d configured-latency-ms=%d\n",
+    logSink().debug("    audio output strategy: opened threaded server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d target-bytes=%u prebuffer-bytes=%u min-request-bytes=%u max-bytes=%u target-ms=%d prebuffer-ms=%d min-request-ms=%d max-ms=%d configured-latency-ms=%d presentation-delay-samples=%d\n",
         serverDisplayName(), sampleSpec.rate,
         sampleSpec.channels, sampleSpec.format, bytesPerSecondValue, actualTarget,
         actualPrebuf, actualMinRequest, actualMax,
@@ -329,7 +344,7 @@ void AudioPulseOutput::update() {
         audioPulseBytesToMs(actualPrebuf, bytesPerSecondValue),
         audioPulseBytesToMs(actualMinRequest, bytesPerSecondValue),
         audioPulseBytesToMs(actualMax, bytesPerSecondValue),
-        outputConfigValue.pulseLatencyMs);
+        outputConfigValue.pulseLatencyMs, presentationDelaySamples);
 }
 
 int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWritable) {
@@ -616,6 +631,11 @@ int AudioPulseOutput::pulseLatencyMs() const {
     return outputConfigValue.pulseLatencyMs;
 }
 
+int AudioPulseOutput::presentationDelaySamples() const {
+    int samples = pulsePresentationDelaySamples.load();
+    return samples > 0 ? samples : AudioOutput::presentationDelaySamples();
+}
+
 int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, int scratchSamples,
     int /*inputFinished*/) {
     if (callbackDrainActive.load())
@@ -732,6 +752,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format, SecondsClock& clock_
     , callbackScratchSamples(0)
     , callbackDrainActive(0)
     , bytesPerSecondValue(0)
+    , pulsePresentationDelaySamples(0)
     , underflowCountValue(0)
     , lastReportedUnderflows(0) {
     logSink().debug("    audio output strategy: Pulse unavailable because support is not compiled in\n");
@@ -755,5 +776,6 @@ void AudioPulseOutput::pulseUnderflow() { underflowCountValue.fetch_add(1); }
 const char* AudioPulseOutput::serverName() const { return outputConfigValue.pulseServerName(); }
 const char* AudioPulseOutput::serverDisplayName() const { return outputConfigValue.pulseServerDisplayName(); }
 int AudioPulseOutput::pulseLatencyMs() const { return outputConfigValue.pulseLatencyMs; }
+int AudioPulseOutput::presentationDelaySamples() const { return AudioOutput::presentationDelaySamples(); }
 
 #endif
