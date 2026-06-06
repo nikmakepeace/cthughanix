@@ -18,6 +18,7 @@ set(CTHUGHA_COMMON_SOURCES
     PcmSource.cc
     DspPcmSource.cc
     AudioFrame.cc
+    AudioFramePipeline.cc
     AudioSettings.cc
     AutoChangeSettings.cc
     AutoChangeControls.cc
@@ -28,9 +29,11 @@ set(CTHUGHA_COMMON_SOURCES
     RuntimeAudioControls.cc
     RuntimeAutoChangeControls.cc
     RuntimeEffectControls.cc
+    RuntimeCommandTargets.cc
     RuntimePersistence.cc
     RuntimeShutdown.cc
     RuntimeChangeMediator.cc
+    ProcessServices.cc
     Screen.cc
     ScreenRenderContext.cc
     DefaultMessagesProvider.cc
@@ -40,7 +43,6 @@ set(CTHUGHA_COMMON_SOURCES
     QotdMessagesProvider.cc
     SilenceMessage.cc
     PcmSourceFactory.cc
-    AudioVisualBridge.cc
     PlatformLifecycle.cc
     Mixer.cc
     MixerControls.cc
@@ -56,7 +58,7 @@ set(CTHUGHA_COMMON_SOURCES
     Interface.cc
     InterfaceRuntime.cc
     info_title_usage.cc
-    misc.cc
+    LegacyLoggingAdapter.cc
     DisplayDevice.cc
     DisplayRuntime.cc
     DisplayRuntimeOwnership.cc
@@ -86,6 +88,7 @@ set(CTHUGHA_COMMON_SOURCES
     InterfaceCredits.cc
     InterfaceList.cc
     palettes.cc
+    PaletteRandomGenerator.cc
     pcx.cc
     png.cc
     Flame.cc
@@ -104,6 +107,7 @@ set(CTHUGHA_COMMON_SOURCES
     AudioProcessor.cc
     AudioFftProcessor.cc
     CthughaBuffer.cc
+    ApplicationDisplayFrontend.cc
     Application.cc
     main.cc
     Flashlight.cc

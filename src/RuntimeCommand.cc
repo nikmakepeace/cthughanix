@@ -4,31 +4,14 @@
 
 #include "RuntimeCommandSink.h"
 
-RuntimeContinuationState::RuntimeContinuationState()
-    : flame()
-    , generalFlame()
-    , wave()
-    , waveScale()
-    , object()
-    , translation()
-    , palette()
-    , border()
-    , flashlight()
-    , table()
-    , image()
-    , presentation()
-    , audioProcessing()
-    , showFpsEnabled(0) { }
-
 RuntimeCommand::RuntimeCommand(RuntimeCommandType type_)
     : type(type_)
     , sceneTarget(RuntimeSceneFlame)
     , value(0)
     , text(0)
-    , effectControl(0)
-    , option(0)
-    , paletteMetadataTarget(0)
-    , continuation() { }
+    , effectControlTarget(0)
+    , optionTarget(0)
+    , paletteMetadataTarget(0) { }
 
 RuntimeCommand RuntimeCommand::requestClose() {
     return RuntimeCommand(RuntimeCommandRequestClose);
@@ -92,11 +75,8 @@ RuntimeCommand RuntimeCommand::writeIni() {
     return RuntimeCommand(RuntimeCommandWriteIni);
 }
 
-RuntimeCommand RuntimeCommand::stopAndContinue(
-    const RuntimeContinuationState& continuation) {
-    RuntimeCommand command(RuntimeCommandStopAndContinue);
-    command.continuation = continuation;
-    return command;
+RuntimeCommand RuntimeCommand::stopAndContinue() {
+    return RuntimeCommand(RuntimeCommandStopAndContinue);
 }
 
 RuntimeCommand RuntimeCommand::toggleShowFps() {
@@ -135,52 +115,57 @@ RuntimeCommand RuntimeCommand::addRandomPalette() {
     return RuntimeCommand(RuntimeCommandAddRandomPalette);
 }
 
-RuntimeCommand RuntimeCommand::changeEffectControlBy(EffectControl& option, int by) {
+RuntimeCommand RuntimeCommand::changeEffectControlBy(
+    RuntimeEffectControlTarget& target, int by) {
     RuntimeCommand command(RuntimeCommandChangeEffectControlBy);
-    command.effectControl = &option;
+    command.effectControlTarget = &target;
     command.value = by;
     return command;
 }
 
-RuntimeCommand RuntimeCommand::changeEffectControlTo(EffectControl& option, const char* to) {
+RuntimeCommand RuntimeCommand::changeEffectControlTo(
+    RuntimeEffectControlTarget& target, const char* to) {
     RuntimeCommand command(RuntimeCommandChangeEffectControlTo);
-    command.effectControl = &option;
+    command.effectControlTarget = &target;
     command.text = to;
     return command;
 }
 
-RuntimeCommand RuntimeCommand::activateEffectControl(EffectControl& option, int index) {
+RuntimeCommand RuntimeCommand::activateEffectControl(
+    RuntimeEffectControlTarget& target, int index) {
     RuntimeCommand command(RuntimeCommandActivateEffectControl);
-    command.effectControl = &option;
+    command.effectControlTarget = &target;
     command.value = index;
     return command;
 }
 
 RuntimeCommand RuntimeCommand::toggleEffectChoiceUse(
-    EffectControl& option, int index) {
+    RuntimeEffectControlTarget& target, int index) {
     RuntimeCommand command(RuntimeCommandToggleEffectChoiceUse);
-    command.effectControl = &option;
+    command.effectControlTarget = &target;
     command.value = index;
     return command;
 }
 
-RuntimeCommand RuntimeCommand::changeOptionBy(Option& option, int by) {
+RuntimeCommand RuntimeCommand::changeOptionBy(RuntimeOptionTarget& target, int by) {
     RuntimeCommand command(RuntimeCommandChangeOptionBy);
-    command.option = &option;
+    command.optionTarget = &target;
     command.value = by;
     return command;
 }
 
-RuntimeCommand RuntimeCommand::changeOptionTo(Option& option, const char* to) {
+RuntimeCommand RuntimeCommand::changeOptionTo(
+    RuntimeOptionTarget& target, const char* to) {
     RuntimeCommand command(RuntimeCommandChangeOptionTo);
-    command.option = &option;
+    command.optionTarget = &target;
     command.text = to;
     return command;
 }
 
-RuntimeCommand RuntimeCommand::toggleEffectControlLock(EffectControl& option) {
+RuntimeCommand RuntimeCommand::toggleEffectControlLock(
+    RuntimeEffectControlTarget& target) {
     RuntimeCommand command(RuntimeCommandToggleEffectControlLock);
-    command.effectControl = &option;
+    command.effectControlTarget = &target;
     return command;
 }
 

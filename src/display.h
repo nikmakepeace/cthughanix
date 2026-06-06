@@ -29,9 +29,11 @@ const int PALETTE_METADATA_VALUE_SIZE = 64;
 
 extern EffectChoiceList paletteEntries;
 
+class RandomSource;
+
 class PaletteEntry : public EffectChoice {
     ColorPalette paletteValue;
-    void random(); // randomize this palette
+    void random(RandomSource& randomSource); // randomize this palette
 public:
     char sourcePath[PATH_MAX];
     char metadataName[128];
@@ -68,8 +70,20 @@ public:
     static int lastRandom;
     static int lastRandomPos;
 
-    static void Random(); // re-randomize the last random palette
-    static void addRandom(); // add a new random palette
+    /**
+     * Adds a new randomly generated palette.
+     *
+     * @param randomSource Random source used for palette generation.
+     */
+    static void addRandom(RandomSource& randomSource);
+
+    /**
+     * Re-randomizes the most recently generated palette, or adds one if none
+     * exists yet.
+     *
+     * @param randomSource Random source used for palette generation.
+     */
+    static void randomizeLast(RandomSource& randomSource);
 
     friend EffectChoice* read_palette(FILE*, const char*, const char*, const char*);
 };

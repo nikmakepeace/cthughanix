@@ -5,21 +5,26 @@
 #ifndef __APPLICATION_H
 #define __APPLICATION_H
 
+#include "ApplicationDisplayFrontend.h"
 #include "AudioAnalyzer.h"
 #include "PlatformLifecycle.h"
 #include "Configuration.h"
+#include "FramePacer.h"
+#include "ProcessServices.h"
 #include "VideoFilterchainSequence.h"
 
 #include <memory>
 #include <vector>
 
-class AudioVisualBridge;
 class AudioFrame;
+class AudioFramePipeline;
 class AudioIngest;
 class AudioProcessingSelector;
 class AudioProcessingState;
 class AudioProcessor;
+class AutoChanger;
 class AutoChangeControls;
+class AutoChangeQuietObserver;
 class AutoChangeSettings;
 class CthughaDisplay;
 class DisplayRuntimeOwnership;
@@ -33,6 +38,7 @@ class RuntimeAudioControls;
 class RuntimeAutoChangeControls;
 class RuntimeChangeMediator;
 class RuntimeConfigRegistry;
+class RuntimeCommandTargetRouter;
 class RuntimeDisplayControls;
 class RuntimeEffectControls;
 class RuntimePersistence;
@@ -53,19 +59,31 @@ class Application {
     int argcValue;
     char** argvValue;
     std::vector<char*> displayArgv;
+    SystemFrameSleeper frameSleeperValue;
+    FramePacer framePacerValue;
+    SystemMillisecondClock millisecondClockValue;
+    SystemSecondsClock secondsClockValue;
+    SystemCountdownTimerFactory countdownTimerFactoryValue;
+    CStdRandomSource randomSourceValue;
+    LoggingRuntime loggingRuntimeValue;
+    ConsoleLogSink logSinkValue;
     int exitStatusValue;
     Config startupConfigValue;
     std::vector<ConfigDiagnostic> startupConfigDiagnostics;
     std::unique_ptr<VideoFilterchain> videoFilterchain;
     VideoFilterchainSequence videoFilterchainSequence;
+    LegacyDisplayFrontendInitializer displayFrontendInitializerValue;
+    DisplayFrontendInitializer* displayFrontendInitializer;
     AcousticContext acousticContextValue;
     std::unique_ptr<AudioProcessor> audioProcessorValue;
     std::unique_ptr<AudioProcessingState> audioProcessingStateValue;
     std::unique_ptr<AudioProcessingSelector> audioProcessingSelectorValue;
+    std::unique_ptr<AudioFramePipeline> audioFramePipelineValue;
     std::unique_ptr<AudioIngest> audioIngestValue;
-    std::unique_ptr<AudioVisualBridge> audioVisualBridge;
     std::unique_ptr<AutoChangeSettings> autoChangeSettingsValue;
     std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
+    std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
+    std::unique_ptr<AutoChanger> autoChangerValue;
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
@@ -78,6 +96,7 @@ class Application {
     std::unique_ptr<RuntimeAutoChangeControls> runtimeAutoChangeControlsValue;
     std::unique_ptr<RuntimeEffectControls> runtimeEffectControlsValue;
     std::unique_ptr<RuntimeChangeMediator> runtimeChangeMediatorValue;
+    std::unique_ptr<RuntimeCommandTargetRouter> runtimeCommandRouterValue;
     std::unique_ptr<MixerDevice> mixerDeviceValue;
     std::unique_ptr<MixerSession> mixerSessionValue;
     std::unique_ptr<MixerControls> mixerControlsValue;
@@ -124,16 +143,16 @@ class Application {
     /** Stops audio ingest and releases its owned acquisition pipeline. */
     void shutdownAudioIngest();
 
-    /** Destroys the audio-to-visual bridge and its AutoChanger state. */
-    void shutdownAudioVisualBridge();
+    /** Destroys the audio frame pipeline and automatic scene-change state. */
+    void shutdownAudioFramePipeline();
 
     /**
-     * Runs the audio policy side of one visual frame.
+     * Runs the audio side of one visual frame.
      *
-     * This updates audio analysis/acoustic context and refreshes visual filters
-     * when an audio-side option change requires it.
+     * This updates audio analysis/acoustic context and runs automatic
+     * scene-change policy from the resulting frame metrics.
      */
-    void runAudioVisualBridge(AudioFrame& frame);
+    void runAudioFramePipeline(AudioFrame& frame);
 
     /**
      * Runs the visual filterchain for one frame.
@@ -150,6 +169,17 @@ public:
      * @param argv Argument vector from main(); borrowed for process lifetime.
      */
     Application(int argc, char* argv[]);
+
+    /**
+     * Captures process arguments and an explicit display frontend initializer.
+     *
+     * @param argc Argument count from main().
+     * @param argv Argument vector from main(); borrowed for process lifetime.
+     * @param displayFrontendInitializer_ Display startup port used during
+     *        initialize(). The referenced object must outlive Application.
+     */
+    Application(int argc, char* argv[],
+        DisplayFrontendInitializer& displayFrontendInitializer_);
 
     /** Releases owned runtime objects through shutdown(). */
     ~Application();
@@ -187,9 +217,9 @@ public:
     void initVideoFilterchain();
 
     /**
-     * Creates the audio-to-visual bridge after scene commands are available.
+     * Creates the audio frame pipeline after scene commands are available.
      */
-    void initAudioVisualBridge();
+    void initAudioFramePipeline();
 
     /**
      * Idempotently tears down runtime objects in dependency order.

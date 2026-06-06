@@ -6,9 +6,11 @@
 
 #include "AutoChangeControls.h"
 #include "AutoChangeSettings.h"
+#include "ProcessServices.h"
 #include "VideoDirector.h"
 
 #include <assert.h>
+#include <stdarg.h>
 
 OptionTime changeMsgTime("message-time", 0);
 
@@ -16,6 +18,21 @@ int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
+
+class RecordingLogSink : public LogSink {
+public:
+    int writes;
+
+    RecordingLogSink()
+        : writes(0) { }
+
+    virtual int enabled(int) const { return 1; }
+
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) {
+        writes++;
+    }
+};
 
 class FakeAutoChangeSettings : public AutoChangeSettings {
 public:
@@ -85,8 +102,9 @@ public:
 };
 
 static void testToggleLockMutatesSettings() {
+    RecordingLogSink log;
     FakeAutoChangeSettings settings;
-    AutoChangeControls controls(settings);
+    AutoChangeControls controls(settings, log);
     DefaultRuntimeAutoChangeControls runtimeControls(controls);
 
     runtimeControls.toggleLock();
@@ -96,8 +114,9 @@ static void testToggleLockMutatesSettings() {
 }
 
 static void testGenericAutoChangeOptionsMutateSettings() {
+    RecordingLogSink log;
     FakeAutoChangeSettings settings;
-    AutoChangeControls controls(settings);
+    AutoChangeControls controls(settings, log);
     DefaultRuntimeAutoChangeControls runtimeControls(controls);
 
     RuntimeChangeSet changes;
@@ -122,8 +141,9 @@ static void testGenericAutoChangeOptionsMutateSettings() {
 }
 
 static void testUnrelatedOptionsAreNotChanged() {
+    RecordingLogSink log;
     FakeAutoChangeSettings settings;
-    AutoChangeControls controls(settings);
+    AutoChangeControls controls(settings, log);
     DefaultRuntimeAutoChangeControls runtimeControls(controls);
     RecordingOption unrelated;
 
@@ -141,9 +161,29 @@ static void testUnrelatedOptionsAreNotChanged() {
     assert(unrelated.toCalls == 0);
 }
 
+static void testInvalidAutoChangeOptionValueUsesInjectedLogSink() {
+    RecordingLogSink log;
+    FakeAutoChangeSettings settings;
+    AutoChangeControls controls(settings, log);
+
+    RuntimeChangeSet changes;
+    int handled = controls.changeOptionTo(controls.waitMinOption(), "badtime");
+    assert(handled == 1);
+    assert(settings.waitMinMsValue == 1000);
+    assert(log.writes == 1);
+
+    DefaultRuntimeAutoChangeControls runtimeControls(controls);
+    handled = runtimeControls.changeAutoChangeOptionTo(
+        controls.lockedOption(), "maybe", changes);
+    assert(handled == 1);
+    assert(settings.lockedValue == 0);
+    assert(log.writes == 2);
+}
+
 int main() {
     testToggleLockMutatesSettings();
     testGenericAutoChangeOptionsMutateSettings();
     testUnrelatedOptionsAreNotChanged();
+    testInvalidAutoChangeOptionValueUsesInjectedLogSink();
     return 0;
 }

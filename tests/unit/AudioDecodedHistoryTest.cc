@@ -3,6 +3,7 @@
  */
 
 #include "Audio.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -14,6 +15,14 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const { return 0; }
+};
+
 static PcmFormat formatFor(int sampleRate, int channels, int sampleFormat) {
     PcmFormat format;
     format.sampleRate = sampleRate;
@@ -24,7 +33,8 @@ static PcmFormat formatFor(int sampleRate, int channels, int sampleFormat) {
 
 static void testHistoryKeepsRecentWindowWhileAppending() {
     PcmFormat format = formatFor(1000, 1, SF_s8);
-    DecodedAudioHistory history(8, format, 4);
+    FakeLogSink log;
+    DecodedAudioHistory history(8, format, 4, log);
     char first[6] = { 0, 1, 2, 3, 4, 5 };
     char second[4] = { 6, 7, 8, 9 };
     char out[8] = { 0 };
@@ -47,8 +57,9 @@ static void testHistoryKeepsRecentWindowWhileAppending() {
 }
 
 static void testFrameBuilderReadsCenteredHistory() {
-    DecodedAudioHistory history(4096, formatFor(1000, 2, SF_s8), 2048);
-    AudioFrameBuilder builder;
+    FakeLogSink log;
+    DecodedAudioHistory history(4096, formatFor(1000, 2, SF_s8), 2048, log);
+    AudioFrameBuilder builder(log);
     AudioFrame frame;
     char pcm[2048];
 

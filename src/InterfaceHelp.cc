@@ -21,7 +21,10 @@ public:
         Interface::display();
 
         if (scrolling) {
-            pos = pos + deltaT * 4.0;
+            const double frameDelta = (cthughaDisplay != NULL)
+                ? cthughaDisplay->currentFrameDeltaSeconds()
+                : 0.0;
+            pos = pos + frameDelta * 4.0;
         }
 
         for (int i = 0; i < (text_size.y - 2); i++) {

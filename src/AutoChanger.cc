@@ -2,37 +2,45 @@
  * Automatic scene-change policy implementation.
  */
 
-#include "cthugha.h"
-#include "imath.h"
 #include "AutoChanger.h"
 #include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
-#include "CthughaBuffer.h"
+#include "ProcessServices.h"
 #include "RuntimeCommandSink.h"
-#include "Scene.h"
-#include "VideoDirector.h"
 
 AutoChanger::AutoChanger(RuntimeCommandSink& runtimeCommands_,
     const AutoChangeSettings& settings_,
-    AcousticContext& acousticContext_)
+    AcousticContext& acousticContext_, MillisecondClock& clock_,
+    RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,
+    LogSink& log_)
     : runtimeCommands(runtimeCommands_)
     , settings(settings_)
     , acousticContextValue(acousticContext_)
+    , clock(clock_)
+    , randomSource(randomSource_)
+    , quietObserver(quietObserver_)
+    , log(log_)
     , quietSince(0)
-    , lastChange(0) {
+    , lastChange(0)
+    , statusTextValue() {
 
     /* set initial wait-time till change */
-    waitTime = settings.waitMinMs() + rand() % settings.waitRandomRangeMs();
+    waitTime = nextWaitTime();
 
-    lastChange = gettime();
-    quietSince = gettime();
+    lastChange = clock.milliseconds();
+    quietSince = clock.milliseconds();
 }
 
 AutoChanger::~AutoChanger() { }
 
+int AutoChanger::nextWaitTime() {
+    return settings.waitMinMs()
+        + randomSource.uniformInt(settings.waitRandomRangeMs());
+}
+
 void AutoChanger::operator()(const AudioMetrics& metrics) {
 
-    int now = gettime();
+    int now = clock.milliseconds();
 
     /* get time since last sound */
     int quiet_length = now - quietSince;
@@ -40,7 +48,7 @@ void AutoChanger::operator()(const AudioMetrics& metrics) {
         quietSince = now;
 
     /* Report long quietness to visual policy. */
-    if (!metrics.noisy && videoDirector().observeQuiet(quiet_length))
+    if (!metrics.noisy && quietObserver.observeQuiet(quiet_length))
         quietSince = now; // start quiet-length again
 
     if (settings.locked())
@@ -56,7 +64,7 @@ void AutoChanger::operator()(const AudioMetrics& metrics) {
     /* Check for enough fire to change */
     if (settings.cumulativeFireLevel())
         if (acousticContextValue.cumulativeFireLevel() > settings.cumulativeFireLevel()) {
-            CTH_DEBUG("autochange: cumulativeFireLevel threshold reached level=%d threshold=%d\n",
+            log.debug("autochange: cumulativeFireLevel threshold reached level=%d threshold=%d\n",
                 acousticContextValue.cumulativeFireLevel(),
                 settings.cumulativeFireLevel());
             acousticContextValue.resetCumulativeFireLevel();
@@ -68,8 +76,7 @@ void AutoChanger::operator()(const AudioMetrics& metrics) {
     if ((settings.waitMinMs() + settings.waitRandomMs()) > 0)
         if ((now - lastChange) > int(waitTime)) {
             lastChange = now;
-            waitTime = settings.waitMinMs()
-                + rand() % settings.waitRandomRangeMs();
+            waitTime = nextWaitTime();
             change();
             return;
         }
@@ -85,17 +92,19 @@ void AutoChanger::change() {
 }
 
 const char* AutoChanger::status() const {
-    static char txt[512];
-
     if (settings.locked()) {
-        snprintf(txt, sizeof(txt), "locked ");
+        snprintf(statusTextValue, sizeof(statusTextValue), "locked ");
     } else {
-        int now = gettime();
+        int now = clock.milliseconds();
 
-        snprintf(txt, sizeof(txt), "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 1000.0,
+        snprintf(statusTextValue, sizeof(statusTextValue), "change: T:%.2f F:%d S:%.2f ", double(waitTime - (now - lastChange)) / 1000.0,
             settings.cumulativeFireLevel() - acousticContextValue.cumulativeFireLevel(),
             double(settings.quietMs() - (now - quietSince)) / 1000.0);
     }
 
-    return txt;
+    return statusTextValue;
+}
+
+const char* AutoChanger::autoChangerStatus() const {
+    return status();
 }

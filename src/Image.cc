@@ -4,7 +4,7 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "EffectChoiceLoader.h"
-#include "imath.h"
+#include "ProcessServices.h"
 #include "pcx.h"
 #include "png.h"
 
@@ -12,6 +12,10 @@ static EffectChoiceList& imageEntries() {
     static ImageEntry none("none", "");
     static EffectChoiceList entries(&none);
     return entries;
+}
+
+static int minInt(int lhs, int rhs) {
+    return lhs < rhs ? lhs : rhs;
 }
 
 static const char* imagePath[] = { "./", "./resources/img/", CTH_LIBDIR "/img/", "" };
@@ -39,14 +43,14 @@ static const ImageFileFormat imageFileFormats[] = {
     { 0, 0 }
 };
 
-static int chooseImageLeft(int imageSize, int bufferSize) {
+static int chooseImageLeft(int imageSize, int bufferSize, RandomSource& randomSource) {
     if (imageSize <= 0 || bufferSize <= 0)
         return 0;
 
     if (imageSize > bufferSize)
-        return -(Random(imageSize - bufferSize + 1));
+        return -(randomSource.uniformInt(imageSize - bufferSize + 1));
 
-    return Random(bufferSize - imageSize + 1);
+    return randomSource.uniformInt(bufferSize - imageSize + 1);
 }
 
 IndexedImage::IndexedImage(const char* name, int width, int height,
@@ -129,8 +133,8 @@ ImagePlacement::ImagePlacement(int left_, int top_, int imageWidth, int imageHei
     , destinationY((top_ > 0) ? top_ : 0)
     , width(0)
     , height(0) {
-    width = min(imageWidth - sourceX, bufferWidth - destinationX);
-    height = min(imageHeight - sourceY, bufferHeight - destinationY);
+    width = minInt(imageWidth - sourceX, bufferWidth - destinationX);
+    height = minInt(imageHeight - sourceY, bufferHeight - destinationY);
     if (width < 0)
         width = 0;
     if (height < 0)
@@ -144,9 +148,9 @@ int ImagePlacement::visible() const {
 ImagePlacementStrategy::~ImagePlacementStrategy() { }
 
 ImagePlacement RandomLegalImagePlacementStrategy::choose(const IndexedImage& image,
-    int bufferWidth, int bufferHeight) const {
-    int left = chooseImageLeft(image.width(), bufferWidth);
-    int top = chooseImageLeft(image.height(), bufferHeight);
+    int bufferWidth, int bufferHeight, RandomSource& randomSource) const {
+    int left = chooseImageLeft(image.width(), bufferWidth, randomSource);
+    int top = chooseImageLeft(image.height(), bufferHeight, randomSource);
 
     return ImagePlacement(left, top, image.width(), image.height(), bufferWidth,
         bufferHeight);

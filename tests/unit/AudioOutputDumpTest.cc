@@ -2,8 +2,8 @@
  * Unit coverage for injected audio output dump writing.
  */
 
-#include "cthugha.h"
 #include "Audio.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -11,17 +11,35 @@
 #include <string>
 #include <unistd.h>
 
-static int debugLoggingEnabled = 0;
-
-int cth_log_enabled(int level) {
-    return debugLoggingEnabled && (level == CTH_LOG_DEBUG);
-}
+int cth_log_enabled(int) { return 0; }
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
-double getTime() { return 0.0; }
 const char* audioSampleFormatText(int) { return "signed-16"; }
+
+class FakeSecondsClock : public SecondsClock {
+public:
+    virtual double nowSeconds() const {
+        return 0.0;
+    }
+};
+
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    static const int kDebugLevel = 5;
+    int debugEnabledValue;
+
+    FakeLogSink()
+        : debugEnabledValue(0) { }
+
+    virtual int enabled(int level) const {
+        return debugEnabledValue && (level == kDebugLevel);
+    }
+};
 
 static PcmFormat mono16Format() {
     PcmFormat format;
@@ -42,10 +60,12 @@ static void testInjectedDumpWritesSubmittedPcmAsWav() {
         (long)getpid());
     unlink(path);
 
-    AudioOutputDump dump(path);
     AudioOutputConfig config;
-    AudioNullOutput output(config, &dump);
-    DecodedAudioHistory history(16, mono16Format(), 8);
+    FakeSecondsClock clock;
+    FakeLogSink log;
+    AudioOutputDump dump(path, log);
+    AudioNullOutput output(clock, log, config, &dump);
+    DecodedAudioHistory history(16, mono16Format(), 8, log);
     AudioOutputStream stream(history);
     char scratch[8];
     const char pcm[4] = { 1, 0, 2, 0 };
@@ -82,16 +102,16 @@ static void testSubmittedPcmDebugReporterIsInstanceLocal() {
     AudioSubmittedPcmDebugReporter second;
     const char pcm[4] = { 1, 0, 2, 0 };
     PcmFormat format = mono16Format();
+    FakeLogSink log;
 
-    debugLoggingEnabled = 1;
+    log.debugEnabledValue = 1;
     for (int i = 0; i < 10; i++)
-        first.submittedPcm(format, pcm, 2, 4, 4, 0, 2);
+        first.submittedPcm(format, pcm, 2, 4, 4, 0, 2, log);
     assert(first.reportCount() == 8);
     assert(second.reportCount() == 0);
 
-    second.submittedPcm(format, pcm, 2, 4, 4, 0, 2);
+    second.submittedPcm(format, pcm, 2, 4, 4, 0, 2, log);
     assert(second.reportCount() == 1);
-    debugLoggingEnabled = 0;
 }
 
 int main() {

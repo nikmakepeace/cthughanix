@@ -2,9 +2,17 @@
  * Optional WAV dump writer for submitted output PCM.
  */
 
-#include "cthugha.h"
 #include "AudioOutputDump.h"
 #include "AudioOptions.h"
+#include "ProcessServices.h"
+
+#include <errno.h>
+
+static int audioOutputDumpClose(FILE*& stream) {
+    int ret = fclose(stream);
+    stream = NULL;
+    return ret;
+}
 
 static void audioOutputDumpWriteLe16(FILE* out, unsigned int value) {
     fputc(value & 255, out);
@@ -39,18 +47,9 @@ static void audioOutputDumpWriteHeader(FILE* out, unsigned int dataBytes,
     audioOutputDumpWriteLe32(out, dataBytes);
 }
 
-AudioOutputDump::AudioOutputDump()
+AudioOutputDump::AudioOutputDump(const std::string& path, LogSink& log_)
     : pathValue()
-    , out(NULL)
-    , initialized(0)
-    , enabled(0)
-    , sampleRate(0)
-    , channels(0)
-    , bitsPerSample(0)
-    , bytesWritten(0) { }
-
-AudioOutputDump::AudioOutputDump(const std::string& path)
-    : pathValue()
+    , log(log_)
     , out(NULL)
     , initialized(0)
     , enabled(0)
@@ -78,7 +77,7 @@ void AudioOutputDump::configure(const std::string& path) {
 
 void AudioOutputDump::close() {
     if (out != NULL)
-        fclose0(out);
+        audioOutputDumpClose(out);
 }
 
 const std::string& AudioOutputDump::path() const {
@@ -111,7 +110,7 @@ void AudioOutputDump::initialize(const PcmFormat& format) {
     bitsPerSample = bitsPerSampleForFormat(format);
 
     if ((sampleRate <= 0) || (channels <= 0) || (bitsPerSample == 0)) {
-        CTH_WARN("Can not create audio output dump `%s' for format `%s'.\n",
+        log.warn("Can not create audio output dump `%s' for format `%s'.\n",
             pathValue.c_str(), audioSampleFormatText(format.sampleFormat));
         enabled = 0;
         return;
@@ -119,14 +118,14 @@ void AudioOutputDump::initialize(const PcmFormat& format) {
 
     out = fopen(pathValue.c_str(), "wb+");
     if (out == NULL) {
-        CTH_ERRNO(errno, "Can not create audio output dump `%s'.",
+        log.errorErrno(errno, "Can not create audio output dump `%s'.",
             pathValue.c_str());
         enabled = 0;
         return;
     }
 
     audioOutputDumpWriteHeader(out, 0, sampleRate, channels, bitsPerSample);
-    CTH_DEBUG("    audio output: dumping submitted PCM to `%s' rate=%d channels=%d bits=%d format=%s\n",
+    log.debug("    audio output: dumping submitted PCM to `%s' rate=%d channels=%d bits=%d format=%s\n",
         pathValue.c_str(), sampleRate, channels, bitsPerSample,
         audioSampleFormatText(format.sampleFormat));
 }

@@ -7,8 +7,8 @@
 
 #include <string>
 
-class EffectControl;
-class Option;
+class RuntimeEffectControlTarget;
+class RuntimeOptionTarget;
 
 enum RuntimeSceneTarget {
     RuntimeSceneFlame,
@@ -74,37 +74,15 @@ public:
     virtual void revertPaletteMetadata() = 0;
 };
 
-/** Runtime state snapshot written for stop-and-continue. */
-struct RuntimeContinuationState {
-    std::string flame;
-    std::string generalFlame;
-    std::string wave;
-    std::string waveScale;
-    std::string object;
-    std::string translation;
-    std::string palette;
-    std::string border;
-    std::string flashlight;
-    std::string table;
-    std::string image;
-    std::string presentation;
-    std::string audioProcessing;
-    int showFpsEnabled;
-
-    /** Creates an empty continuation state snapshot. */
-    RuntimeContinuationState();
-};
-
 /** Value object describing one runtime command. */
 struct RuntimeCommand {
     RuntimeCommandType type;
     RuntimeSceneTarget sceneTarget;
     int value;
     const char* text;
-    EffectControl* effectControl;
-    Option* option;
+    RuntimeEffectControlTarget* effectControlTarget;
+    RuntimeOptionTarget* optionTarget;
     RuntimePaletteMetadataTarget* paletteMetadataTarget;
-    RuntimeContinuationState continuation;
 
     /**
      * Creates a command with default payload fields for a type.
@@ -203,11 +181,9 @@ struct RuntimeCommand {
     /**
      * Creates a stop-and-continue persistence command.
      *
-     * @param continuation Runtime continuation state to write.
      * @return Runtime command.
      */
-    static RuntimeCommand stopAndContinue(
-        const RuntimeContinuationState& continuation);
+    static RuntimeCommand stopAndContinue();
 
     /**
      * Creates a show-FPS toggle command.
@@ -268,66 +244,72 @@ struct RuntimeCommand {
     static RuntimeCommand addRandomPalette();
 
     /**
-     * Creates a relative EffectControl change command.
+     * Creates a relative effect-target change command.
      *
-     * @param option Effect control to change.
+     * @param target Effect target to change.
      * @param by Relative offset to apply.
      * @return Runtime command.
      */
-    static RuntimeCommand changeEffectControlBy(EffectControl& option, int by);
+    static RuntimeCommand changeEffectControlBy(
+        RuntimeEffectControlTarget& target, int by);
 
     /**
-     * Creates an absolute EffectControl change command.
+     * Creates an absolute effect-target change command.
      *
-     * @param option Effect control to change.
+     * @param target Effect target to change.
      * @param to Choice text to select.
      * @return Runtime command.
      */
-    static RuntimeCommand changeEffectControlTo(EffectControl& option, const char* to);
+    static RuntimeCommand changeEffectControlTo(
+        RuntimeEffectControlTarget& target, const char* to);
 
     /**
-     * Creates an EffectControl activation command.
+     * Creates an effect-target activation command.
      *
-     * @param option Effect control to activate.
+     * @param target Effect target to activate.
      * @param index Choice index to activate.
      * @return Runtime command.
      */
-    static RuntimeCommand activateEffectControl(EffectControl& option, int index);
+    static RuntimeCommand activateEffectControl(
+        RuntimeEffectControlTarget& target, int index);
 
     /**
-     * Creates an effect-choice use toggle command.
+     * Creates an effect-target use toggle command.
      *
-     * @param option Effect control containing the choice.
+     * @param target Effect target containing the choice.
      * @param index Choice index whose use flag should toggle.
      * @return Runtime command.
      */
-    static RuntimeCommand toggleEffectChoiceUse(EffectControl& option, int index);
+    static RuntimeCommand toggleEffectChoiceUse(
+        RuntimeEffectControlTarget& target, int index);
 
     /**
-     * Creates a relative generic Option change command.
+     * Creates a relative runtime option-target change command.
      *
-     * @param option Option to change.
+     * @param target Option target to change.
      * @param by Relative offset to apply.
      * @return Runtime command.
      */
-    static RuntimeCommand changeOptionBy(Option& option, int by);
+    static RuntimeCommand changeOptionBy(RuntimeOptionTarget& target, int by);
 
     /**
-     * Creates an absolute generic Option change command.
+     * Creates an absolute runtime option-target change command.
      *
-     * @param option Option to change.
+     * @param target Option target to change.
      * @param to Choice text to select.
      * @return Runtime command.
      */
-    static RuntimeCommand changeOptionTo(Option& option, const char* to);
+    static RuntimeCommand changeOptionTo(
+        RuntimeOptionTarget& target, const char* to);
 
     /**
-     * Creates an EffectControl lock toggle command.
+     * Creates an effect-target lock toggle command.
      *
-     * @param option Effect control whose lock should toggle.
+     * @param target Effect target whose lock should toggle.
      * @return Runtime command.
      */
-    static RuntimeCommand toggleEffectControlLock(EffectControl& option);
+    static RuntimeCommand toggleEffectControlLock(
+        RuntimeEffectControlTarget& target);
 
     /**
      * Creates a palette metadata save command.

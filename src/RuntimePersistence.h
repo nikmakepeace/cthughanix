@@ -5,8 +5,8 @@
 #ifndef CTHUGHA_RUNTIME_PERSISTENCE_H
 #define CTHUGHA_RUNTIME_PERSISTENCE_H
 
+class LogSink;
 class RuntimeConfigRegistry;
-struct RuntimeContinuationState;
 
 /** Persists runtime state requested by runtime commands. */
 class RuntimePersistence {
@@ -22,27 +22,27 @@ public:
     virtual int writeCurrentConfig() = 0;
 
     /**
-     * Writes stop-and-continue runtime state.
+     * Writes stop-and-continue state from the current runtime config snapshot.
      *
-     * @param continuation Continuation state to persist.
      * @return Zero on success, non-zero on persistence failure.
      */
-    virtual int writeContinuation(
-        const RuntimeContinuationState& continuation) = 0;
+    virtual int writeContinuation() = 0;
 };
 
 /** Ini-file implementation of runtime persistence. */
 class IniRuntimePersistence : public RuntimePersistence {
     RuntimeConfigRegistry& runtimeConfigRegistry;
+    LogSink& log;
 
 public:
     /**
      * Creates ini-backed persistence using a current-config registry.
      *
      * @param runtimeConfigRegistry_ Registry used for current-config snapshots.
+     * @param log_ Logging sink for ini write diagnostics.
      */
     explicit IniRuntimePersistence(
-        RuntimeConfigRegistry& runtimeConfigRegistry_);
+        RuntimeConfigRegistry& runtimeConfigRegistry_, LogSink& log_);
 
     /**
      * Writes the current runtime config to the automatic ini file.
@@ -52,13 +52,11 @@ public:
     virtual int writeCurrentConfig();
 
     /**
-     * Writes the continuation ini file.
+     * Writes the continuation ini file from the current registry snapshot.
      *
-     * @param continuation Continuation state to persist.
      * @return Zero on success, non-zero on persistence failure.
      */
-    virtual int writeContinuation(
-        const RuntimeContinuationState& continuation);
+    virtual int writeContinuation();
 };
 
 #endif

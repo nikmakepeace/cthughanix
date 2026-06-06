@@ -2,16 +2,18 @@
  * Runtime Option adapters for the OSS mixer panel.
  */
 
-#include "cthugha.h"
 #include "Mixer.h"
 #include "Interface.h"
+#include "ProcessServices.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 class MixerControls::MixerVolumeOption : public Option {
     MixerSession& sessionValue;
+    LogSink& logValue;
     size_t channelIndex;
+    mutable char textValue[128];
 
     void syncValue() {
         const std::vector<MixerChannel>& channels = sessionValue.channels();
@@ -21,10 +23,12 @@ class MixerControls::MixerVolumeOption : public Option {
     }
 
 public:
-    MixerVolumeOption(MixerSession& session, size_t channelIndex_)
+    MixerVolumeOption(MixerSession& session, LogSink& log, size_t channelIndex_)
         : Option(NULL)
         , sessionValue(session)
-        , channelIndex(channelIndex_) {
+        , logValue(log)
+        , channelIndex(channelIndex_)
+        , textValue() {
         syncValue();
     }
 
@@ -42,7 +46,7 @@ public:
         char* end = NULL;
         long parsed = strtol(to, &end, 0);
         if ((to == end) || ((end != NULL) && (*end != '\0'))) {
-            CTH_ERROR("Not a mixer volume value `%s'.\n", to);
+            logValue.error("Not a mixer volume value `%s'.\n", to);
             return;
         }
         sessionValue.setChannelValue(channelIndex, int(parsed));
@@ -50,21 +54,21 @@ public:
     }
 
     virtual const char* text() const {
-        static char str[128];
         const std::vector<MixerChannel>& channels = sessionValue.channels();
         if (channelIndex >= channels.size())
             return "";
 
         const MixerChannel& channel = channels[channelIndex];
-        snprintf(str, sizeof(str), "%3d:%-3d%c",
+        snprintf(textValue, sizeof(textValue), "%3d:%-3d%c",
             channel.encodedVolume % 256, channel.encodedVolume / 256,
             channel.active ? '*' : ' ');
-        return str;
+        return textValue;
     }
 };
 
-MixerControls::MixerControls(MixerSession& session)
+MixerControls::MixerControls(MixerSession& session, LogSink& log)
     : sessionValue(session)
+    , logValue(log)
     , optionsValue()
     , labelsValue()
     , elementsValue()
@@ -86,7 +90,7 @@ void MixerControls::rebuild() {
     for (size_t i = 0; i < channels.size(); i++) {
         optionsValue.push_back(
             std::unique_ptr<MixerVolumeOption>(
-                new MixerVolumeOption(sessionValue, i)));
+                new MixerVolumeOption(sessionValue, logValue, i)));
     }
 }
 

@@ -35,6 +35,7 @@ add_executable(palette_transition_test
     ${CMAKE_SOURCE_DIR}/src/PaletteTransition.cc
     ${CMAKE_SOURCE_DIR}/src/FramePalette.cc
     ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
 )
 
 target_include_directories(palette_transition_test PRIVATE
@@ -46,6 +47,100 @@ target_include_directories(palette_transition_test PRIVATE
 target_link_libraries(palette_transition_test PRIVATE m)
 
 add_test(NAME palette_transition_test COMMAND palette_transition_test)
+
+add_executable(palette_random_generator_test
+    unit/PaletteRandomGeneratorTest.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/PaletteRandomGenerator.cc
+)
+
+target_include_directories(palette_random_generator_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(palette_random_generator_test PRIVATE m)
+
+add_test(NAME palette_random_generator_test COMMAND palette_random_generator_test)
+
+add_executable(image_placement_test
+    unit/ImagePlacementTest.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(image_placement_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+)
+
+target_include_directories(image_placement_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(image_placement_test PRIVATE m)
+
+add_test(NAME image_placement_test COMMAND image_placement_test)
+
+add_executable(general_flame_option_test
+    unit/GeneralFlameOptionTest.cc
+    ${CMAKE_SOURCE_DIR}/src/flames.cc
+    ${CMAKE_SOURCE_DIR}/src/Flame.cc
+    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(general_flame_option_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+)
+
+target_include_directories(general_flame_option_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(general_flame_option_test PRIVATE m)
+
+add_test(NAME general_flame_option_test COMMAND general_flame_option_test)
+
+add_executable(effect_control_random_test
+    unit/EffectControlRandomTest.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeEffectControls.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_include_directories(effect_control_random_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(effect_control_random_test PRIVATE m)
+
+add_test(NAME effect_control_random_test COMMAND effect_control_random_test)
 
 add_executable(screen_renderer_characterization_test
     unit/ScreenRendererCharacterizationTest.cc
@@ -156,6 +251,54 @@ target_link_libraries(frame_pacer_test PRIVATE m)
 
 add_test(NAME frame_pacer_test COMMAND frame_pacer_test)
 
+add_executable(process_services_test
+    unit/ProcessServicesTest.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+)
+
+target_include_directories(process_services_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(process_services_test PRIVATE m)
+
+add_test(NAME process_services_test COMMAND process_services_test)
+
+add_executable(messages_provider_test
+    unit/MessagesProviderTest.cc
+    ${CMAKE_SOURCE_DIR}/src/DefaultMessagesProvider.cc
+    ${CMAKE_SOURCE_DIR}/src/MessageFormatValidator.cc
+    ${CMAKE_SOURCE_DIR}/src/MessagesProvider.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+)
+
+target_include_directories(messages_provider_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(messages_provider_test PRIVATE m)
+
+add_test(NAME messages_provider_test COMMAND messages_provider_test)
+
+add_executable(translate_generator_test
+    unit/TranslateGeneratorTest.cc
+    ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
+)
+
+target_include_directories(translate_generator_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(translate_generator_test PRIVATE m)
+
+add_test(NAME translate_generator_test COMMAND translate_generator_test)
+
 add_executable(video_frame_budget_test
     unit/VideoFrameBudgetTest.cc
     ${CMAKE_SOURCE_DIR}/src/VideoFrameBudget.cc
@@ -206,6 +349,7 @@ add_executable(cthugha_display_presentation_test
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
     ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/FrameRateMeter.cc
     ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
     ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
@@ -318,6 +462,7 @@ add_executable(cthugha_display_viewport_test
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
     ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/FrameRateMeter.cc
     ${CMAKE_SOURCE_DIR}/src/PresentationComposer.cc
     ${CMAKE_SOURCE_DIR}/src/FrameCompletion.cc
@@ -536,6 +681,23 @@ target_link_libraries(wave_object_test PRIVATE m)
 
 add_test(NAME wave_object_test COMMAND wave_object_test)
 
+add_executable(wave_runtime_random_test
+    unit/WaveRuntimeRandomTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
+    ${CMAKE_SOURCE_DIR}/src/Wave.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+)
+
+target_include_directories(wave_runtime_random_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(wave_runtime_random_test PRIVATE m)
+
+add_test(NAME wave_runtime_random_test COMMAND wave_runtime_random_test)
+
 add_executable(effect_preset_catalog_test
     unit/EffectPresetCatalogTest.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
@@ -576,6 +738,7 @@ add_test(NAME runtime_command_test COMMAND runtime_command_test)
 add_executable(mixer_session_test
     unit/MixerSessionTest.cc
     ${CMAKE_SOURCE_DIR}/src/Mixer.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
 )
 
@@ -593,6 +756,7 @@ add_executable(mixer_controls_test
     unit/MixerControlsTest.cc
     ${CMAKE_SOURCE_DIR}/src/Mixer.cc
     ${CMAKE_SOURCE_DIR}/src/MixerControls.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
 )
 
 target_include_directories(mixer_controls_test PRIVATE
@@ -609,6 +773,7 @@ add_executable(audio_decoded_history_test
     unit/AudioDecodedHistoryTest.cc
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -631,6 +796,7 @@ add_executable(audio_passthrough_test
     ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioPassthrough.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -656,6 +822,7 @@ add_executable(audio_ingest_test
     ${CMAKE_SOURCE_DIR}/src/AudioPassthrough.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/PcmSource.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -685,6 +852,7 @@ add_executable(audio_device_negotiation_test
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
     ${CMAKE_SOURCE_DIR}/src/DspPcmSource.cc
     ${CMAKE_SOURCE_DIR}/src/PcmSource.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -713,6 +881,7 @@ add_executable(audio_output_config_test
     ${CMAKE_SOURCE_DIR}/src/AudioPulseOutput.cc
     ${CMAKE_SOURCE_DIR}/src/AudioSettings.cc
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -742,6 +911,7 @@ add_executable(audio_output_dump_test
     ${CMAKE_SOURCE_DIR}/src/AudioOutputDump.cc
     ${CMAKE_SOURCE_DIR}/src/AudioOutput.cc
     ${CMAKE_SOURCE_DIR}/src/DecodedAudioHistory.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
@@ -755,64 +925,31 @@ target_link_libraries(audio_output_dump_test PRIVATE m)
 
 add_test(NAME audio_output_dump_test COMMAND audio_output_dump_test)
 
-add_executable(audio_visual_bridge_frame_test
-    unit/AudioVisualBridgeFrameTest.cc
+add_executable(audio_frame_pipeline_test
+    unit/AudioFramePipelineTest.cc
     ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFramePipeline.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFftProcessor.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessingState.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessingSelector.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioVisualBridge.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
-target_compile_definitions(audio_visual_bridge_frame_test PRIVATE
-    CTH_AUDIO_VISUAL_BRIDGE_NO_AUTOCHANGER
-)
-
-target_include_directories(audio_visual_bridge_frame_test PRIVATE
+target_include_directories(audio_frame_pipeline_test PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/src
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(audio_visual_bridge_frame_test PRIVATE m)
+target_link_libraries(audio_frame_pipeline_test PRIVATE m)
 
-add_test(NAME audio_visual_bridge_frame_test COMMAND audio_visual_bridge_frame_test)
-
-add_executable(audio_visual_bridge_auto_changer_test
-    unit/AudioVisualBridgeAutoChangerTest.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioFftProcessor.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioProcessingState.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioProcessingSelector.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
-    ${CMAKE_SOURCE_DIR}/src/AudioVisualBridge.cc
-    ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
-    ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
-    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
-    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
-    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
-    ${CMAKE_SOURCE_DIR}/src/Option.cc
-    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
-    ${CMAKE_SOURCE_DIR}/src/imath.cc
-)
-
-target_include_directories(audio_visual_bridge_auto_changer_test PRIVATE
-    ${CMAKE_BINARY_DIR}
-    ${CMAKE_BINARY_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src
-)
-
-target_link_libraries(audio_visual_bridge_auto_changer_test PRIVATE m)
-
-add_test(NAME audio_visual_bridge_auto_changer_test
-    COMMAND audio_visual_bridge_auto_changer_test)
+add_test(NAME audio_frame_pipeline_test COMMAND audio_frame_pipeline_test)
 
 add_executable(interface_runtime_test
     unit/InterfaceRuntimeTest.cc
@@ -858,6 +995,7 @@ add_executable(runtime_auto_change_controls_test
     ${CMAKE_SOURCE_DIR}/src/AutoChangeControls.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeAutoChangeControls.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -884,6 +1022,7 @@ add_executable(runtime_audio_controls_test
     ${CMAKE_SOURCE_DIR}/src/AudioProcessor.cc
     ${CMAKE_SOURCE_DIR}/src/Mixer.cc
     ${CMAKE_SOURCE_DIR}/src/MixerControls.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeAudioControls.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
 )
@@ -952,6 +1091,7 @@ add_test(NAME runtime_shutdown_test COMMAND runtime_shutdown_test)
 add_executable(runtime_change_mediator_test
     unit/RuntimeChangeMediatorTest.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeCommandTargets.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeChangeMediator.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
@@ -975,6 +1115,7 @@ add_executable(auto_changer_command_sink_test
     ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
@@ -1002,7 +1143,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         ${CMAKE_SOURCE_DIR}/src/InterfaceList.cc
         ${CMAKE_SOURCE_DIR}/src/flames.cc
         ${CMAKE_SOURCE_DIR}/src/info_title_usage.cc
-        ${CMAKE_SOURCE_DIR}/src/misc.cc
+        ${CMAKE_SOURCE_DIR}/src/LegacyLoggingAdapter.cc
         ${CMAKE_SOURCE_DIR}/src/palettes.cc
     )
 

@@ -3,6 +3,7 @@
  */
 
 #include "AudioPassthrough.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -13,9 +14,25 @@ int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
-double getTime() { return 0.0; }
 
 const char* audioSampleFormatText(int) { return "signed-8"; }
+
+class FakeSecondsClock : public SecondsClock {
+public:
+    virtual double nowSeconds() const {
+        return 0.0;
+    }
+};
+
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+};
 
 static PcmFormat signed8MonoFormat() {
     PcmFormat format;
@@ -35,8 +52,10 @@ public:
     int bytesWritten;
     int maxBytesPerWrite;
 
-    RecordingOutput(int realtime = 0, int maxBytes = 0)
-        : realtimeValue(realtime)
+    RecordingOutput(SecondsClock& clock, LogSink& log, int realtime = 0,
+        int maxBytes = 0)
+        : AudioOutput(0, NULL, clock, log)
+        , realtimeValue(realtime)
         , bytesWritten(0)
         , maxBytesPerWrite(maxBytes) { }
 
@@ -53,10 +72,13 @@ public:
 };
 
 static void testPassthroughAdvancesOnlyItsCursor() {
-    DecodedAudioHistory history(16, signed8MonoFormat(), 8);
+    FakeLogSink log;
+    DecodedAudioHistory history(16, signed8MonoFormat(), 8, log);
     char pcm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     std::atomic<int> inputFinished(0);
-    AudioPassthrough passthrough(new RecordingOutput(), history, inputFinished);
+    FakeSecondsClock clock;
+    AudioPassthrough passthrough(new RecordingOutput(clock, log), history,
+        inputFinished, log);
 
     assert(history.appendDecodedPcm(pcm, 8) == 8);
     assert(passthrough.start(1000, 1, 4, 0) == 0);
@@ -72,11 +94,14 @@ static void testPassthroughAdvancesOnlyItsCursor() {
 }
 
 static void testPassthroughResyncsWhenHistoryMovedOn() {
-    DecodedAudioHistory history(8, signed8MonoFormat(), 3);
+    FakeLogSink log;
+    DecodedAudioHistory history(8, signed8MonoFormat(), 3, log);
     char first[5] = { 0, 1, 2, 3, 4 };
     char second[5] = { 5, 6, 7, 8, 9 };
     std::atomic<int> inputFinished(0);
-    AudioPassthrough passthrough(new RecordingOutput(0, 1), history, inputFinished);
+    FakeSecondsClock clock;
+    AudioPassthrough passthrough(new RecordingOutput(clock, log, 0, 1),
+        history, inputFinished, log);
 
     assert(history.appendDecodedPcm(first, 5) == 5);
     assert(history.appendDecodedPcm(second, 5) == 5);
@@ -89,10 +114,13 @@ static void testPassthroughResyncsWhenHistoryMovedOn() {
 }
 
 static void testPresentationClockSubtractsTargetDelay() {
-    DecodedAudioHistory history(16, signed8MonoFormat(), 8);
+    FakeLogSink log;
+    DecodedAudioHistory history(16, signed8MonoFormat(), 8, log);
     char pcm[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     std::atomic<int> inputFinished(0);
-    AudioPassthrough passthrough(new RecordingOutput(1), history, inputFinished);
+    FakeSecondsClock clock;
+    AudioPassthrough passthrough(new RecordingOutput(clock, log, 1), history,
+        inputFinished, log);
 
     assert(history.appendDecodedPcm(pcm, 8) == 8);
     assert(passthrough.start(1000, 1, 4, 0) == 0);

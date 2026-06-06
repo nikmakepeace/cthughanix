@@ -334,7 +334,7 @@ static void init_wave_options() {
  * wave_sticks
  * - Entry: Sticks (Random sticks)
  * - Does: draws random line segments across the buffer on fire events.
- * - Colours: raw random palette index Random(256), bypassing the table.
+ * - Colours: raw random palette index, bypassing the table.
  * - Sound: runtime.fire() controls how many sticks are drawn.
  *
  * wave_grid
@@ -468,23 +468,19 @@ static void rotate_axis(
  * The range is intentionally small because only the direction survives
  * normalization; large random coordinates buy nothing here.
  */
-static void random_axis(double axis[3]) {
+static void random_axis(WaveRuntime& runtime, double axis[3]) {
     double scale;
 
     do {
-        axis[0] = (double)(rand() % 201 - 100);
-        axis[1] = (double)(rand() % 201 - 100);
-        axis[2] = (double)(rand() % 201 - 100);
+        axis[0] = (double)runtime.randomCenteredInt(100);
+        axis[1] = (double)runtime.randomCenteredInt(100);
+        axis[2] = (double)runtime.randomCenteredInt(100);
         scale = sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
     } while (scale == 0.0);
 
     axis[0] /= scale;
     axis[1] /= scale;
     axis[2] /= scale;
-}
-
-static double random_unit() {
-    return (double)rand() / (double)RAND_MAX;
 }
 
 /*
@@ -564,8 +560,8 @@ static double vertex_sound_stretch(const VideoFrameContext& context, int x, int 
     return 1.0 + amp * 0.35;
 }
 
-static int random_wire_color() {
-    return abs(rand() % 256);
+static int random_wire_color(WaveRuntime& runtime) {
+    return runtime.randomInt(256);
 }
 
 struct WireObjectFrame {
@@ -1693,7 +1689,7 @@ void wave_wire1(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
     const char2* waveData = processedWaveData(context);
 
     if (object_wave_needs_configuration(runtime))
-        state.col = random_wire_color();
+        state.col = random_wire_color(runtime);
 
     state.theta += M_PI / 45.0;
 
@@ -1764,8 +1760,8 @@ void wave_wire1dot5(CthughaBuffer& buffer, const VideoFrameContext& context, Wav
         return;
 
     if (object_wave_needs_configuration(runtime)) {
-        random_axis(state.axis);
-        state.col = random_wire_color();
+        random_axis(runtime, state.axis);
+        state.col = random_wire_color(runtime);
     }
 
     state.theta += 2;
@@ -1810,12 +1806,12 @@ void wave_wire1dot55(CthughaBuffer& buffer, const VideoFrameContext& context, Wa
         return;
 
     if (object_wave_needs_configuration(runtime)) {
-        random_axis(state.baseAxis);
-        state.coneAngle = random_unit() * M_PI;
+        random_axis(runtime, state.baseAxis);
+        state.coneAngle = runtime.randomUnit() * M_PI;
         state.precessionTime = PRECESSION_TIME_MIN
-            + random_unit() * (PRECESSION_TIME_MAX - PRECESSION_TIME_MIN);
+            + runtime.randomUnit() * (PRECESSION_TIME_MAX - PRECESSION_TIME_MIN);
         state.precessionStart = frameNow(context);
-        state.col = random_wire_color();
+        state.col = random_wire_color(runtime);
     }
 
     precess_axis(state.baseAxis, state.coneAngle,
@@ -1858,8 +1854,8 @@ void wave_wire1dot6(CthughaBuffer& buffer, const VideoFrameContext& context, Wav
     int i, x1, y1, x2, y2;
 
     if (object_wave_needs_configuration(runtime)) {
-        random_axis(state.axis);
-        state.col = random_wire_color();
+        random_axis(runtime, state.axis);
+        state.col = random_wire_color(runtime);
     }
 
     state.theta += 2;
@@ -1901,20 +1897,20 @@ void wave_wire1dot6(CthughaBuffer& buffer, const VideoFrameContext& context, Wav
 #define nobj 10
 #define whirlyRadius 45
 
-static void init_wire2_copy(int loc[3], int& psi, int& rate, int& col) {
+static void init_wire2_copy(WaveRuntime& runtime, int loc[3], int& psi, int& rate, int& col) {
     int j, k;
 
-    loc[1] = rand() % (whirlyRadius * 2) - whirlyRadius;
-    j = rand() % 320;
-    k = 1 + rand() % (whirlyRadius - 1);
+    loc[1] = runtime.randomInt(whirlyRadius * 2) - whirlyRadius;
+    j = runtime.randomInt(320);
+    k = 1 + runtime.randomInt(whirlyRadius - 1);
     loc[0] = int(isin(j) * k);
     loc[2] = int(icos(j) * k);
 
-    rate = 1 + rand() % 7;
-    if (rand() % 2)
+    rate = 1 + runtime.randomInt(7);
+    if (runtime.randomInt(2))
         rate *= -1;
-    psi = rand() % 320;
-    col = random_wire_color();
+    psi = runtime.randomInt(320);
+    col = random_wire_color(runtime);
 }
 
 class WireSwarmWaveRenderer : public WaveRenderer {
@@ -1973,7 +1969,7 @@ public:
             return;
 
         if (object_wave_needs_configuration(runtime))
-            configure(state);
+            configure(runtime, state);
 
         if (!prepareGeometry(buffer, runtime, state, geometry))
             return;
@@ -2007,16 +2003,16 @@ public:
     }
 
 private:
-    void configure(State& state) const {
-        random_axis(state.blobAxis);
+    void configure(WaveRuntime& runtime, State& state) const {
+        random_axis(runtime, state.blobAxis);
 
         for (int i = 0; i < nobj; i++) {
-            init_wire2_copy(state.loc[i], state.psi[i], state.rate[i], state.col[i]);
+            init_wire2_copy(runtime, state.loc[i], state.psi[i], state.rate[i], state.col[i]);
             CTH_DEBUG("model %d: rate %d, psi %d, col %d\n",
                 i, state.rate[i], state.psi[i], state.col[i]);
 
             if (modelRotation == PerCopyAxis)
-                random_axis(state.modelAxis[i]);
+                random_axis(runtime, state.modelAxis[i]);
         }
     }
 
@@ -2149,8 +2145,8 @@ void wave_spiral(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRu
     state.ofs %= 320;
 
     if (state.loopcount <= 0) {
-        state.loopcount = 1 + abs(rand() % 32);
-        state.loops = 2 + abs(rand() % 8);
+        state.loopcount = 1 + runtime.randomInt(32);
+        state.loops = 2 + runtime.randomInt(8);
     }
 
     if (runtime.fire())
@@ -2282,11 +2278,11 @@ void wave_pyro(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRunt
 
             /* fire off a new firework */
             state.theWorks[i].dur = 0;
-            state.theWorks[i].oxp = state.theWorks[i].xp = rand() % buffer.width();
+            state.theWorks[i].oxp = state.theWorks[i].xp = runtime.randomInt(buffer.width());
             state.theWorks[i].oyp = state.theWorks[i].yp = buffer.height() - 4;
-            state.theWorks[i].xv = (rand() % 20) - 10;
+            state.theWorks[i].xv = runtime.randomInt(20) - 10;
             state.theWorks[i].yv = -(fire * state.maxV / (state.maxA / 4));
-            state.theWorks[i].col = rand() % 256;
+            state.theWorks[i].col = runtime.randomInt(256);
             runtime.scaleFire(2, 3);
         }
 
@@ -2373,10 +2369,10 @@ void wave_warp(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRunt
             state.theWarps[i].r = 0;
             state.theWarps[i].s = 3 + fire * 4 * 20 / state.maxA;
             state.theWarps[i].trails = 1 + fire * 4 * maxWarpTrails / state.maxA;
-            state.theWarps[i].theta = rand() % 360;
-            state.theWarps[i].omg = (rand() % 16 - 8) * fire * 4 / state.maxA;
-            state.theWarps[i].col = rand() % 256;
-            state.theWarps[i].rgrav = rand() % 2;
+            state.theWarps[i].theta = runtime.randomInt(360);
+            state.theWarps[i].omg = (runtime.randomInt(16) - 8) * fire * 4 / state.maxA;
+            state.theWarps[i].col = runtime.randomInt(256);
+            state.theWarps[i].rgrav = runtime.randomInt(2);
             runtime.consumeFire();
         }
 }
@@ -2431,12 +2427,12 @@ void wave_corner(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRu
         int i, j, t;
         int fire = runtime.fire();
 
-        state.x = (state.x + (rand() % fire)) % (buffer.width() - 16) + 8;
-        state.y = (state.y + (rand() % fire)) % (buffer.height() - 16) + 8;
+        state.x = (state.x + runtime.randomInt(fire)) % (buffer.width() - 16) + 8;
+        state.y = (state.y + runtime.randomInt(fire)) % (buffer.height() - 16) + 8;
 
         t = min(fire >> 2, 8);
 
-        if (rand() & 1) {
+        if (runtime.randomInt(2)) {
             /* draw corner pointing right down */
             for (i = 0; i < t; i++) {
                 for (j = 0; j < state.x; j++) {
@@ -2506,12 +2502,13 @@ void wave_jump(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRunt
 }
 
 // by Deischi
-/* Writes raw random palette indices, Random(256). */
+/* Writes raw random palette indices. */
 void wave_sticks(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRuntime& runtime) {
 
     int n = runtime.fire() >> runtime.waveScale;
     for (int i = 0; i < n; i++) {
-        draw_line(buffer, Random(buffer.width()), Random(buffer.height()), Random(buffer.width()), Random(buffer.height()),
-            Random(256));
+        draw_line(buffer, runtime.randomInt(buffer.width()), runtime.randomInt(buffer.height()),
+            runtime.randomInt(buffer.width()), runtime.randomInt(buffer.height()),
+            runtime.randomInt(256));
     }
 }

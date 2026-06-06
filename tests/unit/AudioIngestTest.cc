@@ -3,6 +3,7 @@
  */
 
 #include "AudioIngest.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <memory>
@@ -16,12 +17,9 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
-static double fakeSystemTime = 0.0;
-double getTime() { return fakeSystemTime; }
-
 const char* audioSampleFormatText(int) { return "signed-8"; }
 
-class FakeClock : public AudioIngestClock {
+class FakeClock : public SecondsClock {
 public:
     double value;
 
@@ -31,12 +29,25 @@ public:
     virtual double nowSeconds() const { return value; }
 };
 
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+};
+
 class VectorPcmSource : public PcmSource {
     std::vector<char> data;
     int cursorSamples;
 
 public:
-    VectorPcmSource(int samples) : data(samples), cursorSamples(0) {
+    VectorPcmSource(int samples, LogSink& log)
+        : PcmSource(log)
+        , data(samples)
+        , cursorSamples(0) {
         pcmFormat.sampleRate = 1000;
         pcmFormat.channels = 1;
         pcmFormat.sampleFormat = SF_s8;
@@ -62,14 +73,17 @@ public:
     virtual int canFinish() const { return 1; }
 };
 
-static AudioIngest* makeIngest(FakeClock& clock, int samples) {
-    return new AudioIngest(new AudioInput(new VectorPcmSource(samples)), NULL, 256,
-        clock, 1, 0);
+static AudioIngest* makeIngest(FakeClock& clock, FakeLogSink& log,
+    int samples) {
+    return new AudioIngest(new AudioInput(new VectorPcmSource(samples, log), log),
+        NULL, 256,
+        clock, log, 1, 0);
 }
 
 static void testTickBuildsFramesFromSilentPassthroughMode() {
     FakeClock clock;
-    std::unique_ptr<AudioIngest> ingest(makeIngest(clock, 4096));
+    FakeLogSink log;
+    std::unique_ptr<AudioIngest> ingest(makeIngest(clock, log, 4096));
 
     assert(ingest->start() == 0);
     assert(ingest->format().sampleRate == 1000);
@@ -87,7 +101,8 @@ static void testTickBuildsFramesFromSilentPassthroughMode() {
 
 static void testFiniteSilentInputCompletesAtVisualEof() {
     FakeClock clock;
-    std::unique_ptr<AudioIngest> ingest(makeIngest(clock, 1500));
+    FakeLogSink log;
+    std::unique_ptr<AudioIngest> ingest(makeIngest(clock, log, 1500));
 
     assert(ingest->start() == 0);
     ingest->tick();

@@ -8,13 +8,15 @@
 
 class InterfaceCredits : public Interface {
     double pos;
+    int firstTime;
     static const char* credits[];
     static int nCredits;
 
 public:
     InterfaceCredits()
         : Interface("credits", NULL, NULL)
-        , pos(0) { }
+        , pos(0)
+        , firstTime(-1) { }
 
     virtual void doKey(int /* key */) {
         RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
@@ -24,13 +26,13 @@ public:
 
     virtual void display() {
 
-        static int firsttime = -1;
+        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+        const int currentTime = (runtime != NULL) ? runtime->milliseconds() : 0;
 
-        if (firsttime == -1) {
-            firsttime = gettime();
-        }
+        if (firstTime == -1)
+            firstTime = currentTime;
 
-        int time_diff = gettime() - firsttime;
+        int time_diff = currentTime - firstTime;
         pos = -(double(text_size.y) * 0.8) + double(time_diff) / 250.0;
 
         for (int i = 1; i < text_size.y; i++) {

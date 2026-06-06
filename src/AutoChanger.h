@@ -5,19 +5,48 @@
 #ifndef __AUTO_CHANGER_H
 #define __AUTO_CHANGER_H
 
+#include "AutoChangerStatusProvider.h"
+
 class RuntimeCommandSink;
 class AcousticContext;
 class AutoChangeSettings;
+class LogSink;
+class MillisecondClock;
+class RandomSource;
 struct AudioMetrics;
 
-class AutoChanger {
+/**
+ * Observer for quiet-audio notifications emitted by automatic scene changes.
+ */
+class AutoChangeQuietObserver {
+public:
+    /** Destroys the quiet observer interface. */
+    virtual ~AutoChangeQuietObserver() { }
+
+    /**
+     * Reports an ongoing quiet period.
+     *
+     * @param quietLength Milliseconds since the last noisy audio frame.
+     * @return Nonzero when the quiet period was consumed and should restart.
+     */
+    virtual int observeQuiet(int quietLength) = 0;
+};
+
+class AutoChanger : public AutoChangerStatusProvider {
     RuntimeCommandSink& runtimeCommands;
     const AutoChangeSettings& settings;
     AcousticContext& acousticContextValue;
+    MillisecondClock& clock;
+    RandomSource& randomSource;
+    AutoChangeQuietObserver& quietObserver;
+    LogSink& log;
 
     int quietSince;
     int waitTime;
     int lastChange;
+    mutable char statusTextValue[512];
+
+    int nextWaitTime();
 
 public:
     /**
@@ -29,10 +58,20 @@ public:
      *        must outlive this AutoChanger.
      * @param acousticContext_ Rolling acoustic state used for fire-triggered
      *        scene changes. The referenced object must outlive this AutoChanger.
+     * @param clock_ Clock used for wait/quiet timing. The referenced object
+     *        must outlive this AutoChanger.
+     * @param randomSource_ Random source used for wait jitter. The referenced
+     *        object must outlive this AutoChanger.
+     * @param quietObserver_ Observer notified about quiet audio periods. The
+     *        referenced object must outlive this AutoChanger.
+     * @param log_ Diagnostic sink. The referenced object must outlive this
+     *        AutoChanger.
      */
     AutoChanger(RuntimeCommandSink& runtimeCommands_,
         const AutoChangeSettings& settings_,
-        AcousticContext& acousticContext_);
+        AcousticContext& acousticContext_, MillisecondClock& clock_,
+        RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,
+        LogSink& log_);
 
     /** Releases automatic scene-change policy state. */
     ~AutoChanger();
@@ -54,10 +93,17 @@ public:
     void change();
 
     /**
-     * @return Pointer to static status text for the interface. The text is
-     *         overwritten on the next status() call.
+     * @return Pointer to instance-owned status text for the interface. The
+     *         text is overwritten on the next status() call.
      */
     const char* status() const;
+
+    /**
+     * Returns current automatic scene-change status text.
+     *
+     * @return Pointer to instance-owned text valid until the next status call.
+     */
+    virtual const char* autoChangerStatus() const;
 };
 
 #endif

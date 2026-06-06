@@ -7,6 +7,8 @@
 
 #include <string>
 
+class RandomSource;
+
 //
 // Remarks:
 //
@@ -163,19 +165,100 @@ public:
     OptionOnOff lock; // individual lock
 
     static void changeToInitial();
+
+    /**
+     * Changes this option from text using the legacy process random fallback
+     * for empty or invalid random-selection text.
+     *
+     * @param to Choice name, number, lock-prefixed choice, or empty for random.
+     * @param doSave Nonzero to save the previous option value first.
+     */
     virtual void change(const char* to, int doSave = 1);
+
+    /**
+     * Changes this option from text using an injected random source for empty
+     * or invalid random-selection text.
+     *
+     * @param to Choice name, number, lock-prefixed choice, or empty for random.
+     * @param randomSource Random source used for fallback selection.
+     * @param doSave Nonzero to save the previous option value first.
+     */
+    virtual void change(const char* to, RandomSource& randomSource, int doSave = 1);
+
+    /**
+     * Moves this option by a relative number of entries.
+     *
+     * @param by Relative entry delta.
+     * @param doSave Nonzero to save the previous option value first.
+     */
     virtual void change(int by, int doSave = 1);
+
+    /**
+     * Selects a random usable entry using the legacy process random fallback.
+     *
+     * @param save_ Nonzero to save the previous option value first.
+     */
     virtual void changeRandom(int save_ = 1);
 
+    /**
+     * Selects a random usable entry using an injected random source.
+     *
+     * @param randomSource Random source used to select the candidate entry.
+     * @param save_ Nonzero to save the previous option value first.
+     */
+    virtual void changeRandom(RandomSource& randomSource, int save_ = 1);
+
+    /**
+     * Resolves an entry name or number using the legacy process random fallback
+     * for empty or invalid text.
+     *
+     * @param n Entry name, number, or empty for random.
+     * @return Resolved entry index, or 0 for an empty option.
+     */
     int optNr(const char* n);
+
+    /**
+     * Resolves an entry name or number using an injected random source for
+     * empty or invalid text.
+     *
+     * @param n Entry name, number, or empty for random.
+     * @param randomSource Random source used for fallback selection.
+     * @return Resolved entry index, or 0 for an empty option.
+     */
+    int optNr(const char* n, RandomSource& randomSource);
 
     void change(int) { CTH_ERROR("internal error. wrong change called for option `%s'.\n", name()); }
     void change(const char*) {
         CTH_ERROR("internal error. wrong change called for option `%s'.\n", name());
     }
 
+    /**
+     * Randomly changes one auto-change candidate using the legacy process
+     * random fallback.
+     *
+     * @return Changed option, or NULL when no unlocked candidate can change.
+     */
     static EffectControl* changeOne();
+
+    /**
+     * Randomly changes one auto-change candidate using an injected random
+     * source.
+     *
+     * @param randomSource Random source used for candidate and entry selection.
+     * @return Changed option, or NULL when no unlocked candidate can change.
+     */
+    static EffectControl* changeOne(RandomSource& randomSource);
+
+    /** Randomly changes all auto-change candidates using the legacy fallback. */
     static void changeAll();
+
+    /**
+     * Randomly changes all auto-change candidates using an injected random
+     * source.
+     *
+     * @param randomSource Random source used for entry selection.
+     */
+    static void changeAll(RandomSource& randomSource);
 
     virtual const char* text() const;
 

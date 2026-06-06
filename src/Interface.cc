@@ -54,6 +54,11 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
 
 ErrorMessages errors;
 
+static int interfaceRuntimeMilliseconds() {
+    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
+    return (runtime != NULL) ? runtime->milliseconds() : 0;
+}
+
 ACTION(up) {
     InterfaceRuntime* runtime = Keymap::interfaceRuntime();
     if (runtime != NULL)
@@ -376,7 +381,7 @@ void ErrorMessages::addMessage(const char* text) {
         return;
     }
     strncpy(msgs[nMsgs], text, 128);
-    on_screen[nMsgs] = gettime();
+    on_screen[nMsgs] = interfaceRuntimeMilliseconds();
 
     nMsgs++;
 }
@@ -389,7 +394,8 @@ void ErrorMessages::display() {
 
     // remove old messages
     const int errorTime = 3000;
-    while ((nMsgs > 0) && ((gettime() - on_screen[0]) > errorTime)) {
+    const int currentTime = interfaceRuntimeMilliseconds();
+    while ((nMsgs > 0) && ((currentTime - on_screen[0]) > errorTime)) {
         for (int i = 1; i < nMsgs; i++) {
             strncpy(msgs[i - 1], msgs[i], 128);
             on_screen[i - 1] = on_screen[i];

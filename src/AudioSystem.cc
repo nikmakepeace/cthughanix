@@ -2,7 +2,6 @@
  * Stateless audio option text helpers.
  */
 
-#include "cthugha.h"
 #include "AudioOptions.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"

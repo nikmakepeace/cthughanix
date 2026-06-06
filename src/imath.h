@@ -14,7 +14,6 @@ int init_imath();
 
 extern int sine[320];
 
-int Random(int range);
 long longSqrt(long x);
 int ilog2(int n);
 

@@ -11,28 +11,40 @@ have a named removal phase and a test that prevents new call sites.
 This review covers production `src/` code. The existing display refactor has
 already moved much of screen composition toward explicit `IndexedFrame`,
 `ScreenRenderContext`, `PresentationComposer`, and `DisplayRuntime` handoffs.
-The remaining globals are concentrated in options/effect registries, audio
-facades, display backend state, UI/input state, and process services.
+The remaining globals are concentrated in options/effect registries, scene and
+display backend state, frame mutation buffers/renderer state, UI/input state,
+and the diagnostics tail of process services. The old audio runtime/facade
+cluster is now gone; remaining audio-adjacent notes are mostly Scene/Frame
+Mutation boundary cleanup.
 Startup configuration acquisition is no longer one of those ambient areas:
 `ConfigurationBuilder` builds the startup `Config`, and `Application` passes
 immutable slices to subsystem startup APIs.
 
 ## Progress Audit Since 73fd509
 
-This status was cross-checked against commits `744bd98..d280f83` on
-`modulerefactor` and a source scan of current `src/`.
+This status was cross-checked against commits `73fd509..20276a8` on
+`modulerefactor` plus the current working tree, and a source scan of current
+`src/`.
 
 - Done: startup Configuration is explicit. Typed `Config` slices,
   `ConfigurationBuilder`, source strategies/patches/diagnostics, startup
-  acquisition, and most legacy startup parser globals have been replaced.
-- Done: Runtime Reconfiguration is explicit enough for the current module
-  boundary. `RuntimeCommand`, `RuntimeCommandSink`, `RuntimeChangeMediator`,
+  acquisition, automatic/continuation ini persistence, and most legacy startup
+  parser globals have been replaced. Ini persistence now receives an explicit
+  `LogSink` and uses a local writer object instead of a shared file cursor.
+- Done for the current Runtime Reconfiguration boundary:
+  `RuntimeCommand`, `RuntimeCommandSink`, `RuntimeChangeMediator`,
   `RuntimeDisplayControls`, `RuntimeAudioControls`,
   `RuntimeAutoChangeControls`, `RuntimeEffectControls`,
-  `RuntimePersistence`, `RuntimeShutdown`, and `RuntimeConfigRegistry` route
-  live changes without the mediator mutating subsystem globals directly.
-- Done: Audio has been substantially deglobalised. `AudioRuntime` and audio
-  frame facade functions are gone; `AudioIngest`, `DecodedAudioHistory`,
+  `RuntimeCommandTargets`, `RuntimePersistence`, `RuntimeShutdown`, and
+  `RuntimeConfigRegistry` route live changes without the mediator mutating
+  subsystem globals directly. Generic option/effect routing now has explicit
+  `RuntimeOptionTarget` and `RuntimeEffectControlTarget` ports. The legacy
+  `Option&`/`EffectControl&` command factories and raw command payload fields
+  have been removed. UI and X11 panel callers now use
+  `RuntimeCommandTargetRouter`, which builds target-backed commands for a
+  synchronous mediator call.
+- Done for the current Audio module boundary. `AudioRuntime` and audio frame
+  facade functions are gone; `AudioIngest`, `DecodedAudioHistory`,
   `AudioPassthrough`, owned `AudioFrame`, owned `AudioProcessor`/FFT state,
   owned audio processing selection, owned output config/dump state, owned OSS
   mixer session/controls, and instance-local audio diagnostics are in place.
@@ -40,11 +52,48 @@ This status was cross-checked against commits `744bd98..d280f83` on
   Application-owned `InterfaceRuntime`: current interface selection, interface
   registration, runtime config/status adapters, save/status flags, and scoped
   option/effect command context.
-- Partial: Application Lifecycle now owns shutdown request state through
+- Done for Application Lifecycle ownership: Application now owns
+  shutdown request state through
   `RuntimeCloseState`/`RuntimeShutdown`, and `Application` owns the major
-  runtime roots. Process services are not yet fully explicit: `gettime()`,
-  `getTime()`, `now`, `deltaT`, `FramePacer`, `rand()`/`Random()`, logging
-  verbosity, and the stale `cthugha_close` declaration/definition remain.
+  runtime roots. Auto-change policy now receives an Application-owned
+  millisecond clock and random source instead of calling `gettime()`/`rand()`
+  directly, and audio-processing random mode selection also uses the owned
+  random source. Synthetic random PCM input is also built with that owned
+  random source. Audio ingest pacing now receives an Application-owned
+  seconds clock, and audio frame pipeline trace timing uses that same clock.
+  X11 display/frame trace timing also receives that Application-owned seconds
+  clock rather than calling `getTime()` directly.
+  Interface error expiry and credits animation now use the
+  Application-owned millisecond clock through `InterfaceRuntime`.
+  `CStdRandomSource` now owns deterministic generator state, and direct
+  Application seeding of process-global random state was removed after the
+  migrated runtime paths stopped using legacy C random state.
+  `CthughaDisplay` now owns its visual `FrameClock` and frame timestamp/delta
+  values instead of exporting `now`/`deltaT`. The legacy public
+  `gettime()`/`getTime()` adapters were removed. Logging verbosity now lives in
+  Application-owned `LoggingRuntime`, with `CTH_*` macros kept as a temporary
+  compatibility adapter. Quiet-message selection and video-director palette
+  policy now use the Application-owned random source, as do randomized
+  generated translation-table seeds, palette-transition strategy selection, and
+  image-cue placement, random palette generation, and wave rendering.
+  General-flame and generic EffectControl randomization now flow through
+  `SceneCommands` plus runtime display/effect adapters and the
+  Application-owned random source.
+  QOTD prefetch
+  deadline timing now uses Application-owned countdown timer factories that hand
+  a per-fetch timer to the detached worker.
+  Platform suspend signal state now lives in a `PlatformLifecycle`-owned
+  `PlatformSuspendSignalState`; the previous file-scope request/installed/
+  previous-handler globals and public `requestApplicationSuspend()` adapter were
+  removed. The remaining file-scope pointer is only the POSIX `sigaction`
+  bridge to the active owned state.
+  The remaining tail belongs to Process Services/Diagnostics rather than
+  lifecycle sequencing: the logging macro adapter remains as isolated
+  compatibility while older modules are moved to explicit `LogSink&`.
+- Done in the current working tree: the redundant audio-to-visual bridge class
+  was deleted. `Application` now owns and calls `DefaultAudioFramePipeline`
+  directly, then runs its Application-owned auto-change policy against the
+  resulting frame metrics.
 - Partial: Commands And Input is only halfway through. `InterfaceRuntime`
   removes the old interface current/edit globals, but `Action::head`,
   `Keymap::first`, `Keymap::current`, static `Keymap::action(...)`,
@@ -52,32 +101,225 @@ This status was cross-checked against commits `744bd98..d280f83` on
 - Partial: Scene owns more state through `Scene`/`SceneCommands`, owned
   auto-change settings, and runtime controls, but `EffectControl::first`,
   visual catalog/list globals, `videoDirector()`, and the scene command
-  compatibility bridge remain. `AutoChanger` is no longer global, but it still
-  lives in `AudioVisualBridge` rather than as Scene-owned policy.
-- Partial: Frame Mutation and Display still have the older display/frame
-  globals and renderer-local statics. Audio is now passed through frame
-  contexts, but `CthughaBuffer::buffer`, display backend globals, overlay
-  globals, and renderer state still need their own passes.
+  compatibility bridge remain. `AutoChanger` is no longer global or
+  bridge-owned, but it still lives in `Application` rather than as Scene-owned
+  policy.
+- Partial: Frame Mutation and Display still have older display/frame globals
+  and renderer-local statics. Audio and frame timing now pass through explicit
+  frame contexts, but `CthughaBuffer::buffer`, display backend globals,
+  overlay globals, and renderer state still need their own passes.
+
+Audit conclusion:
+
+- Configuration, Runtime Reconfiguration, and Audio can be marked complete for
+  the goals of their current deglobalisation passes. Their remaining notes are
+  boundary cleanup owned by Scene, Display, Frame Mutation, Commands/Input, or
+  Process Services rather than evidence that those passes failed. Configuration
+  persistence now also avoids the legacy logging macro adapter in
+  `IniFiles.cc`.
+- Application Lifecycle can be marked complete for lifecycle ownership:
+  shutdown, suspend/resume polling, frame pacing, clocks for migrated runtime
+  paths, Application-owned logging verbosity, and the Application-owned
+  random-source adapter are explicit. The legacy logging macro adapter keeps
+  Process Services/Diagnostics from being fully closed, but that is now a
+  follow-up diagnostics pass rather than a lifecycle blocker. Audio
+  runtime/source factory diagnostics now receive an explicit `LogSink` from
+  Application, giving the logging migration its first non-macro module seam.
+- Extra work completed beyond the original four-module focus includes
+  Application-owned `InterfaceRuntime`, OSS mixer ownership, instance-local
+  audio diagnostics, direct Application ownership of the audio frame pipeline,
+  X11 timing injection, and removal of exported visual `now`/`deltaT`. The old
+  `misc.cc` grab bag has also been deleted; the remaining C logging macro
+  adapter is isolated in `LegacyLoggingAdapter.cc`.
+
+Commit cross-reference highlights:
+
+- Configuration: `744bd98`, `b6ab233`, `45e73a3`, `6186c8e`,
+  `4f3c708`, `26cdcab`, `6cb168a`, `e49e8b2`, and `4ddcce2`
+  moved defaults, audio/scene/keymap/path slices, source acquisition, removed
+  stale startup capabilities, and split ini writing away from global config.
+- Runtime Reconfiguration: `8e89861`, `6c4ca5f`, `7fdc454`,
+  `89669f5`, `16f0a55`, `21f111d`, and `191e3dd` added the
+  command boundary, mediator control ports, runtime config registry,
+  owned shutdown/persistence, audio-processing routing, subsystem scaffolding,
+  auto-change controls, mixer controls, runtime target ports, and runtime
+  selection snapshots. Current working-tree follow-up removed raw
+  `Option&`/`EffectControl&` command payloads and added
+  `RuntimeCommandTargetRouter` for UI/panel target-backed dispatch.
+- Audio: `850a51c`, `4c4acaf`, `2bcc8c4`, `51e9cbc`, `7c6334a`,
+  `3e4a2ed`, `21f111d`, `218e5bd`, `107f100`, `191e3dd`, and
+  `d280f83` removed `AudioRuntime`, audio facades, global metrics/context,
+  `sound_minnoise`, global autochanger, global FFT/processing selection,
+  startup/device/output option globals, OSS mixer globals, and shared audio
+  diagnostic counters. Current working-tree follow-up removes the intermediate
+  audio-to-visual bridge wrapper and has `Application` call
+  `DefaultAudioFramePipeline` directly.
+- Application Lifecycle and Process Services: `7fdc454` removed lifecycle
+  dependence on `cthugha_close`; later committed and current working-tree
+  changes move clocks, frame pacing, random source ownership, logging
+  verbosity, display timing, interface timing, audio timing, QOTD deadlines,
+  and several runtime diagnostics behind Application-owned collaborators.
+- Interface runtime work beyond the original four-module focus: `d280f83`
+  introduced Application-owned `InterfaceRuntime`, replacing old interface
+  selection globals and scoped option/effect command globals while leaving
+  concrete panel globals for a later UI/display pass.
+
+## Next Module Choice Point
+
+Three sensible next attacks remain. All three are valid; the choice is mostly
+about whether to reduce command/input risk, scene/state risk, or rendering risk
+first.
+
+1. Commands And Input
+   - How: introduce an explicit `InputQueue`, `KeymapRegistry`,
+     `CommandRegistry`, `CommandDispatcher`, and per-dispatch `CommandContext`.
+     Move `Action::head`, `Keymap::first/current`, static
+     `Keymap::action(...)`, `x11_key`, and `key_esc` behind those objects.
+   - Why: `InterfaceRuntime` already cleared the UI edit-state half of this
+     boundary, so the remaining hidden state is well isolated. This would make
+     key handling testable without scene/display/audio globals and would remove
+     a lot of old static dispatch surface.
+
+2. Scene
+   - How: introduce `SceneState`, `SceneSnapshot`, `EffectRegistry`,
+     `VisualCatalogs`, `SceneSerializer`, and a Scene-owned
+     `SceneChangeScheduler` to absorb `AutoChanger` policy. Then make
+     `SceneCommands` a real command target over owned scene state instead of a
+     compatibility bridge.
+   - Why: this directly attacks the biggest remaining runtime-domain globals:
+     visual selections, `EffectControl::first`, preset traversal,
+     `videoDirector()` scene policy, and `sceneCommandsForLegacyCallbacks()`.
+     It also finishes the cleanup that Audio and Runtime Reconfiguration are
+     currently waiting on.
+
+3. Frame Mutation
+   - How: extract `FrameStore` from `CthughaBuffer::buffer/current`, move
+     `display.cc` renderer statics into renderer-state objects, make
+     `VideoDirector` hand frame composition to a `FrameComposer`, and keep
+     `ScreenRenderContext` as the explicit audio/scene/display input carrier.
+   - Why: this is the next natural step before a full Display pass. It removes
+     the oldest rendering globals while preserving display backend behavior,
+     and it gives Scene and Display a clean frame handoff instead of sharing
+     global buffers.
 
 ## Remaining Ambient Dependency Inventory
 
 ### Process Services
 
-- Shutdown flag: `cthugha_close` in `misc.cc`, read by `Application::run()` and
-  incremented by key actions, audio completion, X11 quit, credits, and resume
-  failure.
-- Time: `gettime()` and `getTime()` in `misc.cc`; used by frame timing, audio
-  runtime, display backend tracing, error expiry, credits/help animation, and
-  auto-change policy.
-- Frame timing state: `now`, `deltaT`, the static `FrameClock` in
-  `CthughaDisplay.cc`, and the static `FramePacer` in `Application.cc`.
-- Randomness: `srand(time(0))`, `rand()`, and `Random()`; used by option
-  randomization, auto-change, palette generation, waves, messages, and random
-  audio.
-- Logging: `cthugha_logging_verbosity` plus `CTH_*` macros; effectively a
-  global logger adapter configured from `LoggingConfig`.
-- Shell execution: `systemf()` still exists as a process helper, though the
-  compressed-asset loader path that needed it has been removed.
+- Done: the legacy `cthugha_close` shutdown flag was removed; runtime shutdown
+  requests use Application-owned `RuntimeShutdown`/`RuntimeCloseState`.
+- Done: `AutoChanger` receives `MillisecondClock`, `RandomSource`, and
+  `AutoChangeQuietObserver` collaborators from Application-owned adapters, so
+  auto-change timing/random wait policy and quiet-message observation are
+  deterministic in tests and no longer reach into process globals.
+- Done: `AudioProcessingState` receives the same Application-owned
+  `RandomSource`, so unspecified or invalid audio-processing mode selection is
+  deterministic in tests and no longer calls `rand()` directly.
+- Done: `RandomNoisePcmSource` receives `RandomSource` through
+  `AudioIngest`/`RuntimeFactory`/`PcmSourceFactory`, so synthetic random audio
+  no longer calls `rand()` directly.
+- Done: randomized generated translation-table seeds receive `RandomSource`
+  from Application-owned startup composition instead of reading process time.
+- Done: image-cue placement receives `RandomSource` from `VideoDirector`, so
+  `Image.cc` no longer uses the legacy `Random()` helper for placement.
+- Done: general-flame randomization receives `RandomSource` through
+  `SceneCommands`, so `flames.cc` no longer uses the legacy `Random()` helper.
+- Done: generic EffectControl empty/invalid selection and change-one/change-all
+  randomization receive `RandomSource` through `SceneCommands` and runtime
+  display/effect adapters, so `EffectControl.cc` no longer uses `rand()` or the
+  legacy `Random()` helper.
+- Done: random palette generation is split into `PaletteRandomGenerator` and
+  receives `RandomSource` through `SceneCommands`, so `palettes.cc` no longer
+  uses the legacy `Random()` helper.
+- Done: wave rendering receives `RandomSource` through `VideoDirector`,
+  `WaveFilter`, and `WaveRuntime`, so `waves.cc` no longer uses `rand()` or the
+  legacy `Random()` helper.
+- Done: QOTD prefetches receive `CountdownTimerFactory` from Application-owned
+  startup composition and move a per-fetch `CountdownTimer` into the detached
+  worker, so socket deadlines no longer read `std::chrono` in
+  `QotdMessagesProvider`.
+- Done: production `AudioIngest` receives `SecondsClock` from Application and
+  no longer constructs its own `SystemAudioIngestClock`/`getTime()` fallback.
+- Done: `AudioFramePipeline` receives `SecondsClock` from Application for trace
+  timing and no longer calls `getTime()` directly.
+- Done: `AudioOutput` receives `SecondsClock` from Application through
+  `AudioIngest`/`RuntimeFactory`, so output service trace timing no longer
+  calls `getTime()` directly.
+- Done: `Application` main-loop/frame tracing and frame-pacing calls use its
+  owned `SecondsClock` instead of calling `getTime()` directly.
+- Done: `FrameClock` uses the shared `SecondsClock` interface instead of a
+  private `FrameTimeSource`/direct `getTime()` adapter.
+- Done: `CthughaDisplay` owns its `FrameClock` plus current timestamp/delta;
+  `Application` and `VideoFrameContext` consume those values explicitly, and
+  the exported `now`/`deltaT` aliases were removed.
+- Done: `InterfaceRuntime` receives the Application-owned `MillisecondClock`,
+  and interface error expiry/credits animation no longer call `gettime()`
+  directly.
+- Done: X11 display/device frame tracing receives `SecondsClock` from
+  Application through the display factories and no longer calls `getTime()`
+  directly.
+- Done: `CStdRandomSource` owns its own deterministic state and no longer wraps
+  process-global `rand()`. Application startup no longer calls `srand(time(0))`,
+  and the legacy `seedLegacyProcessRandom()` compatibility adapter plus
+  `imath.cc::Random()` helper were removed after runtime users migrated.
+- Done: legacy public `gettime()` and `getTime()` adapters were removed.
+  Normal production runtime paths now consume owned clock interfaces where
+  migrated, with `ProcessServices` owning the production steady-clock adapter.
+- Frame timing state: remaining timing values flow through owned
+  `CthughaDisplay`/`FrameClock` state and explicit `VideoFrameContext`
+  snapshots. `FramePacer` is now owned by `Application`.
+- Randomness: normal Scene/Display domains now receive the Application-owned
+  `RandomSource`.
+  Quiet-message selection, generated translation seed selection,
+  video-director palette policy, palette-transition strategy selection, and
+  image-cue placement now use the Application-owned random source. Random
+  palette generation, wave rendering, general-flame randomization, and generic
+  EffectControl randomization also use that source through `SceneCommands`,
+  `WaveRuntime`, and runtime display/effect adapters. No normal runtime path
+  now uses process-global `rand()`/`srand()` or the legacy `Random()` helper.
+- Done for mutable logging state: logging verbosity moved into
+  Application-owned `LoggingRuntime`. `CTH_*` macros still go through the
+  legacy C logging adapter in `LegacyLoggingAdapter.cc` until the broader
+  diagnostics pass replaces macro call sites with explicit sinks. Shared log
+  level constants now live in `LogLevels.h`, so `ProcessServices` no longer
+  depends on the legacy `cthugha.h` macro header.
+- Done for the first explicit logging consumers: `Application` owns
+  `ConsoleLogSink`, `AudioIngest` receives `LogSink&`, and
+  `AudioIngest`/`RuntimeFactory`/`PcmSourceFactory` use that sink for
+  startup/source-selection diagnostics instead of `CTH_DEBUG`/`CTH_TRACE`.
+  `AudioFramePipeline` also receives `LogSink&` for per-frame audio/analysis
+  diagnostics, so the current Audio ingest-to-pipeline path no longer reaches
+  through the legacy logging macro adapter.
+  Source acquisition (`PcmSource`, `AudioInput`, and `DspPcmSource`),
+  `AudioOutput`, and its submitted-PCM debug reporter now receive that same
+  sink for acquisition/output timing/service diagnostics; the Pulse and OSS/DSP
+  output backends, `AudioPassthrough`, and `AudioOutputDump` also use it for
+  backend/lifecycle diagnostics. `AudioSettings`, `DecodedAudioHistory`,
+  `AudioFrameBuilder`, `AudioProcessingSelector`, `AcousticContext`,
+  `MixerSession`/`MixerControls`, `AutoChangeControls`, and `AutoChanger` now
+  also receive or retain explicit sinks for their runtime diagnostics, and the
+  stale `cthugha.h` includes were removed from those target files.
+- Done for Application Lifecycle diagnostics: `Application` startup/run-loop
+  logging now uses its owned `ConsoleLogSink`, `PlatformLifecycle` receives
+  `LogSink&` for suspend/resume diagnostics, and the legacy logging-runtime
+  install/clear declarations moved from `cthugha.h` into `ProcessServices.h`.
+- Done for Application Lifecycle suspend state: `PlatformLifecycle` owns
+  suspend request, installation, and previous-handler state through
+  `PlatformSuspendSignalState`; the process-wide `requestApplicationSuspend()`
+  compatibility hook and old file-scope suspend request globals were removed.
+- Done for Application display startup: `Application` now calls a
+  `DisplayFrontendInitializer` port, with the raw legacy `cth_init` frontend
+  symbol isolated in `LegacyDisplayFrontendInitializer`.
+- Done for Configuration persistence diagnostics: automatic and continuation
+  ini writes, plus continuation cleanup, receive `LogSink&` through
+  `Application`/`IniRuntimePersistence`; `IniFiles.cc` no longer includes
+  `cthugha.h`, owns a shared `FILE*` output cursor, or keeps a static home-path
+  string buffer.
+- Done for Audio FFT ownership: default-constructed `AudioProcessor` now owns
+  its `FixedPointAudioFftProcessor`; the process-local
+  `defaultAudioFftProcessor()` static fallback was removed.
+- Done: stale `systemf()` shell execution helper was removed after the
+  compressed-asset loader path that needed it disappeared.
 
 ### Option And Configuration Globals
 
@@ -95,7 +337,7 @@ This status was cross-checked against commits `744bd98..d280f83` on
   `screenSizes`, `bufferSizes`, X11 flags in `xcthugha.h`, and `xcth_font`.
 - Done since 73fd509: Auto-change runtime values moved into owned
   `AutoChangeSettings`/`AutoChangeControls`; `sound_minnoise` moved into
-  audio-analysis startup config consumed by `AudioVisualBridge`.
+  audio-analysis startup config consumed by `AudioFramePipeline`.
 - Still remaining here: display options, message/palette smoothing values, and
   visual effect selection state.
 - Visual effect selections: `screen`, `flame`, `flameGeneral`, `wave`,
@@ -126,7 +368,8 @@ This status was cross-checked against commits `744bd98..d280f83` on
 - `CthughaBuffer::buffer` and `CthughaBuffer::current`.
 - `cthughaDisplay`, `displayDevice`, `displayBackend`, `displayRuntime`.
 - Done since 73fd509: the process-wide `autoChanger` pointer was removed.
-  `AudioVisualBridge` owns the current `AutoChanger` instance temporarily.
+  Current working-tree follow-up removed the intermediate bridge wrapper and
+  keeps the current `AutoChanger` instance in `Application`.
 - `videoDirector()` singleton.
 - `sceneCommandsForLegacyCallbacks()` global bridge.
 
@@ -143,19 +386,31 @@ Done since 73fd509:
 - `AudioProcessor` is an owned instance. FFT state is behind
   `AudioFftProcessor`, with the old lookup/static tables removed.
 - Audio processing selection is owned by `AudioProcessingState` and changed
-  through `AudioProcessingSelector`/`RuntimeAudioControls`.
+  through `AudioProcessingSelector`/`RuntimeAudioControls`; random selection
+  uses an injected `RandomSource`.
+- Synthetic random audio input receives `RandomSource` from Application-owned
+  `AudioIngest` composition through `RuntimeFactory` and `PcmSourceFactory`.
+- Audio ingest visual pacing receives `SecondsClock` from Application rather
+  than owning a hidden `getTime()` adapter.
+- Audio frame pipeline trace timing receives `SecondsClock` from Application
+  rather than calling `getTime()` directly.
+- Audio output service trace timing receives `SecondsClock` from Application
+  through `RuntimeFactory` rather than calling `getTime()` directly.
 - PCM history, passthrough, output config, output dumping, Pulse diagnostics,
   submitted-PCM diagnostics, and OSS mixer controls are instance-owned.
 
 Remaining audio-adjacent work:
 
-- `AudioVisualBridge` still combines audio processing/analysis with
-  AutoChanger orchestration. Scene-owned auto-change policy should replace
-  that bridge.
+- Done in current working tree: per-frame audio processing/analysis moved into
+  `AudioFramePipeline`/`DefaultAudioFramePipeline`; the redundant bridge
+  wrapper was deleted. `Application` owns the remaining AutoChanger policy
+  until Scene-owned auto-change scheduling replaces it.
 - Audio still receives visual frame-window sizing from `Application`; keep that
   explicit until Frame Mutation owns frame geometry.
-- Audio still uses process clock/random/logging adapters in places; those move
-  with Application Lifecycle/Process Services.
+- Auto-change now receives Application-owned clock/random adapters directly;
+  the remaining issue is module placement, not hidden clock/random ownership.
+  Broader legacy logging macro cleanup still moves with Process
+  Services/Diagnostics.
 
 ### Video And Screen Rendering State
 
@@ -164,13 +419,16 @@ Remaining audio-adjacent work:
   `paletteSmoothingChance`.
 - `SceneCommands` is explicit as a facade, but it still reads every visual
   option singleton to build `SceneSettings`.
-- `display.cc` renderers are partly explicit through `ScreenRenderContext`, but
-  `screen_hfield`/`prepare_3d` read `acousticContext`, `screen_bent` reads
-  `audioMetrics`, and `screen_zick` reads `audioFrameProcessedWaveData()`.
+- Done since 73fd509: `display.cc` renderer audio inputs now arrive through
+  `ScreenRenderContext` rather than global audio facades/metrics.
 - `display.cc` also keeps renderer state in file-scope statics:
   `perm_lines`, `height_offset`, `s1`, `s2`, `p`, `rot`, `scaleFactor`,
   `scaleFactorPhase`, `splatSize`, `zicks`, and function-local animation
   state. These should be per-renderer state, not ambient state.
+- `VideoFilters.cc` still has frame-commit diagnostic throttling as a
+  function-local `static int debugReports`; that should become
+  `FrameCommitFilter` state when Frame Mutation takes ownership of filterchain
+  runtime state.
 
 ### Display Backend And Overlay State
 
@@ -196,16 +454,24 @@ Remaining audio-adjacent work:
 
 ### Ini Persistence And Platform State
 
-- `IniFiles.cc` keeps process-wide writer state and a persisted startup
-  `Config` snapshot for runtime save commands.
+- Done since 73fd509: `IniFiles.cc` no longer keeps process-wide writer state
+  or a persisted startup `Config` snapshot for runtime save commands. Automatic
+  and continuation writes build a local `IniWriter` around the opened file, and
+  runtime saves read the current explicit `RuntimeConfigRegistry` snapshot
+  through `IniRuntimePersistence`.
 - `DisplayDeviceX11::cth_init()` still lets Xt consume toolkit command-line
   options/resources during X shell initialization.
-- `PlatformLifecycle.cc` uses process-level static signal state. The signal
-  flag itself may remain internal to the platform service, but the application
-  dependency on lifecycle requests should be explicit.
+- Done since 73fd509: `PlatformLifecycle` owns suspend request, handler
+  installation, and previous-handler state. The remaining file-scope pointer is
+  the POSIX signal bridge to active owned state, not application-visible
+  lifecycle ownership.
 - Done since 73fd509: OSS mixer state moved into `MixerSession`/`MixerDevice`
-  and UI adapters; submitted PCM dumping moved into `AudioOutputDump`, and
-  submitted-PCM debug throttling is per `AudioOutput`.
+  and UI adapters. Current working-tree follow-up routes mixer diagnostics
+  through an explicit `LogSink&` instead of the legacy `CTH_*` macro adapter,
+  and mixer option label text is now stored per adapter instead of in a shared
+  function-local static buffer.
+  Submitted PCM dumping moved into `AudioOutputDump`, and submitted-PCM debug
+  throttling is per `AudioOutput`.
 
 ### Stale Or Suspicious Compatibility Surface
 
@@ -215,6 +481,11 @@ These are declared or defined but appear unused in the current production path:
 declaration in `display.h` while X11 uses a member named `rev_byte_order`.
 Each should be deleted or covered by a build target that proves it is still
 needed.
+
+Done in current working tree: `RuntimeCommand` no longer has raw `Option*` or
+`EffectControl*` payload fields. Interface and X11 panel code route borrowed
+legacy option/effect objects through `RuntimeCommandTargetRouter`, which keeps
+the adapter lifetime scoped to the synchronous mediator call.
 
 ## Target Shape
 
@@ -280,8 +551,8 @@ implicit coupling under a new name.
   to Display or Scene messages, not `Logger`.
 - Does not fit: `ApplicationContext` itself. It is composition glue, not a
   service and not a dependency that ordinary production code may request.
-- Missing candidate: an explicit `ExternalProcessRunner` or
-  `ShellCommandRunner` for `systemf()` if legacy shell-out behavior remains.
+- No shell/external-process runner is currently needed; add one only if future
+  behavior intentionally reintroduces shell-out.
 
 ### Configuration Module
 
@@ -316,10 +587,13 @@ implicit coupling under a new name.
   loading, runtime persistence, and module-owned serializers.
 - Does not fit: `EffectRegistry` persistence should not be owned by
   Configuration; Configuration should call a Scene-provided serializer instead.
-- Missing candidates: `ConfigurationBuilder`, `ConfigSource`,
-  `ConfigAcquisitionStrategy`, `ConfigPatch`, `ConfigSchema`,
-  `DeferredLogBuffer`, `CommandLineParser`, `ConfigLoader`,
-  `RuntimeOptionSchema`, `ConfigPersistence`, and `PathResolver`.
+- Landed candidates since 73fd509: `ConfigurationBuilder`,
+  source-strategy-style config acquisition, `ConfigPatch`, `ConfigSchema`,
+  `DeferredLogBuffer`, typed `Config` slices, and explicit runtime
+  persistence entry points.
+- Still useful candidates: narrower `PathResolver`/`ConfigLoader` names if
+  path lookup and source selection need more isolation, plus module-owned
+  serializers for Scene and Display.
 
 #### Configuration Module Findings
 
@@ -333,7 +607,7 @@ The implemented startup shape is:
 ConfigBuildResult startupConfig = buildStartupConfig(argc, argv);
 Application handles diagnostics/help and then supplies slices:
 
-cthugha_configure_logging(startupConfig.config.logging);
+loggingRuntimeValue.configure(startupConfig.config.logging);
 configureAudioOptions(startupConfig.config.audio);
 configureCthughaDisplay(startupConfig.config.display);
 configureAutoChanger(startupConfig.config.autoChange);
@@ -520,6 +794,10 @@ Current runtime reconfiguration status:
 - Done since 73fd509: live audio-processing and auto-change edits now mutate
   owned state through runtime controls; OSS mixer edits route through
   `RuntimeAudioControls`/`MixerControls`.
+- Done in current working tree: generic raw `Option&`/`EffectControl&`
+  command factories and raw `RuntimeCommand` payload fields are gone.
+  `RuntimeCommandTargetRouter` now gives Interface/X11 panel code an explicit
+  target-backed dispatch port.
 - Remaining: `Option`/`EffectControl` still carry UI text/parsing and many
   scene/display live values. Scene and Display need their own live-state
   owners before `Option` becomes metadata/adapters rather than domain state.
@@ -569,9 +847,11 @@ Current Commands/Input status:
   `currentOptionInterfaceElement` are gone from production code.
 - Remaining: `Action::head`, `Keymap::first`, `Keymap::current`, static
   `Keymap::action(...)`, `Keymap::runtimeCommandSink()`,
-  `Keymap::audioProcessingState()`, `Keymap::interfaceRuntime()`, `x11_key`,
-  `key_esc`, and global key associations still need an explicit input/command
-  registry and dispatch context.
+  `Keymap::interfaceRuntime()`, `x11_key`, `key_esc`, and global key
+  associations still need an explicit input/command registry and dispatch
+  context. The stop-and-continue action no longer builds a continuation
+  snapshot inside keymap; persistence now snapshots the current runtime config
+  through `RuntimeConfigRegistry`.
 
 ### Scene Module
 
@@ -603,8 +883,8 @@ Current Commands/Input status:
   smoothing. Only scene state and scene transitions belong here. Visual
   selections currently inside `AppOptions` should move into explicit scene
   state or a scene configuration view.
-- Does not fit: `AudioVisualBridge`; audio should publish analysis snapshots and
-  Scene should consume them through policy.
+- Does not fit: audio module wrappers; audio should publish analysis snapshots
+  and Scene should consume them through policy.
 - Missing candidates: `SceneController`, `SceneState`, `SceneSnapshot`,
   `SceneChangeScheduler`, and `SceneSerializer`.
 
@@ -636,7 +916,7 @@ Current Commands/Input status:
   `AudioAnalysisState::minimumNoiseSatisfied(...)` is Scene policy and should
   leave Audio. `AudioSystem` and `AudioRuntime` should split into acquisition,
   passthrough, processing, analysis, output dump, and mixer/device adapters.
-- Does not fit: `AutoChanger` and `AudioVisualBridge`.
+- Does not fit: `AutoChanger` as an audio policy.
 - Missing candidates: `AudioAcquisitionRuntime`, `AudioPassthrough`,
   `AudioProcessingPipeline`, `AudioAnalysisSnapshot`, `AudioFrameProducts`,
   `AudioDeviceConfig`, and `AudioDumpWriter`.
@@ -661,8 +941,10 @@ runtime object:
 2. Audio acquisition
    - Purpose: Turn one selected PCM source, whether generated/file/live, into
      the raw audio frame for the current visual tick.
-   - Current code: `AudioRuntime.cc` buffered pipeline,
-     `AudioInputProcessor`, `AudioBuffer`, and `AudioFrameBuilder`.
+   - Current code: `AudioIngest`, `DecodedAudioHistory`,
+     `AudioFrameBuilder`, and low-level `PcmSource` implementations.
+     Formerly this was concentrated in `AudioRuntime.cc`,
+     `AudioInputProcessor`, and `AudioBuffer`.
    - Output: `AudioFrame` or future `RawAudioFrameSnapshot` containing signed
      8-bit stereo samples, sample count, center sample, format metadata, and
      silence/completion status.
@@ -674,9 +956,9 @@ runtime object:
 
 3. Audio passthrough
    - Purpose: Optionally play acquired/generated PCM through an output backend.
-   - Current code: `AudioOutput`, `AudioNullOutput`, `AudioPulseOutput`,
-     `AudioDSPOutput`, output service logic in `AudioRuntime.cc`, and audio
-     dump helpers in `AudioInternal.cc`.
+   - Current code: `AudioPassthrough`, `AudioOutput`, `AudioNullOutput`,
+     `AudioPulseOutput`, `AudioDSPOutput`, `AudioOutputDump`, and submitted-PCM
+     debug reporting owned by output instances.
    - Output: submitted PCM and completion/drain status.
    - Dependencies to inject: output config, output backend factory, clock for
      diagnostics/pacing, logger, optional `AudioDumpWriter`, and the PCM buffer
@@ -689,9 +971,11 @@ runtime object:
 4. Audio processing for visuals
    - Purpose: Convert one raw per-frame audio snapshot into the data the visual
      domain needs for rendering.
-   - Current code: `AudioProcessor`, `AudioProcessingOption`,
-     `audioProcessing`, global FFT tables, and writes to
-     `AudioFrame::processedWaveData`.
+   - Current code: `AudioFramePipeline`, `AudioProcessingSelector`,
+     `AudioProcessingState`, owned `AudioProcessor`, and
+     `AudioFftProcessor`, writing explicitly into `AudioFrame::processedWaveData`.
+     Formerly this mixed `AudioProcessingOption`, the global `audioProcessing`,
+     global FFT tables, and the audio-frame facade.
    - Output: future `VisualAudioFrame` or `ProcessedAudioFrame` containing the
      processed wave data used by waves, zick, borders, and other renderers.
    - Dependencies to inject: processing mode/config, owned FFT tables or
@@ -702,9 +986,11 @@ runtime object:
 5. Acoustic context
    - Purpose: Maintain a stateful view of what the music is doing over time.
      This is slower semantic audio state, not renderer sample data.
-   - Current code: `AudioAnalyzer`, `AudioMetrics`, `AcousticContext`,
-     `sound_minnoise`, `audioAnalyzer`, `audioMetrics`, and
-     `acousticContext`.
+   - Current code: `AudioFrame` owns per-frame `AudioMetrics`,
+     `DefaultAudioFramePipeline` analyzes each frame, and `Application` owns the
+     rolling `AcousticContext`. Formerly this mixed `AudioAnalyzer`,
+     `sound_minnoise`, global `audioAnalyzer`, global `audioMetrics`, and
+     global `acousticContext`.
    - Output: future `AudioAnalysisSnapshot` containing frame metrics,
      smoothed intensity, attack/fire, cumulative fire, and noisy/quiet status.
    - Dependencies to inject: raw audio frame, acoustic-analysis config such as
@@ -729,26 +1015,28 @@ AudioAnalysisSnapshot through its frame context.
 Display receives pixels only.
 ```
 
-Current smells confirmed in code:
+Original audio smells and current status:
 
-- `AudioRuntime.cc` owns source acquisition, output passthrough, buffering,
-  frame reconstruction, threading, visual clock alignment, playback completion,
-  and shutdown requests in one file-scope singleton.
-- `AudioFrame.cc` is a global facade over the current raw frame, processed
-  frame, silent fallback, runtime tick, and processor change notification.
-- `AudioProcessor.cc` mixes visual processing algorithms, option/catalog
-  registration, global FFT tables, random option selection, and direct access
-  to the global audio-frame facade.
-- `AudioAnalyzer.cc` mixes pure analysis, stateful acoustic context,
-  `sound_minnoise` option ownership, and global publication of metrics/context.
-- `AudioVisualBridge` is not a good module boundary. It currently processes
-  audio, analyzes audio, constructs/deletes `AutoChanger`, and calls scene
-  policy. The replacement should be separate `AudioFramePipeline` plus
-  Scene-owned `SceneChangeScheduler`.
-- `visualMaxDimension` leaking into audio startup is a real cross-boundary
-  dependency. It should become an explicit `AudioFrameWindowConfig` supplied by
-  the composition root from display/frame geometry, not an implicit display
-  dependency inside audio.
+- Done: `AudioRuntime.cc` file-scope ownership was replaced by
+  `AudioIngest`, `DecodedAudioHistory`, `AudioPassthrough`, and owned output
+  objects.
+- Done: the `AudioFrame.cc` global facade was removed; `Application` now
+  advances ingest and hands an owned `AudioFrame` into the visual frame path.
+- Done: `AudioProcessor.cc` no longer owns option/catalog selection or global
+  FFT tables; sound-processing mode is owned by `AudioProcessingState`, and FFT
+  work is behind `AudioFftProcessor`.
+- Done: `AudioAnalyzer.cc` no longer publishes global metrics/context or owns
+  `sound_minnoise`; per-frame metrics live on `AudioFrame`, and
+  `AcousticContext` is Application-owned.
+- Done in current working tree: per-frame audio processing/analysis moved into
+  `AudioFramePipeline`/`DefaultAudioFramePipeline`, which processes the frame,
+  publishes frame metrics, and updates `AcousticContext`.
+- Done in current working tree: the intermediate audio-to-visual wrapper was
+  deleted. Remaining follow-up is to move AutoChanger behavior from
+  `Application` into a Scene-owned `SceneChangeScheduler`.
+- Remaining: audio frame-window sizing is explicit at the Application
+  composition root, but it still depends on display/frame geometry until Frame
+  Mutation owns that boundary.
 
 Audio module objects should be split this way:
 
@@ -769,7 +1057,8 @@ Audio module objects should be split this way:
 - `AudioModule`: module root owned by `Application`; it wires the above
   objects and exposes narrow interfaces, not global facades.
 
-The first audio refactor should add tests around these seams before moving code:
+The audio refactors added tests around these seams; keep extending that style
+for the remaining Scene policy cleanup:
 
 - Service tests: deterministic `PcmSource` generation, raw frame building from
   a fixture PCM stream, passthrough drain/completion, each visual processing
@@ -800,17 +1089,22 @@ Current Audio status since 73fd509:
   `AudioFftProcessor`, and no longer owns global FFT tables.
 - Done: `AudioProcessingState`/`AudioProcessingSelector` own sound-processing
   mode; runtime audio controls mutate the selector.
+- Done: `AudioFramePipeline`/`DefaultAudioFramePipeline` own per-frame audio
+  processing, analysis, acoustic-context updates, and bounded debug reporting.
 - Done: `AcousticContext` is Application-owned and passed explicitly through
   frame contexts.
 - Done: startup/device audio configuration and output configuration are
   explicit (`AudioConfig`, `AudioSettings`, `PcmFormat`,
   `AudioOutputConfig`, `AudioOutputDump`).
-- Done: OSS mixer state and controls are owned by `MixerSession`,
-  `MixerDevice`, and `MixerControls`.
+- Done: OSS mixer state, controls, and diagnostics are owned by
+  `MixerSession`, `MixerDevice`, `MixerControls`, and an explicit `LogSink`;
+  mixer option label text is instance-owned rather than static shared state.
+- Done: `AutoChanger` timing/random inputs, quiet-message observation,
+  diagnostics, and status text storage are explicit collaborators/state
+  supplied by `Application`.
 - Done: submitted-PCM and Pulse underflow debug throttles are instance-local.
-- Remaining: replace `AudioVisualBridge` with a cleaner audio pipeline plus
-  Scene-owned auto-change policy; move process clock/random/logging access out
-  through Application Lifecycle; keep driving display/frame consumers from
+- Remaining: move the remaining Application-owned AutoChanger policy into
+  Scene-owned auto-change scheduling; keep driving display/frame consumers from
   explicit `VideoFrameContext` until Frame Mutation owns that boundary.
 
 Historical removal order inside Audio and its status:
@@ -829,8 +1123,10 @@ Historical removal order inside Audio and its status:
 3. Done in current shape: extract `AcousticContextTracker` from
    `AudioAnalyzer.cc` so analysis owns no
    globals and receives minimum-noise config explicitly.
-4. Remaining: replace `AudioVisualBridge` with an audio-only per-frame pipeline that
-   returns `AudioFrameProducts`; move automatic scene-change policy into Scene.
+4. Done in current shape: introduce `AudioFramePipeline` as the audio-only
+   per-frame pipeline. Current working-tree follow-up deleted the intermediate
+   wrapper; remaining follow-up is moving automatic scene-change ownership from
+   `Application` into Scene.
 5. Done in current shape: convert `AudioFrameProvider` to raw-frame-only and pass raw/processed/audio
    analysis products into `VideoFrameContext`.
 6. Done: split `AudioRuntime.cc` into acquisition and passthrough owners, preserving
@@ -844,8 +1140,9 @@ Historical removal order inside Audio and its status:
   turns scene snapshots plus audio/frame inputs into pixels.
 - Owns/replaces: `CthughaBuffer::buffer`, `CthughaBuffer::current`,
   `display.cc` renderer statics, screen renderer state, translation/image
-  working buffers, and mutable math/render lookup tables where they are render
-  implementation details.
+  working buffers, filterchain diagnostic/runtime counters such as
+  `FrameCommitFilter` debug throttling, and mutable math/render lookup tables
+  where they are render implementation details.
 - Inputs: `SceneSnapshot`, `AudioFrame` or `AudioAnalysisSnapshot`, display
   dimensions, frame timing, and renderer configuration.
 - Outputs: `IndexedFrame` or frame view ready for Display presentation.
@@ -917,13 +1214,12 @@ Historical removal order inside Audio and its status:
   `DisplayRuntimeOwnership`, `InterfaceManager`, `KeymapRegistry`,
   `AudioAnalysisState` as currently written, `AudioFrameProvider` as currently
   written, `AudioSystem`, and `AudioRuntime`.
-- Does not fit as a service: `ApplicationContext`, `AudioVisualBridge`,
+- Does not fit as a service: `ApplicationContext`, one-off bridge wrappers,
   `CthughaBuffer` if treated as a peer service rather than frame storage, and
   any logger-to-overlay coupling.
 - Missing from the original service list: `InputQueue`, `CommandDispatcher`,
   `CommandContext`, `SceneController`, `FrameComposer`, `DisplaySystem`,
-  `PathResolver`, `ConfigLoader`, and an explicit shell/external-process
-  runner for `systemf()`.
+  `PathResolver`, and `ConfigLoader`.
 
 ## ApplicationContext Service Contracts
 
@@ -1116,9 +1412,8 @@ old names still need to be implemented.
 - Globals replaced: `AudioRuntime.cc` file-scope pointers, threads, atomics,
   chunk buffers, completion flags, visual clock state, mixer setup state where
   runtime-owned, and audio dump state when it belongs to output.
-- Used by: `Application` startup/run/teardown, `AudioVisualBridge`,
-  `AudioProcessor`, `AudioAnalyzer`, display frame context creation, and tests
-  with fake input.
+- Used by: `Application` startup/run/teardown, `AudioFramePipeline`, display
+  frame context creation, and tests with fake input.
 - Provided to customers: `ApplicationContext` owns `AudioSystem`; dependents
   receive `AudioSystem&` for lifecycle or `AudioFrameProvider&` for frame reads.
 - Lifecycle timing: Configured after `AppOptions` and `PathConfig`; started
@@ -1157,10 +1452,10 @@ old names still need to be implemented.
 - Purpose: Own derived audio analysis data used by visuals and automatic scene
   changes.
 - Globals replaced: `audioAnalyzer`, `audioMetrics`, `acousticContext`, and
-  analysis reads in `display.cc`, `AutoChanger`, and `AudioVisualBridge`.
+  analysis reads in `display.cc` and `AutoChanger`.
   The global `autoChanger` pointer is removed by moving automatic scene-change
   policy into the Scene module as `SceneChangeScheduler`.
-- Used by: `AudioAnalyzer`, `AudioVisualBridge`, `AutoChanger`,
+- Used by: `AudioFramePipeline`, `AutoChanger`,
   `VideoFrameContext`, `ScreenRenderContext`, `display.cc` 3-D/bent/zick
   renderers, and border/flashlight effects that depend on audio.
 - Provided to customers: `ApplicationContext` owns `AudioAnalysisState`;
@@ -1185,7 +1480,7 @@ old names still need to be implemented.
   `CthughaBuffer::buffer`, `maxFramesPerSecond`, `changeMsgTime`, and
   `paletteSmoothingChance`.
 - Used by: `Application::run()`, `SceneCommands`, key actions,
-  `AudioVisualBridge`, auto-change, message/overlay code, and tests for scene
+  auto-change, message/overlay code, and tests for scene
   transitions.
 - Provided to customers: Owned by `ApplicationContext` after display, buffer,
   options, catalogs, and analysis services are available; passed explicitly as
@@ -1365,7 +1660,7 @@ This order is outside-in at the module boundary. Within each module, apply the
 seven-step loop to every clean service or split-out component before moving on.
 Do not implement split-required services as single classes.
 
-1. Application Lifecycle - partially complete
+1. Application Lifecycle - complete for lifecycle ownership, Process Services diagnostics tail remaining
    - API first: module-root construction, shutdown requests, lifecycle polling,
      clock/random/logging interfaces, and run-loop sequencing.
    - Red 1 tests: lifecycle services can be faked independently and do not need
@@ -1378,14 +1673,42 @@ Do not implement split-required services as single classes.
      unused shell-execution helpers.
    - Done since 73fd509: shutdown requests are Application-owned through
      `RuntimeShutdown`/`RuntimeCloseState`; direct `cthugha_close` mutation is
-     gone from normal runtime paths.
-   - Remaining: make clock, frame timing, random source, logging, and stale
-     process helpers explicit.
+     gone from normal runtime paths, and the stale declaration/definition were
+     removed. `Application` now owns its `FramePacer`, and owns the clock and
+     random-source adapters used by `AutoChanger` and audio-processing mode
+     selection, plus the quiet-observer adapter used by `AutoChanger` and
+     synthetic random PCM input. Audio ingest visual pacing
+     and audio frame pipeline trace timing receive an Application-owned
+     `SecondsClock`. Application run-loop/frame tracing and frame-pacing
+     samples use the same owned `SecondsClock`. `FrameClock` now consumes the
+     shared `SecondsClock` interface instead of its private time-source adapter.
+     `CthughaDisplay` owns the visual frame clock/timestamp/delta values instead
+     of exporting `now`/`deltaT`.
+     Interface error expiry and credits animation use the Application-owned
+     `MillisecondClock` through `InterfaceRuntime`. X11 display/frame trace
+     timing also receives the Application-owned `SecondsClock`.
+     `CStdRandomSource` owns deterministic generator state, and direct
+     Application seeding of legacy C random state was removed after migrated
+     runtime paths stopped using it. Generic EffectControl randomization,
+     random palette generation, and wave rendering now consume that source
+     through `SceneCommands`/`WaveRuntime`. Application now also owns
+     `ConsoleLogSink`; `AudioIngest`, `RuntimeFactory`, and `PcmSourceFactory`
+     receive/use an explicit `LogSink` for Audio startup diagnostics, and
+     `AudioFramePipeline` receives it for per-frame audio diagnostics.
+     `PcmSource`/`AudioInput`/`DspPcmSource` receive it for acquisition
+     diagnostics. `AudioOutput` receives it for shared output service
+     diagnostics, and Pulse/OSS-DSP output backends, `AudioPassthrough`, and
+     `AudioOutputDump` now emit through that sink too. `Application` itself
+     now emits startup/run-loop lifecycle diagnostics through its owned
+     `ConsoleLogSink`, and `PlatformLifecycle` receives `LogSink&` for
+     suspend/resume diagnostics instead of using `CTH_*` macros.
+   - Remaining: continue replacing `CTH_*` macro call sites with explicit
+     logging sinks and then delete `LegacyLoggingAdapter.cc`.
    - Recheck target: no reads/writes of `cthugha_close`, `gettime()`,
      `getTime()`, `rand()`, `srand()`, `Random()`, lifecycle statics, or
      logging verbosity outside owner/adapters.
 
-2. Configuration - startup acquisition/provisioning complete, persistence split partly complete
+2. Configuration - complete for startup acquisition/provisioning and current persistence boundary
    - API first: `ConfigurationBuilder`, `ConfigSource` strategies,
      `ConfigPatch`, `ConfigSchema`, `DeferredLogBuffer`, immutable `Config`
      slices, `RuntimeOptionSchema`, `PathResolver`, `ConfigPersistence`, and
@@ -1403,14 +1726,19 @@ Do not implement split-required services as single classes.
      tested, and slice-based; legacy parser globals and no-arg ini write paths
      were removed.
    - Remaining: finish module-owned serializers for Scene/Display and reduce
-     Configuration knowledge of runtime-owned domains.
+     Configuration knowledge of runtime-owned domains. Runtime persistence
+     already reads explicit current-state contributors rather than startup
+     globals.
    - Recheck target: no scalar/string startup option globals, path globals, or
      parser-owned globals outside Configuration and persistence adapters.
 
-3. Runtime Reconfiguration - substantially complete
+3. Runtime Reconfiguration - complete for current command-routing boundary
    - Done since 73fd509: runtime commands, mediator, subsystem control ports,
      runtime config registry, runtime persistence, shutdown, audio-processing,
      auto-change, effect-control, display, and mixer routing are in place.
+     Current working-tree follow-up removed raw `Option&`/`EffectControl&`
+     command payloads and added `RuntimeCommandTargetRouter` for synchronous
+     target-backed UI/panel dispatch.
    - Remaining: `Option`/`EffectControl` still own too much domain state for
      Scene and Display; those modules need owned live state before this module
      can become mostly metadata plus typed dispatch.
@@ -1451,30 +1779,34 @@ Do not implement split-required services as single classes.
      `SceneCommands` exist; auto-change settings are owned; `autoChanger` is no
      longer a process-wide pointer.
    - Remaining: own visual selections, effect registry/catalogs, presets,
-     scene serialization, and move AutoChanger policy out of
-     `AudioVisualBridge`.
+     scene serialization, and move AutoChanger policy out of `Application`.
    - Recheck target: no visual selection globals, `EffectControl::first`,
      hidden preset traversal, `sceneCommandsForLegacyCallbacks()`, or global
      `autoChanger`.
 
-6. Audio - substantially complete, with bridge/policy cleanup remaining
+6. Audio - complete for runtime ownership, with Scene-owned policy cleanup remaining
    - API first: `AudioAcquisitionRuntime`, `AudioPassthrough`, raw
      `AudioFrameProvider`, `AudioProcessingPipeline`, `AudioFrameProducts`,
      `AudioAnalysisSnapshot`, mixer/device adapters, and `AudioDumpWriter`.
    - Red 1 tests: audio runtime, frame provider, processor, analyzer, silent
      fallback, mixer/device config, and dump writer are independently fakeable.
-   - Red 2 tests: `AudioVisualBridge`, `AudioProcessor`, `AudioAnalyzer`,
-     screen contexts, and border effects consume explicit audio products.
+   - Red 2 tests: `AudioFramePipeline`, screen contexts, and border effects
+     consume explicit audio products.
    - Green targets: split `AudioSystem`, raw-only `AudioFrameProvider`,
      policy-free `AudioAnalysisState`, owned audio processor state, mixer state,
      and dump writer.
    - Done since 73fd509: `AudioRuntime` and audio frame facades were removed;
      acquisition, passthrough, processing selection, processor/FFT state,
      analysis metrics, output config/dump, Pulse diagnostics, and OSS mixer are
-     owned/tested units.
-   - Remaining: replace `AudioVisualBridge` with a cleaner audio pipeline and
-     Scene-owned auto-change policy; remove process clock/random/logging
-     dependencies as part of Application Lifecycle.
+     owned/tested units. Current working-tree follow-up also removed the OSS
+     mixer dependency on the legacy logging macro adapter, extracted
+     `AudioFramePipeline`, removed `AutoChanger`'s direct `videoDirector()`
+     dependency, moved `AutoChanger` ownership to `Application`, and deleted
+     the intermediate bridge wrapper.
+   - Remaining: move Application-owned auto-change policy into Scene. The
+     clock/random/logging dependencies for the current audio runtime path are
+     already explicit; broader legacy `CTH_*` cleanup belongs to the Process
+     Services diagnostics tail.
    - Recheck target: no audio facade functions, `audioAnalyzer`,
      `audioMetrics`, `acousticContext`, `AudioRuntime.cc` file-scope runtime
      state, mixer globals, or audio dump globals outside owners.

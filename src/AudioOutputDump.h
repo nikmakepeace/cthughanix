@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string>
 
+class LogSink;
+
 /**
  * Writes submitted output PCM to a WAV file when configured.
  *
@@ -18,6 +20,7 @@
  */
 class AudioOutputDump {
     std::string pathValue;
+    LogSink& log;
     FILE* out;
     int initialized;
     int enabled;
@@ -31,15 +34,13 @@ class AudioOutputDump {
     void refreshHeader();
 
 public:
-    /** Creates a disabled output dump. */
-    AudioOutputDump();
-
     /**
      * Creates an output dump for a requested path.
      *
      * @param path Output WAV path. Empty disables dumping.
+     * @param log_ Sink for dump diagnostics.
      */
-    explicit AudioOutputDump(const std::string& path);
+    AudioOutputDump(const std::string& path, LogSink& log_);
 
     /** Closes the dump file. */
     virtual ~AudioOutputDump();

@@ -5,6 +5,7 @@
 #include "EffectControl.h"
 
 class CthughaBuffer;
+class RandomSource;
 struct PathConfig;
 
 /**
@@ -142,10 +143,11 @@ public:
      * @param image Image to place.
      * @param bufferWidth Target buffer width in pixels.
      * @param bufferHeight Target buffer height in pixels.
+     * @param randomSource Random source for strategies that randomize placement.
      * @return Clipped image placement.
      */
     virtual ImagePlacement choose(const IndexedImage& image, int bufferWidth,
-        int bufferHeight) const = 0;
+        int bufferHeight, RandomSource& randomSource) const = 0;
 };
 
 /**
@@ -157,10 +159,11 @@ public:
      * @param image Image to place.
      * @param bufferWidth Target buffer width in pixels.
      * @param bufferHeight Target buffer height in pixels.
+     * @param randomSource Random source used to choose the placement.
      * @return Random legal placement, clipped to the target buffer.
      */
     ImagePlacement choose(const IndexedImage& image, int bufferWidth,
-        int bufferHeight) const;
+        int bufferHeight, RandomSource& randomSource) const;
 };
 
 /**

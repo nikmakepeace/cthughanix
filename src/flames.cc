@@ -3,7 +3,7 @@
 #include "cthugha.h"
 #include "display.h"
 #include "Interface.h"
-#include "imath.h"
+#include "ProcessServices.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
 #include "flames.h"
@@ -14,6 +14,11 @@ static const int generalFlameStates = 9 * 9 * 9 * 9 * 9;
 
 FlameOption flame;
 GeneralFlameOption flameGeneral;
+
+static int modInt(int value, int modulo) {
+    int result = value % modulo;
+    return result < 0 ? result + modulo : result;
+}
 
 struct FlameOffsets {
     int value[4];
@@ -92,6 +97,12 @@ GeneralFlameOption::GeneralFlameOption()
     : EffectControl(-1, "flame-general", generalFlameEntries, EFFECT_CONTROL_AUTO_CHANGE) { }
 
 void GeneralFlameOption::change(const char* to, int doSave) {
+    static CStdRandomSource fallbackRandomSource;
+    change(to, fallbackRandomSource, doSave);
+}
+
+void GeneralFlameOption::change(const char* to, RandomSource& randomSource,
+    int doSave) {
     char* pos;
 
     if ((to == NULL) || (to[0] == '\0'))
@@ -105,28 +116,33 @@ void GeneralFlameOption::change(const char* to, int doSave) {
     int newValue = strtol(to, &pos, 0);
     if (pos == to) {
         CTH_WARN("Unknown entry `%s' for option `%s'\n", to, name());
-        changeRandom(0);
+        changeRandom(randomSource, 0);
         return;
     }
 
-    value = mod(newValue, generalFlameStates);
+    value = modInt(newValue, generalFlameStates);
 }
 
 void GeneralFlameOption::change(int by, int doSave) {
     if (doSave)
         save();
 
-    value = mod(value + by, generalFlameStates);
+    value = modInt(value + by, generalFlameStates);
 }
 
 void GeneralFlameOption::changeRandom(int doSave) {
+    static CStdRandomSource fallbackRandomSource;
+    changeRandom(fallbackRandomSource, doSave);
+}
+
+void GeneralFlameOption::changeRandom(RandomSource& randomSource, int doSave) {
     if (lock)
         return;
 
     if (doSave)
         save();
 
-    value = Random(generalFlameStates);
+    value = randomSource.uniformInt(generalFlameStates);
 }
 
 EffectChoice* _flames[] = {

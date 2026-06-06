@@ -1,8 +1,8 @@
 // Private helper implementations shared across the audio split units.
 
-#include "cthugha.h"
 #include "AudioInternal.h"
 #include "Audio.h"
+#include "ProcessServices.h"
 #include "imath.h"
 
 static int readSigned16Le(const unsigned char* p) {
@@ -80,8 +80,8 @@ AudioSubmittedPcmDebugReporter::AudioSubmittedPcmDebugReporter()
 
 void AudioSubmittedPcmDebugReporter::submittedPcm(const PcmFormat& format, const char* scratch,
     int samples, int bytes, int written, int queuedSamples,
-    long long submittedEndSample) {
-    if (!CTH_LOG_ENABLED(CTH_LOG_DEBUG))
+    long long submittedEndSample, LogSink& log) {
+    if (!log.debugEnabled())
         return;
 
     int reports = reportsValue.load();
@@ -93,7 +93,7 @@ void AudioSubmittedPcmDebugReporter::submittedPcm(const PcmFormat& format, const
     if (reports >= 8)
         return;
 
-    CTH_DEBUG("    audio output: submitted samples=%d bytes=%d written=%d peak=%d queued-samples=%d submitted-end-sample=%lld\n",
+    log.debug("    audio output: submitted samples=%d bytes=%d written=%d peak=%d queued-samples=%d submitted-end-sample=%lld\n",
         samples, bytes, written, audioPcmPeak(format, scratch, samples), queuedSamples,
         submittedEndSample);
 }

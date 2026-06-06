@@ -2,9 +2,9 @@
  * Startup/session audio settings snapshot implementation.
  */
 
-#include "cthugha.h"
 #include "AudioSettings.h"
 #include "Configuration.h"
+#include "ProcessServices.h"
 
 #include <string.h>
 
@@ -38,11 +38,12 @@ void AudioSettings::refreshFromConfig(const AudioConfig& config) {
     dspDevicePath[PATH_MAX - 1] = '\0';
 }
 
-AudioSettings AudioSettings::fromConfig(const AudioConfig& config) {
+AudioSettings AudioSettings::fromConfig(const AudioConfig& config,
+    LogSink& log) {
     AudioSettings settings;
     settings.refreshFromConfig(config);
 
-    CTH_DEBUG("runtime settings: audio-input-mode=%d rate=%d channels=%d format=%d sound-dsp-method=%d silent=%d file=`%s'\n",
+    log.debug("runtime settings: audio-input-mode=%d rate=%d channels=%d format=%d sound-dsp-method=%d silent=%d file=`%s'\n",
         settings.audioInputMode, settings.pcmFormat.sampleRate,
         settings.pcmFormat.channels, settings.pcmFormat.sampleFormat,
         settings.soundDSPMethod, settings.silent, settings.fileName);

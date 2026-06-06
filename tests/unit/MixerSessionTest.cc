@@ -4,16 +4,19 @@
 
 #include "Mixer.h"
 #include "Configuration.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
 
-int cth_log_enabled(int) { return 0; }
-int cth_log(int, const char*, ...) { return 0; }
-int cth_log_context(int, const char*, const char*, ...) { return 0; }
-int cth_log_error(const char*, ...) { return 0; }
-int cth_log_errno(int, const char*, ...) { return 0; }
+class NullLogSink : public LogSink {
+public:
+    virtual int enabled(int) const { return 0; }
+
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+};
 
 class FakeMixerDevice : public MixerDevice {
 public:
@@ -44,7 +47,8 @@ public:
 
     virtual int initialize(const std::string& path,
         const std::vector<MixerInitialVolume>& initialVolumes,
-        std::vector<MixerChannel>& channels) {
+        std::vector<MixerChannel>& channels, LogSink& log) {
+        (void)log;
         initializeCalls++;
         initializedPath = path;
         initializedVolumes = initialVolumes;
@@ -53,7 +57,8 @@ public:
     }
 
     virtual int setVolume(const std::string& path, const MixerChannel& channel,
-        int encodedVolume, int& active) {
+        int encodedVolume, int& active, LogSink& log) {
+        (void)log;
         setVolumeCalls++;
         setVolumePath = path;
         setVolumeDeviceId = channel.deviceId;
@@ -71,9 +76,10 @@ static void testStartupConfigIsCopiedIntoSession() {
     line.volume = 12 + 256 * 34;
     config.mixerInitialVolumes.push_back(line);
 
+    NullLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(MixerChannel("line", 2, line.volume, 1));
-    MixerSession session(device, config);
+    MixerSession session(device, log, config);
 
     assert(session.path() == "/tmp/test-mixer");
     assert(session.initialVolumes().size() == 1);
@@ -88,9 +94,11 @@ static void testStartupConfigIsCopiedIntoSession() {
 }
 
 static void testRelativeChangeClampsStereoChannels() {
+    NullLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(MixerChannel("mic", 3, 250 + 256 * 4, 1));
-    MixerSession session(device, "/dev/mixer-test", std::vector<MixerInitialVolume>());
+    MixerSession session(device, log, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
 
     assert(session.initialize() == 0);
     assert(session.changeChannelBy(0, 10) == 1);
@@ -106,9 +114,11 @@ static void testRelativeChangeClampsStereoChannels() {
 }
 
 static void testAbsoluteValueUsesLegacyMonoShortcut() {
+    NullLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(MixerChannel("pcm", 4, 0, 0));
-    MixerSession session(device, "/dev/mixer-test", std::vector<MixerInitialVolume>());
+    MixerSession session(device, log, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
 
     assert(session.initialize() == 0);
     assert(session.setChannelValue(0, 17) == 1);
@@ -121,9 +131,11 @@ static void testAbsoluteValueUsesLegacyMonoShortcut() {
 }
 
 static void testSetFailureLeavesChannelStateStable() {
+    NullLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(MixerChannel("line", 1, 20 + 256 * 30, 1));
-    MixerSession session(device, "/dev/mixer-test", std::vector<MixerInitialVolume>());
+    MixerSession session(device, log, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
 
     assert(session.initialize() == 0);
     device.setVolumeResult = 1;

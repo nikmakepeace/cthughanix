@@ -5,8 +5,8 @@
 #include "AutoChangeControls.h"
 
 #include "AutoChangeSettings.h"
-#include "cthugha.h"
 #include "imath.h"
+#include "ProcessServices.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,14 +17,15 @@ static int nonNegative(int value) {
     return value < 0 ? 0 : value;
 }
 
-static int parseTimeText(const char* text, const char* name, int fallback) {
+static int parseTimeText(const char* text, const char* name, int fallback,
+    LogSink& log) {
     if (text == 0)
         return fallback;
 
     if (strstr(text, "sec") != NULL) {
         double seconds;
         if (sscanf(text, "%lfsec", &seconds) == 0) {
-            CTH_ERROR("Not a time value `%s' for option `%s'.\n", text, name);
+            log.error("Not a time value `%s' for option `%s'.\n", text, name);
             return fallback;
         }
 
@@ -34,14 +35,15 @@ static int parseTimeText(const char* text, const char* name, int fallback) {
     char* pos;
     int value = strtol(text, &pos, 0);
     if (text == pos) {
-        CTH_ERROR("Not a time value `%s' for option `%s'.\n", text, name);
+        log.error("Not a time value `%s' for option `%s'.\n", text, name);
         return fallback;
     }
 
     return nonNegative(value);
 }
 
-static int parseOnOffText(const char* text, const char* name, int fallback) {
+static int parseOnOffText(const char* text, const char* name, int fallback,
+    LogSink& log) {
     if (text == 0)
         return fallback;
 
@@ -55,15 +57,16 @@ static int parseOnOffText(const char* text, const char* name, int fallback) {
         || !strncasecmp("0", text, 1))
         return 0;
 
-    CTH_ERROR("Illegal yes/no-value `%s' for option `%s'.\n", text, name);
+    log.error("Illegal yes/no-value `%s' for option `%s'.\n", text, name);
     return fallback;
 }
 
 AutoChangeOptionAdapter::AutoChangeOptionAdapter(const char* name,
-    AutoChangeSettings& settings, AutoChangeControlField field, int time,
-    int onOff)
+    AutoChangeSettings& settings, LogSink& log, AutoChangeControlField field,
+    int time, int onOff)
     : Option(name)
     , settingsValue(settings)
+    , logValue(log)
     , fieldValue(field)
     , timeValue(time)
     , onOffValue(onOff) { }
@@ -129,9 +132,9 @@ void AutoChangeOptionAdapter::change(int by) {
 
 void AutoChangeOptionAdapter::change(const char* to) {
     if (onOffValue) {
-        setCurrentValue(parseOnOffText(to, name(), currentValue()));
+        setCurrentValue(parseOnOffText(to, name(), currentValue(), logValue));
     } else if (timeValue) {
-        setCurrentValue(parseTimeText(to, name(), currentValue()));
+        setCurrentValue(parseTimeText(to, name(), currentValue(), logValue));
     } else {
         setCurrentValue(to != 0 ? atoi(to) : currentValue());
     }
@@ -161,17 +164,21 @@ AutoChangeOptionAdapter::operator int() const {
     return currentValue();
 }
 
-AutoChangeControls::AutoChangeControls(AutoChangeSettings& settings)
+AutoChangeControls::AutoChangeControls(AutoChangeSettings& settings,
+    LogSink& log)
     : settingsValue(settings)
-    , quietOptionValue("quiet-change", settings, AutoChangeControlQuietMs, 1, 0)
-    , waitMinOptionValue("min-time", settings, AutoChangeControlWaitMinMs, 1, 0)
+    , logValue(log)
+    , quietOptionValue("quiet-change", settings, log, AutoChangeControlQuietMs,
+          1, 0)
+    , waitMinOptionValue("min-time", settings, log,
+          AutoChangeControlWaitMinMs, 1, 0)
     , waitRandomOptionValue("random-time", settings,
-          AutoChangeControlWaitRandomMs, 1, 0)
+          log, AutoChangeControlWaitRandomMs, 1, 0)
     , cumulativeFireLevelOptionValue("cumulative-fire-level", settings,
-          AutoChangeControlCumulativeFireLevel, 0, 0)
-    , lockedOptionValue("lock", settings, AutoChangeControlLocked, 0, 1)
+          log, AutoChangeControlCumulativeFireLevel, 0, 0)
+    , lockedOptionValue("lock", settings, log, AutoChangeControlLocked, 0, 1)
     , changeLittleOptionValue("little", settings,
-          AutoChangeControlChangeLittle, 0, 1) { }
+          log, AutoChangeControlChangeLittle, 0, 1) { }
 
 AutoChangeSettings& AutoChangeControls::settings() {
     return settingsValue;

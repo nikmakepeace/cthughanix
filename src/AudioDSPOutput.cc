@@ -1,11 +1,13 @@
 // OSS/DSP output backend.
 
-#include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
 #include "AudioSettings.h"
+#include "ProcessServices.h"
 #include "imath.h"
 
+#include <errno.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -24,8 +26,8 @@
 
 AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings,
     const AudioOutputConfig& config, int visualMaxDimension,
-    AudioOutputDump* outputDump)
-    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump)
+    SecondsClock& clock_, LogSink& log_, AudioOutputDump* outputDump)
+    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump, clock_, log_)
     , handle(-1)
     , method(settings.soundDSPMethod)
     , pcmFormatValue(settings.pcmFormat)
@@ -58,7 +60,7 @@ int AudioDSPOutput::timingScratchSamples(int, int targetDelaySamples) const {
 void AudioDSPOutput::setFragment() {
     int soundDSPFragment = (dspFragmentsValue << 16) | dspFragmentSizeValue;
     if (ioctl(handle, SNDCTL_DSP_SETFRAGMENT, &soundDSPFragment) < 0)
-        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
+        logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SETFRAGMENT failed.");
 
     dspFragmentsValue = soundDSPFragment >> 16;
     dspFragmentSizeValue = soundDSPFragment & 0x7fff;
@@ -67,14 +69,14 @@ void AudioDSPOutput::setFragment() {
 void AudioDSPOutput::setChannels() {
     int channels = pcmFormatValue.channels - 1;
     if (ioctl(handle, SNDCTL_DSP_STEREO, &channels) < 0)
-        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed");
+        logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_STEREO failed");
     pcmFormatValue.channels = channels + 1;
 }
 
 void AudioDSPOutput::setSampleRate() {
     int sampleRate = pcmFormatValue.sampleRate;
     if (ioctl(handle, SNDCTL_DSP_SPEED, &sampleRate) < 0)
-        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed");
+        logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SPEED failed");
     pcmFormatValue.sampleRate = sampleRate;
 }
 
@@ -101,18 +103,18 @@ void AudioDSPOutput::setFormat() {
         sound_format = AFMT_S16_BE;
         break;
     default:
-        CTH_ERROR("Internal error: unknown sound format.\n");
+        logSink().error("Internal error: unknown sound format.\n");
         sound_format = AFMT_U8;
     }
 
     int requested_sound_format = sound_format;
     if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0) {
-        CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
+        logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SETFMT failed. Trying 8bit unsigned");
         sound_format = AFMT_U8;
         if (ioctl(handle, SNDCTL_DSP_SETFMT, &sound_format) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SETFMT failed.");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SETFMT failed.");
     }
-    CTH_DEBUG("audio dsp output: set sound format requested=%d returned=%d\n",
+    logSink().debug("audio dsp output: set sound format requested=%d returned=%d\n",
         requested_sound_format, sound_format);
 
     switch (sound_format) {
@@ -135,13 +137,14 @@ void AudioDSPOutput::setFormat() {
         pcmFormatValue.sampleFormat = SF_s16_be;
         break;
     default:
-        CTH_ERROR("Unknown sound format returned by SNDCTL_DSP_SETFMT %d.\n", sound_format);
+        logSink().error("Unknown sound format returned by SNDCTL_DSP_SETFMT %d.\n",
+            sound_format);
     }
 }
 
 void AudioDSPOutput::init() {
-    CTH_DEBUG("  setting %s for writing...\n", dspDevicePathValue);
-    CTH_DEBUG("audio dsp output: init device=`%s' method=%d\n", dspDevicePathValue,
+    logSink().debug("  setting %s for writing...\n", dspDevicePathValue);
+    logSink().debug("audio dsp output: init device=`%s' method=%d\n", dspDevicePathValue,
         method);
 
     if (handle >= 0)
@@ -149,13 +152,13 @@ void AudioDSPOutput::init() {
     handle = -1;
 
     if ((handle = open(dspDevicePathValue, O_WRONLY)) < 0) {
-        CTH_ERRNO(errno, "Can't open `%s' for writing.", dspDevicePathValue);
+        logSink().errorErrno(errno, "Can't open `%s' for writing.", dspDevicePathValue);
         return;
     }
 
     switch (method) {
     case 0: {
-        CTH_INFO("   Using sound method 0 - optimal fragment size\n");
+        logSink().info("   Using sound method 0 - optimal fragment size\n");
         dspFragmentSizeValue = ilog2(sampleWindow) - 1;
         setFragment();
         setChannels();
@@ -165,7 +168,7 @@ void AudioDSPOutput::init() {
     }
 
     case 1:
-        CTH_INFO("   Using sound method 1 - small fragment size\n");
+        logSink().info("   Using sound method 1 - small fragment size\n");
         dspFragmentsValue = 2;
         dspFragmentSizeValue = 4;
         setFragment();
@@ -175,49 +178,49 @@ void AudioDSPOutput::init() {
         break;
 
     case 2: {
-        CTH_INFO("   Using sound method 2 - old version\n");
+        logSink().info("   Using sound method 2 - old version\n");
         int sound_div = 4;
         if (ioctl(handle, SNDCTL_DSP_SUBDIVIDE, &sound_div) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SUBDIVIDE failed.");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SUBDIVIDE failed.");
 
         int dummy = 0;
         if (ioctl(handle, SNDCTL_DSP_STEREO, &dummy) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_STEREO failed.");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_STEREO failed.");
 
         dummy = 0;
         if (ioctl(handle, SNDCTL_DSP_SPEED, &dummy) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_SPEED failed.");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_SPEED failed.");
 
         int sound_blkSize;
         if (ioctl(handle, SNDCTL_DSP_GETBLKSIZE, &sound_blkSize) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE failed.");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE failed.");
 
         setChannels();
         setSampleRate();
         setFormat();
 
         if (ioctl(handle, SNDCTL_DSP_GETBLKSIZE, &sound_blkSize) < 0)
-            CTH_ERRNO(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE");
+            logSink().errorErrno(errno, "ioctl: SNDCTL_DSP_GETBLKSIZE");
         break;
     }
 
     case 3:
-        CTH_INFO("   Using sound method 3 - primitiv version\n");
+        logSink().info("   Using sound method 3 - primitiv version\n");
         setFormat();
         setChannels();
         setSampleRate();
         break;
 
     case 4:
-        CTH_ERROR("Sound method 4 is only available for reading sound data.\n"
+        logSink().error("Sound method 4 is only available for reading sound data.\n"
                 "Please use a different sound method.\n");
         close(handle);
         handle = -1;
         break;
 
     default:
-        CTH_ERROR("Unknown sound method %d.", method);
-        CTH_ERROR("   available sound methods:\n"
+        logSink().error("Unknown sound method %d.", method);
+        logSink().error("   available sound methods:\n"
                 "   0: sophisticated 1 (optimal fragment size)\n"
                 "   1: sophisticated 2 (small fragments)\n"
                 "   2: simple (small DMA buffer)\n"
@@ -249,8 +252,8 @@ AudioDSPOutput::~AudioDSPOutput() {
 
 AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings,
     const AudioOutputConfig& config, int visualMaxDimension,
-    AudioOutputDump* outputDump)
-    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump)
+    SecondsClock& clock_, LogSink& log_, AudioOutputDump* outputDump)
+    : AudioOutput(config.dspOutputTargetLatencyMs, outputDump, clock_, log_)
     , handle(-1)
     , method(settings.soundDSPMethod)
     , pcmFormatValue(settings.pcmFormat)
@@ -259,8 +262,8 @@ AudioDSPOutput::AudioDSPOutput(const AudioSettings& settings,
     , sampleWindow(audioSampleWindowForVisualMaxDimension(visualMaxDimension)) {
     strncpy(dspDevicePathValue, settings.dspDevicePath, PATH_MAX);
     dspDevicePathValue[PATH_MAX - 1] = '\0';
-    CTH_DEBUG("    audio output strategy: OSS DSP unavailable because support is not compiled in\n");
-    CTH_DEBUG("audio dsp output: unavailable method=%d\n", method);
+    logSink().debug("    audio output strategy: OSS DSP unavailable because support is not compiled in\n");
+    logSink().debug("audio dsp output: unavailable method=%d\n", method);
 }
 
 AudioDSPOutput::~AudioDSPOutput() { }

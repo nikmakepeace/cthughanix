@@ -5,6 +5,7 @@
 #include "AudioProcessing.h"
 
 #include "Configuration.h"
+#include "ProcessServices.h"
 
 #include <ctype.h>
 #include <stdlib.h>
@@ -49,8 +50,9 @@ static int sameModeName(const char* expected, const char* candidate) {
 
 } // namespace
 
-AudioProcessingState::AudioProcessingState()
-    : selectedMode(0)
+AudioProcessingState::AudioProcessingState(RandomSource& randomSource_)
+    : randomSource(randomSource_)
+    , selectedMode(0)
     , initialEntry() { }
 
 int AudioProcessingState::entryCount() const {
@@ -64,7 +66,7 @@ int AudioProcessingState::optNr(const char* name) const {
         return 0;
 
     if ((name == 0) || (name[0] == '\0'))
-        return rand() % n;
+        return randomSource.uniformInt(n);
 
     for (int i = 0; i < n; i++) {
         if (sameModeName(kAudioProcessingModes[i].name, name))
@@ -74,7 +76,7 @@ int AudioProcessingState::optNr(const char* name) const {
     char* pos;
     int parsed = strtol(name, &pos, 0);
     if (pos == name)
-        return rand() % n;
+        return randomSource.uniformInt(n);
 
     return wrapIndex(parsed, n);
 }
@@ -128,9 +130,10 @@ const char* AudioProcessingOption::text() const {
 }
 
 AudioProcessingSelector::AudioProcessingSelector(AudioProcessingState& state_,
-    AudioProcessor& processor_)
+    AudioProcessor& processor_, LogSink& log_)
     : state(state_)
     , processor(processor_)
+    , log(log_)
     , optionValue(*this) { }
 
 void AudioProcessingSelector::configureStartup(const SceneConfig& config) {

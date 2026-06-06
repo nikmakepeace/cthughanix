@@ -30,12 +30,16 @@ void configureDisplayDeviceX11(const X11Config& config);
 class Scene;
 class SceneCommands;
 class RuntimeConfigRegistry;
+class RuntimeCommandTargetRouter;
+class SecondsClock;
 
 class DisplayDeviceX11 : public DisplayDevice, public RuntimePaletteMetadataTarget {
     Scene& scene;
     SceneCommands& sceneCommands;
     RuntimeCommandSink& runtimeCommands;
+    RuntimeCommandTargetRouter& runtimeCommandRouter;
     RuntimeConfigRegistry& runtimeConfigRegistry;
+    SecondsClock& clock;
 
 protected:
     Visual* visual;
@@ -132,7 +136,7 @@ protected:
 
     // control panel stuff
     typedef struct {
-        RuntimeCommandSink* runtimeCommands;
+        RuntimeCommandTargetRouter* runtimeCommandRouter;
         EffectControl* opt;
         int pos;
     } menu_data_t;
@@ -157,7 +161,9 @@ protected:
 public:
     DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
         RuntimeCommandSink& runtimeCommands_,
-        RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config);
+        RuntimeCommandTargetRouter& runtimeCommandRouter_,
+        RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config,
+        SecondsClock& clock_);
     virtual ~DisplayDeviceX11();
 
     int isInitialized() const { return initialized; }

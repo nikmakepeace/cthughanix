@@ -5,14 +5,18 @@
 #include "RuntimeDisplayControls.h"
 
 #include "CthughaDisplay.h"
+#include "ProcessServices.h"
 #include "Screen.h"
+
+DefaultRuntimeDisplayControls::DefaultRuntimeDisplayControls(RandomSource& randomSource_)
+    : randomSource(randomSource_) { }
 
 void DefaultRuntimeDisplayControls::changePresentationBy(int by) {
     screen.change(by, 0);
 }
 
 void DefaultRuntimeDisplayControls::changePresentationTo(const char* to) {
-    screen.change(to, 0);
+    screen.change(to, randomSource, 0);
 }
 
 void DefaultRuntimeDisplayControls::changeZoomBy(int by) {

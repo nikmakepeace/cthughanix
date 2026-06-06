@@ -4,6 +4,7 @@
 #include <vector>
 
 class CthughaBuffer;
+class RandomSource;
 class VideoFrameContext;
 
 /**
@@ -126,6 +127,7 @@ class WaveRuntime {
     int needsConfigurationValue;
     WaveState& stateValue;
     WaveLookupTables& lookupTables;
+    RandomSource& randomSource;
     int fireBudgetValue;
 
 public:
@@ -143,10 +145,11 @@ public:
      * @param needsConfiguration_ Nonzero when renderer should rebuild config-dependent state.
      * @param state_ Persistent state storage owned by WaveFilter.
      * @param lookupTables_ Shared wave lookup-table cache.
+     * @param randomSource_ Random source owned by the application lifecycle.
      * @param fireBudget Acoustic fire amount for this visual frame.
      */
     WaveRuntime(const WaveConfig& config, int needsConfiguration_, WaveState& state_,
-        WaveLookupTables& lookupTables_, int fireBudget);
+        WaveLookupTables& lookupTables_, RandomSource& randomSource_, int fireBudget);
 
     /** @return Nonzero when renderer should rebuild configuration-dependent state. */
     int needsConfiguration() const;
@@ -170,6 +173,25 @@ public:
      * @return Cached sine table, or NULL.
      */
     const int* sineForWidth(int width);
+
+    /**
+     * Returns a random integer in [0, exclusiveMax).
+     *
+     * @param exclusiveMax Upper exclusive bound. Values <= 1 return 0.
+     * @return Random integer in the requested range.
+     */
+    int randomInt(int exclusiveMax);
+
+    /**
+     * Returns a random integer in [-magnitude, magnitude].
+     *
+     * @param magnitude Maximum absolute value.
+     * @return Random signed integer in the requested symmetric range.
+     */
+    int randomCenteredInt(int magnitude);
+
+    /** @return Random floating-point value in [0.0, 1.0]. */
+    double randomUnit();
 
     /**
      * Gets or lazily creates wave-specific persistent state.
@@ -245,10 +267,11 @@ public:
      * @param needsConfiguration Nonzero when renderer should rebuild state.
      * @param state Persistent state storage for this wave.
      * @param lookupTables Shared lookup-table cache.
+     * @param randomSource Random source used by renderer effects.
      */
     void execute(CthughaBuffer& buffer, const VideoFrameContext& context,
         const WaveConfig& config, int needsConfiguration, WaveState& state,
-        WaveLookupTables& lookupTables) const;
+        WaveLookupTables& lookupTables, RandomSource& randomSource) const;
 };
 
 /** Built-in wave renderer catalog used by WaveOption. */

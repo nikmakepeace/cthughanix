@@ -47,15 +47,8 @@ static void testRuntimeCommandFactoriesCaptureIntent() {
     RuntimeCommand close = RuntimeCommand::requestClose();
     assert(close.type == RuntimeCommandRequestClose);
 
-    RuntimeContinuationState continuation;
-    continuation.flame = "fire";
-    continuation.presentation = "window";
-    continuation.showFpsEnabled = 1;
-    RuntimeCommand stop = RuntimeCommand::stopAndContinue(continuation);
+    RuntimeCommand stop = RuntimeCommand::stopAndContinue();
     assert(stop.type == RuntimeCommandStopAndContinue);
-    assert(stop.continuation.flame == "fire");
-    assert(stop.continuation.presentation == "window");
-    assert(stop.continuation.showFpsEnabled == 1);
 
     RuntimeCommand changeOne = RuntimeCommand::changeOne();
     assert(changeOne.type == RuntimeCommandChangeOne);

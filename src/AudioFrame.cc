@@ -1,5 +1,6 @@
-#include "cthugha.h"
 #include "AudioFrame.h"
+
+#include <string.h>
 
 AudioMetrics::AudioMetrics()
     : amplitude(0)

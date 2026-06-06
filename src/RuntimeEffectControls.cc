@@ -5,6 +5,10 @@
 #include "RuntimeEffectControls.h"
 
 #include "EffectControl.h"
+#include "ProcessServices.h"
+
+DefaultRuntimeEffectControls::DefaultRuntimeEffectControls(RandomSource& randomSource_)
+    : randomSource(randomSource_) { }
 
 RuntimeChangeSet DefaultRuntimeEffectControls::changeEffectControlBy(
     EffectControl& control, int by) {
@@ -19,7 +23,7 @@ RuntimeChangeSet DefaultRuntimeEffectControls::changeEffectControlTo(
     EffectControl& control, const char* to) {
     RuntimeChangeSet changes;
 
-    control.change(to, 0);
+    control.change(to, randomSource, 0);
 
     return changes;
 }

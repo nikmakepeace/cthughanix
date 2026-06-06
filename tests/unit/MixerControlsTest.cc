@@ -3,18 +3,28 @@
  */
 
 #include "Mixer.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
 
-int cth_log_enabled(int) { return 0; }
-int cth_log(int, const char*, ...) { return 0; }
-int cth_log_context(int, const char*, const char*, ...) { return 0; }
-int cth_log_error(const char*, ...) { return 0; }
-int cth_log_errno(int, const char*, ...) { return 0; }
-
 Option::~Option() { }
+
+class RecordingLogSink : public LogSink {
+public:
+    int writes;
+
+    RecordingLogSink()
+        : writes(0) { }
+
+    virtual int enabled(int) const { return 1; }
+
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) {
+        writes++;
+    }
+};
 
 class FakeMixerDevice : public MixerDevice {
 public:
@@ -31,13 +41,15 @@ public:
 
     virtual int initialize(const std::string&,
         const std::vector<MixerInitialVolume>&,
-        std::vector<MixerChannel>& channels) {
+        std::vector<MixerChannel>& channels, LogSink& log) {
+        (void)log;
         channels = discoveredChannels;
         return 0;
     }
 
     virtual int setVolume(const std::string&, const MixerChannel&,
-        int encodedVolume, int& active) {
+        int encodedVolume, int& active, LogSink& log) {
+        (void)log;
         setVolumeCalls++;
         setVolumeEncodedVolume = encodedVolume;
         active = returnedActive;
@@ -56,14 +68,15 @@ public:
 };
 
 static void testMixerControlsBuildOptionsFromSessionChannels() {
+    RecordingLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(
         MixerChannel("line", 1, 10 + 256 * 20, 1));
-    MixerSession session(device, "/dev/mixer-test",
+    MixerSession session(device, log, "/dev/mixer-test",
         std::vector<MixerInitialVolume>());
     assert(session.initialize() == 0);
 
-    MixerControls controls(session);
+    MixerControls controls(session, log);
 
     assert(controls.optionCount() == 1);
     assert(controls.optionAt(0) != NULL);
@@ -72,14 +85,37 @@ static void testMixerControlsBuildOptionsFromSessionChannels() {
     assert(strchr(controls.optionAt(0)->text(), '*') != NULL);
 }
 
+static void testMixerOptionTextStorageIsPerOption() {
+    RecordingLogSink log;
+    FakeMixerDevice device;
+    device.discoveredChannels.push_back(
+        MixerChannel("line", 1, 10 + 256 * 20, 1));
+    device.discoveredChannels.push_back(
+        MixerChannel("mic", 2, 30 + 256 * 40, 0));
+    MixerSession session(device, log, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
+    assert(session.initialize() == 0);
+
+    MixerControls controls(session, log);
+    const char* lineText = controls.optionAt(0)->text();
+    const char* micText = controls.optionAt(1)->text();
+
+    assert(lineText != micText);
+    assert(strstr(lineText, "10:20") != NULL);
+    assert(strchr(lineText, '*') != NULL);
+    assert(strstr(micText, "30:40") != NULL);
+    assert(strchr(micText, '*') == NULL);
+}
+
 static void testMixerControlsMutateOwnedSession() {
+    RecordingLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(
         MixerChannel("mic", 2, 3 + 256 * 4, 1));
-    MixerSession session(device, "/dev/mixer-test",
+    MixerSession session(device, log, "/dev/mixer-test",
         std::vector<MixerInitialVolume>());
     assert(session.initialize() == 0);
-    MixerControls controls(session);
+    MixerControls controls(session, log);
     Option* option = controls.optionAt(0);
 
     assert(controls.changeOptionBy(*option, 5) == 1);
@@ -96,12 +132,13 @@ static void testMixerControlsMutateOwnedSession() {
 }
 
 static void testMixerControlsIgnoreUnrelatedOptions() {
+    RecordingLogSink log;
     FakeMixerDevice device;
     device.discoveredChannels.push_back(MixerChannel("pcm", 3, 1, 1));
-    MixerSession session(device, "/dev/mixer-test",
+    MixerSession session(device, log, "/dev/mixer-test",
         std::vector<MixerInitialVolume>());
     assert(session.initialize() == 0);
-    MixerControls controls(session);
+    MixerControls controls(session, log);
     RecordingOption unrelated;
 
     assert(controls.changeOptionBy(unrelated, 1) == 0);
@@ -109,9 +146,25 @@ static void testMixerControlsIgnoreUnrelatedOptions() {
     assert(device.setVolumeCalls == 0);
 }
 
+static void testInvalidMixerOptionValueUsesInjectedLogSink() {
+    RecordingLogSink log;
+    FakeMixerDevice device;
+    device.discoveredChannels.push_back(MixerChannel("line", 1, 10, 1));
+    MixerSession session(device, log, "/dev/mixer-test",
+        std::vector<MixerInitialVolume>());
+    assert(session.initialize() == 0);
+    MixerControls controls(session, log);
+
+    assert(controls.changeOptionTo(*controls.optionAt(0), "bad") == 1);
+    assert(device.setVolumeCalls == 0);
+    assert(log.writes == 1);
+}
+
 int main() {
     testMixerControlsBuildOptionsFromSessionChannels();
+    testMixerOptionTextStorageIsPerOption();
     testMixerControlsMutateOwnedSession();
     testMixerControlsIgnoreUnrelatedOptions();
+    testInvalidMixerOptionValueUsesInjectedLogSink();
     return 0;
 }

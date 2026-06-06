@@ -14,6 +14,7 @@
 
 class BitmapFont;
 class PaletteEntry;
+class RandomSource;
 
 enum TextInjectionHorizontalAlign {
     /** Align text block to the left edge of the available rectangle. */
@@ -138,6 +139,7 @@ class WaveFilter : public VideoFilter {
     WaveConfig config;
     WaveState state;
     WaveLookupTables lookupTables;
+    RandomSource* randomSourceValue;
     int configured;
     int needsConfiguration;
 
@@ -151,6 +153,13 @@ public:
      * @param config_ Wave configuration for scale/object/audio behavior.
      */
     void setWave(Wave* wave_, const WaveConfig& config_);
+
+    /**
+     * Supplies the random source used by wave renderers.
+     *
+     * @param randomSource Random source owned by the application lifecycle.
+     */
+    void setRandomSource(RandomSource& randomSource);
 
     /**
      * Draws the configured wave using the frame audio/time context.

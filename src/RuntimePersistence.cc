@@ -5,43 +5,32 @@
 #include "RuntimePersistence.h"
 
 #include "IniFiles.h"
-#include "RuntimeCommand.h"
+#include "ProcessServices.h"
 #include "RuntimeConfigRegistry.h"
 
 namespace {
 
-static ContinuationIniConfig continuationIniConfigFromRuntimeState(
-    const RuntimeContinuationState& state) {
+static ContinuationIniConfig continuationIniConfigFromConfig(
+    const Config& state) {
     ContinuationIniConfig config;
-    config.scene.flame = state.flame;
-    config.scene.generalFlame = state.generalFlame;
-    config.scene.wave = state.wave;
-    config.scene.waveScale = state.waveScale;
-    config.scene.object = state.object;
-    config.scene.translation = state.translation;
-    config.scene.palette = state.palette;
-    config.scene.border = state.border;
-    config.scene.flashlight = state.flashlight;
-    config.scene.table = state.table;
-    config.scene.image = state.image;
-    config.scene.presentation = state.presentation;
-    config.scene.audioProcessing = state.audioProcessing;
-    config.showFpsEnabled = state.showFpsEnabled;
+    config.scene = state.scene;
+    config.showFpsEnabled = state.display.showFpsEnabled;
     return config;
 }
 
 }
 
 IniRuntimePersistence::IniRuntimePersistence(
-    RuntimeConfigRegistry& runtimeConfigRegistry_)
-    : runtimeConfigRegistry(runtimeConfigRegistry_) { }
+    RuntimeConfigRegistry& runtimeConfigRegistry_, LogSink& log_)
+    : runtimeConfigRegistry(runtimeConfigRegistry_)
+    , log(log_) { }
 
 int IniRuntimePersistence::writeCurrentConfig() {
-    return write_ini(runtimeConfigRegistry.currentConfig());
+    return write_ini(runtimeConfigRegistry.currentConfig(), log);
 }
 
-int IniRuntimePersistence::writeContinuation(
-    const RuntimeContinuationState& continuation) {
+int IniRuntimePersistence::writeContinuation() {
+    Config current = runtimeConfigRegistry.currentConfig();
     return write_continuation_ini(
-        continuationIniConfigFromRuntimeState(continuation));
+        continuationIniConfigFromConfig(current), log);
 }

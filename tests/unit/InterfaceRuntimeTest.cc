@@ -6,7 +6,9 @@
 #include "InterfaceRuntime.h"
 #include "Interface.h"
 #include "Option.h"
+#include "ProcessServices.h"
 #include "RuntimeCommandSink.h"
+#include "RuntimeCommandTargets.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -28,6 +30,16 @@ public:
     virtual void change(int) { }
     virtual void change(const char*) { }
     virtual const char* text() const { return "simple"; }
+};
+
+class FakeMillisecondClock : public MillisecondClock {
+public:
+    int value;
+
+    explicit FakeMillisecondClock(int value_)
+        : value(value_) { }
+
+    virtual int milliseconds() const { return value; }
 };
 
 Interface::Interface(const char* n, const char* ti, const char* te)
@@ -107,24 +119,56 @@ InterfaceRuntime* Keymap::interfaceRuntime() {
     return interfaceRuntimeValue;
 }
 
-class CapturingSink : public RuntimeCommandSink {
+class CapturingTargetRouter : public RuntimeCommandTargetRouter {
 public:
-    int count;
-    RuntimeCommand command;
+    int optionByCalls;
+    Option* lastOption;
+    int lastValue;
 
-    CapturingSink()
-        : count(0)
-        , command(RuntimeCommand::requestClose()) { }
+    CapturingTargetRouter()
+        : optionByCalls(0)
+        , lastOption(NULL)
+        , lastValue(0) { }
 
-    virtual RuntimeChangeSet apply(const RuntimeCommand& command_) {
-        count++;
-        command = command_;
+    virtual RuntimeChangeSet changeEffectControlBy(
+        EffectControl&, int) {
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet changeEffectControlTo(
+        EffectControl&, const char*) {
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet activateEffectControl(
+        EffectControl&, int) {
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet toggleEffectChoiceUse(
+        EffectControl&, int) {
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet changeOptionBy(Option& option, int by) {
+        optionByCalls++;
+        lastOption = &option;
+        lastValue = by;
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet changeOptionTo(Option&, const char*) {
+        return RuntimeChangeSet();
+    }
+
+    virtual RuntimeChangeSet toggleEffectControlLock(EffectControl&) {
         return RuntimeChangeSet();
     }
 };
 
 static void testSelectionIsOwnedByRuntime() {
-    InterfaceRuntime runtime;
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
     Interface main("main", "Main", NULL);
     Interface other("other", "Other", NULL);
 
@@ -144,7 +188,8 @@ static void testSelectionIsOwnedByRuntime() {
 }
 
 static void testStatusAndPresetFlagsAreOwnedByRuntime() {
-    InterfaceRuntime runtime;
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
 
     assert(runtime.showStatus() == 0);
     runtime.toggleStatus();
@@ -158,31 +203,41 @@ static void testStatusAndPresetFlagsAreOwnedByRuntime() {
 }
 
 static void testOptionCommandContextIsScoped() {
-    InterfaceRuntime runtime;
-    CapturingSink sink;
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
+    CapturingTargetRouter router;
     SimpleOption option;
     InterfaceElementOption element("value: %s", &option, 5, 10, 20);
     Keymap keymap("test");
 
-    Keymap::setRuntimeCommandSink(&sink);
+    runtime.setCommandRouter(&router);
     actionRuntimeValue = &runtime;
 
     assert(runtime.runOptionKey(option, element, keymap, 'x') == 0);
-    assert(sink.count == 1);
-    assert(sink.command.type == RuntimeCommandChangeOptionBy);
-    assert(sink.command.option == &option);
-    assert(sink.command.value == 5);
+    assert(router.optionByCalls == 1);
+    assert(router.lastOption == &option);
+    assert(router.lastValue == 5);
 
     runtime.changeContextValueByElementIncrement(1, 1.0);
-    assert(sink.count == 1);
+    assert(router.optionByCalls == 1);
 
     actionRuntimeValue = NULL;
-    Keymap::setRuntimeCommandSink(NULL);
+    runtime.setCommandRouter(NULL);
+}
+
+static void testMillisecondsComeFromInjectedClock() {
+    FakeMillisecondClock clock(1234);
+    InterfaceRuntime runtime(clock);
+
+    assert(runtime.milliseconds() == 1234);
+    clock.value = 5678;
+    assert(runtime.milliseconds() == 5678);
 }
 
 int main() {
     testSelectionIsOwnedByRuntime();
     testStatusAndPresetFlagsAreOwnedByRuntime();
     testOptionCommandContextIsScoped();
+    testMillisecondsComeFromInjectedClock();
     return 0;
 }

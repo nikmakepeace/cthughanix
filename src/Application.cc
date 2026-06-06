@@ -4,16 +4,16 @@
 
 #include "Application.h"
 
-#include "cthugha.h"
 #include "information.h"
 #include "display.h"
 #include "AudioFrame.h"
+#include "AudioFramePipeline.h"
 #include "AudioIngest.h"
 #include "AudioAnalyzer.h"
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
-#include "AudioVisualBridge.h"
 #include "AutoChangeControls.h"
+#include "AutoChanger.h"
 #include "AutoChangeSettings.h"
 #include "Border.h"
 #include "EffectChoiceLoader.h"
@@ -24,7 +24,6 @@
 #include "DisplayRuntime.h"
 #include "EffectControlPolicy.h"
 #include "Flashlight.h"
-#include "FramePacer.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
@@ -35,6 +34,7 @@
 #include "RuntimeAutoChangeControls.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimeChangeMediator.h"
+#include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
 #include "RuntimePersistence.h"
@@ -58,56 +58,72 @@
 #include <unistd.h>
 
 static int initializeVisualCatalogs(const CthughaBuffer& buffer,
-    const PathConfig& pathConfig);
+    const PathConfig& pathConfig, RandomSource& randomSource);
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
-    const PathConfig& pathConfig);
+    const PathConfig& pathConfig, LogSink& log);
 static void emitStartupConfigDiagnostics(
-    const std::vector<ConfigDiagnostic>& diagnostics);
+    const std::vector<ConfigDiagnostic>& diagnostics, LogSink& log);
 
-static SystemFrameSleeper systemFrameSleeper;
-static FramePacer framePacer(systemFrameSleeper);
+class VideoDirectorQuietObserver : public AutoChangeQuietObserver {
+    VideoDirector& videoDirectorValue;
+
+public:
+    /**
+     * Creates a quiet-audio observer over a video director.
+     *
+     * @param videoDirector_ Director that owns quiet-message policy.
+     */
+    explicit VideoDirectorQuietObserver(VideoDirector& videoDirector_)
+        : videoDirectorValue(videoDirector_) { }
+
+    /** Reports an ongoing quiet period to the video director. */
+    virtual int observeQuiet(int quietLength) {
+        return videoDirectorValue.observeQuiet(quietLength);
+    }
+};
 
 static VideoFrameContext videoFrameContextFor(const AudioFrame& frame,
-    const AcousticContext& acousticContext) {
+    const AcousticContext& acousticContext, double frameNow,
+    double frameDeltaT) {
     VideoFrameContext context;
     context.audioFrame = &frame;
     context.rawAudioData = frame.raw;
     context.processedWaveData = frame.processedWaveData;
     context.audioMetrics = &frame.metrics;
     context.acousticContext = &acousticContext;
-    context.now = now;
-    context.deltaT = deltaT;
+    context.now = frameNow;
+    context.deltaT = frameDeltaT;
     return context;
 }
 
 static void emitStartupConfigDiagnostics(
-    const std::vector<ConfigDiagnostic>& diagnostics) {
+    const std::vector<ConfigDiagnostic>& diagnostics, LogSink& log) {
     for (std::vector<ConfigDiagnostic>::const_iterator it = diagnostics.begin();
          it != diagnostics.end(); ++it) {
         if (it->severity == ConfigDiagnosticError) {
-            CTH_ERROR("Configuration error from %s `%s': %s\n",
+            log.error("Configuration error from %s `%s': %s\n",
                 it->source.c_str(), it->key.c_str(), it->message.c_str());
         } else if (it->severity == ConfigDiagnosticWarning) {
-            CTH_WARN("Configuration warning from %s `%s': %s\n",
+            log.warn("Configuration warning from %s `%s': %s\n",
                 it->source.c_str(), it->key.c_str(), it->message.c_str());
         } else {
-            CTH_INFO("Configuration note from %s `%s': %s\n",
+            log.info("Configuration note from %s `%s': %s\n",
                 it->source.c_str(), it->key.c_str(), it->message.c_str());
         }
     }
 }
 
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
-    const PathConfig& pathConfig) {
+    const PathConfig& pathConfig, LogSink& log) {
     if (!effectPolicy.imageFilesEnabled)
         return 0;
 
-    CTH_INFO("  loading image files...\n");
+    log.info("  loading image files...\n");
     CthughaBuffer& targetBuffer = CthughaBuffer::buffer;
     ImageOption& images = videoDirector().imageOption();
     int result = images.loadImages(pathConfig, targetBuffer.width(),
         targetBuffer.height());
-    CTH_INFO("  number of loaded image files: %d\n", images.getNEntries());
+    log.info("  number of loaded image files: %d\n", images.getNEntries());
 
     return result;
 }
@@ -116,12 +132,41 @@ Application::Application(int argc, char* argv[])
     : argcValue(argc)
     , argvValue(argv)
     , displayArgv(argv, argv + argc)
+    , framePacerValue(frameSleeperValue)
+    , displayFrontendInitializer(&displayFrontendInitializerValue)
+    , logSinkValue(loggingRuntimeValue)
     , exitStatusValue(1)
-    , platformLifecycle(PlatformLifecycleCallbacks(
+    , acousticContextValue(&logSinkValue)
+    , platformLifecycle(logSinkValue, PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
     , startupInitialized(0)
     , shutdownComplete(0) {
-    interfaceRuntimeValue.reset(new InterfaceRuntime());
+    cthugha_install_logging_runtime(loggingRuntimeValue);
+    videoDirector().setRandomSource(randomSourceValue);
+    videoDirector().setTimerFactory(countdownTimerFactoryValue);
+    interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
+    registerDefaultInterfaces(*interfaceRuntimeValue);
+    Keymap::setInterfaceRuntime(interfaceRuntimeValue.get());
+}
+
+Application::Application(int argc, char* argv[],
+    DisplayFrontendInitializer& displayFrontendInitializer_)
+    : argcValue(argc)
+    , argvValue(argv)
+    , displayArgv(argv, argv + argc)
+    , framePacerValue(frameSleeperValue)
+    , displayFrontendInitializer(&displayFrontendInitializer_)
+    , logSinkValue(loggingRuntimeValue)
+    , exitStatusValue(1)
+    , acousticContextValue(&logSinkValue)
+    , platformLifecycle(logSinkValue, PlatformLifecycleCallbacks(
+          &Application::platformWillSuspend, &Application::platformDidResume, this))
+    , startupInitialized(0)
+    , shutdownComplete(0) {
+    cthugha_install_logging_runtime(loggingRuntimeValue);
+    videoDirector().setRandomSource(randomSourceValue);
+    videoDirector().setTimerFactory(countdownTimerFactoryValue);
+    interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     registerDefaultInterfaces(*interfaceRuntimeValue);
     Keymap::setInterfaceRuntime(interfaceRuntimeValue.get());
 }
@@ -129,6 +174,7 @@ Application::Application(int argc, char* argv[])
 Application::~Application() {
     shutdown();
     Keymap::setInterfaceRuntime(NULL);
+    cthugha_clear_logging_runtime(loggingRuntimeValue);
 }
 
 void Application::platformWillSuspend(void* context) {
@@ -162,32 +208,33 @@ void Application::initSceneRuntime() {
     sceneValue.reset(new Scene);
     videoDirector().bindScene(*sceneValue);
     sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
-        videoDirector().imageOption()));
+        videoDirector().imageOption(), randomSourceValue));
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
     audioProcessorValue.reset(new AudioProcessor());
-    audioProcessingStateValue.reset(new AudioProcessingState());
+    audioProcessingStateValue.reset(new AudioProcessingState(randomSourceValue));
     audioProcessingSelectorValue.reset(
         new AudioProcessingSelector(*audioProcessingStateValue,
-            *audioProcessorValue));
+            *audioProcessorValue, logSinkValue));
     autoChangeSettingsValue.reset(
         new OwnedAutoChangeSettings(startupConfigValue.autoChange));
     autoChangeControlsValue.reset(
-        new AutoChangeControls(*autoChangeSettingsValue));
+        new AutoChangeControls(*autoChangeSettingsValue, logSinkValue));
     runtimeConfigContributorValue.reset(
         new LegacyRuntimeConfigContributor(*sceneCommandsValue,
             *autoChangeSettingsValue, *audioProcessingStateValue));
     runtimeConfigRegistryValue->addContributor(*runtimeConfigContributorValue);
     runtimePersistenceValue.reset(
-        new IniRuntimePersistence(*runtimeConfigRegistryValue));
+        new IniRuntimePersistence(*runtimeConfigRegistryValue, logSinkValue));
     runtimeShutdownValue.reset(new RuntimeCloseState());
-    runtimeDisplayControlsValue.reset(new DefaultRuntimeDisplayControls());
+    runtimeDisplayControlsValue.reset(
+        new DefaultRuntimeDisplayControls(randomSourceValue));
     runtimeAudioControlsValue.reset(
         new DefaultRuntimeAudioControls(*audioProcessingSelectorValue,
             mixerControlsValue.get()));
     runtimeAutoChangeControlsValue.reset(
         new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue));
     runtimeEffectControlsValue.reset(
-        new DefaultRuntimeEffectControls());
+        new DefaultRuntimeEffectControls(randomSourceValue));
     interfaceRuntimeValue->setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
     interfaceRuntimeValue->setAudioProcessingSelector(audioProcessingSelectorValue.get());
     runtimeChangeMediatorValue.reset(new RuntimeChangeMediator(
@@ -195,20 +242,25 @@ void Application::initSceneRuntime() {
         *runtimeShutdownValue, *runtimeDisplayControlsValue,
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
         *runtimeEffectControlsValue));
+    runtimeCommandRouterValue.reset(new RoutedRuntimeCommandTargetRouter(
+        *runtimeChangeMediatorValue, *sceneCommandsValue,
+        *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
+        *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
+    interfaceRuntimeValue->setCommandRouter(runtimeCommandRouterValue.get());
     Keymap::setRuntimeCommandSink(runtimeChangeMediatorValue.get());
-    Keymap::setAudioProcessingState(audioProcessingStateValue.get());
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
 void Application::shutdownSceneRuntime() {
     Keymap::setRuntimeCommandSink(NULL);
-    Keymap::setAudioProcessingState(NULL);
     bindSceneCommandsForLegacyCallbacks(NULL);
     interfaceRuntimeValue->setAutoChangeControls(NULL);
+    interfaceRuntimeValue->setCommandRouter(NULL);
     videoDirector().unbindScene();
     interfaceRuntimeValue->setAudioProcessingSelector(NULL);
     interfaceRuntimeValue->setRuntimeConfigRegistry(NULL);
+    runtimeCommandRouterValue.reset();
     runtimeChangeMediatorValue.reset();
     runtimeEffectControlsValue.reset();
     runtimeAutoChangeControlsValue.reset();
@@ -234,10 +286,11 @@ int Application::initMixerRuntime() {
     if (startupConfigValue.audio.inputMode != AIM_DSPIn)
         return 0;
 
-    CTH_INFO("Initializing OSS mixer device...\n");
+    logSinkValue.info("Initializing OSS mixer device...\n");
     mixerDeviceValue.reset(newMixerDevice());
     mixerSessionValue.reset(
-        new MixerSession(*mixerDeviceValue, startupConfigValue.audio));
+        new MixerSession(*mixerDeviceValue, logSinkValue,
+            startupConfigValue.audio));
     if (mixerSessionValue->initialize()) {
         mixerControlsValue.reset();
         mixerSessionValue.reset();
@@ -245,7 +298,7 @@ int Application::initMixerRuntime() {
         return 1;
     }
 
-    mixerControlsValue.reset(new MixerControls(*mixerSessionValue));
+    mixerControlsValue.reset(new MixerControls(*mixerSessionValue, logSinkValue));
     mixerControlsValue->installInto(interfaceMixer);
     return 0;
 }
@@ -280,7 +333,8 @@ int Application::initAudioIngest() {
         return 0;
 
     audioIngestValue.reset(new AudioIngest(startupConfigValue.audio,
-        CthughaBuffer::buffer.maxDimension()));
+        CthughaBuffer::buffer.maxDimension(), randomSourceValue,
+        secondsClockValue, logSinkValue));
     if (audioIngestValue->start()) {
         audioIngestValue.reset();
         return 1;
@@ -295,33 +349,38 @@ void Application::shutdownAudioIngest() {
     audioIngestValue.reset();
 }
 
-void Application::initAudioVisualBridge() {
-    if (audioVisualBridge.get() == NULL) {
-        audioVisualBridge.reset(new AudioVisualBridge(acousticContextValue,
-            *audioProcessingSelectorValue, *audioProcessorValue,
-            startupConfigValue.audioAnalysis.minNoise,
-            runtimeChangeMediatorValue.get(), autoChangeSettingsValue.get()));
-        interfaceRuntimeValue->setAutoChangerStatusProvider(audioVisualBridge.get());
+void Application::initAudioFramePipeline() {
+    if (audioFramePipelineValue.get() == NULL) {
+        audioFramePipelineValue.reset(new DefaultAudioFramePipeline(
+            acousticContextValue, *audioProcessingSelectorValue,
+            *audioProcessorValue, secondsClockValue, logSinkValue,
+            startupConfigValue.audioAnalysis.minNoise));
     }
+    if (autoChangeQuietObserverValue.get() == NULL)
+        autoChangeQuietObserverValue.reset(
+            new VideoDirectorQuietObserver(videoDirector()));
+    if (autoChangerValue.get() == NULL
+        && runtimeChangeMediatorValue.get() != NULL
+        && autoChangeSettingsValue.get() != NULL)
+        autoChangerValue.reset(new AutoChanger(*runtimeChangeMediatorValue,
+            *autoChangeSettingsValue, acousticContextValue,
+            millisecondClockValue, randomSourceValue,
+            *autoChangeQuietObserverValue, logSinkValue));
+    interfaceRuntimeValue->setAutoChangerStatusProvider(autoChangerValue.get());
 }
 
-void Application::shutdownAudioVisualBridge() {
+void Application::shutdownAudioFramePipeline() {
     interfaceRuntimeValue->setAutoChangerStatusProvider(NULL);
-    audioVisualBridge.reset();
+    autoChangerValue.reset();
+    autoChangeQuietObserverValue.reset();
+    audioFramePipelineValue.reset();
 }
 
-void Application::runAudioVisualBridge(AudioFrame& frame) {
-    initAudioVisualBridge();
-    audioVisualBridge->runFrame(frame);
-
-    // AutoChanger and audio processing can request option changes that require
-    // filters to refresh cached scene/display state before visual mutation.
-    if (audioVisualBridge->filterchainRefreshRequested()) {
-        initVideoFilterchain();
-        VideoFilterchainFactory factory;
-        factory.refresh(*videoFilterchain, videoFilterchainSequence);
-        audioVisualBridge->clearFilterchainRefreshRequest();
-    }
+void Application::runAudioFramePipeline(AudioFrame& frame) {
+    initAudioFramePipeline();
+    audioFramePipelineValue->processFrame(frame);
+    if (autoChangerValue.get() != NULL)
+        (*autoChangerValue)(frame.metrics);
 }
 
 const IndexedFrame* Application::runVideoFilterchain(AudioFrame& frame) {
@@ -330,9 +389,11 @@ const IndexedFrame* Application::runVideoFilterchain(AudioFrame& frame) {
     // The filterchain receives a snapshot-like context for this visual frame.
     // Audio frame data and frame-local metrics are owned by AudioIngest; filters
     // borrow them only during run().
-    VideoFrameContext context = videoFrameContextFor(frame, acousticContextValue);
+    VideoFrameContext context = videoFrameContextFor(frame, acousticContextValue,
+        displayValue->currentFrameTimeSeconds(),
+        displayValue->currentFrameDeltaSeconds());
 
-    CTH_TRACE("running filterchain=%p filters=%d\n", "video runtime",
+    logSinkValue.trace("video runtime", "running filterchain=%p filters=%d\n",
         videoFilterchain.get(), videoFilterchain.get() ? videoFilterchain->size() : 0);
     CthughaBuffer* buffer = videoDirector().configureFilterchain(*videoFilterchain);
     if (buffer != NULL) {
@@ -353,7 +414,7 @@ void Application::shutdown() {
         && runtimePersistenceValue.get() != NULL)
         runtimePersistenceValue->writeCurrentConfig();
 
-    shutdownAudioVisualBridge();
+    shutdownAudioFramePipeline();
     displayValue.reset();
     cthughaDisplay = NULL;
     if (displayRuntimeOwnership.get() != NULL)
@@ -375,15 +436,14 @@ SceneCommands& Application::sceneCommands() {
 }
 
 int Application::initialize() {
-    srand(time(0));
     seteuid(getuid()); // give up root privileges
 
     ConfigBuildResult startupConfig = buildStartupConfig(argcValue, argvValue);
     startupConfigValue = startupConfig.config;
     startupConfigDiagnostics = startupConfig.diagnostics;
-    cthugha_configure_logging(startupConfigValue.logging);
+    loggingRuntimeValue.configure(startupConfigValue.logging);
 
-    emitStartupConfigDiagnostics(startupConfigDiagnostics);
+    emitStartupConfigDiagnostics(startupConfigDiagnostics, logSinkValue);
     if (!startupConfig.ok()) {
         title();
         usage();
@@ -411,7 +471,7 @@ int Application::initialize() {
     CthughaBuffer::buffer.setDimensions(startupConfigValue.display.bufferWidth,
         startupConfigValue.display.bufferHeight);
 
-    remove_continuation_ini(startupConfigValue.paths);
+    remove_continuation_ini(startupConfigValue.paths, logSinkValue);
 
     if (initMixerRuntime())
         return 0;
@@ -423,53 +483,56 @@ int Application::initialize() {
 
     init_imath();
 
-    CTH_INFO("Initializing the sound device...\n");
+    logSinkValue.info("Initializing the sound device...\n");
     if (initAudioIngest())
         return 0;
 
     // Visual catalogs depend on final buffer dimensions and must be available
     // before startup scene config can be matched to concrete catalog entries.
-    CTH_INFO("Initializing cthugha Buffer...\n");
-    if (initializeVisualCatalogs(CthughaBuffer::buffer, startupConfigValue.paths))
+    logSinkValue.info("Initializing cthugha Buffer...\n");
+    if (initializeVisualCatalogs(CthughaBuffer::buffer, startupConfigValue.paths,
+            randomSourceValue))
         return 0;
     CthughaBuffer::buffer.allocatePixels();
     if (loadEffectPolicyImages(startupConfigValue.effectPolicy,
-            startupConfigValue.paths)) {
+            startupConfigValue.paths, logSinkValue)) {
         exitStatusValue = 0;
         return 0;
     }
     init_border();
     init_flashlight();
 
-    CTH_INFO("Setting initial effect controls...\n");
+    logSinkValue.info("Setting initial effect controls...\n");
     sceneCommands().applyStartupConfig(startupConfigValue.scene);
     audioProcessingSelectorValue->configureStartup(startupConfigValue.scene);
 
     // Interface/keymaps are available before display creation so early display
     // events and option panels can route input immediately.
-    CTH_INFO("Initializing interface...\n");
+    logSinkValue.info("Initializing interface...\n");
     interfaceRuntimeValue->set("main");
 
-    CTH_INFO("Initializing keymaps...\n");
+    logSinkValue.info("Initializing keymaps...\n");
     Keymap::init(startupConfigValue.input);
 
-    CTH_INFO("Initializing display...\n");
+    logSinkValue.info("Initializing display...\n");
     int displayArgc = int(displayArgv.size());
-    if (cth_init(&displayArgc, displayArgv.data()))
+    if (displayFrontendInitializer->initializeDisplayFrontend(
+            &displayArgc, displayArgv.data()))
         return 0;
     displayRuntimeOwnership = newDisplayDevice(scene(), sceneCommands(),
         *runtimeChangeMediatorValue,
+        *runtimeCommandRouterValue,
         *runtimeConfigRegistryValue,
-        startupConfigValue.display);
+        startupConfigValue.display, secondsClockValue);
     if (displayRuntimeOwnership.get() == NULL)
         return 0;
     displayRuntimeOwnership->publishAliases();
     displayValue = newCthughaDisplay(displayRuntimeOwnership->device(),
-        displayRuntimeOwnership->runtime());
+        displayRuntimeOwnership->runtime(), secondsClockValue);
     cthughaDisplay = displayValue.get();
 
-    CTH_INFO("Initializing the audio-visual bridge...\n");
-    initAudioVisualBridge();
+    logSinkValue.info("Initializing the audio-visual bridge...\n");
+    initAudioFramePipeline();
 
     // Install platform hooks last; callbacks assume audio/display state exists.
     platformLifecycle.install();
@@ -486,8 +549,8 @@ void Application::run() {
     //   3. generate and optionally present one frame;
     //   4. let the interface draw/react again after frame-side changes.
     while (!closeRequested()) {
-        int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
-        double loopStart = traceDisplayTiming ? getTime() : 0.0;
+        int traceDisplayTiming = logSinkValue.traceEnabled();
+        double loopStart = traceDisplayTiming ? secondsClockValue.nowSeconds() : 0.0;
         double eventsStart = loopStart;
         double eventsEnd = loopStart;
         double preInterfaceStart = 0.0;
@@ -504,39 +567,39 @@ void Application::run() {
         DisplayEventStats eventStats
             = displayRuntimeOwnership->runtime().processEvents();
         if (traceDisplayTiming)
-            eventsEnd = getTime();
+            eventsEnd = secondsClockValue.nowSeconds();
 
         if (traceDisplayTiming)
-            preInterfaceStart = getTime();
+            preInterfaceStart = secondsClockValue.nowSeconds();
         interfaceRuntimeValue->runCurrent();
         if (traceDisplayTiming)
-            preInterfaceEnd = getTime();
+            preInterfaceEnd = secondsClockValue.nowSeconds();
 
         if (!closeRequested()) {
             if (traceDisplayTiming)
-                frameStart = getTime();
+                frameStart = secondsClockValue.nowSeconds();
             runFrame(1);
             frameWasRun = 1;
-            visualFrameStart = now;
+            visualFrameStart = displayValue->currentFrameTimeSeconds();
             if (traceDisplayTiming)
-                frameEnd = getTime();
+                frameEnd = secondsClockValue.nowSeconds();
         }
 
         if (traceDisplayTiming)
-            postInterfaceStart = getTime();
+            postInterfaceStart = secondsClockValue.nowSeconds();
         interfaceRuntimeValue->runCurrent();
         if (traceDisplayTiming)
-            postInterfaceEnd = getTime();
+            postInterfaceEnd = secondsClockValue.nowSeconds();
 
         if (frameWasRun && !closeRequested()) {
             if (traceDisplayTiming)
-                pacingStart = getTime();
-            FramePacingResult pacing = framePacer.paceFrameEnd(visualFrameStart,
-                getTime(), int(maxFramesPerSecond));
+                pacingStart = secondsClockValue.nowSeconds();
+            FramePacingResult pacing = framePacerValue.paceFrameEnd(visualFrameStart,
+                secondsClockValue.nowSeconds(), int(maxFramesPerSecond));
             if (traceDisplayTiming) {
-                pacingEnd = getTime();
-                CTH_TRACE("pacing target-ms=%.3f requested-sleep-ms=%.3f actual-pacing-ms=%.3f maxfps=%d\n",
-                    "frame pacing",
+                pacingEnd = secondsClockValue.nowSeconds();
+                logSinkValue.trace("frame pacing",
+                    "pacing target-ms=%.3f requested-sleep-ms=%.3f actual-pacing-ms=%.3f maxfps=%d\n",
                     (pacing.targetFrameEndSeconds - pacing.frameStartSeconds)
                         * 1000.0,
                     pacing.requestedSleepSeconds * 1000.0,
@@ -546,9 +609,10 @@ void Application::run() {
         }
 
         if (traceDisplayTiming) {
-            double loopEnd = getTime();
-            CTH_TRACE("mainloop-ms=%.3f events-ms=%.3f pre-interface-ms=%.3f frame-ms=%.3f post-interface-ms=%.3f pacing-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
-                "display timing", (loopEnd - loopStart) * 1000.0,
+            double loopEnd = secondsClockValue.nowSeconds();
+            logSinkValue.trace("display timing",
+                "mainloop-ms=%.3f events-ms=%.3f pre-interface-ms=%.3f frame-ms=%.3f post-interface-ms=%.3f pacing-ms=%.3f events=%d resize-events=%d expose-events=%d\n",
+                (loopEnd - loopStart) * 1000.0,
                 (eventsEnd - eventsStart) * 1000.0,
                 (preInterfaceEnd - preInterfaceStart) * 1000.0,
                 (frameEnd - frameStart) * 1000.0,
@@ -559,7 +623,7 @@ void Application::run() {
         }
     }
 
-    CTH_INFO("Exiting cthugha...\n");
+    logSinkValue.info("Exiting cthugha...\n");
 }
 
 int Application::exitStatus() const {
@@ -568,57 +632,58 @@ int Application::exitStatus() const {
 
 void Application::runFrame(int doDisplay) {
     double frameTiming[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int traceFrameTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
+    int traceFrameTiming = logSinkValue.traceEnabled();
     if (traceFrameTiming)
-        frameTiming[0] = getTime();
+        frameTiming[0] = secondsClockValue.nowSeconds();
 
-    // Advance display timing first so now/deltaT describe this visual frame for
+    // Advance display timing first so owned frame time describes this visual frame for
     // audio analysis, AutoChanger policy, and all visual filters.
     displayValue->nextFrame();
     if (traceFrameTiming)
-        frameTiming[1] = getTime();
+        frameTiming[1] = secondsClockValue.nowSeconds();
 
     audioIngestValue->tick();
     AudioFrame& audioFrame = audioIngestValue->currentFrame();
     if (audioIngestValue->complete() && runtimeShutdownValue.get() != NULL) {
-        CTH_INFO("Stopping...\n");
+        logSinkValue.info("Stopping...\n");
         runtimeShutdownValue->requestClose();
     }
     if (traceFrameTiming)
-        frameTiming[2] = getTime();
+        frameTiming[2] = secondsClockValue.nowSeconds();
 
     // Analyze audio and run option-changing policy before visual filters read
     // SceneSettings.
-    runAudioVisualBridge(audioFrame);
+    runAudioFramePipeline(audioFrame);
     if (traceFrameTiming)
-        frameTiming[3] = getTime();
+        frameTiming[3] = secondsClockValue.nowSeconds();
 
     // Mutate Cthugha's indexed active/passive buffers and publish a frame view.
     const IndexedFrame* indexedFrame = runVideoFilterchain(audioFrame);
     VideoFrameContext presentationContext = videoFrameContextFor(audioFrame,
-        acousticContextValue);
+        acousticContextValue, displayValue->currentFrameTimeSeconds(),
+        displayValue->currentFrameDeltaSeconds());
     if (traceFrameTiming)
-        frameTiming[4] = getTime();
+        frameTiming[4] = secondsClockValue.nowSeconds();
 
     // Prefer the modern IndexedFrame path. Fall back to the legacy screen()
     // function path when no filterchain frame was published.
-    double visualStart = getTime();
+    double visualStart = secondsClockValue.nowSeconds();
     if (doDisplay) {
         if (indexedFrame != NULL && indexedFrame->valid())
             displayValue->present(*indexedFrame, presentationContext);
         else
             displayValue->presentCurrent(presentationContext);
     }
-    double visualEnd = getTime();
+    double visualEnd = secondsClockValue.nowSeconds();
     if (traceFrameTiming)
         frameTiming[5] = visualEnd;
     if (displayValue.get() != NULL)
         displayValue->observeVisualLatency(visualEnd - visualStart);
 
     if (traceFrameTiming) {
-        frameTiming[6] = getTime();
-        CTH_TRACE("total-ms=%.3f next-frame=%.3f audio=%.3f bridge=%.3f buffer=%.3f display=%.3f do-display=%d\n",
-            "frame timing",
+        frameTiming[6] = secondsClockValue.nowSeconds();
+        logSinkValue.trace("frame timing",
+            "total-ms=%.3f next-frame=%.3f audio=%.3f bridge=%.3f buffer=%.3f display=%.3f do-display=%d\n",
             (frameTiming[6] - frameTiming[0]) * 1000.0,
             (frameTiming[1] - frameTiming[0]) * 1000.0,
             (frameTiming[2] - frameTiming[1]) * 1000.0,
@@ -633,7 +698,7 @@ void Application::runFrame(int doDisplay) {
 }
 
 static int initializeVisualCatalogs(const CthughaBuffer& buffer,
-    const PathConfig& pathConfig) {
+    const PathConfig& pathConfig, RandomSource& randomSource) {
     // Built-in visual choices and file-backed catalogs are application startup
     // state, not pixel-buffer state. They live here because option parsing can
     // change buffer dimensions and stage initial option names before startup.
@@ -642,7 +707,7 @@ static int initializeVisualCatalogs(const CthughaBuffer& buffer,
     if (init_flames())
         return 1;
 
-    if (init_translate(buffer))
+    if (init_translate(buffer, randomSource))
         return 1;
 
     if (init_wave(pathConfig))

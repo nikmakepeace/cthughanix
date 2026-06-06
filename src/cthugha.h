@@ -6,6 +6,7 @@
 #define __CTHUGHA_H__
 
 #include "config.h"
+#include "LogLevels.h"
 
 // #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
@@ -76,24 +77,11 @@ char *strchr(), *strrchr();
 #endif
 #endif
 
-/*
- * variables
- */
-extern int cthugha_close; /* cthugha is closing now */
-
 char* cthugha_mode_text();
 
 // Initialize the selected graphical frontend when display startup is reached.
 int cth_init(int* argc, char* argv[]);
 int cth_main();
-
-enum CthughaLogLevel {
-    CTH_LOG_ERROR = 0,
-    CTH_LOG_WARN = 1,
-    CTH_LOG_INFO = 2,
-    CTH_LOG_DEBUG = 5,
-    CTH_LOG_TRACE = 10
-};
 
 int printfv(int lvl, const char* fmt, ...); // print verbose message
 int cth_log_enabled(int lvl); // true if named-level log message would be printed
@@ -119,13 +107,7 @@ int cth_log_errno(int errnum, const char* fmt, ...); // print error log message 
             cth_log_context(CTH_LOG_TRACE, context, fmt, ##args); \
     } while (0)
 
-int systemf(const char* fmt, ...); // combined sprintf and system
-
 #ifdef __cplusplus
-
-struct LoggingConfig;
-
-void cthugha_configure_logging(const LoggingConfig& config);
 
 inline int fclose0(FILE*& stream) {
     int ret = fclose(stream);
@@ -134,9 +116,6 @@ inline int fclose0(FILE*& stream) {
 }
 
 #endif
-
-int gettime(); // return milliseconds since program start
-double getTime(); // return time in seconds
 
 #ifdef __cplusplus
 

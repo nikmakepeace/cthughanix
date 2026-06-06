@@ -1,12 +1,13 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "EffectChoiceLoader.h"
+#include "PaletteRandomGenerator.h"
 #include "display.h"
 #include "Interface.h"
 #include "disp-sys.h"
-#include "imath.h"
 #include "CthughaDisplay.h"
 
+#include <algorithm>
 #include <ctype.h>
 
 EffectChoiceList paletteEntries;
@@ -407,7 +408,7 @@ int load_palettes(const PathConfig& pathConfig) {
         double P = 0;
 
         for (l = 0; l < 256; l++) {
-            m = max(m, colors.component(l, 0) + colors.component(l, 1)
+            m = std::max(m, colors.component(l, 0) + colors.component(l, 1)
                     + colors.component(l, 2));
         }
         if ((m > 0) && (m < 3 * 255)) {
@@ -512,32 +513,8 @@ int PaletteEntry::lastRandom = -1;
 int PaletteEntry::lastRandomPos = -1; // index of the last random palette
 char PaletteEntry::randomName[PATH_MAX] = "random";
 
-void PaletteEntry::random() {
-    int N = 1 << (1 + ::Random(3));
-    int h = 256 / N;
-
-    char P[257][3]; // during generation one extra cell is needed
-
-    for (int c = 0; c < 3; c++) { // R,G,B
-
-        for (int i = 0; i <= N; i++) // give values at "Stuetzstellen"
-            P[i * h][c] = ::Random(256); //  (what is the correct enlish word?)
-
-        //
-        // do interplation
-        //  this is just linear interpolation, the results are good enough.
-        //  nore complicated interplations, like polynomials or splines are not necessary
-        //
-        for (int i = 0; i < N; i++)
-            for (int j = 0; j < h; j++) {
-                double J = double(j) / double(h);
-                P[i * h + j][c] = int((1.0 - J) * P[i * h][c] + J * P[(i + 1) * h][c]);
-            }
-
-        // copy to real palette
-        for (int i = 0; i < 256; i++)
-            colors().setComponent(i, c, P[i][c]);
-    }
+void PaletteEntry::random(RandomSource& randomSource) {
+    generateRandomPalette(colors(), randomSource);
 
     char str[512];
     delete[] name;
@@ -566,22 +543,22 @@ void PaletteEntry::random() {
     fclose(f);
 }
 
-void PaletteEntry::addRandom() {
+void PaletteEntry::addRandom(RandomSource& randomSource) {
     lastRandom++;
 
     PaletteEntry* new_pal = new PaletteEntry("", "random");
-    new_pal->random();
+    new_pal->random(randomSource);
     palette.add(new_pal);
 
     lastRandomPos = palette.getNEntries() - 1;
 
 }
 
-void PaletteEntry::Random() {
+void PaletteEntry::randomizeLast(RandomSource& randomSource) {
     if (lastRandomPos == -1)
-        addRandom();
+        addRandom(randomSource);
     else {
-        ((PaletteEntry*)palette[lastRandomPos])->random();
+        ((PaletteEntry*)palette[lastRandomPos])->random(randomSource);
     }
 
 }

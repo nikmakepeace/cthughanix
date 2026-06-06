@@ -6,7 +6,6 @@
 #include "keys.h"
 #include "display.h"
 #include "disp-sys.h"
-#include "AudioProcessing.h"
 #include "Border.h"
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
@@ -22,7 +21,6 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
-#include <string>
 #include <unistd.h>
 
 void skipSpace(const char*& str) {
@@ -211,7 +209,6 @@ Action* Action::head = NULL;
 Keymap* Keymap::first = NULL;
 Keymap* Keymap::current = NULL;
 static RuntimeCommandSink* keymapRuntimeCommandSink = NULL;
-static const AudioProcessingState* keymapAudioProcessingState = NULL;
 static InterfaceRuntime* keymapInterfaceRuntime = NULL;
 
 Keymap::Keymap(const char* n)
@@ -501,14 +498,6 @@ InterfaceRuntime* Keymap::interfaceRuntime() {
     return keymapInterfaceRuntime;
 }
 
-void Keymap::setAudioProcessingState(const AudioProcessingState* state) {
-    keymapAudioProcessingState = state;
-}
-
-const AudioProcessingState* Keymap::audioProcessingState() {
-    return keymapAudioProcessingState;
-}
-
 //
 // intializiation of the default keymaps
 //
@@ -536,39 +525,6 @@ void Keymap::init(const InputConfig& config) {
 // all the actions implemented
 //
 
-static std::string continuation_name(const char* name) {
-    if (name == NULL || strcmp(name, "unknown") == 0)
-        return "";
-
-    return name;
-}
-
-static RuntimeContinuationState current_continuation_state() {
-    RuntimeContinuationState state;
-    SceneCommands* sceneCommands = sceneCommandsForLegacyCallbacks();
-    if (sceneCommands != NULL) {
-        const SceneSettings& settings = sceneCommands->sceneState().settings();
-        state.flame = continuation_name(settings.flameName);
-        state.generalFlame = continuation_name(settings.generalFlameName);
-        state.wave = continuation_name(settings.waveName);
-        state.waveScale = continuation_name(settings.waveScaleName);
-        state.object = continuation_name(settings.objectName);
-        state.translation = continuation_name(settings.translationName);
-        state.palette = continuation_name(settings.paletteName);
-        state.border = continuation_name(settings.borderName);
-        state.flashlight = continuation_name(settings.flashlightName);
-        state.table = continuation_name(settings.tableName);
-        state.image = continuation_name(sceneCommands->imageOption().currentName());
-    }
-
-    state.presentation = continuation_name(screen.currentName());
-    const AudioProcessingState* audioState = Keymap::audioProcessingState();
-    state.audioProcessing = continuation_name(
-        audioState != NULL ? audioState->text() : "");
-    state.showFpsEnabled = int(showFPS);
-    return state;
-}
-
 static void applyRuntimeCommand(const RuntimeCommand& command) {
     RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
     if (sink != NULL)
@@ -577,8 +533,7 @@ static void applyRuntimeCommand(const RuntimeCommand& command) {
 
 ACTION(quit) { applyRuntimeCommand(RuntimeCommand::requestClose()); }
 ACTION(stopAndContinue) {
-    applyRuntimeCommand(RuntimeCommand::stopAndContinue(
-        current_continuation_state()));
+    applyRuntimeCommand(RuntimeCommand::stopAndContinue());
 }
 
 ACTION(screenChg) { applyRuntimeCommand(RuntimeCommand::changeScreenBy(int(v))); }

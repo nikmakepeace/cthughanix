@@ -1,16 +1,17 @@
-#include "cthugha.h"
 #include "Audio.h"
-#include "AudioFftProcessor.h"
 #include "AudioFrame.h"
 #include "AudioProcessor.h"
 
 #include <math.h>
+#include <string.h>
 
 AudioProcessor::AudioProcessor()
-    : fftProcessorValue(&defaultAudioFftProcessor()) { }
+    : defaultFftProcessorValue()
+    , fftProcessorValue(&defaultFftProcessorValue) { }
 
 AudioProcessor::AudioProcessor(AudioFftProcessor& fftProcessor)
-    : fftProcessorValue(&fftProcessor) { }
+    : defaultFftProcessorValue()
+    , fftProcessorValue(&fftProcessor) { }
 
 AudioMetrics AudioProcessor::analyze(const char2* frame, int minNoise) const {
     AudioMetrics metrics;

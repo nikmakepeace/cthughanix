@@ -15,6 +15,7 @@ class Flame;
 class ImageOption;
 class IndexedImage;
 class PaletteEntry;
+class RandomSource;
 struct SceneConfig;
 class Wave;
 
@@ -115,6 +116,7 @@ class SceneCommands {
     Scene& scene;
     CthughaBuffer& buffer;
     ImageOption& images;
+    RandomSource& randomSource;
 
     SceneSettings settingsFromOptions();
     Wave* selectRunnableWave(const WaveConfig& config);
@@ -123,7 +125,16 @@ class SceneCommands {
     void syncFromOptionsAndMaybeCueImage(const EffectControl& option, unsigned int forcedChanges);
 
 public:
-    SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_);
+    /**
+     * Creates a command facade over scene-related runtime option state.
+     *
+     * @param scene_ Scene state object to update.
+     * @param buffer_ Visual buffer used to validate wave/image context.
+     * @param images_ Image option collection owned by video policy.
+     * @param randomSource_ Application-owned source for scene randomization.
+     */
+    SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_,
+        RandomSource& randomSource_);
 
     Scene& sceneState() { return scene; }
     const Scene& sceneState() const { return scene; }

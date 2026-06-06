@@ -2,13 +2,17 @@
  * Decoded PCM history, passthrough cursor, and visual-frame builder.
  */
 
-#include "cthugha.h"
+#include "config.h"
 #include "Audio.h"
+#include "ProcessServices.h"
 #include "imath.h"
 
+#include <string.h>
+
 DecodedAudioHistory::DecodedAudioHistory(int capacitySamples_, const PcmFormat& format_,
-    int retainedHistorySamples_)
+    int retainedHistorySamples_, LogSink& log_)
     : data(NULL)
+    , log(log_)
     , pcmFormatValue(format_)
     , bytesPerSampleValue(pcmFormatValue.bytesPerSample())
     , capacitySamples(capacitySamples_)
@@ -23,7 +27,7 @@ DecodedAudioHistory::DecodedAudioHistory(int capacitySamples_, const PcmFormat& 
     if (retainedHistorySamples >= capacitySamples)
         retainedHistorySamples = capacitySamples - 1;
     data = new char[pcmBytesForSamples(capacitySamples, bytesPerSampleValue)];
-    CTH_DEBUG("decoded audio history: created capacity-samples=%d rate=%d channels=%d format=%d bytes-per-sample=%d retained-history-samples=%d\n",
+    log.debug("decoded audio history: created capacity-samples=%d rate=%d channels=%d format=%d bytes-per-sample=%d retained-history-samples=%d\n",
         capacitySamples, pcmFormatValue.sampleRate, pcmFormatValue.channels,
         pcmFormatValue.sampleFormat, bytesPerSampleValue, retainedHistorySamples);
 }
@@ -205,9 +209,10 @@ int AudioOutputStream::resyncIfBehind() {
     return skippedSamples;
 }
 
-AudioFrameBuilder::AudioFrameBuilder()
+AudioFrameBuilder::AudioFrameBuilder(LogSink& log_)
     : rawData(NULL)
-    , rawCapacity(0) { }
+    , rawCapacity(0)
+    , log(log_) { }
 
 AudioFrameBuilder::~AudioFrameBuilder() {
     delete[] rawData;
@@ -222,7 +227,7 @@ void AudioFrameBuilder::setRawCapacity(int rawBytes) {
     delete[] rawData;
     rawCapacity = rawBytes;
     rawData = new char[rawCapacity];
-    CTH_DEBUG("audio frame builder: resized raw buffer to %d bytes\n", rawCapacity);
+    log.debug("audio frame builder: resized raw buffer to %d bytes\n", rawCapacity);
 }
 
 void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& history,
@@ -262,8 +267,9 @@ void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& hist
         startSample = oldestSample;
     }
     if (sampleOffset >= 1024) {
-        CTH_TRACE("no overlap center-sample=%lld oldest-sample=%lld decoded-end-sample=%lld\n",
-            "audio frame builder", centerSample, oldestSample, history.decodedEndPosition());
+        log.trace("audio frame builder",
+            "no overlap center-sample=%lld oldest-sample=%lld decoded-end-sample=%lld\n",
+            centerSample, oldestSample, history.decodedEndPosition());
         return;
     }
 
@@ -271,7 +277,8 @@ void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& hist
         rawData + pcmBytesForSamples(sampleOffset, bytesPerSample),
         1024 - sampleOffset);
     if (samplesRead <= 0) {
-        CTH_TRACE("no samples center-sample=%lld start-sample=%lld\n", "audio frame builder",
+        log.trace("audio frame builder",
+            "no samples center-sample=%lld start-sample=%lld\n",
             centerSample, startSample);
         return;
     }
@@ -282,7 +289,8 @@ void AudioFrameBuilder::build(AudioFrame& frame, const DecodedAudioHistory& hist
     memcpy(frame.processedWaveData, frame.raw, sizeof(frame.processedWaveData));
     frame.samples = sampleOffset + samplesRead;
 
-    CTH_TRACE("built frame center-sample=%lld start-sample=%lld samples=%d raw-bytes=%d\n", "audio frame builder",
+    log.trace("audio frame builder",
+        "built frame center-sample=%lld start-sample=%lld samples=%d raw-bytes=%d\n",
         frame.centerSample, startSample, frame.samples,
         pcmBytesForSamples(frame.samples, bytesPerSample));
 }
@@ -315,9 +323,9 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n,
         }
         break;
 
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#ifdef WORDS_BIGENDIAN
     case SF_s16_be:
-#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
+#else
     case SF_s16_le:
 #endif
         for (int i = 0; i < n; i++) {
@@ -328,9 +336,9 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n,
         }
         break;
 
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#ifdef WORDS_BIGENDIAN
     case SF_s16_le:
-#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
+#else
     case SF_s16_be:
 #endif
         for (int i = 0; i < n; i++) {
@@ -341,9 +349,9 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n,
         }
         break;
 
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#ifdef WORDS_BIGENDIAN
     case SF_u16_be:
-#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
+#else
     case SF_u16_le:
 #endif
         for (int i = 0; i < n; i++) {
@@ -354,9 +362,9 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n,
         }
         break;
 
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#ifdef WORDS_BIGENDIAN
     case SF_u16_le:
-#elif (__BYTE_ORDER == __LITTLE_ENDIAN)
+#else
     case SF_u16_be:
 #endif
         for (int i = 0; i < n; i++) {
@@ -368,6 +376,6 @@ void AudioFrameBuilder::convert(char2* dst, void* src, int n,
         break;
 
     default:
-        CTH_ERROR("internal error: wrong sound format.\n");
+        log.error("internal error: wrong sound format.\n");
     }
 }

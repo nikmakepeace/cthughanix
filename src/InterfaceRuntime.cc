@@ -7,7 +7,8 @@
 
 #include "EffectControl.h"
 #include "Interface.h"
-#include "RuntimeCommandSink.h"
+#include "ProcessServices.h"
+#include "RuntimeCommandTargets.h"
 #include "keymap.h"
 
 #include <strings.h>
@@ -17,12 +18,14 @@ InterfaceCommandContext::InterfaceCommandContext()
     , effectControl(NULL)
     , optionElement(NULL) { }
 
-InterfaceRuntime::InterfaceRuntime()
+InterfaceRuntime::InterfaceRuntime(MillisecondClock& clock_)
     : currentInterfaceValue(NULL)
     , runtimeConfigRegistryValue(NULL)
     , autoChangerStatusProviderValue(NULL)
     , autoChangeControlsValue(NULL)
     , audioProcessingSelectorValue(NULL)
+    , commandRouterValue(NULL)
+    , clock(clock_)
     , saveToPresetValue(0)
     , showStatusValue(0) { }
 
@@ -151,6 +154,14 @@ AudioProcessingSelector* InterfaceRuntime::audioProcessingSelector() const {
     return audioProcessingSelectorValue;
 }
 
+void InterfaceRuntime::setCommandRouter(RuntimeCommandTargetRouter* router) {
+    commandRouterValue = router;
+}
+
+RuntimeCommandTargetRouter* InterfaceRuntime::commandRouter() const {
+    return commandRouterValue;
+}
+
 void InterfaceRuntime::toggleSaveToPreset() {
     saveToPresetValue = 1 - saveToPresetValue;
 }
@@ -169,6 +180,10 @@ void InterfaceRuntime::toggleStatus() {
 
 int InterfaceRuntime::showStatus() const {
     return showStatusValue;
+}
+
+int InterfaceRuntime::milliseconds() const {
+    return clock.milliseconds();
 }
 
 void InterfaceRuntime::clearCommandContext() {
@@ -214,12 +229,6 @@ int InterfaceRuntime::runEffectChoiceKey(EffectControl& effectControl,
     return result;
 }
 
-static void applyInterfaceRuntimeCommand(const RuntimeCommand& command) {
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
-    if (sink != NULL)
-        sink->apply(command);
-}
-
 static int interfaceRuntimeIncrement(const InterfaceElementOption& element,
     int incrementIndex) {
     switch (incrementIndex) {
@@ -241,21 +250,21 @@ void InterfaceRuntime::changeContextValueByElementIncrement(
 
     int increment = interfaceRuntimeIncrement(
         *commandContextValue.optionElement, incrementIndex);
-    if (increment == 0)
+    if ((increment == 0) || (commandRouterValue == NULL))
         return;
 
     int step = int(value * increment);
     if (commandContextValue.effectControl != NULL) {
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeEffectControlBy(
-            *commandContextValue.effectControl, step));
+        commandRouterValue->changeEffectControlBy(
+            *commandContextValue.effectControl, step);
     } else if (commandContextValue.option != NULL) {
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeOptionBy(
-            *commandContextValue.option, step));
+        commandRouterValue->changeOptionBy(*commandContextValue.option, step);
     }
 }
 
 void InterfaceRuntime::setContextValueFromElement(double value) {
-    if (commandContextValue.optionElement == NULL)
+    if ((commandContextValue.optionElement == NULL)
+        || (commandRouterValue == NULL))
         return;
 
     char text[128];
@@ -263,40 +272,40 @@ void InterfaceRuntime::setContextValueFromElement(double value) {
         int(value * commandContextValue.optionElement->inc1));
 
     if (commandContextValue.effectControl != NULL) {
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeEffectControlTo(
-            *commandContextValue.effectControl, text));
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeEffectControlBy(
-            *commandContextValue.effectControl, 0));
+        commandRouterValue->changeEffectControlTo(
+            *commandContextValue.effectControl, text);
+        commandRouterValue->changeEffectControlBy(
+            *commandContextValue.effectControl, 0);
     } else if (commandContextValue.option != NULL) {
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeOptionTo(
-            *commandContextValue.option, text));
-        applyInterfaceRuntimeCommand(RuntimeCommand::changeOptionBy(
-            *commandContextValue.option, 0));
+        commandRouterValue->changeOptionTo(*commandContextValue.option, text);
+        commandRouterValue->changeOptionBy(*commandContextValue.option, 0);
     }
 }
 
 void InterfaceRuntime::toggleContextEffectControlLock() {
-    if (commandContextValue.effectControl != NULL) {
-        applyInterfaceRuntimeCommand(RuntimeCommand::toggleEffectControlLock(
-            *commandContextValue.effectControl));
-    }
+    if ((commandContextValue.effectControl != NULL)
+        && (commandRouterValue != NULL))
+        commandRouterValue->toggleEffectControlLock(
+            *commandContextValue.effectControl);
 }
 
 void InterfaceRuntime::toggleContextEffectChoiceUse() {
     if ((commandContextValue.effectControl == NULL)
-        || (currentInterfaceValue == NULL))
+        || (currentInterfaceValue == NULL)
+        || (commandRouterValue == NULL))
         return;
 
-    applyInterfaceRuntimeCommand(RuntimeCommand::toggleEffectChoiceUse(
-        *commandContextValue.effectControl, currentInterfaceValue->sel));
+    commandRouterValue->toggleEffectChoiceUse(
+        *commandContextValue.effectControl, currentInterfaceValue->sel);
 }
 
 void InterfaceRuntime::activateContextEffectChoice() {
     if ((commandContextValue.effectControl == NULL)
         || (commandContextValue.option == NULL)
-        || (currentInterfaceValue == NULL))
+        || (currentInterfaceValue == NULL)
+        || (commandRouterValue == NULL))
         return;
 
-    applyInterfaceRuntimeCommand(RuntimeCommand::activateEffectControl(
-        *commandContextValue.effectControl, currentInterfaceValue->sel));
+    commandRouterValue->activateEffectControl(
+        *commandContextValue.effectControl, currentInterfaceValue->sel);
 }

@@ -3,18 +3,7 @@
  */
 #include "imath.h"
 
-#include <stdlib.h>
 #include <math.h>
-
-/*
- * return a random number between 0 and range
- */
-int Random(int range) {
-    if (range > 0)
-        return rand() % range;
-    else
-        return 0;
-}
 
 /*
  * Square root for integers.

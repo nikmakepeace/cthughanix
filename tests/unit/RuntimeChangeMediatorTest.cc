@@ -7,6 +7,7 @@
 #include "RuntimeAudioControls.h"
 #include "RuntimeAutoChangeControls.h"
 #include "RuntimeChangeMediator.h"
+#include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
 #include "RuntimePersistence.h"
@@ -134,30 +135,109 @@ public:
     }
 };
 
+class RecordingRuntimeOptionTarget : public RuntimeOptionTarget {
+public:
+    int byCalls;
+    int toCalls;
+    int lastBy;
+    const char* lastTo;
+    RuntimeChangeSet byResponse;
+    RuntimeChangeSet toResponse;
+
+    RecordingRuntimeOptionTarget()
+        : byCalls(0)
+        , toCalls(0)
+        , lastBy(0)
+        , lastTo(0)
+        , byResponse()
+        , toResponse() { }
+
+    virtual RuntimeChangeSet changeBy(int by) {
+        byCalls++;
+        lastBy = by;
+        return byResponse;
+    }
+
+    virtual RuntimeChangeSet changeTo(const char* to) {
+        toCalls++;
+        lastTo = to;
+        return toResponse;
+    }
+};
+
+class RecordingRuntimeEffectControlTarget : public RuntimeEffectControlTarget {
+public:
+    int byCalls;
+    int toCalls;
+    int activateCalls;
+    int lockToggles;
+    int choiceUseToggles;
+    int lastValue;
+    const char* lastTo;
+    RuntimeChangeSet byResponse;
+    RuntimeChangeSet toResponse;
+    RuntimeChangeSet activateResponse;
+
+    RecordingRuntimeEffectControlTarget()
+        : byCalls(0)
+        , toCalls(0)
+        , activateCalls(0)
+        , lockToggles(0)
+        , choiceUseToggles(0)
+        , lastValue(0)
+        , lastTo(0)
+        , byResponse()
+        , toResponse()
+        , activateResponse() { }
+
+    virtual RuntimeChangeSet changeBy(int by) {
+        byCalls++;
+        lastValue = by;
+        return byResponse;
+    }
+
+    virtual RuntimeChangeSet changeTo(const char* to) {
+        toCalls++;
+        lastTo = to;
+        return toResponse;
+    }
+
+    virtual RuntimeChangeSet activate(int index) {
+        activateCalls++;
+        lastValue = index;
+        return activateResponse;
+    }
+
+    virtual void toggleLock() {
+        lockToggles++;
+    }
+
+    virtual void toggleChoiceUse(int index) {
+        choiceUseToggles++;
+        lastValue = index;
+    }
+};
+
 class RecordingRuntimePersistence : public RuntimePersistence {
 public:
     int currentWrites;
     int currentResult;
     int continuationWrites;
     int continuationResult;
-    RuntimeContinuationState lastContinuation;
 
     RecordingRuntimePersistence()
         : currentWrites(0)
         , currentResult(0)
         , continuationWrites(0)
-        , continuationResult(0)
-        , lastContinuation() { }
+        , continuationResult(0) { }
 
     virtual int writeCurrentConfig() {
         currentWrites++;
         return currentResult;
     }
 
-    virtual int writeContinuation(
-        const RuntimeContinuationState& continuation) {
+    virtual int writeContinuation() {
         continuationWrites++;
-        lastContinuation = continuation;
         return continuationResult;
     }
 };
@@ -481,6 +561,7 @@ public:
     RecordingRuntimeAutoChangeControls autoChangeControls;
     RecordingRuntimeEffectControls effectControls;
     RuntimeChangeMediator mediator;
+    RoutedRuntimeCommandTargetRouter targetRouter;
 
     MediatorHarness()
         : persistence()
@@ -490,6 +571,8 @@ public:
         , autoChangeControls()
         , effectControls()
         , mediator(fakeSceneCommands(), persistence, shutdown, displayControls,
+              audioControls, autoChangeControls, effectControls)
+        , targetRouter(mediator, fakeSceneCommands(), displayControls,
               audioControls, autoChangeControls, effectControls) { }
 };
 
@@ -585,48 +668,18 @@ static void testWriteIniDelegatesToPersistence() {
     assert(harness.shutdown.closeRequests == 0);
 }
 
-static void testStopAndContinuePersistsSnapshotBeforeClosing() {
+static void testStopAndContinuePersistsCurrentConfigBeforeClosing() {
     MediatorHarness harness;
 
-    RuntimeContinuationState continuation;
-    continuation.flame = "saved-flame";
-    continuation.generalFlame = "saved-general";
-    continuation.wave = "saved-wave";
-    continuation.waveScale = "saved-scale";
-    continuation.object = "saved-object";
-    continuation.translation = "saved-translation";
-    continuation.palette = "saved-palette";
-    continuation.border = "saved-border";
-    continuation.flashlight = "saved-flashlight";
-    continuation.table = "saved-table";
-    continuation.image = "saved-image";
-    continuation.presentation = "saved-screen";
-    continuation.audioProcessing = "saved-audio";
-    continuation.showFpsEnabled = 1;
-
     RuntimeChangeSet changes
-        = harness.mediator.apply(RuntimeCommand::stopAndContinue(continuation));
+        = harness.mediator.apply(RuntimeCommand::stopAndContinue());
     assert(changes.persistenceRequested == 1);
     assert(changes.closeRequested == 1);
     assert(harness.persistence.continuationWrites == 1);
     assert(harness.shutdown.closeRequests == 1);
-    assert(harness.persistence.lastContinuation.flame == "saved-flame");
-    assert(harness.persistence.lastContinuation.generalFlame == "saved-general");
-    assert(harness.persistence.lastContinuation.wave == "saved-wave");
-    assert(harness.persistence.lastContinuation.waveScale == "saved-scale");
-    assert(harness.persistence.lastContinuation.object == "saved-object");
-    assert(harness.persistence.lastContinuation.translation == "saved-translation");
-    assert(harness.persistence.lastContinuation.palette == "saved-palette");
-    assert(harness.persistence.lastContinuation.border == "saved-border");
-    assert(harness.persistence.lastContinuation.flashlight == "saved-flashlight");
-    assert(harness.persistence.lastContinuation.table == "saved-table");
-    assert(harness.persistence.lastContinuation.image == "saved-image");
-    assert(harness.persistence.lastContinuation.presentation == "saved-screen");
-    assert(harness.persistence.lastContinuation.audioProcessing == "saved-audio");
-    assert(harness.persistence.lastContinuation.showFpsEnabled == 1);
 
     harness.persistence.continuationResult = 1;
-    changes = harness.mediator.apply(RuntimeCommand::stopAndContinue(continuation));
+    changes = harness.mediator.apply(RuntimeCommand::stopAndContinue());
     assert(changes.persistenceRequested == 1);
     assert(changes.closeRequested == 0);
     assert(harness.persistence.continuationWrites == 2);
@@ -652,6 +705,68 @@ static void testRoutesPaletteMetadataCommandsThroughTarget() {
     assert(revert.uiChanged == 1);
 }
 
+static void testGenericCommandsCanRouteThroughExplicitTargets() {
+    MediatorHarness harness;
+    RecordingRuntimeOptionTarget optionTarget;
+    RecordingRuntimeEffectControlTarget effectTarget;
+    optionTarget.byResponse.audioProcessingChanged = 1;
+    optionTarget.toResponse.autoChangeChanged = 1;
+    effectTarget.byResponse.displayChanged = 1;
+    effectTarget.toResponse.uiChanged = 1;
+    effectTarget.activateResponse.sceneChanges = 1;
+
+    RuntimeChangeSet optionBy
+        = harness.mediator.apply(RuntimeCommand::changeOptionBy(optionTarget, 8));
+    assert(optionBy.audioProcessingChanged == 1);
+    assert(optionTarget.byCalls == 1);
+    assert(optionTarget.lastBy == 8);
+    assert(harness.displayControls.displayOptionByCalls == 0);
+    assert(harness.audioControls.audioOptionByCalls == 0);
+    assert(harness.autoChangeControls.autoChangeOptionByCalls == 0);
+
+    RuntimeChangeSet optionTo
+        = harness.mediator.apply(RuntimeCommand::changeOptionTo(optionTarget, "11"));
+    assert(optionTo.autoChangeChanged == 1);
+    assert(optionTarget.toCalls == 1);
+    assert(strcmp(optionTarget.lastTo, "11") == 0);
+    assert(harness.displayControls.displayOptionToCalls == 0);
+    assert(harness.audioControls.audioOptionToCalls == 0);
+    assert(harness.autoChangeControls.autoChangeOptionToCalls == 0);
+
+    RuntimeChangeSet effectBy
+        = harness.mediator.apply(RuntimeCommand::changeEffectControlBy(effectTarget, 4));
+    assert(effectBy.displayChanged == 1);
+    assert(effectTarget.byCalls == 1);
+    assert(effectTarget.lastValue == 4);
+    assert(harness.displayControls.displayEffectByCalls == 0);
+    assert(harness.effectControls.effectByCalls == 0);
+
+    RuntimeChangeSet effectTo
+        = harness.mediator.apply(RuntimeCommand::changeEffectControlTo(effectTarget, "next"));
+    assert(effectTo.uiChanged == 1);
+    assert(effectTarget.toCalls == 1);
+    assert(strcmp(effectTarget.lastTo, "next") == 0);
+    assert(harness.displayControls.displayEffectToCalls == 0);
+    assert(harness.effectControls.effectToCalls == 0);
+
+    RuntimeChangeSet activate
+        = harness.mediator.apply(RuntimeCommand::activateEffectControl(effectTarget, 3));
+    assert(activate.sceneChanges == 1);
+    assert(effectTarget.activateCalls == 1);
+    assert(effectTarget.lastValue == 3);
+    assert(harness.displayControls.displayActivateCalls == 0);
+    assert(harness.effectControls.activateCalls == 0);
+
+    harness.mediator.apply(RuntimeCommand::toggleEffectControlLock(effectTarget));
+    assert(effectTarget.lockToggles == 1);
+    assert(harness.effectControls.lockToggles == 0);
+
+    harness.mediator.apply(RuntimeCommand::toggleEffectChoiceUse(effectTarget, 6));
+    assert(effectTarget.choiceUseToggles == 1);
+    assert(effectTarget.lastValue == 6);
+    assert(harness.effectControls.choiceUseToggles == 0);
+}
+
 static void testEffectControlCommandsRouteByOwner() {
     MediatorHarness harness;
     resetSceneRecord();
@@ -664,7 +779,7 @@ static void testEffectControlCommandsRouteByOwner() {
 
     currentSceneOption = &effect;
     RuntimeChangeSet sceneChange
-        = harness.mediator.apply(RuntimeCommand::changeEffectControlBy(effect, 5));
+        = harness.targetRouter.changeEffectControlBy(effect, 5);
     assert(sceneChange.sceneChanges == 1);
     assert(strcmp(sceneRecord.name, "change-by") == 0);
     assert(sceneRecord.option == &effect);
@@ -676,7 +791,7 @@ static void testEffectControlCommandsRouteByOwner() {
     harness.displayControls.handlesDisplayEffectControl = 1;
     harness.displayControls.displayResponse.displayChanged = 1;
     RuntimeChangeSet displayChange
-        = harness.mediator.apply(RuntimeCommand::changeEffectControlBy(effect, 1));
+        = harness.targetRouter.changeEffectControlBy(effect, 1);
     assert(displayChange.sceneChanges == 0);
     assert(displayChange.displayChanged == 1);
     assert(harness.displayControls.displayEffectByCalls == 1);
@@ -687,7 +802,7 @@ static void testEffectControlCommandsRouteByOwner() {
     harness.displayControls.handlesDisplayEffectControl = 0;
     harness.effectControls.effectChangeResponse.uiChanged = 1;
     RuntimeChangeSet catalogTextChange
-        = harness.mediator.apply(RuntimeCommand::changeEffectControlTo(effect, "beta"));
+        = harness.targetRouter.changeEffectControlTo(effect, "beta");
     assert(catalogTextChange.uiChanged == 1);
     assert(harness.displayControls.displayEffectToCalls == 1);
     assert(harness.effectControls.effectToCalls == 1);
@@ -695,7 +810,7 @@ static void testEffectControlCommandsRouteByOwner() {
     assert(strcmp(harness.effectControls.lastText, "beta") == 0);
 
     RuntimeChangeSet catalogActivation
-        = harness.mediator.apply(RuntimeCommand::activateEffectControl(effect, 0));
+        = harness.targetRouter.activateEffectControl(effect, 0);
     assert(catalogActivation.uiChanged == 1);
     assert(harness.displayControls.displayActivateCalls == 1);
     assert(harness.effectControls.activateCalls == 1);
@@ -703,7 +818,7 @@ static void testEffectControlCommandsRouteByOwner() {
 
     currentSceneOption = &effect;
     RuntimeChangeSet sceneActivation
-        = harness.mediator.apply(RuntimeCommand::activateEffectControl(effect, 1));
+        = harness.targetRouter.activateEffectControl(effect, 1);
     assert(sceneActivation.sceneChanges == 1);
     assert(strcmp(sceneRecord.name, "activate") == 0);
     assert(sceneRecord.option == &effect);
@@ -722,7 +837,7 @@ static void testOptionCommandsRouteThroughOwningControls() {
         harness.displayControls.displayResponse.displayChanged = 1;
 
         RuntimeChangeSet changes
-            = harness.mediator.apply(RuntimeCommand::changeOptionBy(option, 3));
+            = harness.targetRouter.changeOptionBy(option, 3);
         assert(changes.displayChanged == 1);
         assert(harness.displayControls.displayOptionByCalls == 1);
         assert(harness.displayControls.lastDisplayOption == &option);
@@ -737,7 +852,7 @@ static void testOptionCommandsRouteThroughOwningControls() {
         harness.audioControls.audioOptionResponse.audioProcessingChanged = 1;
 
         RuntimeChangeSet changes
-            = harness.mediator.apply(RuntimeCommand::changeOptionTo(option, "7"));
+            = harness.targetRouter.changeOptionTo(option, "7");
         assert(changes.audioProcessingChanged == 1);
         assert(harness.displayControls.displayOptionToCalls == 1);
         assert(harness.audioControls.audioOptionToCalls == 1);
@@ -752,7 +867,7 @@ static void testOptionCommandsRouteThroughOwningControls() {
         harness.autoChangeControls.autoChangeOptionResponse.autoChangeChanged = 1;
 
         RuntimeChangeSet changes
-            = harness.mediator.apply(RuntimeCommand::changeOptionBy(option, 4));
+            = harness.targetRouter.changeOptionBy(option, 4);
         assert(changes.autoChangeChanged == 1);
         assert(harness.displayControls.displayOptionByCalls == 1);
         assert(harness.audioControls.audioOptionByCalls == 1);
@@ -768,11 +883,11 @@ static void testEffectControlStateCommandsRouteThroughEffectControls() {
     EffectChoiceList entries(&first);
     EffectControl effect(-1, "effect-lock", entries);
 
-    harness.mediator.apply(RuntimeCommand::toggleEffectControlLock(effect));
+    harness.targetRouter.toggleEffectControlLock(effect);
     assert(harness.effectControls.lockToggles == 1);
     assert(harness.effectControls.lastEffectControl == &effect);
 
-    harness.mediator.apply(RuntimeCommand::toggleEffectChoiceUse(effect, 0));
+    harness.targetRouter.toggleEffectChoiceUse(effect, 0);
     assert(harness.effectControls.choiceUseToggles == 1);
     assert(harness.effectControls.lastEffectControl == &effect);
     assert(harness.effectControls.lastValue == 0);
@@ -783,8 +898,9 @@ int main() {
     testRoutesDisplayCommandsThroughDisplayControls();
     testReportsNonSceneRuntimeChanges();
     testWriteIniDelegatesToPersistence();
-    testStopAndContinuePersistsSnapshotBeforeClosing();
+    testStopAndContinuePersistsCurrentConfigBeforeClosing();
     testRoutesPaletteMetadataCommandsThroughTarget();
+    testGenericCommandsCanRouteThroughExplicitTargets();
     testEffectControlCommandsRouteByOwner();
     testOptionCommandsRouteThroughOwningControls();
     testEffectControlStateCommandsRouteThroughEffectControls();

@@ -15,6 +15,7 @@
 class Interface;
 class InterfaceElement;
 class InterfaceElementOption;
+class LogSink;
 struct AudioConfig;
 
 /** Startup mixer volume request copied from AudioConfig. */
@@ -68,11 +69,12 @@ public:
      * @param path OSS mixer device path.
      * @param initialVolumes Startup volume requests.
      * @param channels Receives discovered mixer channels on success.
+     * @param log Diagnostic sink for hardware/open/ioctl messages.
      * @return Zero on success, nonzero when state should remain unchanged.
      */
     virtual int initialize(const std::string& path,
         const std::vector<MixerInitialVolume>& initialVolumes,
-        std::vector<MixerChannel>& channels) = 0;
+        std::vector<MixerChannel>& channels, LogSink& log) = 0;
 
     /**
      * Applies a channel volume and recording-source state.
@@ -81,15 +83,17 @@ public:
      * @param channel Channel to mutate.
      * @param encodedVolume Encoded OSS left/right volume.
      * @param active Receives refreshed recording-source activity.
+     * @param log Diagnostic sink for hardware/open/ioctl messages.
      * @return Zero on success, nonzero when session state should remain stable.
      */
     virtual int setVolume(const std::string& path, const MixerChannel& channel,
-        int encodedVolume, int& active) = 0;
+        int encodedVolume, int& active, LogSink& log) = 0;
 };
 
 /** Owned mixer state for the current application session. */
 class MixerSession {
     MixerDevice& deviceValue;
+    LogSink& logValue;
     std::string pathValue;
     std::vector<MixerInitialVolume> initialVolumesValue;
     std::vector<MixerChannel> channelsValue;
@@ -101,18 +105,20 @@ public:
      * Creates a mixer session from startup audio configuration.
      *
      * @param device Mixer hardware boundary to use.
+     * @param log Diagnostic sink.
      * @param config Startup audio configuration.
      */
-    MixerSession(MixerDevice& device, const AudioConfig& config);
+    MixerSession(MixerDevice& device, LogSink& log, const AudioConfig& config);
 
     /**
      * Creates a mixer session from explicit startup values.
      *
      * @param device Mixer hardware boundary to use.
+     * @param log Diagnostic sink.
      * @param path OSS mixer device path.
      * @param initialVolumes Startup volume requests.
      */
-    MixerSession(MixerDevice& device, const std::string& path,
+    MixerSession(MixerDevice& device, LogSink& log, const std::string& path,
         const std::vector<MixerInitialVolume>& initialVolumes);
 
     /**
@@ -155,6 +161,7 @@ class MixerControls {
     class MixerVolumeOption;
 
     MixerSession& sessionValue;
+    LogSink& logValue;
     std::vector<std::unique_ptr<MixerVolumeOption> > optionsValue;
     std::vector<std::unique_ptr<char[]> > labelsValue;
     std::vector<std::unique_ptr<InterfaceElementOption> > elementsValue;
@@ -168,8 +175,9 @@ public:
      * Creates mixer controls for a session.
      *
      * @param session Mixer session to mutate. The session must outlive controls.
+     * @param log Diagnostic sink.
      */
-    explicit MixerControls(MixerSession& session);
+    MixerControls(MixerSession& session, LogSink& log);
 
     /** Releases mixer option and interface row adapters. */
     ~MixerControls();

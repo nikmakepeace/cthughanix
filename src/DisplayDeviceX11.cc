@@ -23,6 +23,7 @@
 #include "DisplayRuntime.h"
 #include "OverlaySource.h"
 #include "PixelTransfer.h"
+#include "ProcessServices.h"
 #include "ViewportPresentation.h"
 #include "xcthugha.h"
 
@@ -441,12 +442,16 @@ void DisplayDeviceX11::freeFont() {
 
 DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
     RuntimeCommandSink& runtimeCommands_,
-    RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config)
+    RuntimeCommandTargetRouter& runtimeCommandRouter_,
+    RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config,
+    SecondsClock& clock_)
     : DisplayDevice()
     , scene(scene_)
     , sceneCommands(sceneCommands_)
     , runtimeCommands(runtimeCommands_)
+    , runtimeCommandRouter(runtimeCommandRouter_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
+    , clock(clock_)
     ,
 
     visual(NULL)
@@ -944,7 +949,7 @@ void DisplayDeviceX11::clearBox(int x, int y, int width, int height) {
 
 void DisplayDeviceX11::postDraw() {
     int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
-    double postStart = traceDisplayTiming ? getTime() : 0.0;
+    double postStart = traceDisplayTiming ? clock.nowSeconds() : 0.0;
     double paletteMs = 0.0;
     double dumpMs = 0.0;
     double previewMs = 0.0;
@@ -958,64 +963,64 @@ void DisplayDeviceX11::postDraw() {
     PixelRect drawRect = ViewportPresentation::drawCopyRect(viewport);
 
     if (traceDisplayTiming)
-        stepStart = getTime();
+        stepStart = clock.nowSeconds();
     this->setGlobalPalette();
     if (traceDisplayTiming)
-        paletteMs = (getTime() - stepStart) * 1000.0;
+        paletteMs = (clock.nowSeconds() - stepStart) * 1000.0;
 
     if (traceDisplayTiming)
-        stepStart = getTime();
+        stepStart = clock.nowSeconds();
     dump_x11_frame(image);
     if (traceDisplayTiming)
-        dumpMs = (getTime() - stepStart) * 1000.0;
+        dumpMs = (clock.nowSeconds() - stepStart) * 1000.0;
 
     if (traceDisplayTiming)
-        stepStart = getTime();
+        stepStart = clock.nowSeconds();
     if (palettePreviewWidget)
         updatePalettePreview();
     if (panelTextWidget)
         updatePanelSelectionLabels();
     if (traceDisplayTiming)
-        previewMs = (getTime() - stepStart) * 1000.0;
+        previewMs = (clock.nowSeconds() - stepStart) * 1000.0;
 
     if (copyText) {
 
         if (panelTextWidget) {
             copyText--;
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XCopyArea(xcth_display, textPixmap, XtWindow(panelTextWidget), gc, 0, 0,
                 text_size.x * fontSize.x, text_size.y * fontSize.y, 0, 0);
             if (traceDisplayTiming)
-                copyMs += (getTime() - stepStart) * 1000.0;
+                copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
         } else {
             switch (shmLevel) {
             case shmPixmap:
                 if (traceDisplayTiming)
-                    stepStart = getTime();
+                    stepStart = clock.nowSeconds();
                 XCopyArea(xcth_display, pixmap, window, gc, fullRect.x, fullRect.y,
                     fullRect.width, fullRect.height,
                     fullRect.x, fullRect.y);
                 if (traceDisplayTiming)
-                    copyMs += (getTime() - stepStart) * 1000.0;
+                    copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
 
                 break;
             case shmImage:
             case shmNone:
                 if (traceDisplayTiming)
-                    stepStart = getTime();
+                    stepStart = clock.nowSeconds();
                 XCopyArea(xcth_display, textPixmap, window, gc, fullRect.x, fullRect.y,
                     fullRect.width, fullRect.height,
                     fullRect.x, fullRect.y);
                 if (traceDisplayTiming)
-                    copyMs += (getTime() - stepStart) * 1000.0;
+                    copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
             }
             {
-                double flushStart = getTime();
+                double flushStart = clock.nowSeconds();
                 XFlush(xcth_display);
-                double flushMs = (getTime() - flushStart) * 1000.0;
+                double flushMs = (clock.nowSeconds() - flushStart) * 1000.0;
                 CTH_TRACE("post-draw-ms=%.3f palette-ms=%.3f dump-ms=%.3f preview-ms=%.3f put-ms=%.3f copy-ms=%.3f flush-ms=%.3f copy-text=1 full-copy=%d shm-level=%d draw=%dx%d\n",
-                    "display timing", (getTime() - postStart) * 1000.0,
+                    "display timing", (clock.nowSeconds() - postStart) * 1000.0,
                     paletteMs, dumpMs, previewMs, putMs, copyMs, flushMs,
                     fullCopy, shmLevel, viewport.drawSize.width,
                     viewport.drawSize.height);
@@ -1028,81 +1033,81 @@ void DisplayDeviceX11::postDraw() {
         switch (shmLevel) {
         case shmPixmap:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XCopyArea(xcth_display, pixmap, window, gc, fullRect.x, fullRect.y,
                 fullRect.width, fullRect.height,
                 fullRect.x, fullRect.y);
             if (traceDisplayTiming)
-                copyMs += (getTime() - stepStart) * 1000.0;
+                copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
 
             break;
         case shmImage:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XShmPutImage(xcth_display, window, gc, image, fullRect.x, fullRect.y,
                 fullRect.x, fullRect.y, fullRect.width, fullRect.height, 0);
             if (traceDisplayTiming)
-                putMs += (getTime() - stepStart) * 1000.0;
+                putMs += (clock.nowSeconds() - stepStart) * 1000.0;
             break;
         case shmNone:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XPutImage(xcth_display, pixmap, gc, image, fullRect.x, fullRect.y,
                 fullRect.x, fullRect.y, fullRect.width, fullRect.height);
             if (traceDisplayTiming)
-                putMs += (getTime() - stepStart) * 1000.0;
+                putMs += (clock.nowSeconds() - stepStart) * 1000.0;
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XCopyArea(xcth_display, pixmap, window, gc, fullRect.x, fullRect.y,
                 fullRect.width, fullRect.height,
                 fullRect.x, fullRect.y);
             if (traceDisplayTiming)
-                copyMs += (getTime() - stepStart) * 1000.0;
+                copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
             break;
         }
     else
         switch (shmLevel) {
         case shmPixmap:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XCopyArea(xcth_display, pixmap, window, gc, drawRect.x,
                 drawRect.y,
                 drawRect.width, drawRect.height,
                 drawRect.x,
                 drawRect.y);
             if (traceDisplayTiming)
-                copyMs += (getTime() - stepStart) * 1000.0;
+                copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
             break;
         case shmImage:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XShmPutImage(xcth_display, window, gc, image, drawRect.x, drawRect.y,
                 drawRect.x, drawRect.y, drawRect.width, drawRect.height, 0);
             if (traceDisplayTiming)
-                putMs += (getTime() - stepStart) * 1000.0;
+                putMs += (clock.nowSeconds() - stepStart) * 1000.0;
             break;
         case shmNone:
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XPutImage(xcth_display, pixmap, gc, image, drawRect.x, drawRect.y,
                 drawRect.x, drawRect.y, drawRect.width, drawRect.height);
             if (traceDisplayTiming)
-                putMs += (getTime() - stepStart) * 1000.0;
+                putMs += (clock.nowSeconds() - stepStart) * 1000.0;
             if (traceDisplayTiming)
-                stepStart = getTime();
+                stepStart = clock.nowSeconds();
             XCopyArea(xcth_display, pixmap, window, gc, drawRect.x, drawRect.y,
                 drawRect.width, drawRect.height,
                 drawRect.x, drawRect.y);
             if (traceDisplayTiming)
-                copyMs += (getTime() - stepStart) * 1000.0;
+                copyMs += (clock.nowSeconds() - stepStart) * 1000.0;
             break;
         }
 
-    double flushStart = getTime();
+    double flushStart = clock.nowSeconds();
     XFlush(xcth_display);
-    double flushMs = (getTime() - flushStart) * 1000.0;
+    double flushMs = (clock.nowSeconds() - flushStart) * 1000.0;
     CTH_TRACE("post-draw-ms=%.3f palette-ms=%.3f dump-ms=%.3f preview-ms=%.3f put-ms=%.3f copy-ms=%.3f flush-ms=%.3f copy-text=%d full-copy=%d shm-level=%d draw=%dx%d\n",
-        "display timing", (getTime() - postStart) * 1000.0,
+        "display timing", (clock.nowSeconds() - postStart) * 1000.0,
         paletteMs, dumpMs, previewMs, putMs, copyMs, flushMs, copyTextFrame,
         fullCopy, shmLevel, viewport.drawSize.width, viewport.drawSize.height);
     needsFullCopy = 0;
@@ -1381,10 +1386,13 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
 
 std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
     Scene& scene, SceneCommands& sceneCommands, RuntimeCommandSink& runtimeCommands,
-    RuntimeConfigRegistry& runtimeConfigRegistry, const DisplayConfig& config) {
+    RuntimeCommandTargetRouter& runtimeCommandRouter,
+    RuntimeConfigRegistry& runtimeConfigRegistry, const DisplayConfig& config,
+    SecondsClock& clock) {
     std::unique_ptr<DisplayDeviceX11> device(
         new DisplayDeviceX11(scene, sceneCommands, runtimeCommands,
-            runtimeConfigRegistry, config));
+            runtimeCommandRouter,
+            runtimeConfigRegistry, config, clock));
     if (!device->isInitialized()) {
         return std::unique_ptr<DisplayRuntimeOwnership>();
     }

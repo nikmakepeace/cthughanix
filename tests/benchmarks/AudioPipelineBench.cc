@@ -2,10 +2,11 @@
 #include "AudioAnalyzer.h"
 #include "AudioFftProcessor.h"
 #include "AudioFrame.h"
+#include "AudioFramePipeline.h"
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
 #include "AudioTypes.h"
-#include "AudioVisualBridge.h"
+#include "ProcessServices.h"
 #include "configuration_defaults.h"
 
 #include <benchmark/benchmark.h>
@@ -28,6 +29,30 @@ const int kVideoFrameSamples = 1024;
 const int kAudioSliceMs = 10;
 const int kProtectedHistorySamples = 44100;
 const int kBufferCapacitySamples = 44100 * 3;
+
+class DeterministicRandomSource : public RandomSource {
+public:
+    virtual int uniformInt(int) {
+        return 0;
+    }
+};
+
+class DeterministicSecondsClock : public SecondsClock {
+public:
+    virtual double nowSeconds() const {
+        return 0.0;
+    }
+};
+
+class NullLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+};
 
 int samplesForAudioSlice(const PcmFormat& format) {
     return (format.sampleRate * kAudioSliceMs) / 1000;
@@ -56,7 +81,8 @@ struct PcmFixture {
 
     PcmFixture()
         : sliceSamples(0) {
-        WavPcmSource source(primaryFixturePath());
+        NullLogSink log;
+        WavPcmSource source(primaryFixturePath(), log);
         if (source.hasError())
             return;
 
@@ -146,9 +172,10 @@ struct PrismPcmFrameFixture {
             return;
         }
 
+        NullLogSink log;
         DecodedAudioHistory history(samplesRead, format,
-            kVideoFrameSamples);
-        AudioFrameBuilder builder;
+            kVideoFrameSamples, log);
+        AudioFrameBuilder builder(log);
         history.appendDecodedPcm(pcm.data(), samplesRead);
         frame.clear();
         builder.build(frame, history, samplesRead / 2);
@@ -172,9 +199,10 @@ static int requirePrismPcmFrameFixture(benchmark::State& state) {
 
 void fillFrameFromFixture(AudioFrame& frame) {
     const PcmFixture& fixture = pcmFixture();
+    NullLogSink log;
     DecodedAudioHistory history(kVideoFrameSamples * 2, fixture.format,
-        kVideoFrameSamples);
-    AudioFrameBuilder builder;
+        kVideoFrameSamples, log);
+    AudioFrameBuilder builder(log);
 
     frame.clear();
     history.appendDecodedPcm(fixture.frame1024.data(), kVideoFrameSamples);
@@ -199,8 +227,9 @@ void refillHistoryIfNeeded(DecodedAudioHistory& history, AudioOutputStream& stre
 } // namespace
 
 static void BM_Wav_OpenParse(benchmark::State& state) {
+    NullLogSink log;
     for (auto _ : state) {
-        WavPcmSource source(primaryFixturePath());
+        WavPcmSource source(primaryFixturePath(), log);
         int sampleRate = source.format().sampleRate;
         benchmark::DoNotOptimize(source.hasError());
         benchmark::DoNotOptimize(sampleRate);
@@ -208,7 +237,8 @@ static void BM_Wav_OpenParse(benchmark::State& state) {
 }
 
 static void BM_Wav_Read1024(benchmark::State& state) {
-    WavPcmSource source(primaryFixturePath());
+    NullLogSink log;
+    WavPcmSource source(primaryFixturePath(), log);
     std::vector<char> scratch(source.format().bytesForSamples(kVideoFrameSamples));
     long long totalSamples = 0;
 
@@ -229,7 +259,8 @@ static void BM_Wav_Read1024(benchmark::State& state) {
 }
 
 static void BM_Wav_Read10ms(benchmark::State& state) {
-    WavPcmSource source(primaryFixturePath());
+    NullLogSink log;
+    WavPcmSource source(primaryFixturePath(), log);
     int sliceSamples = samplesForAudioSlice(source.format());
     std::vector<char> scratch(source.format().bytesForSamples(sliceSamples));
     long long totalSamples = 0;
@@ -252,7 +283,8 @@ static void BM_Wav_Read10ms(benchmark::State& state) {
 
 static void BM_AudioInput_Read10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    AudioInput input(new WavPcmSource(primaryFixturePath()), 1, 1);
+    NullLogSink log;
+    AudioInput input(new WavPcmSource(primaryFixturePath(), log), log, 1, 1);
     int bytesPerSample = fixture.bytesPerSample();
     int sliceSamples = samplesForAudioSlice(fixture.format);
     std::vector<char> scratch(pcmBytesForSamples(sliceSamples, bytesPerSample));
@@ -276,8 +308,9 @@ static void BM_AudioInput_Read10ms(benchmark::State& state) {
 
 static void BM_DecodedAudioHistory_Append10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
+    NullLogSink log;
     DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
-        kProtectedHistorySamples);
+        kProtectedHistorySamples, log);
     long long totalSamples = 0;
 
     for (auto _ : state) {
@@ -297,10 +330,12 @@ static void BM_DecodedAudioHistory_Append10ms(benchmark::State& state) {
 
 static void BM_AudioOutput_NullService10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
+    NullLogSink log;
     DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
-        kProtectedHistorySamples);
+        kProtectedHistorySamples, log);
     AudioOutputStream stream(history);
-    AudioNullOutput output;
+    DeterministicSecondsClock clock;
+    AudioNullOutput output(clock, log);
     std::vector<char> scratch(fixture.format.bytesForSamples(fixture.sliceSamples));
     long long totalSamples = 0;
 
@@ -326,8 +361,9 @@ static void BM_AudioOutput_NullService10ms(benchmark::State& state) {
 
 static void BM_AudioOutputStream_PeekCommit10ms(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
+    NullLogSink log;
     DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
-        kProtectedHistorySamples);
+        kProtectedHistorySamples, log);
     AudioOutputStream stream(history);
     std::vector<char> scratch(fixture.format.bytesForSamples(fixture.sliceSamples));
     long long totalSamples = 0;
@@ -355,9 +391,10 @@ static void BM_AudioOutputStream_PeekCommit10ms(benchmark::State& state) {
 
 static void BM_AudioFrameBuilder_Build1024(benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
+    NullLogSink log;
     DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
-        kProtectedHistorySamples);
-    AudioFrameBuilder builder;
+        kProtectedHistorySamples, log);
+    AudioFrameBuilder builder(log);
     AudioFrame frame;
     long long centerSample = kVideoFrameSamples;
     long long totalSamples = 0;
@@ -467,41 +504,52 @@ static void BM_AcousticContext_Update(benchmark::State& state) {
     }
 }
 
-static void BM_AudioVisualBridge_RunFrameNone(benchmark::State& state) {
+static void BM_AudioFramePipeline_ProcessFrameNone(benchmark::State& state) {
     AudioFrame frame;
-    AcousticContext acousticContext;
     AudioProcessor processor;
-    AudioProcessingState processingState;
-    AudioProcessingSelector processingSelector(processingState, processor);
+    DeterministicRandomSource randomSource;
+    DeterministicSecondsClock clock;
+    NullLogSink log;
+    AcousticContext acousticContext(&log);
+    AudioProcessingState processingState(randomSource);
+    AudioProcessingSelector processingSelector(processingState, processor, log);
     fillFrameFromFixture(frame);
-    AudioVisualBridge bridge(acousticContext, processingSelector, processor,
-        AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE);
+    DefaultAudioFramePipeline pipeline(acousticContext, processingSelector,
+        processor, clock, log, AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE);
 
     processingSelector.changeTo("none");
 
     for (auto _ : state) {
-        bridge.runFrame(frame);
+        pipeline.processFrame(frame);
         benchmark::DoNotOptimize(frame.processedWaveData);
         benchmark::DoNotOptimize(frame.metrics.amplitude);
         benchmark::ClobberMemory();
     }
 }
 
-static void BM_EndToEnd_Process10msWavToNullOutputToBridgeNone(benchmark::State& state) {
+static void BM_EndToEnd_Process10msWavToNullOutputToPipelineNone(
+    benchmark::State& state) {
     const PcmFixture& fixture = pcmFixture();
-    AudioInput input(new WavPcmSource(primaryFixturePath()), 1, 1);
+    NullLogSink inputLog;
+    AudioInput input(new WavPcmSource(primaryFixturePath(), inputLog),
+        inputLog, 1, 1);
+    NullLogSink log;
     DecodedAudioHistory history(kBufferCapacitySamples, fixture.format,
-        kProtectedHistorySamples);
+        kProtectedHistorySamples, log);
     AudioOutputStream stream(history);
-    AudioNullOutput output;
-    AudioFrameBuilder builder;
+    DeterministicSecondsClock outputClock;
+    NullLogSink outputLog;
+    AudioNullOutput output(outputClock, outputLog);
+    AudioFrameBuilder builder(log);
     AudioFrame frame;
-    AcousticContext acousticContext;
+    AcousticContext acousticContext(&log);
     AudioProcessor processor;
-    AudioProcessingState processingState;
-    AudioProcessingSelector processingSelector(processingState, processor);
-    AudioVisualBridge bridge(acousticContext, processingSelector, processor,
-        AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE);
+    DeterministicRandomSource randomSource;
+    DeterministicSecondsClock clock;
+    AudioProcessingState processingState(randomSource);
+    AudioProcessingSelector processingSelector(processingState, processor, log);
+    DefaultAudioFramePipeline pipeline(acousticContext, processingSelector,
+        processor, clock, log, AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE);
     std::vector<char> inputChunk(fixture.format.bytesForSamples(fixture.sliceSamples));
     std::vector<char> outputChunk(fixture.format.bytesForSamples(fixture.sliceSamples));
     long long totalSamples = 0;
@@ -526,7 +574,7 @@ static void BM_EndToEnd_Process10msWavToNullOutputToBridgeNone(benchmark::State&
         history.appendDecodedPcm(inputChunk.data(), samples);
         output.service(stream, outputChunk.data(), fixture.sliceSamples, 0);
         builder.build(frame, history, stream.submittedEndPosition());
-        bridge.runFrame(frame);
+        pipeline.processFrame(frame);
 
         totalSamples += samples;
         benchmark::DoNotOptimize(frame.processedWaveData);
@@ -552,5 +600,5 @@ BENCHMARK(BM_AudioProcessor_FFT);
 BENCHMARK(BM_AudioFft_FixedPoint_PrismPcm);
 BENCHMARK(BM_AudioProcessor_Analyze1024);
 BENCHMARK(BM_AcousticContext_Update);
-BENCHMARK(BM_AudioVisualBridge_RunFrameNone);
-BENCHMARK(BM_EndToEnd_Process10msWavToNullOutputToBridgeNone);
+BENCHMARK(BM_AudioFramePipeline_ProcessFrameNone);
+BENCHMARK(BM_EndToEnd_Process10msWavToNullOutputToPipelineNone);

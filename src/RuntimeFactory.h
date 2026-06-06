@@ -10,6 +10,9 @@
 #include "AudioOutputConfig.h"
 
 class AudioOutputDump;
+class LogSink;
+class RandomSource;
+class SecondsClock;
 
 class Environment {
 public:
@@ -27,7 +30,7 @@ public:
      *        checked.
      * @return Environment describing available input/output backends.
      */
-    static Environment detect(const AudioSettings& settings);
+    static Environment detect(const AudioSettings& settings, LogSink& log);
 };
 
 class RuntimeFactory {
@@ -36,6 +39,9 @@ class RuntimeFactory {
     Environment environment;
     int visualMaxDimension;
     AudioOutputDump* outputDump;
+    RandomSource& randomSource;
+    SecondsClock& clock;
+    LogSink& log;
     PcmSourceFactory pcmSourceFactory;
 
 public:
@@ -48,10 +54,14 @@ public:
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Passed to DSP/audio-window constructors.
      * @param outputDump Optional submitted-PCM dump collaborator.
+     * @param randomSource Random source used by synthetic PCM input.
+     * @param clock Clock used by output backends for service trace timing.
+     * @param log Sink for startup/runtime-selection diagnostics.
      */
     RuntimeFactory(const AudioSettings& settings,
         const AudioOutputConfig& outputConfig, const Environment& environment,
-        int visualMaxDimension, AudioOutputDump* outputDump = NULL);
+        int visualMaxDimension, AudioOutputDump* outputDump,
+        RandomSource& randomSource, SecondsClock& clock, LogSink& log);
 
     /**
      * @return Newly allocated audio input wrapper. Caller owns the returned pointer.

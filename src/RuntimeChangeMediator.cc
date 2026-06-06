@@ -6,6 +6,7 @@
 
 #include "RuntimeAudioControls.h"
 #include "RuntimeAutoChangeControls.h"
+#include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
 #include "RuntimePersistence.h"
@@ -112,67 +113,6 @@ RuntimeChangeSet RuntimeChangeMediator::applySceneTo(
     return changes;
 }
 
-RuntimeChangeSet RuntimeChangeMediator::applyNonSceneEffectControlBy(
-    EffectControl& control, int by) {
-    RuntimeChangeSet changes;
-
-    if (displayControls.changeDisplayEffectControlBy(control, by, changes))
-        return changes;
-
-    changes.merge(effectControls.changeEffectControlBy(control, by));
-    return changes;
-}
-
-RuntimeChangeSet RuntimeChangeMediator::applyNonSceneEffectControlTo(
-    EffectControl& control, const char* to) {
-    RuntimeChangeSet changes;
-
-    if (displayControls.changeDisplayEffectControlTo(control, to, changes))
-        return changes;
-
-    changes.merge(effectControls.changeEffectControlTo(control, to));
-    return changes;
-}
-
-RuntimeChangeSet RuntimeChangeMediator::activateNonSceneEffectControl(
-    EffectControl& control, int index) {
-    RuntimeChangeSet changes;
-
-    if (displayControls.activateDisplayEffectControl(control, index, changes))
-        return changes;
-
-    changes.merge(effectControls.activateEffectControl(control, index));
-    return changes;
-}
-
-RuntimeChangeSet RuntimeChangeMediator::changeOwnedOptionBy(
-    Option& option, int by) {
-    RuntimeChangeSet changes;
-
-    if (displayControls.changeDisplayOptionBy(option, by, changes))
-        return changes;
-    if (audioControls.changeAudioOptionBy(option, by, changes))
-        return changes;
-    if (autoChangeControls.changeAutoChangeOptionBy(option, by, changes))
-        return changes;
-
-    return changes;
-}
-
-RuntimeChangeSet RuntimeChangeMediator::changeOwnedOptionTo(
-    Option& option, const char* to) {
-    RuntimeChangeSet changes;
-
-    if (displayControls.changeDisplayOptionTo(option, to, changes))
-        return changes;
-    if (audioControls.changeAudioOptionTo(option, to, changes))
-        return changes;
-    if (autoChangeControls.changeAutoChangeOptionTo(option, to, changes))
-        return changes;
-
-    return changes;
-}
-
 RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
     RuntimeChangeSet changes;
 
@@ -219,7 +159,7 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         break;
     case RuntimeCommandStopAndContinue:
         changes.persistenceRequested = 1;
-        if (runtimePersistence.writeContinuation(command.continuation) == 0) {
+        if (runtimePersistence.writeContinuation() == 0) {
             runtimeShutdown.requestClose();
             changes.closeRequested = 1;
         }
@@ -257,54 +197,32 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         changes.sceneChanges = 1;
         break;
     case RuntimeCommandChangeEffectControlBy:
-        if (command.effectControl == 0)
-            break;
-        if (sceneCommands.isSceneOption(*command.effectControl)) {
-            sceneCommands.change(*command.effectControl, command.value, 0);
-            changes.sceneChanges = 1;
-        } else {
-            changes.merge(applyNonSceneEffectControlBy(
-                *command.effectControl, command.value));
-        }
+        if (command.effectControlTarget != 0)
+            changes.merge(command.effectControlTarget->changeBy(command.value));
         break;
     case RuntimeCommandChangeEffectControlTo:
-        if (command.effectControl == 0)
-            break;
-        if (sceneCommands.isSceneOption(*command.effectControl)) {
-            sceneCommands.change(*command.effectControl, command.text, 0);
-            changes.sceneChanges = 1;
-        } else {
-            changes.merge(applyNonSceneEffectControlTo(
-                *command.effectControl, command.text));
-        }
+        if (command.effectControlTarget != 0)
+            changes.merge(command.effectControlTarget->changeTo(command.text));
         break;
     case RuntimeCommandActivateEffectControl:
-        if (command.effectControl == 0)
-            break;
-        if (sceneCommands.isSceneOption(*command.effectControl)) {
-            sceneCommands.activate(*command.effectControl, command.value);
-            changes.sceneChanges = 1;
-        } else {
-            changes.merge(activateNonSceneEffectControl(
-                *command.effectControl, command.value));
-        }
+        if (command.effectControlTarget != 0)
+            changes.merge(command.effectControlTarget->activate(command.value));
         break;
     case RuntimeCommandToggleEffectChoiceUse:
-        if (command.effectControl != 0)
-            effectControls.toggleEffectChoiceUse(
-                *command.effectControl, command.value);
+        if (command.effectControlTarget != 0)
+            command.effectControlTarget->toggleChoiceUse(command.value);
         break;
     case RuntimeCommandChangeOptionBy:
-        if (command.option != 0)
-            changes.merge(changeOwnedOptionBy(*command.option, command.value));
+        if (command.optionTarget != 0)
+            changes.merge(command.optionTarget->changeBy(command.value));
         break;
     case RuntimeCommandChangeOptionTo:
-        if (command.option != 0)
-            changes.merge(changeOwnedOptionTo(*command.option, command.text));
+        if (command.optionTarget != 0)
+            changes.merge(command.optionTarget->changeTo(command.text));
         break;
     case RuntimeCommandToggleEffectControlLock:
-        if (command.effectControl != 0)
-            effectControls.toggleEffectControlLock(*command.effectControl);
+        if (command.effectControlTarget != 0)
+            command.effectControlTarget->toggleLock();
         break;
     case RuntimeCommandSavePaletteMetadata:
         if (command.paletteMetadataTarget != 0) {

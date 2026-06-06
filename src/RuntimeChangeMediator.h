@@ -13,8 +13,6 @@ class RuntimeDisplayControls;
 class RuntimeAudioControls;
 class RuntimeAutoChangeControls;
 class RuntimeEffectControls;
-class EffectControl;
-class Option;
 class SceneCommands;
 
 class RuntimeChangeMediator : public RuntimeCommandSink {
@@ -28,13 +26,6 @@ class RuntimeChangeMediator : public RuntimeCommandSink {
 
     RuntimeChangeSet applySceneBy(RuntimeSceneTarget target, int by);
     RuntimeChangeSet applySceneTo(RuntimeSceneTarget target, const char* to);
-    RuntimeChangeSet applyNonSceneEffectControlBy(EffectControl& control, int by);
-    RuntimeChangeSet applyNonSceneEffectControlTo(
-        EffectControl& control, const char* to);
-    RuntimeChangeSet activateNonSceneEffectControl(
-        EffectControl& control, int index);
-    RuntimeChangeSet changeOwnedOptionBy(Option& option, int by);
-    RuntimeChangeSet changeOwnedOptionTo(Option& option, const char* to);
 
 public:
     /**

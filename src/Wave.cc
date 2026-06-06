@@ -1,6 +1,7 @@
 // Wave catalog entries, runtime facade, and shared lookup tables.
 
 #include "Wave.h"
+#include "ProcessServices.h"
 #include "VideoFilterchain.h"
 
 #include <math.h>
@@ -98,10 +99,12 @@ const int* WaveLookupTables::sineForWidth(int width) {
 }
 
 WaveRuntime::WaveRuntime(const WaveConfig& config, int needsConfiguration_,
-    WaveState& state_, WaveLookupTables& lookupTables_, int fireBudget)
+    WaveState& state_, WaveLookupTables& lookupTables_, RandomSource& randomSource_,
+    int fireBudget)
     : needsConfigurationValue(needsConfiguration_)
     , stateValue(state_)
     , lookupTables(lookupTables_)
+    , randomSource(randomSource_)
     , fireBudgetValue(fireBudget)
     , waveScale(config.waveScale)
     , table(config.table)
@@ -130,6 +133,19 @@ const int* WaveRuntime::sineForWidth(int width) {
     return lookupTables.sineForWidth(width);
 }
 
+int WaveRuntime::randomInt(int exclusiveMax) {
+    return randomSource.uniformInt(exclusiveMax);
+}
+
+int WaveRuntime::randomCenteredInt(int magnitude) {
+    return randomInt(magnitude * 2 + 1) - magnitude;
+}
+
+double WaveRuntime::randomUnit() {
+    static const int scale = 0x1000000;
+    return double(randomInt(scale)) / double(scale - 1);
+}
+
 Wave::Wave(Function function, const char* name, const char* description,
     CanRunFunction canRunFunction)
     : functionValue(function)
@@ -151,11 +167,11 @@ int Wave::canRun(const WaveConfig& config) const {
 
 void Wave::execute(CthughaBuffer& buffer, const VideoFrameContext& context,
     const WaveConfig& config, int needsConfiguration, WaveState& state,
-    WaveLookupTables& lookupTables) const {
+    WaveLookupTables& lookupTables, RandomSource& randomSource) const {
     if (functionValue != 0) {
         int fireBudget = (context.acousticContext != 0) ? context.acousticContext->fire() : 0;
         WaveRuntime runtime(config, needsConfiguration, state,
-            lookupTables, fireBudget);
+            lookupTables, randomSource, fireBudget);
         (*functionValue)(buffer, context, runtime);
     }
 }

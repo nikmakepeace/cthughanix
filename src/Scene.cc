@@ -6,6 +6,7 @@
 #include "CthughaBuffer.h"
 #include "Flashlight.h"
 #include "Image.h"
+#include "ProcessServices.h"
 #include "Screen.h"
 #include "display.h"
 #include "flames.h"
@@ -157,10 +158,12 @@ void Scene::removeObserver(SceneObserver& observer) {
     }
 }
 
-SceneCommands::SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_)
+SceneCommands::SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_,
+    RandomSource& randomSource_)
     : scene(scene_)
     , buffer(buffer_)
-    , images(images_) { }
+    , images(images_)
+    , randomSource(randomSource_) { }
 
 Wave* SceneCommands::selectRunnableWave(const WaveConfig& config) {
     int nEntries = wave.getNEntries();
@@ -223,27 +226,27 @@ void SceneCommands::syncFromOptionsAndMaybeCueImage(
         emitImageCue();
 }
 
-static void applyStartupChoice(EffectControl& option,
-    const std::string& choice) {
-    option.change(choice.c_str(), 0);
+static void applyStartupChoice(EffectControl& option, const std::string& choice,
+    RandomSource& randomSource) {
+    option.change(choice.c_str(), randomSource, 0);
 }
 
 void SceneCommands::applyStartupConfig(const SceneConfig& config) {
-    applyStartupChoice(waveScale, config.waveScale);
-    applyStartupChoice(table, config.table);
-    applyStartupChoice(object, config.object);
-    applyStartupChoice(wave, config.wave);
-    applyStartupChoice(flame, config.flame);
-    applyStartupChoice(flameGeneral, config.generalFlame);
-    applyStartupChoice(translation, config.translation);
-    applyStartupChoice(palette, config.palette);
-    applyStartupChoice(border, config.border);
-    applyStartupChoice(flashlight, config.flashlight);
-    applyStartupChoice(images, config.image);
+    applyStartupChoice(waveScale, config.waveScale, randomSource);
+    applyStartupChoice(table, config.table, randomSource);
+    applyStartupChoice(object, config.object, randomSource);
+    applyStartupChoice(wave, config.wave, randomSource);
+    applyStartupChoice(flame, config.flame, randomSource);
+    applyStartupChoice(flameGeneral, config.generalFlame, randomSource);
+    applyStartupChoice(translation, config.translation, randomSource);
+    applyStartupChoice(palette, config.palette, randomSource);
+    applyStartupChoice(border, config.border, randomSource);
+    applyStartupChoice(flashlight, config.flashlight, randomSource);
+    applyStartupChoice(images, config.image, randomSource);
 
     // Presentation screen selection remains a display-side EffectControl until
     // runtime reconfiguration gets its own owner.
-    applyStartupChoice(screen, config.presentation);
+    applyStartupChoice(screen, config.presentation, randomSource);
 
     initializeFromOptions();
 }
@@ -277,7 +280,7 @@ void SceneCommands::change(EffectControl& option, int by, int doSave) {
 }
 
 void SceneCommands::change(EffectControl& option, const char* to, int doSave) {
-    option.change(to, doSave);
+    option.change(to, randomSource, doSave);
     syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
 }
 
@@ -295,7 +298,7 @@ void SceneCommands::changeFlame(int by) { change(flame, by, 0); }
 void SceneCommands::changeFlame(const char* to) { change(flame, to, 0); }
 
 void SceneCommands::changeGeneralFlame() {
-    flameGeneral.changeRandom();
+    flameGeneral.changeRandom(randomSource);
     syncFromOptions(SceneFlameChanged);
 }
 
@@ -315,13 +318,13 @@ void SceneCommands::changePalette(int by) { change(palette, by, 0); }
 void SceneCommands::changePalette(const char* to) { change(palette, to, 0); }
 
 void SceneCommands::randomPalette() {
-    PaletteEntry::Random();
+    PaletteEntry::randomizeLast(randomSource);
     palette.setValue(PaletteEntry::lastRandomPos);
     syncFromOptions(ScenePaletteChanged);
 }
 
 void SceneCommands::addRandomPalette() {
-    PaletteEntry::addRandom();
+    PaletteEntry::addRandom(randomSource);
     palette.setValue(PaletteEntry::lastRandomPos);
     syncFromOptions(ScenePaletteChanged);
 }
@@ -332,13 +335,13 @@ void SceneCommands::changeImage(int by) { change(images, by, 0); }
 void SceneCommands::changeImage(const char* to) { change(images, to, 0); }
 
 void SceneCommands::changeAll() {
-    EffectControl::changeAll();
+    EffectControl::changeAll(randomSource);
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
-    EffectControl* changedOption = EffectControl::changeOne();
+    EffectControl* changedOption = EffectControl::changeOne(randomSource);
     syncFromOptions(SceneNoChange);
     if (changedOption == &images)
         emitImageCue();

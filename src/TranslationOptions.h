@@ -10,6 +10,7 @@
 #include <vector>
 
 class CthughaBuffer;
+class RandomSource;
 struct EffectPolicy;
 
 /**
@@ -89,9 +90,11 @@ public:
  * Generates and registers translation tables for a buffer size.
  *
  * @param buffer Cthugha buffer whose width/height define table dimensions.
+ * @param randomSource Seed source for generated translation tables that request
+ *        per-run randomization.
  * @return Zero on completion.
  */
-int init_translate(const CthughaBuffer& buffer);
+int init_translate(const CthughaBuffer& buffer, RandomSource& randomSource);
 
 /** Enables built-in translation table generation/loading. */
 extern OptionOnOff use_translates;

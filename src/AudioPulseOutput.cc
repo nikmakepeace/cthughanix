@@ -1,8 +1,8 @@
 // PulseAudio output backend.
 
-#include "cthugha.h"
 #include "Audio.h"
 #include "AudioInternal.h"
+#include "ProcessServices.h"
 
 #if WITH_PULSE == 1
 #include <pulse/pulseaudio.h>
@@ -87,9 +87,10 @@ static int audioPulseWaitForStreamReady(pa_threaded_mainloop* mainloop,
     }
 }
 
-AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format, SecondsClock& clock_,
+    LogSink& log_,
     const AudioOutputConfig& config, AudioOutputDump* outputDump, int autoOpen)
-    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump)
+    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump, clock_, log_)
     , pcmFormatValue(format)
     , outputConfigValue(config)
     , mainloop(NULL)
@@ -182,7 +183,7 @@ void AudioPulseOutput::update() {
     sampleSpec.channels = pcmFormatValue.channels;
 
     if (sampleSpec.format == PA_SAMPLE_INVALID) {
-        CTH_DEBUG("    audio output strategy: Pulse unavailable for format `%s'\n",
+        logSink().debug("    audio output strategy: Pulse unavailable for format `%s'\n",
             audioSampleFormatText(pcmFormatValue.sampleFormat));
         return;
     }
@@ -207,19 +208,19 @@ void AudioPulseOutput::update() {
     bufferAttr.minreq = minRequestBytes;
     bufferAttr.fragsize = (uint32_t)-1;
 
-    CTH_DEBUG("    audio output strategy: opening threaded Pulse server `%s'\n",
+    logSink().debug("    audio output strategy: opening threaded Pulse server `%s'\n",
         serverDisplayName());
 
     mainloop = pa_threaded_mainloop_new();
     if (mainloop == NULL) {
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: no threaded mainloop\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to open: no threaded mainloop\n",
             serverDisplayName());
         return;
     }
 
     pa_threaded_mainloop* pulseMainloop = (pa_threaded_mainloop*)mainloop;
     if (pa_threaded_mainloop_start(pulseMainloop) < 0) {
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: could not start threaded mainloop\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to open: could not start threaded mainloop\n",
             serverDisplayName());
         pa_threaded_mainloop_free(pulseMainloop);
         mainloop = NULL;
@@ -236,7 +237,7 @@ void AudioPulseOutput::update() {
     context = pa_context_new(api, "Cthughanix");
     if (context == NULL) {
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to open: no context\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to open: no context\n",
             serverDisplayName());
         closePulse();
         return;
@@ -250,7 +251,7 @@ void AudioPulseOutput::update() {
         < 0) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to connect: %s\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to connect: %s\n",
             serverDisplayName(), errorText);
         closePulse();
         return;
@@ -259,7 +260,7 @@ void AudioPulseOutput::update() {
     if (!audioPulseWaitForContextReady(pulseMainloop, pulseContext)) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to become ready: %s\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to become ready: %s\n",
             serverDisplayName(), errorText);
         closePulse();
         return;
@@ -269,7 +270,7 @@ void AudioPulseOutput::update() {
     if (stream == NULL) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to create stream: %s\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to create stream: %s\n",
             serverDisplayName(), errorText);
         closePulse();
         return;
@@ -289,7 +290,7 @@ void AudioPulseOutput::update() {
         < 0) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' failed to connect stream: %s\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' failed to connect stream: %s\n",
             serverDisplayName(), errorText);
         closePulse();
         return;
@@ -298,7 +299,7 @@ void AudioPulseOutput::update() {
     if (!audioPulseWaitForStreamReady(pulseMainloop, pulseStream)) {
         const char* errorText = pa_strerror(pa_context_errno(pulseContext));
         pa_threaded_mainloop_unlock(pulseMainloop);
-        CTH_DEBUG("    audio output strategy: Pulse server `%s' stream failed to become ready: %s\n",
+        logSink().debug("    audio output strategy: Pulse server `%s' stream failed to become ready: %s\n",
             serverDisplayName(), errorText);
         closePulse();
         return;
@@ -313,14 +314,14 @@ void AudioPulseOutput::update() {
 
     pa_threaded_mainloop_unlock(pulseMainloop);
 
-    CTH_DEBUG("    audio output strategy: threaded Pulse server `%s' connected successfully\n",
+    logSink().debug("    audio output strategy: threaded Pulse server `%s' connected successfully\n",
         serverDisplayName());
-    CTH_DEBUG("    audio output strategy: Pulse buffer target=%u bytes (%d ms) prebuffer=%u bytes (%d ms) min-request=%u bytes (%d ms) max=%u bytes (%d ms)\n",
+    logSink().debug("    audio output strategy: Pulse buffer target=%u bytes (%d ms) prebuffer=%u bytes (%d ms) min-request=%u bytes (%d ms) max=%u bytes (%d ms)\n",
         actualTarget, audioPulseBytesToMs(actualTarget, bytesPerSecondValue),
         actualPrebuf, audioPulseBytesToMs(actualPrebuf, bytesPerSecondValue),
         actualMinRequest, audioPulseBytesToMs(actualMinRequest, bytesPerSecondValue),
         actualMax, audioPulseBytesToMs(actualMax, bytesPerSecondValue));
-    CTH_DEBUG("    audio output strategy: opened threaded server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d target-bytes=%u prebuffer-bytes=%u min-request-bytes=%u max-bytes=%u target-ms=%d prebuffer-ms=%d min-request-ms=%d max-ms=%d configured-latency-ms=%d\n",
+    logSink().debug("    audio output strategy: opened threaded server=`%s' rate=%d channels=%d format=%d bytes-per-second=%d target-bytes=%u prebuffer-bytes=%u min-request-bytes=%u max-bytes=%u target-ms=%d prebuffer-ms=%d min-request-ms=%d max-ms=%d configured-latency-ms=%d\n",
         serverDisplayName(), sampleSpec.rate,
         sampleSpec.channels, sampleSpec.format, bytesPerSecondValue, actualTarget,
         actualPrebuf, actualMinRequest, actualMax,
@@ -344,14 +345,14 @@ int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWri
 
     while (written < size) {
         if (!PA_STREAM_IS_GOOD(pa_stream_get_state(pulseStream))) {
-            CTH_ERROR("Pulse passthrough write failed on server `%s': stream is not ready\n",
+            logSink().error("Pulse passthrough write failed on server `%s': stream is not ready\n",
                 serverDisplayName());
             break;
         }
 
         size_t writable = pa_stream_writable_size(pulseStream);
         if (writable == (size_t)-1) {
-            CTH_ERROR("Pulse passthrough write failed on server `%s': %s\n",
+            logSink().error("Pulse passthrough write failed on server `%s': %s\n",
                 serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
@@ -381,7 +382,7 @@ int AudioPulseOutput::writeUnlocked(const void* buffer, int size, int waitForWri
         if (pa_stream_write(pulseStream, (const char*)buffer + written, chunk,
                 NULL, 0, PA_SEEK_RELATIVE)
             < 0) {
-            CTH_ERROR("Pulse passthrough write failed on server `%s': %s\n",
+            logSink().error("Pulse passthrough write failed on server `%s': %s\n",
                 serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
@@ -425,14 +426,14 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
         if (!callbackDrainActive.load() || (callbackStream == NULL))
             break;
         if (!PA_STREAM_IS_GOOD(pa_stream_get_state(pulseStream))) {
-            CTH_ERROR("Pulse passthrough stream failed on server `%s': stream is not ready\n",
+            logSink().error("Pulse passthrough stream failed on server `%s': stream is not ready\n",
                 serverDisplayName());
             break;
         }
 
         int skippedSamples = callbackStream->resyncIfBehind();
         if (skippedSamples > 0) {
-            CTH_WARN("Pulse passthrough fell behind decoded history; skipped %d samples.\n",
+            logSink().warn("Pulse passthrough fell behind decoded history; skipped %d samples.\n",
                 skippedSamples);
         }
 
@@ -445,7 +446,7 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
         // server buffer can catch up after stalls.
         size_t streamWritableBytes = pa_stream_writable_size(pulseStream);
         if (streamWritableBytes == (size_t)-1) {
-            CTH_ERROR("Pulse passthrough writable query failed on server `%s': %s\n",
+            logSink().error("Pulse passthrough writable query failed on server `%s': %s\n",
                 serverDisplayName(),
                 pa_strerror(pa_context_errno((pa_context*)context)));
             break;
@@ -485,8 +486,9 @@ int AudioPulseOutput::drainUnlocked(size_t requestedBytes) {
             committedSamples, committedBytes, written,
             callbackStream->queuedForOutputSamples(),
             callbackStream->submittedEndPosition());
-        CTH_TRACE("pulse callback drained samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu requested-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld input-finished=%d\n",
-            "audio runtime", samples, bytes, written, committedSamples, committedBytes,
+        logSink().trace("audio runtime",
+            "pulse callback drained samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu requested-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld input-finished=%d\n",
+            samples, bytes, written, committedSamples, committedBytes,
             (unsigned long)streamWritableBytes,
             (unsigned long)requestedBytes, callbackStream->queuedForOutputSamples(),
             startSample, callbackStream->submittedEndPosition(),
@@ -533,7 +535,7 @@ void AudioPulseOutput::startCallbackDrain(AudioOutputStream& outputStream,
 
     delete[] oldScratch;
 
-    CTH_DEBUG("audio runtime: pulse callback drain started scratch-samples=%d target-buffer-samples=%d queued-samples=%d input-finished=%d\n",
+    logSink().debug("audio runtime: pulse callback drain started scratch-samples=%d target-buffer-samples=%d queued-samples=%d input-finished=%d\n",
         samples, targetDelaySamples(), outputStream.queuedForOutputSamples(),
         inputFinished ? inputFinished->load() : 0);
 }
@@ -598,7 +600,7 @@ void AudioPulseOutput::pulseUnderflow() {
         pa_threaded_mainloop_signal((pa_threaded_mainloop*)mainloop, 0);
 
     if (underflows != previous)
-        CTH_WARN("Pulse output underrun on server `%s' (count=%d).\n",
+        logSink().warn("Pulse output underrun on server `%s' (count=%d).\n",
             serverDisplayName(), underflows);
 }
 
@@ -625,7 +627,7 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
 
     int skippedSamples = outputStream.resyncIfBehind();
     if (skippedSamples > 0) {
-        CTH_WARN("Pulse passthrough fell behind decoded history; skipped %d samples.\n",
+        logSink().warn("Pulse passthrough fell behind decoded history; skipped %d samples.\n",
             skippedSamples);
     }
 
@@ -654,21 +656,22 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
     pa_threaded_mainloop_unlock(pulseMainloop);
 
     if (!streamGood) {
-        CTH_ERROR("Pulse passthrough stream failed on server `%s': %s\n",
+        logSink().error("Pulse passthrough stream failed on server `%s': %s\n",
             serverDisplayName(),
             pa_strerror(pa_context_errno((pa_context*)context)));
         return 0;
     }
 
     if (underflows != lastReportedUnderflows.load()) {
-        CTH_WARN("Pulse output underrun on server `%s' (count=%d).\n",
+        logSink().warn("Pulse output underrun on server `%s' (count=%d).\n",
             serverDisplayName(), underflows);
         lastReportedUnderflows.store(underflows);
     }
 
     if (writableBytes == 0) {
-        CTH_TRACE("pulse output idle writable-bytes=0 queued-samples=%d submitted-end-sample=%lld\n",
-            "audio runtime", queuedSamples, outputStream.submittedEndPosition());
+        logSink().trace("audio runtime",
+            "pulse output idle writable-bytes=0 queued-samples=%d submitted-end-sample=%lld\n",
+            queuedSamples, outputStream.submittedEndPosition());
         return 0;
     }
 
@@ -702,8 +705,9 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
     reportSubmittedPcm(outputStream.format(), scratch, committedSamples,
         committedBytes, written, outputStream.queuedForOutputSamples(),
         outputStream.submittedEndPosition());
-    CTH_TRACE("pulse output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld\n",
-        "audio runtime", samples, bytes, written, committedSamples, committedBytes,
+    logSink().trace("audio runtime",
+        "pulse output submitted samples=%d bytes=%d written=%d committed-samples=%d committed-bytes=%d writable-bytes=%lu queued-samples=%d submitted-start-sample=%lld submitted-end-sample=%lld\n",
+        samples, bytes, written, committedSamples, committedBytes,
         (unsigned long)writableBytes,
         outputStream.queuedForOutputSamples(), startSample, outputStream.submittedEndPosition());
 
@@ -712,9 +716,10 @@ int AudioPulseOutput::service(AudioOutputStream& outputStream, char* scratch, in
 
 #else
 
-AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
+AudioPulseOutput::AudioPulseOutput(const PcmFormat& format, SecondsClock& clock_,
+    LogSink& log_,
     const AudioOutputConfig& config, AudioOutputDump* outputDump, int)
-    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump)
+    : AudioOutput(config.pulseOutputTargetLatencyMs, outputDump, clock_, log_)
     , pcmFormatValue(format)
     , outputConfigValue(config)
     , mainloop(NULL)
@@ -729,7 +734,7 @@ AudioPulseOutput::AudioPulseOutput(const PcmFormat& format,
     , bytesPerSecondValue(0)
     , underflowCountValue(0)
     , lastReportedUnderflows(0) {
-    CTH_DEBUG("    audio output strategy: Pulse unavailable because support is not compiled in\n");
+    logSink().debug("    audio output strategy: Pulse unavailable because support is not compiled in\n");
 }
 
 AudioPulseOutput::~AudioPulseOutput() { }

@@ -2,14 +2,14 @@
  * Audio-processing selector frame application.
  */
 
-#include "cthugha.h"
 #include "AudioProcessing.h"
 
 #include "Audio.h"
 #include "AudioFrame.h"
+#include "ProcessServices.h"
 
 int AudioProcessingSelector::process(AudioFrame& frame) {
-    CTH_TRACE("processing mode=`%s'\n", "audio processing", text());
+    log.trace("audio processing", "processing mode=`%s'\n", text());
 
     switch (mode()) {
     case AudioProcessingModeFft:

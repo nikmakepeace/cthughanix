@@ -13,6 +13,8 @@ struct SceneConfig;
 class AudioFrame;
 class AudioProcessor;
 class AudioProcessingSelector;
+class LogSink;
+class RandomSource;
 
 /** Audio processing modes available for visualization frames. */
 enum AudioProcessingMode {
@@ -30,6 +32,7 @@ enum AudioProcessingMode {
  * process-global Option.
  */
 class AudioProcessingState {
+    RandomSource& randomSource;
     int selectedMode;
     std::string initialEntry;
 
@@ -37,8 +40,14 @@ class AudioProcessingState {
     int optNr(const char* name) const;
 
 public:
-    /** Creates audio processing state with the default "none" mode selected. */
-    AudioProcessingState();
+    /**
+     * Creates audio processing state with the default "none" mode selected.
+     *
+     * @param randomSource_ Random source used when startup/runtime selection
+     *        asks for an unspecified or unknown processing mode. The referenced
+     *        object must outlive this state.
+     */
+    explicit AudioProcessingState(RandomSource& randomSource_);
 
     /**
      * Captures the startup processing mode text.
@@ -117,6 +126,7 @@ public:
 class AudioProcessingSelector {
     AudioProcessingState& state;
     AudioProcessor& processor;
+    LogSink& log;
     AudioProcessingOption optionValue;
 
 public:
@@ -127,9 +137,11 @@ public:
      *        outlive this selector.
      * @param processor_ Audio processor used to apply selected modes. The
      *        referenced object must outlive this selector.
+     * @param log_ Sink for processing diagnostics. The referenced object must
+     *        outlive this selector.
      */
     AudioProcessingSelector(AudioProcessingState& state_,
-        AudioProcessor& processor_);
+        AudioProcessor& processor_, LogSink& log_);
 
     /**
      * Applies startup scene audio-processing selection.

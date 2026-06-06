@@ -4,6 +4,7 @@
 
 #include "Audio.h"
 #include "AudioSettings.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -18,8 +19,47 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
-double getTime() { return 0.0; }
 const char* audioSampleFormatText(int) { return "test-format"; }
+
+class FakeRandomSource : public RandomSource {
+    int values[16];
+    int valueCount;
+    int cursor;
+
+public:
+    FakeRandomSource()
+        : valueCount(0)
+        , cursor(0) { }
+
+    void add(int value) {
+        assert(valueCount < int(sizeof(values) / sizeof(values[0])));
+        values[valueCount++] = value;
+    }
+
+    virtual int uniformInt(int exclusiveMax) {
+        if (exclusiveMax <= 1)
+            return 0;
+        int value = (cursor < valueCount) ? values[cursor++] : 0;
+        return value % exclusiveMax;
+    }
+};
+
+class FakeSecondsClock : public SecondsClock {
+public:
+    virtual double nowSeconds() const {
+        return 0.0;
+    }
+};
+
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+};
 
 static std::string fixturePath(const char* fileName) {
     return std::string(CTH_AUDIO_FIXTURE_DIR) + "/" + fileName;
@@ -41,14 +81,17 @@ static void assertFormatEquals(const PcmFormat& actual,
 }
 
 static void testWavSourcePublishesHeaderFormat() {
-    WavPcmSource source(fixturePath("sine-50-1600-doubling-4s.wav").c_str());
+    FakeLogSink log;
+    WavPcmSource source(fixturePath("sine-50-1600-doubling-4s.wav").c_str(),
+        log);
 
     assert(!source.hasError());
     assertFormatEquals(source.format(), formatFor(44100, 2, SF_s16_le));
 }
 
 static void testMp3SourcePublishesDecoderFormatWhenAvailable() {
-    Minimp3PcmSource source(fixturePath("prism.mp3").c_str());
+    FakeLogSink log;
+    Minimp3PcmSource source(fixturePath("prism.mp3").c_str(), log);
 
     if (source.hasError())
         return;
@@ -68,7 +111,8 @@ static void testRawSourceUsesExplicitFormat() {
     fclose(file);
 
     PcmFormat requested = formatFor(22050, 1, SF_u8);
-    RawPcmSource source(path, requested);
+    FakeLogSink log;
+    RawPcmSource source(path, requested, log);
     unlink(path);
 
     assert(!source.hasError());
@@ -76,10 +120,38 @@ static void testRawSourceUsesExplicitFormat() {
 }
 
 static void testRandomNoiseKeepsSessionRateAndOwnSampleShape() {
-    RandomNoisePcmSource source(formatFor(32000, 1, SF_s16_le));
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    RandomNoisePcmSource source(formatFor(32000, 1, SF_s16_le),
+        randomSource, log);
 
     assert(!source.hasError());
     assertFormatEquals(source.format(), formatFor(32000, 2, SF_u8));
+}
+
+static void testRandomNoiseUsesInjectedRandomSource() {
+    FakeRandomSource randomSource;
+    randomSource.add(200);
+    randomSource.add(1);
+    randomSource.add(100);
+    randomSource.add(1);
+    randomSource.add(0);
+    randomSource.add(1);
+    randomSource.add(255);
+    randomSource.add(1);
+    FakeLogSink log;
+    RandomNoisePcmSource source(formatFor(32000, 1, SF_s16_le),
+        randomSource, log);
+    unsigned char data[6] = { 0, 0, 0, 0, 0, 0 };
+
+    assert(source.read(reinterpret_cast<char*>(data), sizeof(data), 3) == 3);
+
+    assert(data[0] == 144);
+    assert(data[1] == 112);
+    assert(data[2] == 145);
+    assert(data[3] == 111);
+    assert(data[4] == 145);
+    assert(data[5] == 111);
 }
 
 static void testDspSourceKeepsRequestedFormatLocallyWhenOpenFails() {
@@ -92,13 +164,16 @@ static void testDspSourceKeepsRequestedFormatLocallyWhenOpenFails() {
     strncpy(settings.dspDevicePath, "/tmp/cthughanix-no-such-dsp", PATH_MAX);
     settings.dspDevicePath[PATH_MAX - 1] = '\0';
 
-    DspPcmSource source(settings, 256);
+    FakeLogSink log;
+    DspPcmSource source(settings, 256, log);
 
     assert(source.hasError());
     assertFormatEquals(source.format(), settings.pcmFormat);
 }
 
 static void testDspOutputNegotiatesWithoutGlobalSetters() {
+    FakeSecondsClock clock;
+    FakeLogSink log;
     AudioSettings settings;
     settings.pcmFormat = formatFor(48000, 2, SF_s16_le);
     settings.soundDSPMethod = 0;
@@ -109,7 +184,7 @@ static void testDspOutputNegotiatesWithoutGlobalSetters() {
 
     AudioOutputConfig outputConfig;
     outputConfig.dspOutputTargetLatencyMs = 37;
-    AudioDSPOutput output(settings, outputConfig, 256);
+    AudioDSPOutput output(settings, outputConfig, 256, clock, log);
 
     assert(!output.isOpen());
     assert(output.targetLatencyMs() == 37);
@@ -120,6 +195,7 @@ int main() {
     testMp3SourcePublishesDecoderFormatWhenAvailable();
     testRawSourceUsesExplicitFormat();
     testRandomNoiseKeepsSessionRateAndOwnSampleShape();
+    testRandomNoiseUsesInjectedRandomSource();
     testDspSourceKeepsRequestedFormatLocallyWhenOpenFails();
     testDspOutputNegotiatesWithoutGlobalSetters();
     return 0;

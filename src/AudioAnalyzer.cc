@@ -1,8 +1,9 @@
-#include "cthugha.h"
 #include "AudioAnalyzer.h"
+#include "ProcessServices.h"
 
-AcousticContext::AcousticContext()
-    : intensityValue(0.0)
+AcousticContext::AcousticContext(LogSink* log_)
+    : log(log_)
+    , intensityValue(0.0)
     , lastAmplitudeValue(0)
     , attackLevelValue(0)
     , fireValue(0)
@@ -25,8 +26,8 @@ void AcousticContext::update(const AudioMetrics& metrics) {
         fireValue = attackLevelValue;
         attackLevelValue = 0;
 
-        if (fireValue > 0)
-            CTH_TRACE("fire=%d amplitude=%d lastamp=%d\n", "sound fire",
+        if ((fireValue > 0) && (log != NULL))
+            log->trace("sound fire", "fire=%d amplitude=%d lastamp=%d\n",
                 fireValue, amplitude, lastAmplitudeValue);
     } else
         fireValue = 0;

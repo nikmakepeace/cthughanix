@@ -5,11 +5,15 @@
 #ifndef __AUDIO_ANALYZER_H
 #define __AUDIO_ANALYZER_H
 
-#include "cthugha.h"
 #include "AudioFrame.h"
+
+#include <stddef.h>
+
+class LogSink;
 
 /** Rolling acoustic state derived from consecutive AudioFrame metrics. */
 class AcousticContext {
+    LogSink* log;
     double intensityValue;
     int lastAmplitudeValue;
     int attackLevelValue;
@@ -17,7 +21,14 @@ class AcousticContext {
     int cumulativeFireLevelValue;
 
 public:
-    AcousticContext();
+    /**
+     * Creates rolling acoustic state.
+     *
+     * @param log_ Optional sink for bounded acoustic diagnostics. When NULL,
+     *        diagnostics are suppressed. The referenced object must outlive
+     *        this context when supplied.
+     */
+    explicit AcousticContext(LogSink* log_ = NULL);
 
     /**
      * Updates rolling acoustic state from one analyzed frame.

@@ -13,6 +13,7 @@
 #endif
 
 struct AudioConfig;
+class LogSink;
 
 /**
  * Local copy of startup audio settings used during device/source construction.
@@ -63,9 +64,11 @@ public:
      * Creates a populated audio settings snapshot.
      *
      * @param config Application startup audio config.
+     * @param log Sink for settings diagnostics. The referenced object must
+     *        outlive this call.
      * @return Audio settings copied from config.
      */
-    static AudioSettings fromConfig(const AudioConfig& config);
+    static AudioSettings fromConfig(const AudioConfig& config, LogSink& log);
 };
 
 #endif

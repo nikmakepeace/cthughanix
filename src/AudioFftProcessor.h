@@ -55,11 +55,4 @@ public:
     virtual void transform(const char2* raw, char2* processedWaveData) const;
 };
 
-/**
- * Returns the default FFT processor used by default-constructed AudioProcessor.
- *
- * @return Process-local fixed-point FFT processor implementation.
- */
-AudioFftProcessor& defaultAudioFftProcessor();
-
 #endif

@@ -13,6 +13,7 @@
 #include "RuntimeConfigRegistry.h"
 #include "RuntimeConfigSelection.h"
 #include "RuntimeCommandSink.h"
+#include "RuntimeCommandTargets.h"
 #include "cth_buffer.h"
 #include "flames.h"
 #include "Scene.h"
@@ -76,12 +77,8 @@ void DisplayDeviceX11::quit(Widget /*w*/, XtPointer data, XtPointer /*data2*/) {
 void DisplayDeviceX11::menuCB(Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
     menu_data_t* d = (menu_data_t*)data;
 
-    if (d->opt != 0) {
-        if (d->runtimeCommands != 0) {
-            d->runtimeCommands->apply(
-                RuntimeCommand::activateEffectControl(*d->opt, d->pos));
-        }
-    }
+    if ((d->opt != 0) && (d->runtimeCommandRouter != 0))
+        d->runtimeCommandRouter->activateEffectControl(*d->opt, d->pos);
 }
 
 static unsigned long scale_to_mask(unsigned char value, unsigned long mask) {
@@ -409,7 +406,7 @@ void DisplayDeviceX11::nextUntaggedPalette() {
         if ((paletteEntry != NULL)
             && ((paletteEntry->metadataName[0] == '\0') || (paletteEntry->metadataSetCount == 0)
                 || (paletteEntry->metadataEnergyCount == 0))) {
-            runtimeCommands.apply(RuntimeCommand::activateEffectControl(palette, candidate));
+            runtimeCommandRouter.activateEffectControl(palette, candidate);
             palettePreviewPalette = -1;
             updatePalettePreview();
             setPaletteMetadataStatus("next untagged");
@@ -542,7 +539,7 @@ Widget DisplayDeviceX11::add_menu(
         menu_data_t* md = new menu_data_t;
         const char* label = (*what)[i]->Desc()[0] ? (*what)[i]->Desc() : (*what)[i]->Name();
 
-        md->runtimeCommands = &runtimeCommands;
+        md->runtimeCommandRouter = &runtimeCommandRouter;
         md->opt = what;
         md->pos = i;
 

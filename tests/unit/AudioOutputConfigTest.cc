@@ -4,6 +4,7 @@
 
 #include "Audio.h"
 #include "AudioSettings.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -14,8 +15,24 @@ int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
-double getTime() { return 0.0; }
 const char* audioSampleFormatText(int) { return "signed-16"; }
+
+class FakeSecondsClock : public SecondsClock {
+public:
+    virtual double nowSeconds() const {
+        return 0.0;
+    }
+};
+
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+};
 
 static PcmFormat stereo16Format() {
     PcmFormat format;
@@ -26,9 +43,11 @@ static PcmFormat stereo16Format() {
 }
 
 static void testNullOutputReceivesTargetLatency() {
+    FakeSecondsClock clock;
+    FakeLogSink log;
     AudioOutputConfig config;
     config.nullOutputTargetLatencyMs = 17;
-    AudioNullOutput output(config);
+    AudioNullOutput output(clock, log, config);
 
     assert(output.targetLatencyMs() == 17);
     output.configureTiming(1000, 1, 1);
@@ -36,11 +55,13 @@ static void testNullOutputReceivesTargetLatency() {
 }
 
 static void testPulseOutputReceivesServerAndLatencyWithoutOpening() {
+    FakeSecondsClock clock;
+    FakeLogSink log;
     AudioOutputConfig config;
     config.pulseServer = "pulse.local";
     config.pulseLatencyMs = 1234;
     config.pulseOutputTargetLatencyMs = 23;
-    AudioPulseOutput output(stereo16Format(), config, NULL, 0);
+    AudioPulseOutput output(stereo16Format(), clock, log, config, NULL, 0);
 
     assert(strcmp(output.serverName(), "pulse.local") == 0);
     assert(strcmp(output.serverDisplayName(), "pulse.local") == 0);
@@ -51,9 +72,11 @@ static void testPulseOutputReceivesServerAndLatencyWithoutOpening() {
 }
 
 static void testPulseUnderflowCountIsInstanceLocal() {
+    FakeSecondsClock clock;
+    FakeLogSink log;
     AudioOutputConfig config;
-    AudioPulseOutput first(stereo16Format(), config, NULL, 0);
-    AudioPulseOutput second(stereo16Format(), config, NULL, 0);
+    AudioPulseOutput first(stereo16Format(), clock, log, config, NULL, 0);
+    AudioPulseOutput second(stereo16Format(), clock, log, config, NULL, 0);
 
     assert(first.underflowCount() == 0);
     assert(second.underflowCount() == 0);
@@ -64,6 +87,8 @@ static void testPulseUnderflowCountIsInstanceLocal() {
 }
 
 static void testDspOutputReceivesTargetLatency() {
+    FakeSecondsClock clock;
+    FakeLogSink log;
     AudioSettings settings;
     settings.pcmFormat = stereo16Format();
     settings.soundDSPMethod = 0;
@@ -74,7 +99,7 @@ static void testDspOutputReceivesTargetLatency() {
 
     AudioOutputConfig config;
     config.dspOutputTargetLatencyMs = 29;
-    AudioDSPOutput output(settings, config, 256);
+    AudioDSPOutput output(settings, config, 256, clock, log);
 
     assert(!output.isOpen());
     assert(output.targetLatencyMs() == 29);

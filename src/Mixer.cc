@@ -2,9 +2,9 @@
  * Application-owned OSS mixer session and UI control adapters.
  */
 
-#include "cthugha.h"
 #include "Mixer.h"
 #include "Configuration.h"
+#include "ProcessServices.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -61,8 +61,10 @@ MixerChannel::MixerChannel(const std::string& name_, int deviceId_,
 
 MixerDevice::~MixerDevice() { }
 
-MixerSession::MixerSession(MixerDevice& device, const AudioConfig& config)
+MixerSession::MixerSession(MixerDevice& device, LogSink& log,
+    const AudioConfig& config)
     : deviceValue(device)
+    , logValue(log)
     , pathValue(config.mixerDevicePath)
     , initialVolumesValue()
     , channelsValue() {
@@ -74,16 +76,19 @@ MixerSession::MixerSession(MixerDevice& device, const AudioConfig& config)
     }
 }
 
-MixerSession::MixerSession(MixerDevice& device, const std::string& path,
+MixerSession::MixerSession(MixerDevice& device, LogSink& log,
+    const std::string& path,
     const std::vector<MixerInitialVolume>& initialVolumes)
     : deviceValue(device)
+    , logValue(log)
     , pathValue(path)
     , initialVolumesValue(initialVolumes)
     , channelsValue() { }
 
 int MixerSession::initialize() {
     std::vector<MixerChannel> channels;
-    int result = deviceValue.initialize(pathValue, initialVolumesValue, channels);
+    int result = deviceValue.initialize(pathValue, initialVolumesValue, channels,
+        logValue);
     if (result == 0)
         channelsValue = channels;
     return result;
@@ -110,7 +115,7 @@ int MixerSession::applyEncodedVolume(size_t index, int encodedVolume) {
 
     int active = encodedVolume > 0;
     if (deviceValue.setVolume(pathValue, channelsValue[index], encodedVolume,
-            active) != 0)
+            active, logValue) != 0)
         return 1;
 
     channelsValue[index].encodedVolume = encodedVolume;
@@ -147,18 +152,19 @@ class NullMixerDevice : public MixerDevice {
 public:
     virtual int initialize(const std::string& path,
         const std::vector<MixerInitialVolume>& initialVolumes,
-        std::vector<MixerChannel>& channels) {
+        std::vector<MixerChannel>& channels, LogSink& log) {
         (void)path;
         channels.clear();
         if (!initialVolumes.empty())
-            CTH_WARN("mixer was disabled at compile time.\n");
+            log.warn("mixer was disabled at compile time.\n");
         return 0;
     }
 
     virtual int setVolume(const std::string& path, const MixerChannel& channel,
-        int encodedVolume, int& active) {
+        int encodedVolume, int& active, LogSink& log) {
         (void)path;
         (void)channel;
+        (void)log;
         active = encodedVolume > 0;
         return 0;
     }
@@ -189,7 +195,7 @@ class OssMixerDevice : public MixerDevice {
     }
 
     static void reportUnknownInitialVolumes(
-        const std::vector<MixerInitialVolume>& initialVolumes) {
+        const std::vector<MixerInitialVolume>& initialVolumes, LogSink& log) {
         for (std::vector<MixerInitialVolume>::const_iterator it
              = initialVolumes.begin();
              it != initialVolumes.end(); ++it) {
@@ -201,45 +207,45 @@ class OssMixerDevice : public MixerDevice {
                 }
             }
             if (!found)
-                CTH_ERROR("unknown mixer device `%s'.\n", it->name.c_str());
+                log.error("unknown mixer device `%s'.\n", it->name.c_str());
         }
     }
 
 public:
     virtual int initialize(const std::string& path,
         const std::vector<MixerInitialVolume>& initialVolumes,
-        std::vector<MixerChannel>& channels) {
+        std::vector<MixerChannel>& channels, LogSink& log) {
         channels.clear();
-        reportUnknownInitialVolumes(initialVolumes);
+        reportUnknownInitialVolumes(initialVolumes, log);
 
         if (initialVolumes.empty())
-            CTH_DEBUG("  no initial volumes specified.\n");
+            log.debug("  no initial volumes specified.\n");
 
         int mixerDescriptor = open(path.c_str(), O_RDONLY);
         if (mixerDescriptor < 0) {
             if ((errno == ENOENT) || (errno == ENODEV)) {
                 if (!initialVolumes.empty()) {
-                    CTH_WARN("  OSS mixer `%s' is unavailable; mixer options will be ignored.\n",
+                    log.warn("  OSS mixer `%s' is unavailable; mixer options will be ignored.\n",
                         path.c_str());
                 } else {
-                    CTH_DEBUG("  OSS mixer `%s' is unavailable; skipping mixer initialization.\n",
+                    log.debug("  OSS mixer `%s' is unavailable; skipping mixer initialization.\n",
                         path.c_str());
                 }
                 return 0;
             }
-            CTH_ERRNO(errno, "Can not open `%s'.", path.c_str());
+            log.errorErrno(errno, "Can not open `%s'.", path.c_str());
             return 0;
         }
 
         int devMask = 0;
         if (ioctl(mixerDescriptor, SOUND_MIXER_READ_DEVMASK, &devMask) < 0)
-            CTH_ERRNO(errno, "Can not get mixer device mask.");
+            log.errorErrno(errno, "Can not get mixer device mask.");
 
         int mixerMask = 0;
         if (ioctl(mixerDescriptor, MIXER_READ(SOUND_MIXER_RECSRC),
                 &mixerMask)
             < 0)
-            CTH_ERRNO(errno, "Can not get recording source mask.");
+            log.errorErrno(errno, "Can not get recording source mask.");
 
         for (int i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
             int specified = 0;
@@ -248,30 +254,30 @@ public:
 
             if ((devMask & (1 << i)) == 0) {
                 if (specified)
-                    CTH_WARN("  unavailable mixer device `%s'.\n",
+                    log.warn("  unavailable mixer device `%s'.\n",
                         mixerName(i));
                 continue;
             }
 
             if (!specified) {
                 if (ioctl(mixerDescriptor, MIXER_READ(i), &encodedVolume) < 0) {
-                    CTH_ERRNO(errno, "Can not get mixer value for `%s'.",
+                    log.errorErrno(errno, "Can not get mixer value for `%s'.",
                         mixerName(i));
                     encodedVolume = 0;
                 }
             } else {
                 if (encodedVolume == 0) {
                     mixerMask &= ~(1 << i);
-                    CTH_DEBUG("    disabling `%s' for input.\n",
+                    log.debug("    disabling `%s' for input.\n",
                         mixerName(i));
                 } else {
-                    CTH_DEBUG("    setting `%s' to volume %d.\n",
+                    log.debug("    setting `%s' to volume %d.\n",
                         mixerName(i), encodedVolume & 255);
                     mixerMask |= 1 << i;
                 }
 
                 if (ioctl(mixerDescriptor, MIXER_WRITE(i), &encodedVolume) < 0)
-                    CTH_ERRNO(errno, "Can not set mixer value for `%s'.",
+                    log.errorErrno(errno, "Can not set mixer value for `%s'.",
                         mixerName(i));
             }
 
@@ -282,19 +288,19 @@ public:
         if (ioctl(mixerDescriptor, MIXER_WRITE(SOUND_MIXER_RECSRC),
                 &mixerMask)
             < 0)
-            CTH_ERRNO(errno, "Can not set recording source");
+            log.errorErrno(errno, "Can not set recording source");
 
         close(mixerDescriptor);
 
-        CTH_DEBUG("available mixer devices: %d.\n", int(channels.size()));
+        log.debug("available mixer devices: %d.\n", int(channels.size()));
         return 0;
     }
 
     virtual int setVolume(const std::string& path, const MixerChannel& channel,
-        int encodedVolume, int& active) {
+        int encodedVolume, int& active, LogSink& log) {
         int mixerDescriptor = open(path.c_str(), O_RDWR);
         if (mixerDescriptor < 0) {
-            CTH_ERRNO(errno, "Can not open `%s'.", path.c_str());
+            log.errorErrno(errno, "Can not open `%s'.", path.c_str());
             return 1;
         }
 
@@ -302,7 +308,7 @@ public:
         if (ioctl(mixerDescriptor, MIXER_READ(SOUND_MIXER_RECSRC),
                 &mixerMask)
             < 0) {
-            CTH_ERRNO(errno, "Can not get recording source mask.");
+            log.errorErrno(errno, "Can not get recording source mask.");
             close(mixerDescriptor);
             return 1;
         }
@@ -317,7 +323,7 @@ public:
         if (ioctl(mixerDescriptor, MIXER_WRITE(SOUND_MIXER_RECSRC),
                 &mixerMask)
             < 0) {
-            CTH_ERRNO(errno, "Can not set recording source mask");
+            log.errorErrno(errno, "Can not set recording source mask");
             close(mixerDescriptor);
             return 1;
         }
@@ -325,7 +331,7 @@ public:
         if (ioctl(mixerDescriptor, MIXER_READ(SOUND_MIXER_RECSRC),
                 &mixerMask)
             < 0) {
-            CTH_ERRNO(errno, "Can not get recording source mask.");
+            log.errorErrno(errno, "Can not get recording source mask.");
             close(mixerDescriptor);
             return 1;
         }
@@ -334,7 +340,7 @@ public:
 
         int value = encodedVolume;
         if (ioctl(mixerDescriptor, MIXER_WRITE(channel.deviceId), &value) < 0) {
-            CTH_ERRNO(errno, "Can not set mixer value for `%s'.",
+            log.errorErrno(errno, "Can not set mixer value for `%s'.",
                 channel.name.c_str());
             close(mixerDescriptor);
             return 1;

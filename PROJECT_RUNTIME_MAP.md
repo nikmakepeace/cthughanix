@@ -14,10 +14,9 @@ main(argc, argv)
 `Application::initialize()` does the startup work:
 
 ```text
-  srand(time(0))
   seteuid(getuid())                    # drop elevated uid
   buildStartupConfig(argc, argv)       # defaults, ini files, env, command line
-  cthugha_configure_logging()
+  loggingRuntimeValue.configure(LoggingConfig)
   emit diagnostics; handle failure/help before display work
   configureKeys(InputConfig)
   configureAudioOptions(AudioConfig)
@@ -32,7 +31,7 @@ main(argc, argv)
   videoDirector().silenceMessages().initialize()
   init_imath()
   init_sound(AudioConfig, RuntimeCommandSink)
-  initializeVisualCatalogs(PathConfig)
+  initializeVisualCatalogs(PathConfig, RandomSource)
   CthughaBuffer::buffer.allocatePixels()
   loadEffectPolicyImages(EffectPolicy, PathConfig)
   init_border()
@@ -44,7 +43,7 @@ main(argc, argv)
   cth_init(&argc, argv)                # frontend-specific display init
   newDisplayDevice(DisplayConfig)
   newCthughaDisplay()
-  initAudioVisualBridge()              # constructs AutoChanger
+  initAudioFramePipeline()             # constructs audio pipeline and Application-owned AutoChanger
   PlatformLifecycle::install()         # platform pause/suspend hook
 ```
 
@@ -74,11 +73,13 @@ CthughaDisplay::nextFrame()
 audioFrameTick()
   advances AudioRuntime and publishes the current 1024-sample audio frame/window
 
-AudioVisualBridge::runFrame()
+AudioFramePipeline::processFrame()
   applies selected sound-processing mode
   analyzes raw audio into AudioMetrics
   updates AcousticContext
-  runs AutoChanger
+
+Application::runAudioFramePipeline()
+  runs AutoChanger against the analyzed frame metrics
 
 VideoFilterchain::run()
   runs visual-stage filters and publishes IndexedFrame
@@ -93,8 +94,9 @@ pause/suspend handling
 The visual frame loop is cooperative. File playback now uses the modern audio
 runtime; Pulse output owns its feed through its write callback, and decoded PCM
 is shared with the visual engine through `AudioBuffer`/`AudioFrameBuilder`.
-Translation tables are generated in-process during startup so the frame loop
-receives ready tables.
+Translation tables are generated in-process during startup with the
+Application-owned `RandomSource` where generated tables request randomized
+seeds, so the frame loop receives ready tables.
 
 ### Frontend Event Loops
 
@@ -212,9 +214,9 @@ Built-in entries:
 - `FFT`: custom 1024-sample FFT using left/right channels as real/imaginary
   components.
 
-`AudioVisualBridge::runFrame()` calls `audioProcessing.process()` before
-analysis and before visual mutation. Waves normally read
-`audioFrameProcessedWaveData()`.
+`Application::runAudioFramePipeline()` calls the owned audio frame pipeline
+before visual mutation. Waves normally read the processed wave data through
+the current screen render context.
 
 ### Analysis and Acoustic Context
 
@@ -288,15 +290,20 @@ IndexedFrameFilter
 
 `ImageFilter`, `FlameFilter`, `TranslateFilter`, `WaveFilter`, and
 `TextInjectionFilter` are real pixel-mutating stages. Image overlays the current
-`IndexedImage` when `VideoDirector` arms the one-shot image stage. Text
+`IndexedImage` when `VideoDirector` arms the one-shot image stage; placement is
+chosen with the Application-owned `RandomSource`. Text
 injection stamps wrapped CP437 text into active pixels when `VideoDirector` arms
 the text stage. Quiet-message text is selected by `SilenceMessage` from
-validated `--quiet-file` messages, opt-in QOTD prefetches, or defaults, routed
-through `SceneCueInjectText`, then observed by `VideoDirector` to arm
-`TextInjectionFilter`. PCX and indexed PNG files are decoded into that domain
-object before the frame loop. Before each frame,
-`VideoDirector` updates the stage filters with the selected image, selected
-flame, general-flame value, prepared translation object, wave, and border mode.
+validated `--quiet-file` messages, opt-in QOTD prefetches, or defaults using
+the Application-owned `RandomSource`; QOTD socket prefetches also receive an
+Application-owned countdown timer factory, routed through `SceneCueInjectText`,
+then observed by `VideoDirector` to arm `TextInjectionFilter`. PCX and indexed
+PNG files are decoded into that domain object before the frame loop. Before
+each frame, `VideoDirector` updates the stage filters with the selected image,
+selected flame, general-flame value, prepared translation object, wave, and
+border mode.
+General-flame and generic EffectControl randomization are commanded through
+`SceneCommands` and use the Application-owned `RandomSource`.
 `VideoFilterchain::run()` then wraps the current buffer, frame context, display
 palette, and indexed-frame publication slot in a `VideoFrame`, then passes that
 frame through each enabled stage.
@@ -355,6 +362,11 @@ The order matters:
 - swapping makes the finished frame become `passiveBuffer`, which display code
   reads.
 
+Wave renderers receive the Application-owned `RandomSource` through
+`VideoDirector` -> `WaveFilter` -> `WaveRuntime`; random object axes, firework
+placement, warp rings, and random stick lines do not use process-global random
+state.
+
 Palette smoothing is separate from the indexed pixel mutation stages.
 
 ### Palette Stage
@@ -362,6 +374,8 @@ Palette smoothing is separate from the indexed pixel mutation stages.
 `PaletteOption` is the global EffectControl adapter for loaded palettes.
 `PaletteEntry` wraps a `ColorPalette` plus UI/config metadata, while
 `VideoDirector` binds the selected entry into `PaletteFilter`.
+Randomly generated palettes are created by `PaletteRandomGenerator` with the
+Application-owned `RandomSource`, routed through `SceneCommands`.
 `PaletteFilter` delegates transition mechanics to `PaletteTransition`,
 which moves the output palette toward the target `ColorPalette` over a frame
 budget.
@@ -372,8 +386,9 @@ overlay the final frame palette without becoming the starting point for the
 next smoothing step.
 The global `paletteSmoothingChance` controls whether a palette change smooths
 or jumps directly to the new palette.
-When smoothing is used, `VideoDirector` asks `PaletteTransition` to use a
-random named strategy: RGB linear, RGB squared, or HSL interpolation.
+When smoothing is used, `VideoDirector` uses the Application-owned
+`RandomSource` to choose the `PaletteTransition` strategy: RGB linear,
+RGB squared, or HSL interpolation.
 
 Command-line options:
 
@@ -399,12 +414,16 @@ palette output for the frame instead of being diluted by the smoothing step.
 `EffectChoice` is callable via `operator()()`. Subclasses wrap functions,
 loaded assets, display functions, or no-op entries.
 
-Initial values come from ini files and command-line arguments. Startup applies
-them with:
+Initial values come from ini files and command-line arguments. Startup scene
+choices are applied by `SceneCommands::applyStartupConfig(SceneConfig)`, which
+passes the Application-owned `RandomSource` into `EffectControl::change(...)`
+for empty or invalid random fallbacks.
+
+Generic random changes are also routed through `SceneCommands`:
 
 ```text
-EffectControl::changeToInitial()
-audioProcessing.changeToInitial()
+EffectControl::changeOne(RandomSource&)
+EffectControl::changeAll(RandomSource&)
 ```
 
 ## Display Pipeline
@@ -479,7 +498,7 @@ mutations to `RuntimeEffectControls`, delegates ini persistence to
 The default runtime control implementations still call the current global
 display/audio/auto-change/EffectControl objects. Generic `Option*` commands
 from the legacy interface are routed only through display, audio, and
-AutoChanger ownership checks; `RuntimeEffectControls` handles EffectControl
+owned target adapters; `RuntimeEffectControls` handles EffectControl
 selection, effect-choice use flags, and individual EffectControl locks. These
 adapters are deliberately thin layers so future subsystem deglobalisation can
 replace their internals without teaching `RuntimeChangeMediator` about concrete

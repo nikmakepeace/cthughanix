@@ -4,6 +4,7 @@
 #include "DisplayRuntime.h"
 #include "FramePalette.h"
 #include "IndexedFrameTestFixtures.h"
+#include "ProcessServices.h"
 #include "Screen.h"
 #include "VideoFilterchain.h"
 
@@ -79,10 +80,6 @@ int screen_vscale_hmirror(ScreenRenderContext&) { return 0; }
 int screen_hscale_vmirror(ScreenRenderContext&) { return 0; }
 int screen_source(ScreenRenderContext&) { return 0; }
 
-double getTime() {
-    return 100.0;
-}
-
 int cth_log_enabled(int /*lvl*/) {
     return 0;
 }
@@ -129,6 +126,18 @@ static int observeAudioRenderer(ScreenRenderContext& context) {
     return copySourceRenderer(context);
 }
 
+class FakeSecondsClock : public SecondsClock {
+public:
+    double value;
+
+    explicit FakeSecondsClock(double value_)
+        : value(value_) { }
+
+    virtual double nowSeconds() const { return value; }
+};
+
+static FakeSecondsClock displayClock(100.0);
+
 class StaticSelection : public PresentationScreenSelection {
     ScreenEntry* currentValue;
 
@@ -154,7 +163,7 @@ public:
 
     DisplayConsumerHarness(PresentationScreenSelection& selection_,
         DisplayDevice& device, DisplayRuntime& runtime)
-        : CthughaDisplay(device, runtime)
+        : CthughaDisplay(device, runtime, displayClock)
         , selection(selection_)
         , presented(0) {
         fps = 60.0;

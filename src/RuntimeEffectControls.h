@@ -8,6 +8,7 @@
 #include "RuntimeCommandSink.h"
 
 class EffectControl;
+class RandomSource;
 
 /** Controls runtime commands for legacy EffectControl state. */
 class RuntimeEffectControls {
@@ -69,7 +70,17 @@ public:
  * audio, auto-change, or scene state.
  */
 class DefaultRuntimeEffectControls : public RuntimeEffectControls {
+    RandomSource& randomSource;
+
 public:
+    /**
+     * Creates an adapter that uses the supplied random source for text changes
+     * that request or fall back to random selection.
+     *
+     * @param randomSource Random source owned by the application lifecycle.
+     */
+    explicit DefaultRuntimeEffectControls(RandomSource& randomSource);
+
     /**
      * Changes an effect control by relative offset.
      *

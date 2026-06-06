@@ -99,8 +99,3 @@ void FixedPointAudioFftProcessor::transform(
         processedWaveData[target][1] = char(c[k].imag);
     }
 }
-
-AudioFftProcessor& defaultAudioFftProcessor() {
-    static FixedPointAudioFftProcessor processor;
-    return processor;
-}

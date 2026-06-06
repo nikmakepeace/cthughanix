@@ -49,15 +49,17 @@ There is no current server-mode source entry point in `src/`.
 
 - `src/cthugha.h`: global platform config, logging, and timing helpers.
 - `src/AudioSettings.*`: snapshots audio config for runtime composition.
-- `src/AudioRuntime.*`: owns the active audio runtime lifecycle.
+- `src/AudioIngest.*`: owns active audio acquisition, decoded history, visual
+  pacing, and current frame production.
+- `src/AudioPassthrough.*`: owns optional audio output passthrough and output
+  cursor state.
 - `src/RuntimeFactory.*`: chooses audio input/output strategy from settings and
   detected environment.
 - `src/PcmSourceFactory.*`: maps current settings/file names to PCM sources.
 - `src/Audio.*`: modern PCM source/input/output/buffer/frame-builder classes.
-- `src/AudioFrame.*`: facade exposing raw and processed 1024-sample audio
-  windows to the rest of the program.
-- `src/AudioVisualBridge.*`: runs audio processing, analysis, and auto-changing
-  before visual mutation.
+- `src/AudioFrame.*`: owned per-frame raw/processed audio data and metrics.
+- `src/AudioFramePipeline.*`: runs audio processing and analysis before visual
+  mutation.
 - `src/PlatformLifecycle.*`: platform pause/suspend hooks with application-owned
   suspend/resume callbacks.
 - `src/VideoFilterchain.*`, `src/VideoFilterchainSequence.*`,
@@ -82,7 +84,10 @@ There is no current server-mode source entry point in `src/`.
   CP437-compatible `--quiet-file`/default messages, and opt-in non-blocking
   QOTD prefetch for text injection.
 - `src/imath.*`: integer math tables/helpers used by visual code.
-- `src/misc.cc`: logging helpers, time helpers, and `systemf()`.
+- `src/ProcessServices.*`: process clocks, logging runtime, log sinks, and
+  random-source adapters.
+- `src/LegacyLoggingAdapter.cc`: temporary compatibility adapter for legacy
+  `CTH_*` logging macros.
 
 ### Audio
 

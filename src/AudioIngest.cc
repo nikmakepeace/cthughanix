@@ -2,20 +2,14 @@
  * Application-owned audio acquisition and visual-frame production.
  */
 
-#include "cthugha.h"
 #include "AudioIngest.h"
+#include "ProcessServices.h"
 #ifndef CTH_AUDIO_INGEST_NO_CONFIG
 #include "AudioSettings.h"
 #include "RuntimeFactory.h"
 #endif
 
 #include <chrono>
-
-AudioIngestClock::~AudioIngestClock() { }
-
-double SystemAudioIngestClock::nowSeconds() const {
-    return getTime();
-}
 
 static int audioIngestChunkSamples(int samplesPerSecond) {
     int samples = samplesPerSecond / 20;
@@ -55,13 +49,17 @@ static int audioIngestCapacitySamples(int samplesPerSecond,
 }
 
 AudioIngest::AudioIngest(const AudioConfig& config, int visualMaxDimension,
-    AudioIngestClock* clock_, int startWorkerThreads)
+    RandomSource& randomSource_, SecondsClock& clock_, LogSink& log_,
+    int startWorkerThreads)
     : configValue(config)
     , hasConfig(1)
     , visualMaxDimensionValue(visualMaxDimension)
     , startWorkerThreadsValue(startWorkerThreads)
     , autoCloseOnInputFinishedValue(config.inputMode == AIM_File)
-    , clock(clock_)
+    , randomSource(&randomSource_)
+    , clock(&clock_)
+    , log(&log_)
+    , frameBuilder(log_)
     , initializedValue(0)
     , inputChunkSamplesValue(0)
     , decodeAheadSamplesValue(0)
@@ -71,24 +69,22 @@ AudioIngest::AudioIngest(const AudioConfig& config, int visualMaxDimension,
     , visualClockStartSeconds(0.0)
     , inputFinished(0)
     , stopRequested(0)
-    , inputThreadStarted(0) {
-    if (clock == NULL) {
-        ownedClock.reset(new SystemAudioIngestClock);
-        clock = ownedClock.get();
-    }
-}
+    , inputThreadStarted(0) { }
 
 AudioIngest::AudioIngest(AudioInput* input, AudioOutput* output,
-    int visualMaxDimension, AudioIngestClock& clock_,
-    int autoCloseOnInputFinished, int startWorkerThreads)
+    int visualMaxDimension, SecondsClock& clock_,
+    LogSink& log_, int autoCloseOnInputFinished, int startWorkerThreads)
     : configValue()
     , hasConfig(0)
     , visualMaxDimensionValue(visualMaxDimension)
     , startWorkerThreadsValue(startWorkerThreads)
     , autoCloseOnInputFinishedValue(autoCloseOnInputFinished)
+    , randomSource(NULL)
     , clock(&clock_)
+    , log(&log_)
     , inputValue(input)
     , injectedOutputValue(output)
+    , frameBuilder(log_)
     , initializedValue(0)
     , inputChunkSamplesValue(0)
     , decodeAheadSamplesValue(0)
@@ -124,29 +120,31 @@ int AudioIngest::buildFromConfig() {
 #ifdef CTH_AUDIO_INGEST_NO_CONFIG
     return 1;
 #else
-    AudioSettings settings = AudioSettings::fromConfig(configValue);
+    AudioSettings settings = AudioSettings::fromConfig(configValue, *log);
     AudioOutputConfig outputConfig = AudioOutputConfig::fromConfig(configValue);
-    Environment environment = Environment::detect(settings);
-    outputDumpValue.reset(new AudioOutputDump(outputConfig.outputDumpPath));
+    Environment environment = Environment::detect(settings, *log);
+    outputDumpValue.reset(new AudioOutputDump(outputConfig.outputDumpPath,
+        *log));
     RuntimeFactory runtimeFactory(settings, outputConfig, environment,
-        visualMaxDimensionValue, outputDumpValue.get());
+        visualMaxDimensionValue, outputDumpValue.get(), *randomSource, *clock,
+        *log);
     std::unique_ptr<AudioOutput> output;
 
     inputValue.reset(runtimeFactory.createAudioInput());
     if ((inputValue.get() != NULL) && inputValue->hasError()) {
-        CTH_DEBUG("audio ingest: input construction failed for mode=%d\n",
+        log->debug("audio ingest: input construction failed for mode=%d\n",
             settings.audioInputMode);
         inputValue.reset();
         if (settings.audioInputMode == AIM_File)
             return 1;
         if (settings.audioInputMode == AIM_DSPIn)
-            CTH_WARN("Can not use requested sound input. Visual audio input is silent.\n");
+            log->warn("Can not use requested sound input. Visual audio input is silent.\n");
     }
 
     if ((inputValue.get() == NULL) && (settings.audioInputMode == AIM_DSPIn))
-        CTH_WARN("Can not use requested sound input. Visual audio input is silent.\n");
+        log->warn("Can not use requested sound input. Visual audio input is silent.\n");
     if ((inputValue.get() == NULL) && (settings.audioInputMode == AIM_File)) {
-        CTH_DEBUG("audio ingest: requested file input has no PCM source\n");
+        log->debug("audio ingest: requested file input has no PCM source\n");
         return 1;
     }
 
@@ -157,7 +155,7 @@ int AudioIngest::buildFromConfig() {
     if ((inputValue.get() != NULL) && !settings.silent) {
         output.reset(runtimeFactory.createAudioOutput(pcmFormatValue));
         if ((output.get() == NULL) || !output->isOpen()) {
-            CTH_DEBUG("audio ingest: output construction failed\n");
+            log->debug("audio ingest: output construction failed\n");
             return settings.audioInputMode == AIM_File ? 1 : 0;
         }
     }
@@ -207,13 +205,13 @@ int AudioIngest::initializeRuntimeObjects(AudioOutput* output,
         retainedSamples, decodeAheadSamplesValue);
 
     historyValue.reset(new DecodedAudioHistory(capacitySamples, pcmFormatValue,
-        retainedSamples));
+        retainedSamples, *log));
     inputChunk.reset(new char[pcmBytesForSamples(inputChunkSamplesValue,
         bytesPerSampleValue)]);
 
     if ((outputHolder.get() != NULL) && !silentPassthrough) {
         passthroughValue.reset(new AudioPassthrough(outputHolder.release(),
-            *historyValue, inputFinished));
+            *historyValue, inputFinished, *log));
         if (passthroughValue->start(samplesPerSecondValue, bytesPerSampleValue,
                 inputChunkSamplesValue, startWorkerThreadsValue))
             return 1;
@@ -228,11 +226,13 @@ int AudioIngest::initializeRuntimeObjects(AudioOutput* output,
         inputThreadStarted = 1;
     }
 
-    CTH_DEBUG("audio ingest: started input=%p passthrough=%p sample-rate=%d channels=%d format=%d bytes-per-sample=%d input-chunk-samples=%d decode-ahead-samples=%d retained-samples=%d capacity-samples=%d worker-thread=%d\n",
-        inputValue.get(), passthroughValue.get(), samplesPerSecondValue,
-        pcmFormatValue.channels, pcmFormatValue.sampleFormat,
-        bytesPerSampleValue, inputChunkSamplesValue, decodeAheadSamplesValue,
-        retainedSamples, capacitySamples, inputThreadStarted);
+    if (log != NULL) {
+        log->debug("audio ingest: started input=%p passthrough=%p sample-rate=%d channels=%d format=%d bytes-per-sample=%d input-chunk-samples=%d decode-ahead-samples=%d retained-samples=%d capacity-samples=%d worker-thread=%d\n",
+            inputValue.get(), passthroughValue.get(), samplesPerSecondValue,
+            pcmFormatValue.channels, pcmFormatValue.sampleFormat,
+            bytesPerSampleValue, inputChunkSamplesValue, decodeAheadSamplesValue,
+            retainedSamples, capacitySamples, inputThreadStarted);
+    }
     return 0;
 }
 
@@ -264,7 +264,8 @@ void AudioIngest::tick() {
     if (!initializedValue)
         return;
 
-    double tickStart = CTH_LOG_ENABLED(CTH_LOG_TRACE) ? clock->nowSeconds() : 0.0;
+    int traceTick = (log != NULL) && log->traceEnabled();
+    double tickStart = traceTick ? clock->nowSeconds() : 0.0;
     if (!inputThreadStarted)
         pumpInputToTarget();
 
@@ -279,9 +280,10 @@ void AudioIngest::tick() {
         frameBuilder.build(frameValue, *historyValue, centerSample);
     }
 
-    if (CTH_LOG_ENABLED(CTH_LOG_TRACE)) {
-        CTH_TRACE("audio-ingest tick-ms=%.3f decoded-end-sample=%lld presentation-sample=%lld input-finished=%d complete=%d\n",
-            "audio timing", (clock->nowSeconds() - tickStart) * 1000.0,
+    if (traceTick) {
+        log->trace("audio timing",
+            "audio-ingest tick-ms=%.3f decoded-end-sample=%lld presentation-sample=%lld input-finished=%d complete=%d\n",
+            (clock->nowSeconds() - tickStart) * 1000.0,
             decodedSamplePosition(), presentationSamplePosition(),
             inputFinished.load(), complete());
     }
@@ -372,8 +374,10 @@ int AudioIngest::fillInput(int maxSamples) {
         inputFinished.store(1);
         if (passthroughValue.get() != NULL)
             passthroughValue->notifyDecodedPcm();
-        CTH_DEBUG("audio ingest: input finished decoded-end-sample=%lld\n",
-            decodedSamplePosition());
+        if (log != NULL) {
+            log->debug("audio ingest: input finished decoded-end-sample=%lld\n",
+                decodedSamplePosition());
+        }
     }
 
     return 0;
@@ -396,8 +400,9 @@ void AudioIngest::pumpInputToTarget() {
 }
 
 void AudioIngest::inputThreadMain() {
-    CTH_DEBUG("audio ingest: input thread started chunk-samples=%d\n",
-        inputChunkSamplesValue);
+    if (log != NULL)
+        log->debug("audio ingest: input thread started chunk-samples=%d\n",
+            inputChunkSamplesValue);
 
     while (!stopRequested.load() && !inputFinished.load()) {
         long long target = decodeTargetSamplePosition();
@@ -409,8 +414,10 @@ void AudioIngest::inputThreadMain() {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
-    CTH_DEBUG("audio ingest: input thread stopped stop=%d input-finished=%d decoded-end-sample=%lld\n",
-        stopRequested.load(), inputFinished.load(), decodedSamplePosition());
+    if (log != NULL) {
+        log->debug("audio ingest: input thread stopped stop=%d input-finished=%d decoded-end-sample=%lld\n",
+            stopRequested.load(), inputFinished.load(), decodedSamplePosition());
+    }
 }
 
 long long AudioIngest::visualClockSamplePosition() {

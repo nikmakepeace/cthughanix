@@ -1,9 +1,10 @@
 #include "cthugha.h"
 #include "Configuration.h"
-#include "QotdMessagesProvider.h"
 #include "MessageFormatValidator.h"
+#include "ProcessServices.h"
+#include "QotdMessagesProvider.h"
 
-#include <chrono>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -37,6 +38,8 @@ public:
     std::string server;
     std::string message;
     int prefetchTimeoutMs;
+    SystemCountdownTimerFactory fallbackTimerFactory;
+    CountdownTimerFactory* timerFactory;
 
     QotdMessagesProviderState()
         : mutex()
@@ -47,7 +50,9 @@ public:
         , defaultPort("17")
         , server()
         , message()
-        , prefetchTimeoutMs(0) { }
+        , prefetchTimeoutMs(0)
+        , fallbackTimerFactory()
+        , timerFactory(&fallbackTimerFactory) { }
 };
 
 static std::string qotdServerOrDefault(const char* server,
@@ -127,17 +132,9 @@ static int validateQotdPayload(const std::string& payload, const std::string& se
 
 #ifndef _WIN32
 
-static int millisecondsUntil(std::chrono::steady_clock::time_point deadline) {
-    const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-    if (now >= deadline)
-        return 0;
-
-    return int(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
-}
-
 static QotdFetchResult waitForSocket(int socketFd, int writeReady,
-    std::chrono::steady_clock::time_point deadline) {
-    int timeoutMs = millisecondsUntil(deadline);
+    const CountdownTimer& timer) {
+    int timeoutMs = timer.millisecondsRemaining();
     if (timeoutMs <= 0)
         return QotdFetchTimedOut;
 
@@ -169,7 +166,7 @@ static QotdFetchResult waitForSocket(int socketFd, int writeReady,
 }
 
 static QotdFetchResult connectWithinBudget(int socketFd, const struct addrinfo* address,
-    std::chrono::steady_clock::time_point deadline) {
+    const CountdownTimer& timer) {
     int flags = fcntl(socketFd, F_GETFL, 0);
     if (flags < 0)
         return QotdFetchFailed;
@@ -183,7 +180,7 @@ static QotdFetchResult connectWithinBudget(int socketFd, const struct addrinfo* 
     if (errno != EINPROGRESS)
         return QotdFetchFailed;
 
-    QotdFetchResult waitResult = waitForSocket(socketFd, 1, deadline);
+    QotdFetchResult waitResult = waitForSocket(socketFd, 1, timer);
     if (waitResult != QotdFetchSucceeded)
         return waitResult;
 
@@ -196,13 +193,13 @@ static QotdFetchResult connectWithinBudget(int socketFd, const struct addrinfo* 
 }
 
 static QotdFetchResult readWithinBudget(int socketFd, std::string& payload,
-    std::chrono::steady_clock::time_point deadline) {
+    const CountdownTimer& timer) {
     static const unsigned int maxPayloadBytes =
         MessageFormatValidator::MaxMessageCharacters * 4 + 8;
     char buffer[512];
 
     while (payload.size() < maxPayloadBytes) {
-        QotdFetchResult waitResult = waitForSocket(socketFd, 0, deadline);
+        QotdFetchResult waitResult = waitForSocket(socketFd, 0, timer);
         if (waitResult != QotdFetchSucceeded)
             return waitResult;
 
@@ -230,7 +227,8 @@ static QotdFetchResult readWithinBudget(int socketFd, std::string& payload,
 }
 
 static QotdFetchResult fetchQotdPayload(const std::string& server,
-    const std::string& defaultPort, int prefetchTimeoutMs, std::string& payload) {
+    const std::string& defaultPort, const CountdownTimer& timer,
+    std::string& payload) {
     std::string qotdHost;
     std::string qotdPort;
     if (!splitQotdServer(server, defaultPort, qotdHost, qotdPort)) {
@@ -248,12 +246,9 @@ static QotdFetchResult fetchQotdPayload(const std::string& server,
     if (rc != 0)
         return QotdFetchFailed;
 
-    const std::chrono::steady_clock::time_point deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(prefetchTimeoutMs);
-
     QotdFetchResult fetchResult = QotdFetchFailed;
     for (const struct addrinfo* address = addresses; address != 0; address = address->ai_next) {
-        if (millisecondsUntil(deadline) <= 0) {
+        if (timer.millisecondsRemaining() <= 0) {
             fetchResult = QotdFetchTimedOut;
             break;
         }
@@ -262,9 +257,9 @@ static QotdFetchResult fetchQotdPayload(const std::string& server,
         if (socketFd < 0)
             continue;
 
-        QotdFetchResult connectResult = connectWithinBudget(socketFd, address, deadline);
+        QotdFetchResult connectResult = connectWithinBudget(socketFd, address, timer);
         if (connectResult == QotdFetchSucceeded)
-            fetchResult = readWithinBudget(socketFd, payload, deadline);
+            fetchResult = readWithinBudget(socketFd, payload, timer);
         else
             fetchResult = connectResult;
 
@@ -280,10 +275,11 @@ static QotdFetchResult fetchQotdPayload(const std::string& server,
 #else
 
 static QotdFetchResult fetchQotdPayload(const std::string& server,
-    const std::string& defaultPort, int prefetchTimeoutMs, std::string& payload) {
+    const std::string& defaultPort, const CountdownTimer& timer,
+    std::string& payload) {
     (void)server;
     (void)defaultPort;
-    (void)prefetchTimeoutMs;
+    (void)timer;
     (void)payload;
     return QotdFetchFailed;
 }
@@ -292,11 +288,11 @@ static QotdFetchResult fetchQotdPayload(const std::string& server,
 
 static void fetchQotdMessage(std::shared_ptr<QotdMessagesProviderState> state,
     std::string server, std::string defaultPort, int prefetchTimeoutMs,
-    unsigned int generation) {
+    unsigned int generation, std::unique_ptr<CountdownTimer> timer) {
     std::string payload;
     std::string message;
     QotdFetchResult fetchResult = fetchQotdPayload(server, defaultPort,
-        prefetchTimeoutMs, payload);
+        *timer, payload);
     if (fetchResult == QotdFetchTimedOut)
         CTH_WARN("QOTD prefetch timed out after %d ms.\n", prefetchTimeoutMs);
 
@@ -330,6 +326,11 @@ void QotdMessagesProvider::configure(const MessagesConfig& config) {
         state->server = state->defaultServer;
 }
 
+void QotdMessagesProvider::setTimerFactory(CountdownTimerFactory& timerFactory) {
+    std::lock_guard<std::mutex> lock(state->mutex);
+    state->timerFactory = &timerFactory;
+}
+
 void QotdMessagesProvider::setServer(const char* server) {
     std::lock_guard<std::mutex> lock(state->mutex);
     std::string nextServer = qotdServerOrDefault(server, state->defaultServer);
@@ -348,6 +349,7 @@ void QotdMessagesProvider::request() {
     std::string defaultPort;
     int prefetchTimeoutMs = 0;
     unsigned int generation = 0;
+    std::unique_ptr<CountdownTimer> timer;
 
     {
         std::lock_guard<std::mutex> lock(currentState->mutex);
@@ -358,10 +360,11 @@ void QotdMessagesProvider::request() {
         defaultPort = currentState->defaultPort;
         prefetchTimeoutMs = currentState->prefetchTimeoutMs;
         generation = currentState->generation;
+        timer = currentState->timerFactory->startTimer(prefetchTimeoutMs);
     }
 
     std::thread(fetchQotdMessage, currentState, server, defaultPort,
-        prefetchTimeoutMs, generation).detach();
+        prefetchTimeoutMs, generation, std::move(timer)).detach();
 }
 
 int QotdMessagesProvider::takeMessage(std::string& message) {

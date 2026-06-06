@@ -1,8 +1,13 @@
 // File, raw, random PCM sources, plus the AudioInput wrapper.
 
-#include "cthugha.h"
 #include "Audio.h"
 #include "imath.h"
+#include "ProcessServices.h"
+#include "config.h"
+
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
 #ifdef CTH_DISABLE_MINIMP3
 #undef WITH_MINIMP3
@@ -26,8 +31,15 @@
 #include "../external/minimp3/minimp3_ex.h"
 #endif
 
-PcmSource::PcmSource()
-    : error(0) { }
+static int pcmSourceClose(FILE*& stream) {
+    int ret = fclose(stream);
+    stream = NULL;
+    return ret;
+}
+
+PcmSource::PcmSource(LogSink& log_)
+    : log(log_)
+    , error(0) { }
 
 PcmSource::~PcmSource() { }
 
@@ -44,20 +56,22 @@ static unsigned int readLe32(const unsigned char* p) {
         | ((unsigned int)p[3] << 24);
 }
 
-AudioInput::AudioInput(PcmSource* source_, int takeOwnership, int loopEnabled)
+AudioInput::AudioInput(PcmSource* source_, LogSink& log_, int takeOwnership,
+    int loopEnabled)
     : error(0)
+    , log(log_)
     , source(source_)
     , sourceOwned(takeOwnership)
     , loopEnabledValue(loopEnabled ? 1 : 0)
     , finished(0) {
     if ((source == NULL) || source->hasError()) {
-        CTH_DEBUG("audio input: source construction failed\n");
+        log.debug("audio input: source construction failed\n");
         error = 1;
         return;
     }
 
     const PcmFormat& format = source->format();
-    CTH_DEBUG("audio input: created format rate=%d channels=%d format=%d loop=%d\n",
+    log.debug("audio input: created format rate=%d channels=%d format=%d loop=%d\n",
         format.sampleRate, format.channels, format.sampleFormat,
         loopEnabledValue);
 }
@@ -78,15 +92,15 @@ int AudioInput::read(char* dst, int rawSize, int samplesRequested) {
 
     if ((samplesRead == 0) && source && source->canFinish()) {
         if (loopEnabledValue) {
-            CTH_DEBUG("audio input: source reached end; rewinding\n");
+            log.debug("audio input: source reached end; rewinding\n");
             source->rewind();
             samplesRead = source->read(dst, rawSize, samplesRequested);
             if (samplesRead == 0) {
-                CTH_DEBUG("audio input: source remained empty after rewind\n");
+                log.debug("audio input: source remained empty after rewind\n");
                 finished = 1;
             }
         } else {
-            CTH_DEBUG("audio input: source reached end\n");
+            log.debug("audio input: source reached end\n");
             finished = 1;
         }
     }
@@ -109,8 +123,8 @@ void AudioInput::update() {
     finished = 0;
 }
 
-WavPcmSource::WavPcmSource(const char* name_)
-    : PcmSource()
+WavPcmSource::WavPcmSource(const char* name_, LogSink& log_)
+    : PcmSource(log_)
     , file(NULL)
     , dataStart(0)
     , dataLength(0)
@@ -123,19 +137,19 @@ WavPcmSource::WavPcmSource(const char* name_)
 
 WavPcmSource::~WavPcmSource() {
     if (file)
-        fclose0(file);
+        pcmSourceClose(file);
 }
 
 int WavPcmSource::open() {
     if (file)
-        fclose0(file);
+        pcmSourceClose(file);
 
-    CTH_INFO("Playing file '%s'.\n", name);
-    CTH_DEBUG("wav pcm source: opening `%s'\n", name);
+    log.info("Playing file '%s'.\n", name);
+    log.debug("wav pcm source: opening `%s'\n", name);
 
     file = fopen(name, "rb");
     if (file == NULL) {
-        CTH_ERRNO(errno, "Can not open sound file `%s' for reading.", name);
+        log.errorErrno(errno, "Can not open sound file `%s' for reading.", name);
         return 1;
     }
 
@@ -166,23 +180,23 @@ int WavPcmSource::parseHeader() {
     dataRead = 0;
 
     if (readChunkHeader(id, size)) {
-        CTH_ERROR("Can not read WAV RIFF header.\n");
+        log.error("Can not read WAV RIFF header.\n");
         return 1;
     }
     if ((memcmp(id, "RIFF", 4) != 0) && (memcmp(id, "RIFX", 4) != 0)) {
-        CTH_WARN("  Error in .wav header\n");
+        log.warn("  Error in .wav header\n");
         return 1;
     }
     if (memcmp(id, "RIFX", 4) == 0) {
-        CTH_WARN("  Big-endian RIFX WAV files are not supported yet.\n");
+        log.warn("  Big-endian RIFX WAV files are not supported yet.\n");
         return 1;
     }
     if (fread(id, 1, 4, file) != 4) {
-        CTH_ERROR("Can not read WAV type.\n");
+        log.error("Can not read WAV type.\n");
         return 1;
     }
     if (memcmp(id, "WAVE", 4) != 0) {
-        CTH_WARN("  Error in .wav header\n");
+        log.warn("  Error in .wav header\n");
         return 1;
     }
 
@@ -192,11 +206,11 @@ int WavPcmSource::parseHeader() {
 
         if (memcmp(id, "fmt ", 4) == 0) {
             if (size < 16) {
-                CTH_WARN("  Unsupported .wav fmt chunk size %u.\n", size);
+                log.warn("  Unsupported .wav fmt chunk size %u.\n", size);
                 return 1;
             }
             if (fread(formatBytes, 1, 16, file) != 16) {
-                CTH_ERROR("Can not read WAV format chunk.\n");
+                log.error("Can not read WAV format chunk.\n");
                 return 1;
             }
 
@@ -206,11 +220,11 @@ int WavPcmSource::parseHeader() {
             unsigned int bitsPerSample = readLe16(formatBytes + 14);
 
             if (audioFormat != 1) {
-                CTH_WARN("  Unsupported .wav encoding %u.\n", audioFormat);
+                log.warn("  Unsupported .wav encoding %u.\n", audioFormat);
                 return 1;
             }
             if ((channels < 1) || (channels > 2)) {
-                CTH_WARN("  Unsupported .wav channel count %u.\n", channels);
+                log.warn("  Unsupported .wav channel count %u.\n", channels);
                 return 1;
             }
 
@@ -224,11 +238,11 @@ int WavPcmSource::parseHeader() {
                 pcmFormat.sampleFormat = SF_s16_le;
                 break;
             default:
-                CTH_WARN("  Unsupported .wav sample size %u.\n", bitsPerSample);
+                log.warn("  Unsupported .wav sample size %u.\n", bitsPerSample);
                 return 1;
             }
 
-            CTH_DEBUG("wav pcm source: format rate=%d channels=%d sample-format=%d\n",
+            log.debug("wav pcm source: format rate=%d channels=%d sample-format=%d\n",
                 pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
 
             if (size > 16)
@@ -239,14 +253,14 @@ int WavPcmSource::parseHeader() {
             foundFormat = 1;
         } else if (memcmp(id, "data", 4) == 0) {
             if (!foundFormat) {
-                CTH_WARN("  WAV data chunk arrived before fmt chunk.\n");
+                log.warn("  WAV data chunk arrived before fmt chunk.\n");
                 return 1;
             }
             dataStart = ftell(file);
             dataLength = size;
             dataRead = 0;
             foundData = 1;
-            CTH_DEBUG("wav pcm source: data-start=%ld data-length=%ld\n", dataStart, dataLength);
+            log.debug("wav pcm source: data-start=%ld data-length=%ld\n", dataStart, dataLength);
         } else {
             fseek(file, size, SEEK_CUR);
             if (size & 1)
@@ -255,7 +269,7 @@ int WavPcmSource::parseHeader() {
     }
 
     if (!foundData) {
-        CTH_WARN("  Error in .wav header\n");
+        log.warn("  Error in .wav header\n");
         return 1;
     }
 
@@ -293,7 +307,7 @@ int WavPcmSource::read(char* dst, int rawSize, int samplesRequested) {
 int WavPcmSource::canFinish() const { return 1; }
 
 void WavPcmSource::rewind() {
-    CTH_DEBUG("wav pcm source: rewind `%s'\n", name);
+    log.debug("wav pcm source: rewind `%s'\n", name);
     if ((file == NULL) || error)
         return;
 
@@ -301,8 +315,8 @@ void WavPcmSource::rewind() {
     dataRead = 0;
 }
 
-Minimp3PcmSource::Minimp3PcmSource(const char* name_)
-    : PcmSource()
+Minimp3PcmSource::Minimp3PcmSource(const char* name_, LogSink& log_)
+    : PcmSource(log_)
     , decoder(NULL) {
     strncpy(name, name_, PATH_MAX - 1);
     name[PATH_MAX - 1] = '\0';
@@ -322,15 +336,15 @@ Minimp3PcmSource::~Minimp3PcmSource() {
 
 int Minimp3PcmSource::open() {
 #if WITH_MINIMP3 == 1
-    CTH_INFO("Playing file '%s'.\n", name);
-    CTH_DEBUG("minimp3 pcm source: opening `%s'\n", name);
+    log.info("Playing file '%s'.\n", name);
+    log.debug("minimp3 pcm source: opening `%s'\n", name);
 
     mp3dec_ex_t* dec = new mp3dec_ex_t;
     memset(dec, 0, sizeof(*dec));
 
     int result = mp3dec_ex_open(dec, name, MP3D_SEEK_TO_SAMPLE | MP3D_DO_NOT_SCAN);
     if (result != 0) {
-        CTH_WARN("  Can not open MP3 file `%s' using minimp3: %d.\n", name, result);
+        log.warn("  Can not open MP3 file `%s' using minimp3: %d.\n", name, result);
         delete dec;
         return 1;
     }
@@ -338,8 +352,8 @@ int Minimp3PcmSource::open() {
     decoder = dec;
     return applyFormat();
 #else
-    CTH_WARN("  Embedded minimp3 decoder support is not compiled in.\n");
-    CTH_DEBUG("minimp3 pcm source: open failed because WITH_MINIMP3=0 file=`%s'\n", name);
+    log.warn("  Embedded minimp3 decoder support is not compiled in.\n");
+    log.debug("minimp3 pcm source: open failed because WITH_MINIMP3=0 file=`%s'\n", name);
     return 1;
 #endif
 }
@@ -352,19 +366,19 @@ int Minimp3PcmSource::applyFormat() {
 
     pcmFormat.sampleRate = dec->info.hz;
     pcmFormat.channels = dec->info.channels;
-#if (__BYTE_ORDER == __BIG_ENDIAN)
+#ifdef WORDS_BIGENDIAN
     pcmFormat.sampleFormat = SF_s16_be;
 #else
     pcmFormat.sampleFormat = SF_s16_le;
 #endif
 
     if ((pcmFormat.channels < 1) || (pcmFormat.channels > 2) || (pcmFormat.sampleRate <= 0)) {
-        CTH_WARN("  Unsupported MP3 format rate=%d channels=%d.\n",
+        log.warn("  Unsupported MP3 format rate=%d channels=%d.\n",
             pcmFormat.sampleRate, pcmFormat.channels);
         return 1;
     }
 
-    CTH_DEBUG("minimp3 pcm source: format rate=%d channels=%d sample-format=%d\n",
+    log.debug("minimp3 pcm source: format rate=%d channels=%d sample-format=%d\n",
         pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
     return 0;
 #else
@@ -400,7 +414,7 @@ int Minimp3PcmSource::read(char* dst, int rawSize, int samplesRequested) {
 int Minimp3PcmSource::canFinish() const { return 1; }
 
 void Minimp3PcmSource::rewind() {
-    CTH_DEBUG("minimp3 pcm source: rewind `%s'\n", name);
+    log.debug("minimp3 pcm source: rewind `%s'\n", name);
 #if WITH_MINIMP3 == 1
     if ((decoder == NULL) || error)
         return;
@@ -409,8 +423,9 @@ void Minimp3PcmSource::rewind() {
 #endif
 }
 
-RawPcmSource::RawPcmSource(const char* name_, const PcmFormat& format)
-    : PcmSource()
+RawPcmSource::RawPcmSource(const char* name_, const PcmFormat& format,
+    LogSink& log_)
+    : PcmSource(log_)
     , file(NULL) {
     pcmFormat = format;
     strncpy(name, name_ ? name_ : "", PATH_MAX - 1);
@@ -421,20 +436,20 @@ RawPcmSource::RawPcmSource(const char* name_, const PcmFormat& format)
 
 RawPcmSource::~RawPcmSource() {
     if (file)
-        fclose0(file);
+        pcmSourceClose(file);
     file = NULL;
 }
 
 int RawPcmSource::open() {
     if (file)
-        fclose0(file);
+        pcmSourceClose(file);
 
-    CTH_INFO("Playing raw PCM file '%s'.\n", name);
-    CTH_DEBUG("raw pcm source: opening `%s'\n", name);
+    log.info("Playing raw PCM file '%s'.\n", name);
+    log.debug("raw pcm source: opening `%s'\n", name);
 
     file = fopen(name, "rb");
     if (file == NULL) {
-        CTH_ERRNO(errno, "Can not open sound file `%s' for reading.", name);
+        log.errorErrno(errno, "Can not open sound file `%s' for reading.", name);
         return 1;
     }
 
@@ -443,23 +458,23 @@ int RawPcmSource::open() {
 
 int RawPcmSource::applyFormat() {
     if (pcmFormat.sampleRate <= 0) {
-        CTH_WARN("  Unsupported raw audio sample rate %d.\n", pcmFormat.sampleRate);
+        log.warn("  Unsupported raw audio sample rate %d.\n", pcmFormat.sampleRate);
         return 1;
     }
     if ((pcmFormat.channels < 1) || (pcmFormat.channels > 2)) {
-        CTH_WARN("  Unsupported raw audio channel count %d.\n", pcmFormat.channels);
+        log.warn("  Unsupported raw audio channel count %d.\n", pcmFormat.channels);
         return 1;
     }
     if ((pcmFormat.sampleFormat < SF_u8) || (pcmFormat.sampleFormat > SF_s16_be)) {
-        CTH_WARN("  Unsupported raw audio format %d.\n", pcmFormat.sampleFormat);
+        log.warn("  Unsupported raw audio format %d.\n", pcmFormat.sampleFormat);
         return 1;
     }
     if (pcmFormat.bytesPerSample() <= 0) {
-        CTH_WARN("  Unsupported raw audio format %d.\n", pcmFormat.sampleFormat);
+        log.warn("  Unsupported raw audio format %d.\n", pcmFormat.sampleFormat);
         return 1;
     }
 
-    CTH_DEBUG("raw pcm source: format rate=%d channels=%d sample-format=%d\n",
+    log.debug("raw pcm source: format rate=%d channels=%d sample-format=%d\n",
         pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
     return 0;
 }
@@ -484,17 +499,19 @@ int RawPcmSource::read(char* dst, int rawSize, int samplesRequested) {
 int RawPcmSource::canFinish() const { return 1; }
 
 void RawPcmSource::rewind() {
-    CTH_DEBUG("raw pcm source: rewind `%s'\n", name);
+    log.debug("raw pcm source: rewind `%s'\n", name);
     if ((file == NULL) || error)
         return;
 
     clearerr(file);
     if (fseek(file, 0, SEEK_SET) != 0)
-        CTH_DEBUG("raw pcm source: rewind failed for `%s' errno=%d\n", name, errno);
+        log.debug("raw pcm source: rewind failed for `%s' errno=%d\n", name, errno);
 }
 
-RandomNoisePcmSource::RandomNoisePcmSource(const PcmFormat& requestedFormat)
-    : PcmSource()
+RandomNoisePcmSource::RandomNoisePcmSource(const PcmFormat& requestedFormat,
+    RandomSource& randomSource_, LogSink& log_)
+    : PcmSource(log_)
+    , randomSource(randomSource_)
     , v1(0)
     , v2(0)
     , maxdv(2) {
@@ -503,7 +520,7 @@ RandomNoisePcmSource::RandomNoisePcmSource(const PcmFormat& requestedFormat)
         pcmFormat.sampleRate = 44100;
     pcmFormat.channels = 2;
     pcmFormat.sampleFormat = SF_u8;
-    CTH_DEBUG("random noise pcm source: created rate=%d channels=%d format=%d\n",
+    log.debug("random noise pcm source: created rate=%d channels=%d format=%d\n",
         pcmFormat.sampleRate, pcmFormat.channels, pcmFormat.sampleFormat);
 }
 
@@ -523,15 +540,15 @@ int RandomNoisePcmSource::read(char* dst, int rawSize, int samplesRequested) {
         unsigned char* current = soundData + x * 2;
         unsigned char* previous = current - 2;
 
-        if (rand() % 256 > previous[0])
-            v1 += rand() % maxdv;
+        if (randomSource.uniformInt(256) > previous[0])
+            v1 += randomSource.uniformInt(maxdv);
         else
-            v1 -= rand() % maxdv;
+            v1 -= randomSource.uniformInt(maxdv);
 
-        if (rand() % 256 > previous[1])
-            v2 += rand() % maxdv;
+        if (randomSource.uniformInt(256) > previous[1])
+            v2 += randomSource.uniformInt(maxdv);
         else
-            v2 -= rand() % maxdv;
+            v2 -= randomSource.uniformInt(maxdv);
 
         current[0] = previous[0] + v1;
         current[1] = previous[1] + v2;

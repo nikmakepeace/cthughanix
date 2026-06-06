@@ -10,6 +10,7 @@
 #include "DisplayRuntime.h"
 #include "FpsOverlay.h"
 #include "OverlaySource.h"
+#include "ProcessServices.h"
 
 #include <stdint.h>
 
@@ -81,12 +82,15 @@ static OverlayCommands collectDisplayOverlays(double framesPerSecond) {
 }
 
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
-    DisplayDevice& device, DisplayRuntime& runtime) {
-    return std::unique_ptr<CthughaDisplay>(new CthughaDisplayX11(device, runtime));
+    DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock) {
+    return std::unique_ptr<CthughaDisplay>(
+        new CthughaDisplayX11(device, runtime, clock));
 }
 
-CthughaDisplayX11::CthughaDisplayX11(DisplayDevice& device, DisplayRuntime& runtime)
-    : CthughaDisplay(device, runtime) {
+CthughaDisplayX11::CthughaDisplayX11(DisplayDevice& device,
+    DisplayRuntime& runtime, SecondsClock& clock_)
+    : CthughaDisplay(device, runtime, clock_)
+    , clock(clock_) {
 }
 
 CthughaDisplayX11::~CthughaDisplayX11() {
@@ -98,7 +102,7 @@ void CthughaDisplayX11::operator()() {
     int traceDisplayTiming = CTH_LOG_ENABLED(CTH_LOG_TRACE);
     double displayTiming[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     if (traceDisplayTiming)
-        displayTiming[0] = getTime();
+        displayTiming[0] = clock.nowSeconds();
 
     /*
      * Sync the palette before indexed pixels are expanded or copied. Waiting
@@ -107,18 +111,18 @@ void CthughaDisplayX11::operator()() {
      */
     target.setGlobalPalette();
     if (traceDisplayTiming)
-        displayTiming[1] = getTime();
+        displayTiming[1] = clock.nowSeconds();
 
     composePresentationFrame();
     if (traceDisplayTiming)
-        displayTiming[2] = getTime();
+        displayTiming[2] = clock.nowSeconds();
 
     /*
      * prepare the display device
      */
     target.preDraw();
     if (traceDisplayTiming)
-        displayTiming[3] = getTime();
+        displayTiming[3] = clock.nowSeconds();
 
     /*
      * The composer has already produced completed indexed pixels.  From this
@@ -129,7 +133,7 @@ void CthughaDisplayX11::operator()() {
 
     checkZoom();
     if (traceDisplayTiming)
-        displayTiming[4] = getTime();
+        displayTiming[4] = clock.nowSeconds();
 
     /*
      * clear the border around the image
@@ -139,7 +143,7 @@ void CthughaDisplayX11::operator()() {
 
     OverlayCommands overlays = collectDisplayOverlays(fps);
     if (traceDisplayTiming)
-        displayTiming[5] = getTime();
+        displayTiming[5] = clock.nowSeconds();
 
     /*
      * Transfer indexed pixels to backend-native display memory.
@@ -147,14 +151,14 @@ void CthughaDisplayX11::operator()() {
     stage.present(indexedDisplayFrameValue, displayViewport(),
         target.needsFullCopy, borderClearRequested, overlays);
     if (traceDisplayTiming)
-        displayTiming[6] = getTime();
+        displayTiming[6] = clock.nowSeconds();
 
     /*
      * make sure everything is really copied to the screen
      */
     target.postDraw();
     if (traceDisplayTiming) {
-        displayTiming[7] = getTime();
+        displayTiming[7] = clock.nowSeconds();
         const DisplayViewport& viewport = displayViewport();
         CTH_TRACE("x11 frame-ms=%.3f palette-ms=%.3f compose-ms=%.3f prepare-ms=%.3f viewport-ms=%.3f overlay-ms=%.3f transfer-clear-ms=%.3f post-ms=%.3f size=%dx%d draw=%dx%d\n",
             "display timing",

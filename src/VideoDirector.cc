@@ -34,18 +34,19 @@ static int paletteSmoothingFrameBudget() {
     return max(fps * paletteSmoothSeconds, 1);
 }
 
-static int shouldSmoothPaletteChange() {
+static int shouldSmoothPaletteChange(RandomSource& randomSource) {
     if (paletteSmoothingChance <= 0.0)
         return 0;
 
-    if (((double)rand() / ((double)RAND_MAX + 1.0)) >= paletteSmoothingChance)
+    static const int scale = 1000000;
+    if ((double(randomSource.uniformInt(scale)) / double(scale)) >= paletteSmoothingChance)
         return 0;
 
     return 1;
 }
 
-static int paletteChangeFrameBudget() {
-    return shouldSmoothPaletteChange() ? paletteSmoothingFrameBudget() : 0;
+static int paletteChangeFrameBudget(RandomSource& randomSource) {
+    return shouldSmoothPaletteChange(randomSource) ? paletteSmoothingFrameBudget() : 0;
 }
 
 static int quietMessageFrameBudget() {
@@ -63,11 +64,13 @@ enum ImageCuePaletteMode {
     ImageCuePaletteIgnore
 };
 
-static ImageCuePaletteMode chooseImageCuePaletteMode() {
-    if (shouldSmoothPaletteChange())
+static ImageCuePaletteMode chooseImageCuePaletteMode(RandomSource& randomSource) {
+    if (shouldSmoothPaletteChange(randomSource))
         return ImageCuePaletteSnapThenReturn;
 
-    return (rand() % 2 == 0) ? ImageCuePaletteAdopt : ImageCuePaletteIgnore;
+    return (randomSource.uniformInt(2) == 0)
+        ? ImageCuePaletteAdopt
+        : ImageCuePaletteIgnore;
 }
 
 static const ColorPalette* scenePaletteColors(const SceneSettings& settings) {
@@ -77,6 +80,8 @@ static const ColorPalette* scenePaletteColors(const SceneSettings& settings) {
 VideoDirector::VideoDirector()
     : images(0, "image")
     , imagePlacementStrategy()
+    , fallbackRandomSource()
+    , randomSourceValue(&fallbackRandomSource)
     , silenceMessage()
     , scene(0)
     , filterchain(0)
@@ -94,6 +99,15 @@ VideoDirector::VideoDirector()
 VideoDirector::~VideoDirector() {
     if (scene != 0)
         scene->removeObserver(*this);
+}
+
+void VideoDirector::setRandomSource(RandomSource& randomSource) {
+    randomSourceValue = &randomSource;
+    silenceMessage.setRandomSource(randomSource);
+}
+
+void VideoDirector::setTimerFactory(CountdownTimerFactory& timerFactory) {
+    silenceMessage.setTimerFactory(timerFactory);
 }
 
 void VideoDirector::configureTransitions(
@@ -202,8 +216,10 @@ void VideoDirector::applySceneToFilterchain(unsigned int changes) {
 
     WaveFilter* waveFilter
         = stageFilter<WaveFilter>(*filterchain, VideoFilterchainSequence::WaveStage);
-    if (waveFilter != 0)
+    if (waveFilter != 0) {
+        waveFilter->setRandomSource(*randomSourceValue);
         waveFilter->setWave(settings.wave, settings.waveConfig);
+    }
 
     BorderFilter* borderFilter
         = stageFilter<BorderFilter>(*filterchain, VideoFilterchainSequence::BorderStage);
@@ -221,10 +237,10 @@ void VideoDirector::applySceneToFilterchain(unsigned int changes) {
             = stageFilter<PaletteFilter>(*filterchain, VideoFilterchainSequence::PaletteStage);
         if (paletteFilter != 0) {
             int frameBudget = paletteFilter->needsTarget(settings.palette)
-                ? paletteChangeFrameBudget()
+                ? paletteChangeFrameBudget(*randomSourceValue)
                 : 0;
             paletteFilter->setTargetPalette(settings.palette, frameBudget,
-                randomPaletteTransitionStrategy());
+                randomPaletteTransitionStrategy(*randomSourceValue));
         }
     }
 
@@ -251,7 +267,7 @@ void VideoDirector::applyPendingImageCue() {
 
     imageFilter->setImage(pendingImageCue);
     imageFilter->setPlacement(imagePlacementStrategy.choose(*pendingImageCue,
-        buffer->width(), buffer->height()));
+        buffer->width(), buffer->height(), *randomSourceValue));
     imageFilter->setOverlayPassiveBuffer(1);
     filterchain->setStageMode(VideoFilterchainSequence::ImageStage, VideoFilterArmedOnce);
     applyImageCuePalette(*pendingImageCue);
@@ -273,7 +289,7 @@ void VideoDirector::applyImageCuePalette(const IndexedImage& image) {
     if (paletteFilter == 0)
         return;
 
-    ImageCuePaletteMode mode = chooseImageCuePaletteMode();
+    ImageCuePaletteMode mode = chooseImageCuePaletteMode(*randomSourceValue);
     if (mode == ImageCuePaletteIgnore)
         return;
 

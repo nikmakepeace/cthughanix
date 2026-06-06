@@ -109,11 +109,11 @@ static void testAudioProcessorDelegatesFftToInjectedProcessor() {
     assert(frame.processedWaveData[0][1] == 9);
 }
 
-static void testDefaultFftProcessorProducesSilentOutputForSilentInput() {
-    AudioFftProcessor& fftProcessor = defaultAudioFftProcessor();
+static void testDefaultAudioProcessorFftProducesSilentOutputForSilentInput() {
+    AudioProcessor processor;
     AudioFrame frame;
 
-    fftProcessor.transform(frame.raw, frame.processedWaveData);
+    processor.fft(frame);
 
     for (int i = 0; i < 1024; i++) {
         assert(frame.processedWaveData[i][0] == 0);
@@ -196,7 +196,7 @@ int main() {
     testAudioFrameOwnsMetrics();
     testAudioProcessorAnalyzesRawFrame();
     testAudioProcessorDelegatesFftToInjectedProcessor();
-    testDefaultFftProcessorProducesSilentOutputForSilentInput();
+    testDefaultAudioProcessorFftProducesSilentOutputForSilentInput();
     testFixedPointFftProducesCharacterizedOutput();
     return 0;
 }

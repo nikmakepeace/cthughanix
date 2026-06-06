@@ -1,6 +1,7 @@
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -54,10 +55,6 @@ int screen_vscale_hmirror(ScreenRenderContext&) { return 0; }
 int screen_hscale_vmirror(ScreenRenderContext&) { return 0; }
 int screen_source(ScreenRenderContext&) { return 0; }
 
-double getTime() {
-    return 100.0;
-}
-
 int cth_log_enabled(int /*lvl*/) {
     return 0;
 }
@@ -79,10 +76,22 @@ int cth_log_errno(int /*errnum*/, const char* /*fmt*/, ...) {
     return 0;
 }
 
+class FakeSecondsClock : public SecondsClock {
+public:
+    double value;
+
+    explicit FakeSecondsClock(double value_)
+        : value(value_) { }
+
+    virtual double nowSeconds() const { return value; }
+};
+
+static FakeSecondsClock displayClock(100.0);
+
 class ViewportDisplayHarness : public CthughaDisplay {
 public:
     ViewportDisplayHarness(DisplayDevice& device, DisplayRuntime& runtime)
-        : CthughaDisplay(device, runtime) {
+        : CthughaDisplay(device, runtime, displayClock) {
     }
 
     void setDisplayFrameSize(int width, int height) {

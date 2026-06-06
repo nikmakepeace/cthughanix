@@ -9,6 +9,7 @@
 
 class EffectControl;
 class Option;
+class RandomSource;
 
 /** Controls runtime display and presentation options. */
 class RuntimeDisplayControls {
@@ -110,7 +111,17 @@ public:
  * while the display subsystem is still being migrated away from global options.
  */
 class DefaultRuntimeDisplayControls : public RuntimeDisplayControls {
+    RandomSource& randomSource;
+
 public:
+    /**
+     * Creates a display control adapter with the application-owned random
+     * source used by presentation selection fallbacks.
+     *
+     * @param randomSource Random source owned by the application lifecycle.
+     */
+    explicit DefaultRuntimeDisplayControls(RandomSource& randomSource);
+
     /**
      * Changes the selected screen/presentation by relative offset.
      *

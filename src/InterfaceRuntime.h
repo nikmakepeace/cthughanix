@@ -14,8 +14,10 @@ class EffectControl;
 class Interface;
 class InterfaceElementOption;
 class Keymap;
+class MillisecondClock;
 class Option;
 class RuntimeConfigRegistry;
+class RuntimeCommandTargetRouter;
 
 /**
  * Transient option/effect target used while an interface element routes a key.
@@ -43,6 +45,8 @@ class InterfaceRuntime {
     const AutoChangerStatusProvider* autoChangerStatusProviderValue;
     AutoChangeControls* autoChangeControlsValue;
     AudioProcessingSelector* audioProcessingSelectorValue;
+    RuntimeCommandTargetRouter* commandRouterValue;
+    MillisecondClock& clock;
     int saveToPresetValue;
     int showStatusValue;
     InterfaceCommandContext commandContextValue;
@@ -51,8 +55,12 @@ class InterfaceRuntime {
     void clearCommandContext();
 
 public:
-    /** Creates an empty interface runtime with no selected panel. */
-    InterfaceRuntime();
+    /**
+     * Creates an empty interface runtime with no selected panel.
+     *
+     * @param clock_ Application-owned millisecond clock for UI timers.
+     */
+    explicit InterfaceRuntime(MillisecondClock& clock_);
 
     /**
      * Registers a concrete interface panel with this runtime.
@@ -169,6 +177,20 @@ public:
      */
     AudioProcessingSelector* audioProcessingSelector() const;
 
+    /**
+     * Installs the router used for scoped option/effect commands.
+     *
+     * @param router Router to use; NULL disables scoped runtime commands.
+     */
+    void setCommandRouter(RuntimeCommandTargetRouter* router);
+
+    /**
+     * Returns the router used for scoped option/effect commands.
+     *
+     * @return Installed router, or NULL before runtime command setup.
+     */
+    RuntimeCommandTargetRouter* commandRouter() const;
+
     /** Toggles whether number keys save or restore presets. */
     void toggleSaveToPreset();
 
@@ -183,6 +205,9 @@ public:
 
     /** @return Nonzero when status text should be displayed. */
     int showStatus() const;
+
+    /** @return Current Application-owned UI time in milliseconds. */
+    int milliseconds() const;
 
     /**
      * Runs a key through an option element with a scoped command context.

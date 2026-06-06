@@ -11,6 +11,8 @@
 #include <memory>
 #include <thread>
 
+class LogSink;
+
 /**
  * Owns audio output and its playback cursor over decoded history.
  *
@@ -22,6 +24,7 @@ class AudioPassthrough {
     std::unique_ptr<AudioOutput> outputValue;
     AudioOutputStream streamValue;
     const std::atomic<int>& inputFinished;
+    LogSink& log;
     char* scratch;
     int scratchSamplesValue;
     std::atomic<int> stopRequested;
@@ -41,9 +44,10 @@ public:
      *        outlive this passthrough.
      * @param inputFinished_ Acquisition completion flag observed for drain
      *        completion.
+     * @param log_ Sink for passthrough lifecycle diagnostics.
      */
     AudioPassthrough(AudioOutput* output, DecodedAudioHistory& history,
-        const std::atomic<int>& inputFinished_);
+        const std::atomic<int>& inputFinished_, LogSink& log_);
 
     /** Stops output work and releases output resources. */
     ~AudioPassthrough();

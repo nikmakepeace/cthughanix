@@ -6,6 +6,7 @@
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
 #include "Mixer.h"
+#include "ProcessServices.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -18,6 +19,31 @@ int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
+
+class FakeRandomSource : public RandomSource {
+public:
+    int value;
+    int calls;
+
+    FakeRandomSource()
+        : value(0)
+        , calls(0) { }
+
+    virtual int uniformInt(int exclusiveMax) {
+        calls++;
+        if (exclusiveMax <= 1)
+            return 0;
+        return value % exclusiveMax;
+    }
+};
+
+class FakeLogSink : public LogSink {
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+
+public:
+    virtual int enabled(int) const { return 0; }
+};
 
 class RecordingOption : public Option {
 public:
@@ -55,13 +81,15 @@ public:
 
     virtual int initialize(const std::string&,
         const std::vector<MixerInitialVolume>&,
-        std::vector<MixerChannel>& channels) {
+        std::vector<MixerChannel>& channels, LogSink& log) {
+        (void)log;
         channels = discoveredChannels;
         return 0;
     }
 
     virtual int setVolume(const std::string&, const MixerChannel&,
-        int encodedVolume, int& active) {
+        int encodedVolume, int& active, LogSink& log) {
+        (void)log;
         setVolumeCalls++;
         setVolumeEncodedVolume = encodedVolume;
         active = encodedVolume > 0;
@@ -71,8 +99,10 @@ public:
 
 static void testDirectCommandsChangeOnlyAudioProcessing() {
     AudioProcessor processor;
-    AudioProcessingState state;
-    AudioProcessingSelector selector(state, processor);
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    AudioProcessingState state(randomSource);
+    AudioProcessingSelector selector(state, processor, log);
     DefaultRuntimeAudioControls controls(selector);
 
     controls.changeSoundProcessingBy(3);
@@ -84,8 +114,10 @@ static void testDirectCommandsChangeOnlyAudioProcessing() {
 
 static void testGenericOptionRoutingClaimsOnlyAudioProcessing() {
     AudioProcessor processor;
-    AudioProcessingState state;
-    AudioProcessingSelector selector(state, processor);
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    AudioProcessingState state(randomSource);
+    AudioProcessingSelector selector(state, processor, log);
     DefaultRuntimeAudioControls controls(selector);
 
     RuntimeChangeSet byChanges;
@@ -115,15 +147,17 @@ static void testGenericOptionRoutingClaimsOnlyAudioProcessing() {
 
 static void testGenericOptionRoutingClaimsMixerOptionsAsUiChanges() {
     AudioProcessor processor;
-    AudioProcessingState state;
-    AudioProcessingSelector selector(state, processor);
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    AudioProcessingState state(randomSource);
+    AudioProcessingSelector selector(state, processor, log);
     FakeMixerDevice device;
     device.discoveredChannels.push_back(
         MixerChannel("line", 1, 2 + 256 * 3, 1));
-    MixerSession mixerSession(device, "/dev/mixer-test",
+    MixerSession mixerSession(device, log, "/dev/mixer-test",
         std::vector<MixerInitialVolume>());
     assert(mixerSession.initialize() == 0);
-    MixerControls mixerControls(mixerSession);
+    MixerControls mixerControls(mixerSession, log);
     DefaultRuntimeAudioControls controls(selector, &mixerControls);
 
     RuntimeChangeSet byChanges;
@@ -145,9 +179,28 @@ static void testGenericOptionRoutingClaimsMixerOptionsAsUiChanges() {
     assert(device.setVolumeEncodedVolume == 11 + 256 * 11);
 }
 
+static void testUnknownAudioProcessingSelectionUsesInjectedRandomSource() {
+    AudioProcessor processor;
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    AudioProcessingState state(randomSource);
+    AudioProcessingSelector selector(state, processor, log);
+
+    randomSource.value = 2;
+    selector.changeTo("");
+    assert(strcmp(selector.text(), "Filter2") == 0);
+    assert(randomSource.calls == 1);
+
+    randomSource.value = 3;
+    selector.changeTo("not-a-mode");
+    assert(strcmp(selector.text(), "FFT") == 0);
+    assert(randomSource.calls == 2);
+}
+
 int main() {
     testDirectCommandsChangeOnlyAudioProcessing();
     testGenericOptionRoutingClaimsOnlyAudioProcessing();
     testGenericOptionRoutingClaimsMixerOptionsAsUiChanges();
+    testUnknownAudioProcessingSelectionUsesInjectedRandomSource();
     return 0;
 }

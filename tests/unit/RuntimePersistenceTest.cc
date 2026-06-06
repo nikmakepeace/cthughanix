@@ -1,6 +1,6 @@
 #include "IniFiles.h"
 #include "AutoChangeSettings.h"
-#include "RuntimeCommand.h"
+#include "ProcessServices.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimePersistence.h"
 
@@ -10,19 +10,35 @@ ContinuationIniConfig::ContinuationIniConfig()
     : scene()
     , showFpsEnabled(0) { }
 
+class StubLogSink : public LogSink {
+public:
+    virtual int enabled(int) const {
+        return 0;
+    }
+
+protected:
+    virtual void write(int, const char*, int, const char*, va_list) { }
+};
+
+static StubLogSink testLogSink;
+
 static int iniWrites = 0;
 static Config lastConfig;
-int write_ini(const Config& config) {
+static LogSink* lastIniLogSink = NULL;
+int write_ini(const Config& config, LogSink& log) {
     iniWrites++;
     lastConfig = config;
+    lastIniLogSink = &log;
     return 0;
 }
 
 static int continuationWrites = 0;
 static ContinuationIniConfig lastContinuationConfig;
-int write_continuation_ini(const ContinuationIniConfig& config) {
+static LogSink* lastContinuationLogSink = NULL;
+int write_continuation_ini(const ContinuationIniConfig& config, LogSink& log) {
     continuationWrites++;
     lastContinuationConfig = config;
+    lastContinuationLogSink = &log;
     return 0;
 }
 
@@ -54,12 +70,14 @@ static void testWriteCurrentConfigUsesRegistrySnapshot() {
     RuntimeConfigRegistry registry(baseline);
     RuntimeWaveContributor contributor;
     registry.addContributor(contributor);
-    IniRuntimePersistence persistence(registry);
+    IniRuntimePersistence persistence(registry, testLogSink);
 
     iniWrites = 0;
+    lastIniLogSink = NULL;
     assert(persistence.writeCurrentConfig() == 0);
 
     assert(iniWrites == 1);
+    assert(lastIniLogSink == &testLogSink);
     assert(lastConfig.scene.wave == "runtime-wave");
     assert(lastConfig.display.showFpsEnabled == 1);
     assert(lastConfig.audioAnalysis.minNoise == 123);
@@ -78,12 +96,14 @@ static void testWriteCurrentConfigReadsOwnedAutoChangeSettings() {
     OwnedAutoChangeSettings settings(runtimeConfig);
     RuntimeAutoChangeContributor contributor(settings);
     registry.addContributor(contributor);
-    IniRuntimePersistence persistence(registry);
+    IniRuntimePersistence persistence(registry, testLogSink);
 
     iniWrites = 0;
+    lastIniLogSink = NULL;
     assert(persistence.writeCurrentConfig() == 0);
 
     assert(iniWrites == 1);
+    assert(lastIniLogSink == &testLogSink);
     assert(lastConfig.autoChange.quietMs == 2500);
     assert(lastConfig.autoChange.waitMinMs == 3000);
     assert(lastConfig.autoChange.waitRandomMs == 4000);
@@ -92,33 +112,36 @@ static void testWriteCurrentConfigReadsOwnedAutoChangeSettings() {
     assert(lastConfig.autoChange.changeLittle == 1);
 }
 
-static void testWriteContinuationMapsRuntimeContinuationState() {
+static void testWriteContinuationMapsCurrentRegistryConfig() {
     Config baseline;
+    baseline.scene.flame = "saved-flame";
+    baseline.scene.generalFlame = "saved-general";
+    baseline.scene.wave = "startup-wave";
+    baseline.scene.waveScale = "saved-scale";
+    baseline.scene.object = "saved-object";
+    baseline.scene.translation = "saved-translation";
+    baseline.scene.palette = "saved-palette";
+    baseline.scene.border = "saved-border";
+    baseline.scene.flashlight = "saved-flashlight";
+    baseline.scene.table = "saved-table";
+    baseline.scene.image = "saved-image";
+    baseline.scene.presentation = "saved-screen";
+    baseline.scene.audioProcessing = "saved-audio";
+    baseline.display.showFpsEnabled = 0;
     RuntimeConfigRegistry registry(baseline);
-    IniRuntimePersistence persistence(registry);
-    RuntimeContinuationState continuation;
-    continuation.flame = "saved-flame";
-    continuation.generalFlame = "saved-general";
-    continuation.wave = "saved-wave";
-    continuation.waveScale = "saved-scale";
-    continuation.object = "saved-object";
-    continuation.translation = "saved-translation";
-    continuation.palette = "saved-palette";
-    continuation.border = "saved-border";
-    continuation.flashlight = "saved-flashlight";
-    continuation.table = "saved-table";
-    continuation.image = "saved-image";
-    continuation.presentation = "saved-screen";
-    continuation.audioProcessing = "saved-audio";
-    continuation.showFpsEnabled = 1;
+    RuntimeWaveContributor contributor;
+    registry.addContributor(contributor);
+    IniRuntimePersistence persistence(registry, testLogSink);
 
     continuationWrites = 0;
-    assert(persistence.writeContinuation(continuation) == 0);
+    lastContinuationLogSink = NULL;
+    assert(persistence.writeContinuation() == 0);
 
     assert(continuationWrites == 1);
+    assert(lastContinuationLogSink == &testLogSink);
     assert(lastContinuationConfig.scene.flame == "saved-flame");
     assert(lastContinuationConfig.scene.generalFlame == "saved-general");
-    assert(lastContinuationConfig.scene.wave == "saved-wave");
+    assert(lastContinuationConfig.scene.wave == "runtime-wave");
     assert(lastContinuationConfig.scene.waveScale == "saved-scale");
     assert(lastContinuationConfig.scene.object == "saved-object");
     assert(lastContinuationConfig.scene.translation == "saved-translation");
@@ -135,6 +158,6 @@ static void testWriteContinuationMapsRuntimeContinuationState() {
 int main() {
     testWriteCurrentConfigUsesRegistrySnapshot();
     testWriteCurrentConfigReadsOwnedAutoChangeSettings();
-    testWriteContinuationMapsRuntimeContinuationState();
+    testWriteContinuationMapsCurrentRegistryConfig();
     return 0;
 }

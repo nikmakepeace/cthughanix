@@ -6,7 +6,6 @@
 #include "cthugha.h"
 
 struct InputConfig;
-class AudioProcessingState;
 class InterfaceRuntime;
 class RuntimeCommandSink;
 
@@ -109,19 +108,6 @@ public:
      */
     static InterfaceRuntime* interfaceRuntime();
 
-    /**
-     * Installs the audio-processing state used for continuation saves.
-     *
-     * @param state State to read; NULL omits audio processing from continuation.
-     */
-    static void setAudioProcessingState(const AudioProcessingState* state);
-
-    /**
-     * Returns the audio-processing state used for continuation saves.
-     *
-     * @return Installed state, or NULL before runtime setup.
-     */
-    static const AudioProcessingState* audioProcessingState();
 };
 
 #endif

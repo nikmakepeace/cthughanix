@@ -5,6 +5,8 @@
 #include "EffectControl.h"
 #include "Flame.h"
 
+class RandomSource;
+
 /**
  * Effect choice that points at one built-in Flame catalog item.
  */
@@ -57,6 +59,16 @@ public:
     virtual void change(const char* to, int doSave = 1);
 
     /**
+     * Changes the general-flame value from text using an injected random source
+     * for invalid/empty random fallback cases.
+     *
+     * @param to Decimal value, optionally prefixed by a lock directive.
+     * @param randomSource Random source used for fallback selection.
+     * @param doSave Nonzero to save the previous option value first.
+     */
+    virtual void change(const char* to, RandomSource& randomSource, int doSave = 1);
+
+    /**
      * Changes the encoded value by a relative amount.
      *
      * @param by Delta applied modulo the number of encoded states.
@@ -70,6 +82,15 @@ public:
      * @param doSave Nonzero to save the previous option value first.
      */
     virtual void changeRandom(int doSave = 1);
+
+    /**
+     * Picks a random encoded general-flame value from an injected source unless
+     * locked.
+     *
+     * @param randomSource Random source used to select the encoded value.
+     * @param doSave Nonzero to save the previous option value first.
+     */
+    virtual void changeRandom(RandomSource& randomSource, int doSave = 1);
 
     /** @return Current value text, including "locked:" when locked. */
     virtual const char* text() const;

@@ -4,30 +4,26 @@
 
 #include "IniFiles.h"
 
-#include "cthugha.h"
+#include "ProcessServices.h"
 
 #include <sstream>
 #include <string>
 #include <unistd.h>
 
-static FILE* ini_file = NULL;
-
-static const char* home_ini_file_name(const char* fileName) {
-    static std::string fname;
+static std::string home_ini_file_name(const char* fileName) {
     const char* home = getenv("HOME");
 
     if (home == NULL)
-        return NULL;
+        return std::string();
 
-    fname = std::string(home) + "/" + fileName;
-    return fname.c_str();
+    return std::string(home) + "/" + fileName;
 }
 
-static const char* automatic_ini_file_name() {
+static std::string automatic_ini_file_name() {
     return home_ini_file_name(".cthugha.auto");
 }
 
-static const char* continuation_ini_file_name() {
+static std::string continuation_ini_file_name() {
     return home_ini_file_name(".cthugha.continue");
 }
 
@@ -35,26 +31,42 @@ ContinuationIniConfig::ContinuationIniConfig()
     : scene()
     , showFpsEnabled(0) { }
 
-static int putini(const char* entry, const char* value) {
-    if (ini_file == NULL)
-        return 1;
+class IniWriter {
+    FILE* fileValue;
 
-    fprintf(ini_file, "Cthugha.%s: %s\n", entry, value);
-    return 0;
-}
+public:
+    explicit IniWriter(FILE* file)
+        : fileValue(file) { }
 
-int remove_continuation_ini(const PathConfig& paths) {
+    void section(const char* text) {
+        fprintf(fileValue, "%s", text);
+    }
+
+    int put(const char* entry, const char* value) {
+        if (fileValue == NULL)
+            return 1;
+
+        fprintf(fileValue, "Cthugha.%s: %s\n", entry, value);
+        return 0;
+    }
+
+    FILE* file() const {
+        return fileValue;
+    }
+};
+
+int remove_continuation_ini(const PathConfig& paths, LogSink& log) {
     if (paths.continuationIniFile.empty())
         return 0;
 
     if (unlink(paths.continuationIniFile.c_str()) == 0) {
-        CTH_DEBUG("Removed continuation ini `%s'.\n",
+        log.debug("Removed continuation ini `%s'.\n",
             paths.continuationIniFile.c_str());
         return 0;
     }
 
     if (errno != ENOENT)
-        CTH_ERRNO(errno, "Can not remove continuation ini `%s'.",
+        log.errorErrno(errno, "Can not remove continuation ini `%s'.",
             paths.continuationIniFile.c_str());
 
     return 0;
@@ -81,165 +93,174 @@ static std::string dimensions_text(int width, int height) {
     return integer_text(width) + "x" + integer_text(height);
 }
 
-static void putini_int(const char* entry, int value) {
+static void putini_int(IniWriter& writer, const char* entry, int value) {
     std::string text = integer_text(value);
-    putini(entry, text.c_str());
+    writer.put(entry, text.c_str());
 }
 
-static void putini_bool(const char* entry, int value) {
-    putini(entry, yes_no(value));
+static void putini_bool(IniWriter& writer, const char* entry, int value) {
+    writer.put(entry, yes_no(value));
 }
 
-static void putini_double(const char* entry, double value) {
+static void putini_double(IniWriter& writer, const char* entry, double value) {
     std::string text = double_text(value);
-    putini(entry, text.c_str());
+    writer.put(entry, text.c_str());
 }
 
-static void putini_text_if_set(const char* entry, const std::string& value) {
+static void putini_text_if_set(IniWriter& writer, const char* entry,
+    const std::string& value) {
     if (!value.empty())
-        putini(entry, value.c_str());
+        writer.put(entry, value.c_str());
 }
 
-static int begin_ini_output(const char* fname, const char* label,
-    std::string* tmpName, FILE** previousIniFile) {
-    if (fname == NULL) {
-        CTH_ERROR("Can not create %s: HOME is not set.\n", label);
+static int begin_ini_output(const std::string& fname, const char* label,
+    std::string* tmpName, FILE** outFile, LogSink& log) {
+    if (fname.empty()) {
+        log.error("Can not create %s: HOME is not set.\n", label);
         return 1;
     }
 
-    *tmpName = std::string(fname) + ".tmp";
-    *previousIniFile = ini_file;
+    *tmpName = fname + ".tmp";
     FILE* out = fopen(tmpName->c_str(), "w");
     if (out == NULL) {
-        CTH_ERRNO(errno, "Can not create %s `%s'.", label,
+        log.errorErrno(errno, "Can not create %s `%s'.", label,
             tmpName->c_str());
         return 1;
     }
 
-    ini_file = out;
+    *outFile = out;
     return 0;
 }
 
-static int finish_ini_output(const char* fname, const char* label,
-    const std::string& tmpName, FILE* previousIniFile) {
-    int write_error = ferror(ini_file);
-    int close_error = fclose(ini_file);
-    ini_file = previousIniFile;
+static int finish_ini_output(const std::string& fname, const char* label,
+    const std::string& tmpName, FILE* outFile, LogSink& log) {
+    int write_error = ferror(outFile);
+    int close_error = fclose(outFile);
 
     if (write_error || close_error) {
         unlink(tmpName.c_str());
-        CTH_ERROR("Can not write %s `%s'.\n", label, tmpName.c_str());
+        log.error("Can not write %s `%s'.\n", label, tmpName.c_str());
         return 1;
     }
 
-    if (rename(tmpName.c_str(), fname) != 0) {
+    if (rename(tmpName.c_str(), fname.c_str()) != 0) {
         unlink(tmpName.c_str());
-        CTH_ERRNO(errno, "Can not install %s `%s'.", label, fname);
+        log.errorErrno(errno, "Can not install %s `%s'.", label,
+            fname.c_str());
         return 1;
     }
 
     return 0;
 }
 
-static void write_scene_config_ini(const SceneConfig& scene) {
-    fprintf(ini_file,
+static void write_scene_config_ini(IniWriter& writer, const SceneConfig& scene) {
+    writer.section(
         "#\n"
         "# Scene Controls\n"
         "#\n");
-    putini_text_if_set("flame", scene.flame);
-    putini_text_if_set("flame-general", scene.generalFlame);
-    putini_text_if_set("wave", scene.wave);
-    putini_text_if_set("wave-scale", scene.waveScale);
-    putini_text_if_set("object", scene.object);
-    putini_text_if_set("translation", scene.translation);
-    putini_text_if_set("palette", scene.palette);
-    putini_text_if_set("border", scene.border);
-    putini_text_if_set("flashlight", scene.flashlight);
-    putini_text_if_set("table", scene.table);
-    putini_text_if_set("image", scene.image);
-    putini_text_if_set("display", scene.presentation);
-    putini_text_if_set("sound-processing", scene.audioProcessing);
+    putini_text_if_set(writer, "flame", scene.flame);
+    putini_text_if_set(writer, "flame-general", scene.generalFlame);
+    putini_text_if_set(writer, "wave", scene.wave);
+    putini_text_if_set(writer, "wave-scale", scene.waveScale);
+    putini_text_if_set(writer, "object", scene.object);
+    putini_text_if_set(writer, "translation", scene.translation);
+    putini_text_if_set(writer, "palette", scene.palette);
+    putini_text_if_set(writer, "border", scene.border);
+    putini_text_if_set(writer, "flashlight", scene.flashlight);
+    putini_text_if_set(writer, "table", scene.table);
+    putini_text_if_set(writer, "image", scene.image);
+    putini_text_if_set(writer, "display", scene.presentation);
+    putini_text_if_set(writer, "sound-processing", scene.audioProcessing);
 }
 
-static void write_transition_policy_ini(const SceneTransitionPolicy& policy) {
-    fprintf(ini_file,
+static void write_transition_policy_ini(IniWriter& writer,
+    const SceneTransitionPolicy& policy) {
+    writer.section(
         "#\n"
         "# Scene Transition Policy\n"
         "#\n");
-    putini_double("palette-smoothing", policy.paletteSmoothingChance);
-    putini_int("palette-smooth-seconds", policy.paletteSmoothSeconds);
+    putini_double(writer, "palette-smoothing", policy.paletteSmoothingChance);
+    putini_int(writer, "palette-smooth-seconds", policy.paletteSmoothSeconds);
 }
 
-static void write_audio_analysis_config_ini(const AudioAnalysisConfig& audioAnalysis) {
-    fprintf(ini_file,
+static void write_audio_analysis_config_ini(IniWriter& writer,
+    const AudioAnalysisConfig& audioAnalysis) {
+    writer.section(
         "#\n"
         "# Audio Analysis\n"
         "#\n");
-    putini_int("min-noise", audioAnalysis.minNoise);
+    putini_int(writer, "min-noise", audioAnalysis.minNoise);
 }
 
-static void write_auto_change_config_ini(const AutoChangeConfig& autoChange) {
-    fprintf(ini_file,
+static void write_auto_change_config_ini(IniWriter& writer,
+    const AutoChangeConfig& autoChange) {
+    writer.section(
         "#\n"
         "# Timing/Automatic Changer Options\n"
         "#\n");
-    putini_int("min-time", autoChange.waitMinMs);
-    putini_int("random-time", autoChange.waitRandomMs);
-    putini_int("quiet-change", autoChange.quietMs);
-    putini_int("cumulative-fire-level", autoChange.cumulativeFireLevel);
-    putini_bool("lock", autoChange.locked);
-    putini_bool("little", autoChange.changeLittle);
+    putini_int(writer, "min-time", autoChange.waitMinMs);
+    putini_int(writer, "random-time", autoChange.waitRandomMs);
+    putini_int(writer, "quiet-change", autoChange.quietMs);
+    putini_int(writer, "cumulative-fire-level",
+        autoChange.cumulativeFireLevel);
+    putini_bool(writer, "lock", autoChange.locked);
+    putini_bool(writer, "little", autoChange.changeLittle);
 }
 
-static void write_messages_config_ini(const MessagesConfig& messages) {
-    fprintf(ini_file,
+static void write_messages_config_ini(IniWriter& writer,
+    const MessagesConfig& messages) {
+    writer.section(
         "#\n"
         "# Messages\n"
         "#\n");
-    putini_int("change-msg-time", messages.quietMessageMs);
-    putini_int("quiet-message-duration-ms", messages.quietMessageDurationMs);
-    putini_text_if_set("quiet-file", messages.quietMessageFile);
-    putini_bool("qotd", messages.qotdEnabled);
-    putini_int("qotd-prefetch-timeout-ms", messages.qotdPrefetchTimeoutMs);
-    putini_text_if_set("qotd-server", messages.qotdServer);
-    putini_text_if_set("qotd-port", messages.qotdPort);
+    putini_int(writer, "change-msg-time", messages.quietMessageMs);
+    putini_int(writer, "quiet-message-duration-ms",
+        messages.quietMessageDurationMs);
+    putini_text_if_set(writer, "quiet-file", messages.quietMessageFile);
+    putini_bool(writer, "qotd", messages.qotdEnabled);
+    putini_int(writer, "qotd-prefetch-timeout-ms",
+        messages.qotdPrefetchTimeoutMs);
+    putini_text_if_set(writer, "qotd-server", messages.qotdServer);
+    putini_text_if_set(writer, "qotd-port", messages.qotdPort);
 }
 
-static void write_display_config_ini(const DisplayConfig& display) {
-    fprintf(ini_file,
+static void write_display_config_ini(IniWriter& writer,
+    const DisplayConfig& display) {
+    writer.section(
         "#\n"
         "# Display\n"
         "#\n");
     if (display.hasCustomDisplaySize)
-        putini("disp-mode",
+        writer.put("disp-mode",
             dimensions_text(display.displayWidth, display.displayHeight).c_str());
     else
-        putini_int("disp-mode", display.displayMode);
+        putini_int(writer, "disp-mode", display.displayMode);
 
-    putini("buff-size",
+    writer.put("buff-size",
         dimensions_text(display.bufferWidth, display.bufferHeight).c_str());
-    putini_int("max-fps", display.maxFramesPerSecond);
-    putini_bool("show-fps", display.showFpsEnabled);
-    putini_int("zoom", display.zoomMode);
+    putini_int(writer, "max-fps", display.maxFramesPerSecond);
+    putini_bool(writer, "show-fps", display.showFpsEnabled);
+    putini_int(writer, "zoom", display.zoomMode);
 }
 
-static void write_effect_policy_ini(const EffectPolicy& policy) {
-    fprintf(ini_file,
+static void write_effect_policy_ini(IniWriter& writer,
+    const EffectPolicy& policy) {
+    writer.section(
         "#\n"
         "# Effect Policy\n"
         "#\n");
-    putini_bool("images", policy.imageFilesEnabled);
-    putini_text_if_set("palette-set", policy.paletteSetFilterText);
-    putini_bool("trans", policy.useTranslatesEnabled);
-    putini_bool("use-objects", policy.useObjectsEnabled);
+    putini_bool(writer, "images", policy.imageFilesEnabled);
+    putini_text_if_set(writer, "palette-set", policy.paletteSetFilterText);
+    putini_bool(writer, "trans", policy.useTranslatesEnabled);
+    putini_bool(writer, "use-objects", policy.useObjectsEnabled);
 
     for (std::vector<EffectChoicePolicy>::const_iterator it
              = policy.allowedChoices.begin();
          it != policy.allowedChoices.end(); ++it) {
-        putini_bool(it->catalogEntryKey.c_str(), it->enabled);
+        putini_bool(writer, it->catalogEntryKey.c_str(), it->enabled);
     }
 
-    fprintf(ini_file,
+    writer.section(
         "#\n"
         "# Effect Control Preset Slots\n"
         "#\n");
@@ -248,63 +269,65 @@ static void write_effect_policy_ini(const EffectPolicy& policy) {
          it != policy.presets.end(); ++it) {
         std::string key = "preset." + integer_text(it->slot) + "."
             + it->catalogName;
-        putini(key.c_str(), it->choiceText.c_str());
+        writer.put(key.c_str(), it->choiceText.c_str());
     }
 }
 
-int write_ini(const Config& config) {
-    const char* fname = automatic_ini_file_name();
+int write_ini(const Config& config, LogSink& log) {
+    std::string fname = automatic_ini_file_name();
     std::string tmpName;
-    FILE* previousIniFile = NULL;
-    if (begin_ini_output(fname, "automatic ini", &tmpName, &previousIniFile))
+    FILE* outFile = NULL;
+    if (begin_ini_output(fname, "automatic ini", &tmpName, &outFile, log))
         return 1;
+    IniWriter writer(outFile);
 
-    fprintf(ini_file,
+    writer.section(
         "#\n"
         "# .cthugha.auto\n"
         "#\n"
         "# This file was created automatically, please do not edit.\n"
         "#\n");
 
-    write_scene_config_ini(config.scene);
-    write_transition_policy_ini(config.sceneTransition);
-    write_audio_analysis_config_ini(config.audioAnalysis);
-    write_auto_change_config_ini(config.autoChange);
-    write_messages_config_ini(config.messages);
-    write_display_config_ini(config.display);
-    write_effect_policy_ini(config.effectPolicy);
+    write_scene_config_ini(writer, config.scene);
+    write_transition_policy_ini(writer, config.sceneTransition);
+    write_audio_analysis_config_ini(writer, config.audioAnalysis);
+    write_auto_change_config_ini(writer, config.autoChange);
+    write_messages_config_ini(writer, config.messages);
+    write_display_config_ini(writer, config.display);
+    write_effect_policy_ini(writer, config.effectPolicy);
 
-    if (finish_ini_output(fname, "automatic ini", tmpName, previousIniFile))
+    if (finish_ini_output(fname, "automatic ini", tmpName, outFile, log))
         return 1;
 
-    CTH_INFO("Saved startup configuration to `%s'.\n", fname);
+    log.info("Saved startup configuration to `%s'.\n", fname.c_str());
     return 0;
 }
 
-int write_continuation_ini(const ContinuationIniConfig& config) {
-    const char* fname = continuation_ini_file_name();
+int write_continuation_ini(const ContinuationIniConfig& config, LogSink& log) {
+    std::string fname = continuation_ini_file_name();
     std::string tmpName;
-    FILE* previousIniFile = NULL;
-    if (begin_ini_output(fname, "continuation ini", &tmpName, &previousIniFile))
+    FILE* outFile = NULL;
+    if (begin_ini_output(fname, "continuation ini", &tmpName, &outFile, log))
         return 1;
+    IniWriter writer(outFile);
 
-    fprintf(ini_file,
+    writer.section(
         "#\n"
         "# .cthugha.continue\n"
         "#\n"
         "# One-shot stop-and-continue state. Cthugha deletes this file after startup.\n"
         "#\n");
 
-    write_scene_config_ini(config.scene);
-    fprintf(ini_file,
+    write_scene_config_ini(writer, config.scene);
+    writer.section(
         "#\n"
         "# Display\n"
         "#\n");
-    putini_bool("show-fps", config.showFpsEnabled);
+    putini_bool(writer, "show-fps", config.showFpsEnabled);
 
-    if (finish_ini_output(fname, "continuation ini", tmpName, previousIniFile))
+    if (finish_ini_output(fname, "continuation ini", tmpName, outFile, log))
         return 1;
 
-    CTH_INFO("Saved continuation state to `%s'.\n", fname);
+    log.info("Saved continuation state to `%s'.\n", fname.c_str());
     return 0;
 }

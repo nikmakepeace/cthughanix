@@ -20,8 +20,9 @@ AudioMetrics::AudioMetrics()
     , noisy(0) {
 }
 
-AcousticContext::AcousticContext()
-    : intensityValue(0.0)
+AcousticContext::AcousticContext(LogSink* log_)
+    : log(log_)
+    , intensityValue(0.0)
     , lastAmplitudeValue(0)
     , attackLevelValue(0)
     , fireValue(0)

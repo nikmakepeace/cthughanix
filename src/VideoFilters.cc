@@ -6,6 +6,7 @@
 #include "FramePalette.h"
 #include "BitmapFont.h"
 #include "Image.h"
+#include "ProcessServices.h"
 #include "VideoFilters.h"
 #include "cth_buffer.h"
 #include "display.h"
@@ -97,6 +98,7 @@ WaveFilter::WaveFilter()
     , config()
     , state()
     , lookupTables()
+    , randomSourceValue(0)
     , configured(0)
     , needsConfiguration(1) { }
 
@@ -113,11 +115,15 @@ void WaveFilter::setWave(Wave* wave_, const WaveConfig& config_) {
     configured = 1;
 }
 
+void WaveFilter::setRandomSource(RandomSource& randomSource) {
+    randomSourceValue = &randomSource;
+}
+
 void WaveFilter::execute(VideoFrame& frame) {
     CTH_TRACE("executing wave stage\n", "video filterchain");
-    if (wave != NULL) {
+    if (wave != NULL && randomSourceValue != 0) {
         wave->execute(frame.buffer(), frame.context(), config,
-            needsConfiguration, state, lookupTables);
+            needsConfiguration, state, lookupTables, *randomSourceValue);
         needsConfiguration = 0;
     }
 }

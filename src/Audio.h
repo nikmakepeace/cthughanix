@@ -5,6 +5,7 @@
 #ifndef __AUDIO_H
 #define __AUDIO_H
 
+#include "AudioFftProcessor.h"
 #include "AudioOptions.h"
 #include "AudioFrame.h"
 #include "AudioOutputConfig.h"
@@ -21,6 +22,9 @@
 class AudioOutputStream;
 class DecodedAudioHistory;
 class AudioSettings;
+class LogSink;
+class RandomSource;
+class SecondsClock;
 
 /**
  * Bounded debug reporter for PCM submitted to an output backend.
@@ -46,16 +50,19 @@ public:
      * @param queuedSamples Remaining queued sample frames after submission.
      * @param submittedEndSample Absolute sample-frame position after
      *        submission.
+     * @param log Sink used to gate and emit bounded diagnostics.
      */
     void submittedPcm(const PcmFormat& format, const char* scratch,
         int samples, int bytes, int written, int queuedSamples,
-        long long submittedEndSample);
+        long long submittedEndSample, LogSink& log);
 
     /** @return Number of submitted-PCM debug reports emitted by this reporter. */
     int reportCount() const { return reportsValue.load(); }
 };
 
 class AudioOutput {
+    SecondsClock& clock;
+    LogSink& log;
     int outputSamplesPerSecond;
     int outputBytesPerSample;
     int outputTargetLatencyMs;
@@ -65,6 +72,12 @@ class AudioOutput {
     AudioSubmittedPcmDebugReporter submittedPcmDebugReporterValue;
 
 protected:
+    /** @return Current process/application time in seconds from the output clock. */
+    double nowSeconds() const;
+
+    /** @return Output diagnostics sink supplied by the owner. */
+    LogSink& logSink() const;
+
     virtual int defaultTargetLatencyMs() const;
     virtual int timingScratchSamples(int inputChunkSamples, int targetDelaySamples) const;
     void dumpSubmittedPcm(const PcmFormat& format, const char* data, int bytes);
@@ -73,16 +86,18 @@ protected:
         long long submittedEndSample);
 
 public:
-    /** Creates an unopened output backend base. */
-    AudioOutput();
-
     /**
      * Creates an output backend base with explicit output config.
      *
      * @param targetLatencyMs Output queue target latency in milliseconds.
      * @param outputDump Optional submitted-PCM dump collaborator.
+     * @param clock_ Clock used for output service trace timing. The referenced
+     *        object must outlive this output.
+     * @param log_ Sink for output diagnostics. The referenced object must
+     *        outlive this output.
      */
-    AudioOutput(int targetLatencyMs, AudioOutputDump* outputDump);
+    AudioOutput(int targetLatencyMs, AudioOutputDump* outputDump,
+        SecondsClock& clock_, LogSink& log_);
 
     /** Releases output backend resources. */
     virtual ~AudioOutput();
@@ -180,10 +195,13 @@ public:
     /**
      * Creates a null output backend.
      *
+     * @param clock_ Clock used for output service trace timing.
+     * @param log_ Sink for output diagnostics.
      * @param config Output startup/session config.
      * @param outputDump Optional submitted-PCM dump collaborator.
      */
-    explicit AudioNullOutput(const AudioOutputConfig& config = AudioOutputConfig(),
+    explicit AudioNullOutput(SecondsClock& clock_, LogSink& log_,
+        const AudioOutputConfig& config = AudioOutputConfig(),
         AudioOutputDump* outputDump = NULL);
 
     /** Drops PCM bytes without opening a real output device. */
@@ -225,11 +243,14 @@ public:
      * Opens a PulseAudio output stream for an explicit PCM format.
      *
      * @param format PCM format produced by the current audio session.
+     * @param clock_ Clock used for output service trace timing.
+     * @param log_ Sink for output diagnostics.
      * @param config Output startup/session config.
      * @param outputDump Optional submitted-PCM dump collaborator.
      * @param autoOpen Nonzero to open PulseAudio immediately.
      */
     explicit AudioPulseOutput(const PcmFormat& format,
+        SecondsClock& clock_, LogSink& log_,
         const AudioOutputConfig& config = AudioOutputConfig(),
         AudioOutputDump* outputDump = NULL, int autoOpen = 1);
 
@@ -311,11 +332,13 @@ public:
      * @param config Output startup/session config.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Used to choose a DSP fragment/sample window.
+     * @param clock_ Clock used for output service trace timing.
+     * @param log_ Sink for output diagnostics.
      * @param outputDump Optional submitted-PCM dump collaborator.
      */
     AudioDSPOutput(const AudioSettings& settings,
         const AudioOutputConfig& config, int visualMaxDimension,
-        AudioOutputDump* outputDump = NULL);
+        SecondsClock& clock_, LogSink& log_, AudioOutputDump* outputDump = NULL);
 
     /** Closes the OSS/DSP output backend. */
     virtual ~AudioDSPOutput();
@@ -342,6 +365,7 @@ public:
  */
 class DecodedAudioHistory {
     char* data;
+    LogSink& log;
     PcmFormat pcmFormatValue;
     int bytesPerSampleValue;
     int capacitySamples;
@@ -360,9 +384,11 @@ public:
      * @param format PCM format stored in the history.
      * @param retainedHistorySamples Recent decoded sample frames retained for
      *        visual-frame reconstruction.
+     * @param log_ Sink for history diagnostics. The referenced object must
+     *        outlive this history.
      */
     DecodedAudioHistory(int capacitySamples, const PcmFormat& format,
-        int retainedHistorySamples = 0);
+        int retainedHistorySamples, LogSink& log_);
 
     /** Releases decoded PCM storage. */
     ~DecodedAudioHistory();
@@ -477,13 +503,19 @@ public:
 class AudioFrameBuilder {
     char* rawData;
     int rawCapacity;
+    LogSink& log;
 
     void setRawCapacity(int rawBytes);
     void convert(char2* dst, void* src, int n, const PcmFormat& format);
 
 public:
-    /** Creates a reusable frame builder. */
-    AudioFrameBuilder();
+    /**
+     * Creates a reusable frame builder.
+     *
+     * @param log_ Sink for frame-builder diagnostics. The referenced object
+     *        must outlive this builder.
+     */
+    explicit AudioFrameBuilder(LogSink& log_);
 
     /** Releases temporary conversion storage. */
     ~AudioFrameBuilder();
@@ -501,12 +533,18 @@ public:
 
 class PcmSource {
 protected:
+    LogSink& log;
     int error;
     PcmFormat pcmFormat;
 
 public:
-    /** Creates a source with no negotiated format and no error. */
-    PcmSource();
+    /**
+     * Creates a source with no negotiated format and no error.
+     *
+     * @param log_ Sink for source diagnostics. The referenced object must
+     *        outlive the source.
+     */
+    explicit PcmSource(LogSink& log_);
 
     /** Releases source resources. */
     virtual ~PcmSource();
@@ -548,6 +586,7 @@ public:
 
 class AudioInput {
     int error;
+    LogSink& log;
     PcmSource* source;
     int sourceOwned;
     int loopEnabledValue;
@@ -558,10 +597,12 @@ public:
      * Wraps a PCM source for runtime reads.
      *
      * @param source PCM source to read from.
+     * @param log Sink for input wrapper diagnostics.
      * @param takeOwnership Nonzero to delete source in the AudioInput destructor.
      * @param loopEnabled Nonzero to rewind finite sources at end-of-input.
      */
-    AudioInput(PcmSource* source, int takeOwnership = 1, int loopEnabled = 0);
+    AudioInput(PcmSource* source, LogSink& log, int takeOwnership = 1,
+        int loopEnabled = 0);
 
     /** Releases the wrapped source when ownership was transferred. */
     ~AudioInput();
@@ -611,8 +652,9 @@ public:
      * Opens a WAV PCM file source.
      *
      * @param name Filesystem path to a WAV file.
+     * @param log Sink for source diagnostics.
      */
-    WavPcmSource(const char* name);
+    WavPcmSource(const char* name, LogSink& log);
 
     /** Closes the WAV file handle. */
     virtual ~WavPcmSource();
@@ -639,8 +681,9 @@ public:
      * Opens an MP3 file source using minimp3.
      *
      * @param name Filesystem path to an MP3 file.
+     * @param log Sink for source diagnostics.
      */
-    Minimp3PcmSource(const char* name);
+    Minimp3PcmSource(const char* name, LogSink& log);
 
     /** Closes the minimp3 decoder. */
     virtual ~Minimp3PcmSource();
@@ -668,8 +711,9 @@ public:
      *
      * @param name Filesystem path to raw PCM data in the current sound-format.
      * @param format Headerless PCM format to assign to the source.
+     * @param log Sink for source diagnostics.
      */
-    RawPcmSource(const char* name, const PcmFormat& format);
+    RawPcmSource(const char* name, const PcmFormat& format, LogSink& log);
 
     /** Closes the raw PCM file handle. */
     virtual ~RawPcmSource();
@@ -685,6 +729,7 @@ public:
 };
 
 class RandomNoisePcmSource : public PcmSource {
+    RandomSource& randomSource;
     int v1;
     int v2;
     int maxdv;
@@ -695,8 +740,12 @@ public:
      *
      * @param requestedFormat Startup/session format; sampleRate is retained,
      *        while noise itself is generated as unsigned 8-bit stereo.
+     * @param randomSource_ Random source used to generate the synthetic walk.
+     *        The referenced object must outlive this source.
+     * @param log Sink for source diagnostics.
      */
-    explicit RandomNoisePcmSource(const PcmFormat& requestedFormat);
+    RandomNoisePcmSource(const PcmFormat& requestedFormat,
+        RandomSource& randomSource_, LogSink& log);
 
     /** Generates unsigned 8-bit stereo noise samples. */
     virtual int read(char* dst, int rawSize, int samplesRequested);
@@ -705,9 +754,8 @@ public:
     virtual void rewind();
 };
 
-class AudioFftProcessor;
-
 class AudioProcessor {
+    FixedPointAudioFftProcessor defaultFftProcessorValue;
     AudioFftProcessor* fftProcessorValue;
 
 public:
@@ -821,8 +869,10 @@ public:
      * @param settings Audio startup/session settings to negotiate locally.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in pixels,
      *        before display zoom. Used to size the DSP input sample window.
+     * @param log Sink for source diagnostics.
      */
-    DspPcmSource(const AudioSettings& settings, int visualMaxDimension);
+    DspPcmSource(const AudioSettings& settings, int visualMaxDimension,
+        LogSink& log);
 
     /** Closes OSS/DSP input resources. */
     virtual ~DspPcmSource();

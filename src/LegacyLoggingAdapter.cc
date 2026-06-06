@@ -1,41 +1,33 @@
-#include "cthugha.h"
-#include "information.h" /* title, credits, ... */
-#include "display.h"
-#include "TranslationOptions.h"
-#include "keys.h"
-#include "imath.h"
-#include "waves.h"
-#include "AudioProcessor.h"
-#include "CthughaBuffer.h"
-#include "CthughaDisplay.h"
-#include "Configuration.h"
+/** @file
+ * Legacy C logging adapter for CTH_* macros.
+ */
 
-#include <errno.h>
+#include "ProcessServices.h"
+#include "cthugha.h"
 
 #include <stdarg.h>
 
-//
-// usefull to find memory errors
-//
-#if 0
-void * operator new(size_t s) {
-    void * r = malloc(s);
-    printf("new %d: %x\n", s, r);
-    return r;
-}
-void operator delete(void *d) {
-    printf("delete  %x\n", d);
-    if(d != NULL)
-	free(d);
-}
-#endif
+static LoggingRuntime* cthugha_logging_runtime = NULL;
 
-static int cthugha_logging_verbosity = 0;
+void cthugha_install_logging_runtime(LoggingRuntime& runtime) {
+    cthugha_logging_runtime = &runtime;
+}
 
-void cthugha_configure_logging(const LoggingConfig& config) {
-    cthugha_logging_verbosity = config.verbosity;
-    if (cthugha_logging_verbosity < DEFAULT_VERBOSE_MIN_LEVEL)
-        cthugha_logging_verbosity = DEFAULT_VERBOSE_MIN_LEVEL;
+void cthugha_clear_logging_runtime(LoggingRuntime& runtime) {
+    if (cthugha_logging_runtime == &runtime)
+        cthugha_logging_runtime = NULL;
+}
+
+static int logging_enabled(int lvl) {
+    if (cthugha_logging_runtime == NULL)
+        return lvl <= CTH_LOG_ERROR;
+    return cthugha_logging_runtime->enabled(lvl);
+}
+
+static int verbose_enabled(int lvl) {
+    if (cthugha_logging_runtime == NULL)
+        return lvl <= 0;
+    return lvl <= cthugha_logging_runtime->verbosity();
 }
 
 static void copy_console_format(char* out, const char* in) {
@@ -49,7 +41,7 @@ static void copy_console_format(char* out, const char* in) {
 }
 
 static int vprintfv(int lvl, const char* fmt, va_list ap) {
-    if (lvl <= cthugha_logging_verbosity) {
+    if (verbose_enabled(lvl)) {
         // I had problems with missing carrige returns on Linux console
         // so i translate it to \n\r
         char fmt_r[2 * strlen(fmt) + 1];
@@ -127,7 +119,7 @@ int printfv(int lvl, const char* fmt, ...) {
     vprintfv(lvl, fmt, ap);
     va_end(ap);
 #else
-    if (lvl <= cthugha_logging_verbosity)
+    if (verbose_enabled(lvl))
         printf(fmt);
 #endif
     return 0;
@@ -137,7 +129,7 @@ int printfv(int lvl, const char* fmt, ...) {
 // print a named-level log message
 //
 int cth_log_enabled(int lvl) {
-    return (lvl <= CTH_LOG_ERROR) || (lvl <= cthugha_logging_verbosity);
+    return logging_enabled(lvl);
 }
 
 int cth_log(int lvl, const char* fmt, ...) {
@@ -152,7 +144,7 @@ int cth_log(int lvl, const char* fmt, ...) {
 #else
     if (lvl <= CTH_LOG_ERROR)
         fprintf(stderr, fmt);
-    else if (lvl <= cthugha_logging_verbosity)
+    else if (logging_enabled(lvl))
         printf(fmt);
 #endif
     return 0;
@@ -180,12 +172,12 @@ int cth_log_context(int lvl, const char* context, const char* fmt, ...) {
     if (context && context[0]) {
         if (lvl <= CTH_LOG_ERROR)
             fprintf(stderr, "%s: ", context);
-        else if (lvl <= cthugha_logging_verbosity)
+        else if (logging_enabled(lvl))
             printf("%s: ", context);
     }
     if (lvl <= CTH_LOG_ERROR)
         fprintf(stderr, fmt);
-    else if (lvl <= cthugha_logging_verbosity)
+    else if (logging_enabled(lvl))
         printf(fmt);
 #endif
     return 0;
@@ -224,50 +216,4 @@ int cth_log_error(const char* fmt, ...) {
 #endif
 
     return 0;
-}
-
-//
-// combine sprintf and system
-//
-int systemf(const char* fmt, ...) {
-
-#ifdef HAVE_VPRINTF
-    char cmd[6 * PATH_MAX];
-
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(cmd, sizeof(cmd), fmt, ap);
-    va_end(ap);
-
-    return system(cmd);
-#else
-#error 'vprintf' is not available. Some parts of Cthugha will not work!
-    return -1;
-#endif
-}
-
-int cthugha_close = 0; // closing right now
-
-/*
- * get the milliseconds since program start
- */
-int gettime() {
-    struct timeval tv;
-    static int starttime = 0;
-
-    gettimeofday(&tv, NULL);
-
-    if (starttime == 0) {
-        starttime = tv.tv_sec;
-    }
-    tv.tv_sec -= starttime;
-
-    return tv.tv_sec * 1000L + tv.tv_usec / 1000L;
-}
-double getTime() {
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-
-    return double(tv.tv_sec) + 1e-6 * double(tv.tv_usec);
 }

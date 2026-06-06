@@ -13,26 +13,9 @@
 #include <memory>
 #include <thread>
 
-/**
- * Clock used by AudioIngest for visual/presentation pacing.
- */
-class AudioIngestClock {
-public:
-    /** Releases clock resources. */
-    virtual ~AudioIngestClock();
-
-    /** @return Monotonic-ish time in seconds. */
-    virtual double nowSeconds() const = 0;
-};
-
-/**
- * AudioIngestClock backed by getTime().
- */
-class SystemAudioIngestClock : public AudioIngestClock {
-public:
-    /** @return Current process time in seconds from getTime(). */
-    virtual double nowSeconds() const;
-};
+class SecondsClock;
+class LogSink;
+class RandomSource;
 
 /**
  * Owns audio acquisition and publishes the current visual AudioFrame.
@@ -47,8 +30,9 @@ class AudioIngest {
     int visualMaxDimensionValue;
     int startWorkerThreadsValue;
     int autoCloseOnInputFinishedValue;
-    std::unique_ptr<AudioIngestClock> ownedClock;
-    AudioIngestClock* clock;
+    RandomSource* randomSource;
+    SecondsClock* clock;
+    LogSink* log;
     std::unique_ptr<AudioInput> inputValue;
     std::unique_ptr<AudioOutput> injectedOutputValue;
     std::unique_ptr<AudioOutputDump> outputDumpValue;
@@ -87,11 +71,14 @@ public:
      * @param config Audio startup configuration.
      * @param visualMaxDimension Maximum logical visual-buffer dimension, in
      *        pixels before display zoom.
-     * @param clock_ Optional clock override. When NULL, getTime() is used.
+     * @param randomSource_ Random source used by synthetic audio input.
+     * @param clock_ Clock used for visual/presentation pacing.
+     * @param log_ Sink for startup/runtime-selection diagnostics.
      * @param startWorkerThreads Nonzero to run input/output asynchronously.
      */
     AudioIngest(const AudioConfig& config, int visualMaxDimension,
-        AudioIngestClock* clock_ = 0, int startWorkerThreads = 1);
+        RandomSource& randomSource_, SecondsClock& clock_, LogSink& log_,
+        int startWorkerThreads = 1);
 
     /**
      * Creates test/injected audio ingest.
@@ -101,11 +88,12 @@ public:
      *        transferred when non-NULL.
      * @param visualMaxDimension Maximum logical visual-buffer dimension.
      * @param clock_ Clock used for deterministic frame pacing.
+     * @param log_ Sink for injected-runtime diagnostics.
      * @param autoCloseOnInputFinished Nonzero to report complete at input EOF.
      * @param startWorkerThreads Nonzero to run input/output asynchronously.
      */
     AudioIngest(AudioInput* input, AudioOutput* output, int visualMaxDimension,
-        AudioIngestClock& clock_, int autoCloseOnInputFinished = 1,
+        SecondsClock& clock_, LogSink& log_, int autoCloseOnInputFinished = 1,
         int startWorkerThreads = 0);
 
     /** Stops ingest and releases owned runtime resources. */

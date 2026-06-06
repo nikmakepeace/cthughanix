@@ -10,8 +10,10 @@
 class FramePalette;
 class RuntimeConfigRegistry;
 class RuntimeCommandSink;
+class RuntimeCommandTargetRouter;
 class Scene;
 class SceneCommands;
+class SecondsClock;
 class DisplayRuntimeOwnership;
 struct DisplayConfig;
 
@@ -131,6 +133,8 @@ extern DisplayDevice* displayDevice;
 
 extern std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
     Scene& scene, SceneCommands& sceneCommands, RuntimeCommandSink& runtimeCommands,
-    RuntimeConfigRegistry& runtimeConfigRegistry, const DisplayConfig& config);
+    RuntimeCommandTargetRouter& runtimeCommandRouter,
+    RuntimeConfigRegistry& runtimeConfigRegistry, const DisplayConfig& config,
+    SecondsClock& clock);
 
 #endif

@@ -10,14 +10,17 @@ static const char* programNameFallback() {
     return "CthughaNix";
 }
 
-static double randomUnitInterval() {
-    return double(rand()) / double(RAND_MAX);
+static double randomUnitInterval(RandomSource& randomSource) {
+    static const int scale = 1000000;
+    return double(randomSource.uniformInt(scale)) / double(scale);
 }
 
 SilenceMessage::SilenceMessage()
     : defaultMessages()
     , fileMessages()
     , qotdMessages()
+    , fallbackRandomSource()
+    , randomSourceValue(&fallbackRandomSource)
     , initialized(0)
     , qotdEnabled(0) { }
 
@@ -34,6 +37,14 @@ void SilenceMessage::initialize() {
 
     initialized = 1;
     defaultMessages.initialize();
+}
+
+void SilenceMessage::setRandomSource(RandomSource& randomSource) {
+    randomSourceValue = &randomSource;
+}
+
+void SilenceMessage::setTimerFactory(CountdownTimerFactory& timerFactory) {
+    qotdMessages.setTimerFactory(timerFactory);
 }
 
 void SilenceMessage::loadFile(const char* fname) {
@@ -58,7 +69,9 @@ std::string SilenceMessage::nextMessage() {
 
     std::string message;
     const double fortuneChance = fileMessages.selectionChance();
-    if (randomUnitInterval() <= fortuneChance && fileMessages.randomMessage(message))
+    RandomSource& randomSource = *randomSourceValue;
+    if (randomUnitInterval(randomSource) <= fortuneChance
+        && fileMessages.randomMessage(randomSource, message))
         return message;
 
     if (qotdEnabled) {
@@ -70,10 +83,10 @@ std::string SilenceMessage::nextMessage() {
         qotdMessages.request();
     }
 
-    if (fileMessages.randomMessage(message))
+    if (fileMessages.randomMessage(randomSource, message))
         return message;
 
-    if (defaultMessages.randomMessage(message))
+    if (defaultMessages.randomMessage(randomSource, message))
         return message;
 
     return programNameFallback();

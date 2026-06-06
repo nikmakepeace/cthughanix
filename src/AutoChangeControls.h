@@ -8,6 +8,7 @@
 #include "Option.h"
 
 class AutoChangeSettings;
+class LogSink;
 
 enum AutoChangeControlField {
     AutoChangeControlQuietMs,
@@ -23,6 +24,7 @@ enum AutoChangeControlField {
  */
 class AutoChangeOptionAdapter : public Option {
     AutoChangeSettings& settingsValue;
+    LogSink& logValue;
     AutoChangeControlField fieldValue;
     int timeValue;
     int onOffValue;
@@ -39,12 +41,13 @@ public:
      *
      * @param name Option name retained for command/status diagnostics.
      * @param settings Backing settings object; must outlive this adapter.
+     * @param log Diagnostic sink.
      * @param field Backed setting field.
      * @param time Nonzero when text should be formatted and parsed as time.
      * @param onOff Nonzero when value should be treated as a boolean toggle.
      */
     AutoChangeOptionAdapter(const char* name, AutoChangeSettings& settings,
-        AutoChangeControlField field, int time, int onOff);
+        LogSink& log, AutoChangeControlField field, int time, int onOff);
 
     /** @return Setting field exposed by this adapter. */
     AutoChangeControlField field() const;
@@ -70,6 +73,7 @@ public:
  */
 class AutoChangeControls {
     AutoChangeSettings& settingsValue;
+    LogSink& logValue;
     AutoChangeOptionAdapter quietOptionValue;
     AutoChangeOptionAdapter waitMinOptionValue;
     AutoChangeOptionAdapter waitRandomOptionValue;
@@ -82,8 +86,9 @@ public:
      * Creates automatic scene-change Option adapters.
      *
      * @param settings Backing settings object; must outlive these controls.
+     * @param log Diagnostic sink.
      */
-    explicit AutoChangeControls(AutoChangeSettings& settings);
+    AutoChangeControls(AutoChangeSettings& settings, LogSink& log);
 
     /** @return Backing settings object. */
     AutoChangeSettings& settings();

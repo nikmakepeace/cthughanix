@@ -2,16 +2,18 @@
  * Optional decoded-audio passthrough output.
  */
 
-#include "cthugha.h"
 #include "AudioPassthrough.h"
+#include "ProcessServices.h"
 
 #include <chrono>
 
 AudioPassthrough::AudioPassthrough(AudioOutput* output,
-    DecodedAudioHistory& history, const std::atomic<int>& inputFinished_)
+    DecodedAudioHistory& history, const std::atomic<int>& inputFinished_,
+    LogSink& log_)
     : outputValue(output)
     , streamValue(history)
     , inputFinished(inputFinished_)
+    , log(log_)
     , scratch(NULL)
     , scratchSamplesValue(0)
     , stopRequested(0)
@@ -57,7 +59,7 @@ int AudioPassthrough::start(int samplesPerSecond, int bytesPerSample,
         outputThreadStarted = 1;
     }
 
-    CTH_DEBUG("audio passthrough: started realtime=%d scratch-samples=%d target-delay-samples=%d callback-drain=%d worker-thread=%d\n",
+    log.debug("audio passthrough: started realtime=%d scratch-samples=%d target-delay-samples=%d callback-drain=%d worker-thread=%d\n",
         outputValue->isRealtime(), scratchSamplesValue,
         outputValue->targetDelaySamples(), callbackDrainStarted.load(),
         outputThreadStarted);
@@ -138,7 +140,7 @@ int AudioPassthrough::targetDelaySamples() const {
 void AudioPassthrough::outputThreadMain() {
     int primed = 0;
 
-    CTH_DEBUG("audio passthrough: output thread started scratch-samples=%d target-delay-samples=%d\n",
+    log.debug("audio passthrough: output thread started scratch-samples=%d target-delay-samples=%d\n",
         scratchSamplesValue, targetDelaySamples());
 
     while (!stopRequested.load() && !completeValue.load()) {
@@ -150,7 +152,7 @@ void AudioPassthrough::outputThreadMain() {
                 continue;
             }
             primed = 1;
-            CTH_DEBUG("audio passthrough: output thread primed queued-samples=%d prime-samples=%d input-finished=%d\n",
+            log.debug("audio passthrough: output thread primed queued-samples=%d prime-samples=%d input-finished=%d\n",
                 queued, prime, inputFinished.load());
         }
 
@@ -159,7 +161,7 @@ void AudioPassthrough::outputThreadMain() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    CTH_DEBUG("audio passthrough: output thread stopped stop=%d complete=%d queued-samples=%d submitted-end-sample=%lld\n",
+    log.debug("audio passthrough: output thread stopped stop=%d complete=%d queued-samples=%d submitted-end-sample=%lld\n",
         stopRequested.load(), completeValue.load(), queuedSamples(),
         submittedSamplePosition());
 }

@@ -5,6 +5,7 @@
 
 #include "Image.h"
 #include "Option.h"
+#include "ProcessServices.h"
 #include "Scene.h"
 #include "SilenceMessage.h"
 #include "VideoFilterchainSequence.h"
@@ -25,6 +26,8 @@ class VideoFilterchain;
 class VideoDirector : public SceneObserver {
     ImageOption images;
     RandomLegalImagePlacementStrategy imagePlacementStrategy;
+    CStdRandomSource fallbackRandomSource;
+    RandomSource* randomSourceValue;
     SilenceMessage silenceMessage;
     Scene* scene;
     VideoFilterchain* filterchain;
@@ -62,6 +65,20 @@ class VideoDirector : public SceneObserver {
 public:
     VideoDirector();
     ~VideoDirector();
+
+    /**
+     * Installs the random source used by runtime visual/message policy.
+     *
+     * @param randomSource Application-owned random source.
+     */
+    void setRandomSource(RandomSource& randomSource);
+
+    /**
+     * Installs the timer factory used by quiet-message QOTD prefetches.
+     *
+     * @param timerFactory Application-owned countdown timer factory.
+     */
+    void setTimerFactory(CountdownTimerFactory& timerFactory);
 
     void configureTransitions(const SceneTransitionPolicy& transitionPolicy);
     void configureQuietMessages(const MessagesConfig& messagesConfig);
