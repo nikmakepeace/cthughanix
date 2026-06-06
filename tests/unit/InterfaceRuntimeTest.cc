@@ -5,10 +5,12 @@
 #include "cthugha.h"
 #include "InterfaceRuntime.h"
 #include "Interface.h"
+#include "InputQueue.h"
 #include "Option.h"
 #include "ProcessServices.h"
 #include "RuntimeCommandSink.h"
 #include "RuntimeCommandTargets.h"
+#include "keymap.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -64,9 +66,10 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
     elements = el;
     nElements = nEl;
 }
-void Interface::display() { }
-void Interface::doKey(int) { }
-void Interface::run(InterfaceRuntime& runtime) {
+void Interface::display(InterfaceRuntime&) { }
+void Interface::doKey(InterfaceRuntime&, KeymapRegistry&, int) { }
+void Interface::run(InterfaceRuntime& runtime, InputQueue&,
+    KeymapRegistry&) {
     (void)runtime;
     preRun();
 }
@@ -78,45 +81,17 @@ InterfaceElementOption::InterfaceElementOption(const char* t, Option* o,
     , inc1(i1)
     , inc2(i2)
     , inc3(i3) { }
-const char* InterfaceElementOption::text(int) { return str; }
-int InterfaceElementOption::doKey(int) { return 1; }
-
-Keymap* Keymap::first = NULL;
-Keymap* Keymap::current = NULL;
-
-static RuntimeCommandSink* runtimeCommandSinkValue = NULL;
-static InterfaceRuntime* interfaceRuntimeValue = NULL;
-static InterfaceRuntime* actionRuntimeValue = NULL;
-
-Keymap::Keymap(const char* n)
-    : next(NULL)
-    , name(n)
-    , bindingList(NULL) { }
-
-int Keymap::action(int) {
-    if (actionRuntimeValue != NULL)
-        actionRuntimeValue->changeContextValueByElementIncrement(1, 1.0);
-    return 0;
-}
-
-int Keymap::action(const char*, int) {
+const char* InterfaceElementOption::text(InterfaceRuntime&, int) { return str; }
+int InterfaceElementOption::doKey(InterfaceRuntime&, KeymapRegistry&, int) {
     return 1;
 }
 
-void Keymap::setRuntimeCommandSink(RuntimeCommandSink* sink) {
-    runtimeCommandSinkValue = sink;
-}
-
-RuntimeCommandSink* Keymap::runtimeCommandSink() {
-    return runtimeCommandSinkValue;
-}
-
-void Keymap::setInterfaceRuntime(InterfaceRuntime* runtime) {
-    interfaceRuntimeValue = runtime;
-}
-
-InterfaceRuntime* Keymap::interfaceRuntime() {
-    return interfaceRuntimeValue;
+KeymapRegistry::KeymapRegistry()
+    : firstValue(NULL) { }
+KeymapRegistry::~KeymapRegistry() { }
+int KeymapRegistry::action(const char*, int, InterfaceRuntime& runtime) {
+    runtime.changeContextValueByElementIncrement(1, 1.0);
+    return 0;
 }
 
 class CapturingTargetRouter : public RuntimeCommandTargetRouter {
@@ -176,6 +151,13 @@ static void testSelectionIsOwnedByRuntime() {
     runtime.registerInterface(main);
     runtime.registerInterface(other);
 
+    assert(runtime.find("main") == &main);
+    assert(runtime.find("other") == &other);
+    assert(runtime.find("missing") == NULL);
+
+    runtime.registerOwnedInterface(new Interface("owned", "Owned", NULL));
+    assert(runtime.find("owned") != NULL);
+
     runtime.set("main");
     assert(runtime.current() == &main);
     runtime.moveSelectionBy(10);
@@ -200,6 +182,40 @@ static void testStatusAndPresetFlagsAreOwnedByRuntime() {
     assert(runtime.saveToPreset() == 1);
     runtime.clearSaveToPreset();
     assert(runtime.saveToPreset() == 0);
+
+    assert(strcmp(runtime.extraKeymap(), "") == 0);
+    runtime.setExtraKeymap("temporary");
+    assert(strcmp(runtime.extraKeymap(), "temporary") == 0);
+    runtime.setExtraKeymap(NULL);
+    assert(strcmp(runtime.extraKeymap(), "") == 0);
+}
+
+static void testHelpScrollStateIsOwnedByRuntime() {
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
+
+    assert(runtime.helpScrolling() == 0);
+    assert(runtime.helpScrollPosition() == 0.0);
+
+    runtime.toggleHelpScrolling();
+    assert(runtime.helpScrolling() == 1);
+    runtime.advanceHelpScroll(2.5);
+    assert(runtime.helpScrollPosition() == 2.5);
+    assert(runtime.helpScrolling() == 1);
+
+    runtime.scrollHelpBy(-3.0, 10);
+    assert(runtime.helpScrollPosition() == 9.5);
+    assert(runtime.helpScrolling() == 0);
+}
+
+static void testCreditsAnimationStateIsOwnedByRuntime() {
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
+
+    assert(runtime.creditsPosition() == 0.0);
+    assert(runtime.updateCreditsPosition(1000, 20) == -16.0);
+    assert(runtime.creditsPosition() == -16.0);
+    assert(runtime.updateCreditsPosition(1500, 20) == -14.0);
 }
 
 static void testOptionCommandContextIsScoped() {
@@ -208,12 +224,10 @@ static void testOptionCommandContextIsScoped() {
     CapturingTargetRouter router;
     SimpleOption option;
     InterfaceElementOption element("value: %s", &option, 5, 10, 20);
-    Keymap keymap("test");
+    KeymapRegistry keymaps;
 
     runtime.setCommandRouter(&router);
-    actionRuntimeValue = &runtime;
-
-    assert(runtime.runOptionKey(option, element, keymap, 'x') == 0);
+    assert(runtime.runOptionKey(option, element, keymaps, "test", 'x') == 0);
     assert(router.optionByCalls == 1);
     assert(router.lastOption == &option);
     assert(router.lastValue == 5);
@@ -221,7 +235,6 @@ static void testOptionCommandContextIsScoped() {
     runtime.changeContextValueByElementIncrement(1, 1.0);
     assert(router.optionByCalls == 1);
 
-    actionRuntimeValue = NULL;
     runtime.setCommandRouter(NULL);
 }
 
@@ -237,6 +250,8 @@ static void testMillisecondsComeFromInjectedClock() {
 int main() {
     testSelectionIsOwnedByRuntime();
     testStatusAndPresetFlagsAreOwnedByRuntime();
+    testHelpScrollStateIsOwnedByRuntime();
+    testCreditsAnimationStateIsOwnedByRuntime();
     testOptionCommandContextIsScoped();
     testMillisecondsComeFromInjectedClock();
     return 0;

@@ -1,49 +1,12 @@
 #include "cthugha.h"
-#include "Configuration.h"
 #include "keys.h"
-#include "display.h"
 
-#ifdef CTH_XWIN
-#include "xcthugha.h"
-#endif
-
-int key_esc = 0; /* disable/enable ESC-key. When enable it
-                    sometimes happens that when pressing
-                    functions keys or cursor keys cthugha
-                    only get the leading ESC and quits. */
-int x11_key = CK_NONE;
-
-void configureKeys(const InputConfig& config) {
-    key_esc = config.escapeKeyEnabled;
-}
-
-// to handle keys, that give shifted and normal the same result
-static int shiftMap[][2] = {
-    { '0', CK_SHIFT(0) },
-    { '1', CK_SHIFT(1) },
-    { '2', CK_SHIFT(2) },
-    { '3', CK_SHIFT(3) },
-    { '4', CK_SHIFT(4) },
-    { '5', CK_SHIFT(5) },
-    { '6', CK_SHIFT(6) },
-    { '7', CK_SHIFT(7) },
-    { '8', CK_SHIFT(8) },
-    { '9', CK_SHIFT(9) },
+struct KeyNameEntry {
+    const char* name;
+    int keyValue;
 };
-static int nShiftMap = sizeof(shiftMap) / sizeof(int[2]);
 
-int shift(int key, int shift) {
-    if (shift) {
-        for (int i = 0; i < nShiftMap; i++)
-            if (key == shiftMap[i][0]) {
-                return shiftMap[i][1];
-            }
-    }
-
-    return key;
-}
-
-KeyAssoc keyAssoc[] = {
+static const KeyNameEntry keyNameTable[] = {
     { "F10", CK_FKT(10) },
     { "F11", CK_FKT(11) },
     { "F12", CK_FKT(12) },
@@ -93,7 +56,7 @@ KeyAssoc keyAssoc[] = {
     { "KP_8", '8' },
     { "KP_9", '9' },
 
-    { "S-0", CK_SHIFT(0) }, // these are not X11 keys, but are only for the keymap
+    { "S-0", CK_SHIFT(0) }, // keymap-only shifted number names
     { "S-1", CK_SHIFT(1) },
     { "S-2", CK_SHIFT(2) },
     { "S-3", CK_SHIFT(3) },
@@ -103,66 +66,36 @@ KeyAssoc keyAssoc[] = {
     { "S-7", CK_SHIFT(7) },
     { "S-8", CK_SHIFT(8) },
     { "S-9", CK_SHIFT(9) },
-
 };
-int nKeyAssoc = sizeof(keyAssoc) / sizeof(KeyAssoc);
 
-#ifdef CTH_XWIN
+static const int keyNameTableCount = sizeof(keyNameTable) / sizeof(KeyNameEntry);
 
-/*
- * Handler for key-board
- */
-void keys_x11(char* input, int state) {
+int keyCodeForName(const char* name) {
+    if (name == NULL)
+        return CK_NONE;
 
-    if (input[1] == '\0')
-        switch (input[0]) {
-        case 0:
-        case -1:
-            x11_key = CK_NONE;
-            break;
-        case 27:
-            x11_key = (key_esc ? CK_ESC : CK_NONE);
-            break;
-        case 10:
-        case 13:
-            x11_key = CK_ENTER;
-            break;
-        case 8:
-            x11_key = CK_BACK;
-            break;
-        default:
-            x11_key = input[0];
-        }
-    else {
-        int i;
-        for (i = 0; i < nKeyAssoc; i++)
-            if (strcasecmp(input, keyAssoc[i].name) == 0) {
-                x11_key = keyAssoc[i].keyValue;
-                return;
-            }
-        x11_key = CK_NONE;
+    for (int i = 0; i < keyNameTableCount; i++) {
+        if (strcasecmp(name, keyNameTable[i].name) == 0)
+            return keyNameTable[i].keyValue;
     }
 
-    x11_key = shift(x11_key, state & ShiftMask);
+    return CK_NONE;
 }
 
-int getkey_x11() {
-    int key;
-    key = x11_key;
-    x11_key = CK_NONE;
-    return key;
-}
+int keyCodeForNamePrefix(const char* text, int* consumedLength) {
+    if (consumedLength != NULL)
+        *consumedLength = 0;
+    if (text == NULL)
+        return CK_NONE;
 
-#endif /* CTH_XWIN */
-
-int getkey() {
-
-#ifdef CTH_XWIN
-    // first get the X key
-    int k = getkey_x11();
-    if (k != CK_NONE)
-        return k;
-#endif
+    for (int i = 0; i < keyNameTableCount; i++) {
+        int length = strlen(keyNameTable[i].name);
+        if (strncasecmp(keyNameTable[i].name, text, length) == 0) {
+            if (consumedLength != NULL)
+                *consumedLength = length;
+            return keyNameTable[i].keyValue;
+        }
+    }
 
     return CK_NONE;
 }

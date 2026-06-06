@@ -7,27 +7,27 @@
 
 struct InputConfig;
 class InterfaceRuntime;
-class RuntimeCommandSink;
 
 class Action {
     const char* name;
     int nameLen;
 
-    static Action* head;
     Action* next;
 
 public:
     Action(const char* n)
         : name(n)
-        , next(head) {
-        head = this;
-        nameLen = strlen(name);
+        , nameLen(strlen(n))
+        , next(NULL) {
     }
     virtual ~Action() { }
-    virtual void act(const char* /* param */, double /* value */) { };
+    virtual void act(const char* /* param */, double /* value */,
+        InterfaceRuntime& /* runtime */) { };
 
     int operator==(const char* n) const { return (strncasecmp(name, n, nameLen) == 0); }
+    int length() const { return nameLen; }
 
+    friend class CommandRegistry;
     friend class Keymap;
 };
 
@@ -36,26 +36,34 @@ public:
     public:                                                                                        \
         a##Action()                                                                                \
             : Action(#a) { }                                                                       \
-        virtual void act(const char* param, double value);                                         \
-    } a##ActionImpl;                                                                               \
-    void a##Action::act(const char* p, double v)
+        virtual void act(const char* param, double value, InterfaceRuntime& runtime);              \
+    };                                                                                             \
+    void a##Action::act(const char* p, double v, InterfaceRuntime& runtime)
+
+class CommandRegistry {
+    Action* firstValue;
+
+public:
+    CommandRegistry();
+    ~CommandRegistry();
+
+    void registerAction(Action* action);
+    Action* findLongestPrefix(const char* text) const;
+};
 
 class Keymap {
 protected:
-    static Keymap* first;
     Keymap* next;
 
-    static Keymap* current;
-
-    const char* name;
+    char* name;
     struct Binding {
         int key;
         struct ActionList {
             Action* action;
-            const char* param;
+            char* param;
             ActionList* next;
 
-            ActionList(Action* a, const char* p, ActionList* n)
+            ActionList(Action* a, char* p, ActionList* n)
                 : action(a)
                 , param(p)
                 , next(n) { }
@@ -73,41 +81,38 @@ protected:
             , next(n) { }
     }* bindingList;
 
-    static Keymap* find(const char* name, int create = 0);
-
     void add(Binding& b);
-    Binding parseBinding(const char* line);
+    Binding parseBinding(const char* line, CommandRegistry& commands);
 
 public:
     Keymap(const char* name);
+    ~Keymap();
 
-    static void readFile(const char* fileName);
-    static void addList(int dummy, ...);
+    void add(const char* line, CommandRegistry& commands);
 
-    void add(const char* line);
+    int action(int key, InterfaceRuntime& runtime);
 
-    int action(int key);
-    static int action(const char* name, int key);
+    friend class KeymapRegistry;
+};
 
-    static void set(const char* name);
-    static void init(const InputConfig& config);
-    static void setRuntimeCommandSink(RuntimeCommandSink* sink);
-    static RuntimeCommandSink* runtimeCommandSink();
+class KeymapRegistry {
+    Keymap* firstValue;
 
-    /**
-     * Installs the interface runtime used by global keymap actions.
-     *
-     * @param runtime Runtime to use; NULL disables interface-only actions.
-     */
-    static void setInterfaceRuntime(InterfaceRuntime* runtime);
+    Keymap* find(const char* name, int create = 0);
 
-    /**
-     * Returns the interface runtime used by global keymap actions.
-     *
-     * @return Installed runtime, or NULL before Application setup.
-     */
-    static InterfaceRuntime* interfaceRuntime();
+public:
+    KeymapRegistry();
+    ~KeymapRegistry();
+
+    void readFile(const char* fileName, CommandRegistry& commands);
+    void addList(CommandRegistry& commands, int dummy, ...);
+
+    int action(const char* name, int key, InterfaceRuntime& runtime);
+
+    void init(const InputConfig& config, CommandRegistry& commands);
 
 };
+
+void registerDefaultKeyActions(CommandRegistry& registry);
 
 #endif

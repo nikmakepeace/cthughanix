@@ -5,13 +5,15 @@
 
 #include <memory>
 
+class InputEventSink;
+
 class DisplayRuntime {
     DisplayBackend& backend;
 
 public:
     explicit DisplayRuntime(DisplayBackend& backend_);
 
-    DisplayEventStats processEvents();
+    DisplayEventStats processEvents(InputEventSink& input);
     PixelSize outputSize() const;
     void present(const IndexedDisplayFrame& frame,
         const DisplayViewport& viewport, int needsFullCopy,

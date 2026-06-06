@@ -5,7 +5,7 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "xcthugha.h"
-#include "keys.h"
+#include "InputQueue.h"
 #include "CthughaBuffer.h"
 #include "Interface.h"
 #include "Image.h"
@@ -61,8 +61,14 @@ static const int PalettePreviewStripHeight = 80;
 // Create the panel with buttons and menus
 //
 void DisplayDeviceX11::key_button(Widget /*w*/, XtPointer data, XtPointer /*data2*/) {
-    if (data)
-        keys_x11((char*)data);
+    KeyButtonData* keyData = (KeyButtonData*)data;
+    if ((keyData != 0) && (keyData->device != 0))
+        keyData->device->enqueuePanelKey(keyData->keyText);
+}
+
+void DisplayDeviceX11::enqueuePanelKey(const char* keyText) {
+    if (currentInputSink != 0)
+        currentInputSink->pushRawKey(keyText, 0);
 }
 
 void DisplayDeviceX11::quit(Widget /*w*/, XtPointer data, XtPointer /*data2*/) {
@@ -666,7 +672,7 @@ void DisplayDeviceX11::xcth_create_panel() {
     xawSetArg(wargs[0], XtNlabel, "Change!");
     xawSetArg(wargs[1], XtNfromHoriz, quit_button);
     change_button = XtCreateManagedWidget("change", commandWidgetClass, panel, wargs, 2);
-    XtAddCallback(change_button, XtNcallback, key_button, (char*)" ");
+    XtAddCallback(change_button, XtNcallback, key_button, &changeKeyButtonData);
 
     /* create the menus */
     panelMenuButtons[0] = add_menu("Display", &::screen, panel, quit_button, NULL);

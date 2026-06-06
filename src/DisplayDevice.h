@@ -8,6 +8,7 @@
 #include <memory>
 
 class FramePalette;
+class InputEventSink;
 class RuntimeConfigRegistry;
 class RuntimeCommandSink;
 class RuntimeCommandTargetRouter;
@@ -100,7 +101,7 @@ public:
      *
      * @return Counts used by trace logging.
      */
-    virtual DisplayEventStats processEvents() { return DisplayEventStats(); }
+    virtual DisplayEventStats processEvents(InputEventSink&) { return DisplayEventStats(); }
 
     /**
      * Supplies the palette published by the active video filterchain.

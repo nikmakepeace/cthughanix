@@ -5,28 +5,26 @@
 #include "keys.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
+#include "keymap.h"
 
 class InterfaceHelp : public Interface {
     static const char* text[];
     static int nLines;
-    double pos;
-    int scrolling;
 
 public:
     InterfaceHelp()
-        : Interface("help", "Cthugha Help", NULL)
-        , pos(0)
-        , scrolling(0) { };
-    virtual void display() {
-        Interface::display();
+        : Interface("help", "Cthugha Help", NULL) { };
+    virtual void display(InterfaceRuntime& runtime) {
+        Interface::display(runtime);
 
-        if (scrolling) {
+        if (runtime.helpScrolling()) {
             const double frameDelta = (cthughaDisplay != NULL)
                 ? cthughaDisplay->currentFrameDeltaSeconds()
                 : 0.0;
-            pos = pos + frameDelta * 4.0;
+            runtime.advanceHelpScroll(frameDelta * 4.0);
         }
 
+        const double pos = runtime.helpScrollPosition();
         for (int i = 0; i < (text_size.y - 2); i++) {
             int L = (int(pos) + i) % nLines;
             if (L < 0)
@@ -35,22 +33,24 @@ public:
         }
     }
 
-    friend class toggleScrollingAction;
-    friend class scrollUpAction;
-    friend class scrollDownAction;
+    static int lineCount() { return nLines; }
 
-} interfaceHelp;
+};
 
-ACTION(toggleScrolling) { interfaceHelp.scrolling = !interfaceHelp.scrolling; }
+ACTION(toggleScrolling) { runtime.toggleHelpScrolling(); }
 ACTION(scrollUp) {
-    interfaceHelp.pos -= 1;
-    if (interfaceHelp.pos < 0)
-        interfaceHelp.pos += interfaceHelp.nLines;
-    interfaceHelp.scrolling = 0;
+    runtime.scrollHelpBy(-1.0, InterfaceHelp::lineCount());
 }
 ACTION(scrollDown) {
-    interfaceHelp.pos += 1;
-    interfaceHelp.scrolling = 0;
+    runtime.scrollHelpBy(1.0, InterfaceHelp::lineCount());
+}
+
+void registerHelpKeyActions(CommandRegistry& registry) {
+#define REGISTER_ACTION(a) registry.registerAction(new a##Action())
+    REGISTER_ACTION(toggleScrolling);
+    REGISTER_ACTION(scrollUp);
+    REGISTER_ACTION(scrollDown);
+#undef REGISTER_ACTION
 }
 
 #define N "\000"
@@ -136,5 +136,5 @@ const char* InterfaceHelp::text[] = {
 int InterfaceHelp::nLines = sizeof(InterfaceHelp::text) / sizeof(const char*);
 
 void registerHelpInterface(InterfaceRuntime& runtime) {
-    runtime.registerInterface(interfaceHelp);
+    runtime.registerOwnedInterface(new InterfaceHelp());
 }

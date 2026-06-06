@@ -15,7 +15,7 @@
 #include "disp-sys.h"
 #include "imath.h"
 #include "xcthugha.h"
-#include "keys.h"
+#include "InputQueue.h"
 #include "Interface.h"
 #include "cth_buffer.h"
 #include "CthughaBuffer.h"
@@ -78,8 +78,8 @@ public:
         : device(device_) {
     }
 
-    virtual DisplayEventStats processEvents() {
-        return device.processEvents();
+    virtual DisplayEventStats processEvents(InputEventSink& input) {
+        return device.processEvents(input);
     }
 
     virtual PixelSize outputSize() const {
@@ -493,6 +493,8 @@ DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
     , panelTextCopyY(0)
     , panelTextCopyWidth(0)
     , panelTextCopyHeight(0)
+    , currentInputSink(NULL)
+    , changeKeyButtonData()
     , shmAttached(0)
     , shmMarkedForRemoval(0)
     , pixmap(None)
@@ -502,6 +504,8 @@ DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
     , initialized(0) {
 
     CTH_INFO("Initializing X11 display...\n");
+    changeKeyButtonData.device = this;
+    changeKeyButtonData.keyText = " ";
     memset(&shminfo, 0, sizeof(shminfo));
     shminfo.shmid = -1;
 
@@ -571,8 +575,9 @@ DisplayDeviceX11::~DisplayDeviceX11() {
     freeImage();
 }
 
-DisplayEventStats DisplayDeviceX11::processEvents() {
+DisplayEventStats DisplayDeviceX11::processEvents(InputEventSink& input) {
     DisplayEventStats stats;
+    currentInputSink = &input;
 
     // Xt queues X events for both the raw display window and the optional
     // Athena-widget panel. Key releases are translated into Cthugha keys;
@@ -594,7 +599,7 @@ DisplayEventStats DisplayDeviceX11::processEvents() {
                 strncpy(key_buff, tmp ? tmp : "", 256);
             }
 
-            keys_x11(key_buff, kevent->state);
+            input.pushRawKey(key_buff, (kevent->state & ShiftMask) != 0);
 
         } else if ((event.type == ConfigureNotify)
             && (event.xconfigure.window == window)) {
@@ -608,6 +613,7 @@ DisplayEventStats DisplayDeviceX11::processEvents() {
         }
     }
 
+    currentInputSink = NULL;
     return stats;
 }
 

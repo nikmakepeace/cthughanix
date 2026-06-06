@@ -3,6 +3,7 @@
 #include "InterfaceRuntime.h"
 #include "AutoChangeControls.h"
 #include "AutoChangerStatusProvider.h"
+#include "InputQueue.h"
 #include "keys.h"
 #include "imath.h"
 #include "CthughaBuffer.h"
@@ -18,6 +19,7 @@
 #include "VideoDirector.h"
 #include "flames.h"
 #include "TranslationOptions.h"
+#include "keymap.h"
 #include "waves.h"
 
 #include <ctype.h>
@@ -52,55 +54,36 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
     nElements = nEl;
 }
 
-ErrorMessages errors;
-
-static int interfaceRuntimeMilliseconds() {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    return (runtime != NULL) ? runtime->milliseconds() : 0;
+static int interfaceRuntimeMilliseconds(InterfaceRuntime& runtime) {
+    return runtime.milliseconds();
 }
 
 ACTION(up) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->moveSelectionBy(-int(v));
+    runtime.moveSelectionBy(-int(v));
 }
 
 ACTION(down) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->moveSelectionBy(int(v));
+    runtime.moveSelectionBy(int(v));
 }
 
 ACTION(home) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->selectHome();
+    runtime.selectHome();
 }
 ACTION(end) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->selectEnd();
+    runtime.selectEnd();
 }
 
 ACTION(chgValue1) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->changeContextValueByElementIncrement(1, v);
+    runtime.changeContextValueByElementIncrement(1, v);
 }
 ACTION(chgValue2) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->changeContextValueByElementIncrement(2, v);
+    runtime.changeContextValueByElementIncrement(2, v);
 }
 ACTION(chgValue3) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->changeContextValueByElementIncrement(3, v);
+    runtime.changeContextValueByElementIncrement(3, v);
 }
 ACTION(setValue) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->setContextValueFromElement(v);
+    runtime.setContextValueFromElement(v);
 }
 
 static const char* InterfaceList[] = { "Help", // F1
@@ -116,18 +99,14 @@ static const char* InterfaceList[] = { "Help", // F1
     "palette", "image", "flashlight", "Help", NULL };
 
 ACTION(nextInterface) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->selectNextInList(InterfaceList);
+    runtime.selectNextInList(InterfaceList);
 }
 ACTION(prevInterface) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->selectPreviousInList(InterfaceList);
+    runtime.selectPreviousInList(InterfaceList);
 }
 
 // default display handler
-void Interface::display() {
+void Interface::display(InterfaceRuntime& runtime) {
     double line = 0.0;
 
     if (title) {
@@ -142,17 +121,15 @@ void Interface::display() {
     }
 
     for (int i = 0; i < nElements; i++) {
-        line = displayDevice->print(elements[i]->text(sel == i), line, 'l',
+        line = displayDevice->print(elements[i]->text(runtime, sel == i), line, 'l',
             (sel == i) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
     }
 
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    int showStatus = runtime != NULL ? runtime->showStatus() : 0;
+    int showStatus = runtime.showStatus();
     if (showStatus) {
         static char str[512];
-        const AutoChangerStatusProvider* provider = runtime != NULL
-            ? runtime->autoChangerStatusProvider()
-            : NULL;
+        const AutoChangerStatusProvider* provider =
+            runtime.autoChangerStatusProvider();
         const char* autoChangeStatus = provider != NULL
             ? provider->autoChangerStatus()
             : "";
@@ -162,42 +139,42 @@ void Interface::display() {
         displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
     }
 
-    if ((runtime != NULL) && runtime->saveToPreset()) {
+    if (runtime.saveToPreset()) {
         displayDevice->print("save to preset slot (press 0..9)", text_size.y - (showStatus ? 2 : 1), 'l',
             TEXT_COLOR_NORMAL);
     }
 
 }
 
-void Interface::doKey(int key) {
+void Interface::doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+    int key) {
 
-    if (Keymap::action(name, key) == 0)
+    if (keymaps.action(name, key, runtime) == 0)
         return;
-    Keymap::action("default", key);
+    keymaps.action("default", key, runtime);
 }
 
 // default runner
-void Interface::run(InterfaceRuntime& /* runtime */) {
+void Interface::run(InterfaceRuntime& runtime, InputQueue& inputQueue,
+    KeymapRegistry& keymaps) {
 
     this->preRun();
 
     // handle keys
     int key;
-    while ((key = getkey()) != CK_NONE) {
+    while ((key = inputQueue.popKey()) != CK_NONE) {
 
         if ((sel >= 0) && (sel < nElements))
-            if (elements[sel]->doKey(key) == 0)
+            if (elements[sel]->doKey(runtime, keymaps, key) == 0)
                 continue;
 
-        this->doKey(key);
+        this->doKey(runtime, keymaps, key);
     }
 }
 
 //
 // class InterfaceElementOption
 //
-
-Keymap InterfaceElementOption::keymap("OptionElement");
 
 InterfaceElementOption::InterfaceElementOption(const char* t, Option* o, int i1, int i2, int i3)
     : InterfaceElement(t)
@@ -206,7 +183,8 @@ InterfaceElementOption::InterfaceElementOption(const char* t, Option* o, int i1,
     , inc2(i2)
     , inc3(i3) { }
 
-const char* InterfaceElementOption::text(int selected) {
+const char* InterfaceElementOption::text(InterfaceRuntime& /* runtime */,
+    int selected) {
     static char strRet[512];
     char fmt[512];
     char in[512];
@@ -220,46 +198,34 @@ const char* InterfaceElementOption::text(int selected) {
     return strRet;
 }
 
-int InterfaceElementOption::doKey(int key) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime == NULL)
-        return 1;
-
-    return runtime->runOptionKey(*opt, *this, keymap, key);
+int InterfaceElementOption::doKey(InterfaceRuntime& runtime,
+    KeymapRegistry& keymaps, int key) {
+    return runtime.runOptionKey(*opt, *this, keymaps, "OptionElement", key);
 }
 
 //
 // Effect Control Element
 //
-Keymap InterfaceElementEffectControl::effectControlKeymap("EffectControlElement");
-
 InterfaceElementEffectControl::InterfaceElementEffectControl(
     const char* t, EffectControl* o, int i1, int i2, int i3)
     : InterfaceElementOption(t, o, i1, i2, i3)
     , effectControl(o) { }
 
-int InterfaceElementEffectControl::doKey(int key) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime == NULL)
-        return 1;
-
-    return runtime->runEffectControlKey(*effectControl, *this,
-        effectControlKeymap, keymap, key);
+int InterfaceElementEffectControl::doKey(InterfaceRuntime& runtime,
+    KeymapRegistry& keymaps, int key) {
+    return runtime.runEffectControlKey(*effectControl, *this, keymaps,
+        "EffectControlElement", "OptionElement", key);
 }
 
 ACTION(lockElement) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->toggleContextEffectControlLock();
+    runtime.toggleContextEffectControlLock();
 }
 
 static const char* runtimeConfigSelectionTextForInterface(
-    RuntimeConfigSelectionField field, Option* fallback) {
+    RuntimeConfigSelectionField field, Option* fallback,
+    InterfaceRuntime& runtime) {
     static std::string text;
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    const RuntimeConfigRegistry* registry = runtime != NULL
-        ? runtime->runtimeConfigRegistry()
-        : NULL;
+    const RuntimeConfigRegistry* registry = runtime.runtimeConfigRegistry();
     if (registry == NULL) {
         text = fallback != NULL ? fallback->text() : "";
         return text.c_str();
@@ -280,14 +246,14 @@ public:
         : InterfaceElementOption(t, o)
         , field(field_) { }
 
-    virtual const char* text(int selected) {
+    virtual const char* text(InterfaceRuntime& runtime, int selected) {
         static char strRet[512];
         char fmt[512];
         char in[512];
 
         snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
         snprintf(in, sizeof(in), str,
-            runtimeConfigSelectionTextForInterface(field, opt));
+            runtimeConfigSelectionTextForInterface(field, opt, runtime));
         snprintf(strRet, sizeof(strRet), fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
 
         return strRet;
@@ -296,11 +262,8 @@ public:
 
 class InterfaceElementAudioProcessingOption
     : public InterfaceElementRuntimeConfigOption {
-    void updateOption() {
-        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-        AudioProcessingSelector* selector = runtime != NULL
-            ? runtime->audioProcessingSelector()
-            : NULL;
+    void updateOption(InterfaceRuntime& runtime) {
+        AudioProcessingSelector* selector = runtime.audioProcessingSelector();
         opt = (selector != NULL)
             ? static_cast<Option*>(&selector->option())
             : static_cast<Option*>(&optionDummy);
@@ -311,25 +274,23 @@ public:
         RuntimeConfigSelectionField field_)
         : InterfaceElementRuntimeConfigOption(t, &optionDummy, field_) { }
 
-    virtual const char* text(int selected) {
-        updateOption();
-        return InterfaceElementRuntimeConfigOption::text(selected);
+    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+        updateOption(runtime);
+        return InterfaceElementRuntimeConfigOption::text(runtime, selected);
     }
 
-    virtual int doKey(int key) {
-        updateOption();
-        return InterfaceElementOption::doKey(key);
+    virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key) {
+        updateOption(runtime);
+        return InterfaceElementOption::doKey(runtime, keymaps, key);
     }
 };
 
 class InterfaceElementAutoChangeOption : public InterfaceElementOption {
     AutoChangeControlField field;
 
-    void updateOption() {
-        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-        AutoChangeControls* controls = runtime != NULL
-            ? runtime->autoChangeControls()
-            : NULL;
+    void updateOption(InterfaceRuntime& runtime) {
+        AutoChangeControls* controls = runtime.autoChangeControls();
         opt = (controls != NULL) ? &controls->option(field) : &optionDummy;
     }
 
@@ -339,14 +300,15 @@ public:
         : InterfaceElementOption(t, &optionDummy, i1, i2, i3)
         , field(field_) { }
 
-    virtual const char* text(int selected) {
-        updateOption();
-        return InterfaceElementOption::text(selected);
+    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+        updateOption(runtime);
+        return InterfaceElementOption::text(runtime, selected);
     }
 
-    virtual int doKey(int key) {
-        updateOption();
-        return InterfaceElementOption::doKey(key);
+    virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key) {
+        updateOption(runtime);
+        return InterfaceElementOption::doKey(runtime, keymaps, key);
     }
 };
 
@@ -360,14 +322,15 @@ public:
         : InterfaceElementEffectControl(t, o)
         , field(field_) { }
 
-    virtual const char* text(int selected) {
+    virtual const char* text(InterfaceRuntime& runtime, int selected) {
         static char strRet[512];
         char fmt[512];
         char in[512];
 
         snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
         snprintf(in, sizeof(in), str,
-            runtimeConfigSelectionTextForInterface(field, effectControl));
+            runtimeConfigSelectionTextForInterface(field, effectControl,
+                runtime));
         snprintf(strRet, sizeof(strRet), fmt, selected ? '>' : ' ', in,
             selected ? '<' : ' ');
 
@@ -375,17 +338,17 @@ public:
     }
 };
 
-void ErrorMessages::addMessage(const char* text) {
+void ErrorMessages::addMessage(const char* text, InterfaceRuntime& runtime) {
     if (nMsgs == 128) {
         CTH_ERROR("too many errors: %s\n", text);
         return;
     }
     strncpy(msgs[nMsgs], text, 128);
-    on_screen[nMsgs] = interfaceRuntimeMilliseconds();
+    on_screen[nMsgs] = interfaceRuntimeMilliseconds(runtime);
 
     nMsgs++;
 }
-void ErrorMessages::display() {
+void ErrorMessages::display(InterfaceRuntime& runtime) {
 
     // bring messages to screen
     for (int i = 0; i < nMsgs; i++) {
@@ -394,7 +357,7 @@ void ErrorMessages::display() {
 
     // remove old messages
     const int errorTime = 3000;
-    const int currentTime = interfaceRuntimeMilliseconds();
+    const int currentTime = interfaceRuntimeMilliseconds(runtime);
     while ((nMsgs > 0) && ((currentTime - on_screen[0]) > errorTime)) {
         for (int i = 1; i < nMsgs; i++) {
             strncpy(msgs[i - 1], msgs[i], 128);
@@ -408,28 +371,21 @@ void ErrorMessages::display() {
 // the interfaces
 //
 class InterfaceMain : public Interface {
-    char extraKeymap[512];
-
 public:
     InterfaceMain()
-        : Interface("main", NULL, NULL) {
-        extraKeymap[0] = '\0';
-    }
+        : Interface("main", NULL, NULL) { }
 
-    void doKey(int key) {
+    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps, int key) {
+        const char* extraKeymap = runtime.extraKeymap();
         if (extraKeymap[0] != '\0') {
-            if (Keymap::action(extraKeymap, key) == 0)
+            if (keymaps.action(extraKeymap, key, runtime) == 0)
                 return;
         }
-        Interface::doKey(key);
+        Interface::doKey(runtime, keymaps, key);
     }
+};
 
-    friend class setExtraKeymapAction;
-} interfaceMain;
-
-ACTION(setExtraKeymap) { strncpy(interfaceMain.extraKeymap, p, 512); }
-
-Interface interfaceMixer("Mixer", "Mixer", NULL);
+ACTION(setExtraKeymap) { runtime.setExtraKeymap(p); }
 
 class InterfaceEffectControl : public Interface {
 public:
@@ -489,6 +445,12 @@ public:
         }
     }
 
+    ~InterfaceEffectControl() {
+        for (int i = 0; i < nElements; i++)
+            delete elements[i];
+        delete[] elements;
+    }
+
     void preRun() {
 #define O(i)                                                                                       \
     ((InterfaceElementOption*)elements[i])->opt                                                    \
@@ -505,47 +467,87 @@ public:
         O(11) = &object;
         O(12) = &flashlight;
     }
-    void doKey(int key) {
-        if (Keymap::action("EffectControls", key) == 0)
+    void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps, int key) {
+        if (keymaps.action("EffectControls", key, runtime) == 0)
             return;
-        if (Keymap::action("Options", key) == 0)
+        if (keymaps.action("Options", key, runtime) == 0)
             return;
-        Keymap::action("default", key);
+        keymaps.action("default", key, runtime);
     }
 
-} interfaceEffectControl;
-
-InterfaceElement* elementsOption[] = {
-    new InterfaceElementOption("Maximal Frames/second    : %10s", &maxFramesPerSecond),
-    new InterfaceElementOption("Zoom (0=max)             : %10s", &zoom),
-    new InterfaceElementAutoChangeOption("Minimal time btw. change : %10s",
-        AutoChangeControlWaitMinMs, 100, 500, 1000),
-    new InterfaceElementAutoChangeOption("Extra random time        : %10s",
-        AutoChangeControlWaitRandomMs, 100, 500, 1000),
-    new InterfaceElementAutoChangeOption("Quiet change time        : %10s",
-        AutoChangeControlQuietMs, 100, 500, 1000),
-    new InterfaceElementOption("Time before silence Msg. : %10s", &changeMsgTime, 100, 500, 1000),
-    new InterfaceElementAutoChangeOption("Cumulative fire level    : %10s",
-        AutoChangeControlCumulativeFireLevel, 10, 50, 100),
-    new InterfaceElementAutoChangeOption("Little changes only      : %10s",
-        AutoChangeControlChangeLittle),
-    new InterfaceElementAutoChangeOption("Lock                     : %10s",
-        AutoChangeControlLocked),
 };
-int nElementsOption = sizeof(elementsOption) / sizeof(InterfaceElement*);
 
-Interface interfaceOption("Options", "Options", NULL, elementsOption, nElementsOption);
+class InterfaceOptions : public Interface {
+public:
+    InterfaceOptions()
+        : Interface("Options", "Options", NULL) {
+        nElements = 9;
+        elements = new InterfaceElement*[nElements];
+        elements[0] = new InterfaceElementOption(
+            "Maximal Frames/second    : %10s", &maxFramesPerSecond);
+        elements[1] = new InterfaceElementOption(
+            "Zoom (0=max)             : %10s", &zoom);
+        elements[2] = new InterfaceElementAutoChangeOption(
+            "Minimal time btw. change : %10s",
+            AutoChangeControlWaitMinMs, 100, 500, 1000);
+        elements[3] = new InterfaceElementAutoChangeOption(
+            "Extra random time        : %10s",
+            AutoChangeControlWaitRandomMs, 100, 500, 1000);
+        elements[4] = new InterfaceElementAutoChangeOption(
+            "Quiet change time        : %10s",
+            AutoChangeControlQuietMs, 100, 500, 1000);
+        elements[5] = new InterfaceElementOption(
+            "Time before silence Msg. : %10s", &changeMsgTime, 100, 500, 1000);
+        elements[6] = new InterfaceElementAutoChangeOption(
+            "Cumulative fire level    : %10s",
+            AutoChangeControlCumulativeFireLevel, 10, 50, 100);
+        elements[7] = new InterfaceElementAutoChangeOption(
+            "Little changes only      : %10s",
+            AutoChangeControlChangeLittle);
+        elements[8] = new InterfaceElementAutoChangeOption(
+            "Lock                     : %10s",
+            AutoChangeControlLocked);
+    }
+
+    ~InterfaceOptions() {
+        for (int i = 0; i < nElements; i++)
+            delete elements[i];
+        delete[] elements;
+    }
+};
 
 void registerListInterfaces(InterfaceRuntime& runtime);
 void registerHelpInterface(InterfaceRuntime& runtime);
 void registerCreditsInterface(InterfaceRuntime& runtime);
 void registerAudioInterfaces(InterfaceRuntime& runtime);
+void registerListKeyActions(CommandRegistry& registry);
+void registerHelpKeyActions(CommandRegistry& registry);
+
+void registerInterfaceKeyActions(CommandRegistry& registry) {
+#define REGISTER_ACTION(a) registry.registerAction(new a##Action())
+    REGISTER_ACTION(up);
+    REGISTER_ACTION(down);
+    REGISTER_ACTION(home);
+    REGISTER_ACTION(end);
+    REGISTER_ACTION(chgValue1);
+    REGISTER_ACTION(chgValue2);
+    REGISTER_ACTION(chgValue3);
+    REGISTER_ACTION(setValue);
+    REGISTER_ACTION(nextInterface);
+    REGISTER_ACTION(prevInterface);
+    REGISTER_ACTION(lockElement);
+    REGISTER_ACTION(setExtraKeymap);
+#undef REGISTER_ACTION
+
+    registerListKeyActions(registry);
+    registerHelpKeyActions(registry);
+}
 
 void registerDefaultInterfaces(InterfaceRuntime& runtime) {
-    runtime.registerInterface(interfaceMain);
-    runtime.registerInterface(interfaceMixer);
-    runtime.registerInterface(interfaceEffectControl);
-    runtime.registerInterface(interfaceOption);
+    runtime.registerOwnedInterface(new InterfaceMain());
+    runtime.registerOwnedInterface(new Interface("Mixer", "Mixer", NULL));
+    runtime.registerOwnedInterface(new InterfaceEffectControl());
+    runtime.registerOwnedInterface(new InterfaceOptions());
     registerAudioInterfaces(runtime);
     registerListInterfaces(runtime);
     registerHelpInterface(runtime);

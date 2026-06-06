@@ -13,10 +13,12 @@ class AudioProcessingSelector;
 class EffectControl;
 class Interface;
 class InterfaceElementOption;
-class Keymap;
+class InputQueue;
+class KeymapRegistry;
 class MillisecondClock;
 class Option;
 class RuntimeConfigRegistry;
+class RuntimeCommandSink;
 class RuntimeCommandTargetRouter;
 
 /**
@@ -40,15 +42,22 @@ struct InterfaceCommandContext {
  */
 class InterfaceRuntime {
     std::vector<Interface*> interfacesValue;
+    std::vector<Interface*> ownedInterfacesValue;
     Interface* currentInterfaceValue;
     RuntimeConfigRegistry* runtimeConfigRegistryValue;
     const AutoChangerStatusProvider* autoChangerStatusProviderValue;
     AutoChangeControls* autoChangeControlsValue;
     AudioProcessingSelector* audioProcessingSelectorValue;
+    RuntimeCommandSink* runtimeCommandSinkValue;
     RuntimeCommandTargetRouter* commandRouterValue;
     MillisecondClock& clock;
     int saveToPresetValue;
     int showStatusValue;
+    char extraKeymapValue[512];
+    double helpScrollPositionValue;
+    int helpScrollingValue;
+    double creditsPositionValue;
+    int creditsFirstTimeValue;
     InterfaceCommandContext commandContextValue;
 
     void clampCurrentSelection();
@@ -62,6 +71,9 @@ public:
      */
     explicit InterfaceRuntime(MillisecondClock& clock_);
 
+    /** Destroys interface panels owned through registerOwnedInterface(). */
+    ~InterfaceRuntime();
+
     /**
      * Registers a concrete interface panel with this runtime.
      *
@@ -69,6 +81,29 @@ public:
      *        runtime.
      */
     void registerInterface(Interface& interface_);
+
+    /**
+     * Takes ownership of a concrete interface panel and registers it.
+     *
+     * @param interface_ Newly allocated panel; NULL is ignored.
+     */
+    void registerOwnedInterface(Interface* interface_);
+
+    /**
+     * Finds a registered interface by name without selecting it.
+     *
+     * @param name Case-insensitive interface name.
+     * @return Matching interface, or NULL when no panel has that name.
+     */
+    Interface* find(const char* name);
+
+    /**
+     * Finds a registered interface by name without selecting it.
+     *
+     * @param name Case-insensitive interface name.
+     * @return Matching interface, or NULL when no panel has that name.
+     */
+    const Interface* find(const char* name) const;
 
     /**
      * Selects a registered interface by name.
@@ -84,7 +119,7 @@ public:
     const Interface* current() const { return currentInterfaceValue; }
 
     /** Services the selected interface once when one is selected. */
-    void runCurrent();
+    void runCurrent(InputQueue& inputQueue, KeymapRegistry& keymaps);
 
     /**
      * Moves the selected row in the active interface.
@@ -178,6 +213,20 @@ public:
     AudioProcessingSelector* audioProcessingSelector() const;
 
     /**
+     * Installs the sink used by key actions that emit runtime commands.
+     *
+     * @param sink Sink to use; NULL disables runtime-command actions.
+     */
+    void setRuntimeCommandSink(RuntimeCommandSink* sink);
+
+    /**
+     * Returns the sink used by key actions that emit runtime commands.
+     *
+     * @return Installed sink, or NULL before runtime command setup.
+     */
+    RuntimeCommandSink* runtimeCommandSink() const;
+
+    /**
      * Installs the router used for scoped option/effect commands.
      *
      * @param router Router to use; NULL disables scoped runtime commands.
@@ -206,6 +255,53 @@ public:
     /** @return Nonzero when status text should be displayed. */
     int showStatus() const;
 
+    /**
+     * Sets the extra keymap that the main interface should try before its
+     * normal keymaps.
+     *
+     * @param name Keymap name, or NULL to clear.
+     */
+    void setExtraKeymap(const char* name);
+
+    /** @return Extra keymap name for the main interface, or an empty string. */
+    const char* extraKeymap() const;
+
+    /** Toggles automatic help text scrolling. */
+    void toggleHelpScrolling();
+
+    /**
+     * Moves the help scroll position manually and disables auto scrolling.
+     *
+     * @param by Signed line offset.
+     * @param lineCount Number of help lines, used to preserve wrap behavior.
+     */
+    void scrollHelpBy(double by, int lineCount);
+
+    /**
+     * Moves the help scroll position while preserving current scrolling mode.
+     *
+     * @param by Signed line offset.
+     */
+    void advanceHelpScroll(double by);
+
+    /** @return Current help scroll position in lines. */
+    double helpScrollPosition() const;
+
+    /** @return Nonzero when help text should auto-scroll. */
+    int helpScrolling() const;
+
+    /**
+     * Updates and returns credits animation position for the current frame.
+     *
+     * @param currentTime Current UI clock time in milliseconds.
+     * @param textHeight Text viewport height in rows.
+     * @return Current credits scroll position in lines.
+     */
+    double updateCreditsPosition(int currentTime, int textHeight);
+
+    /** @return Current credits scroll position in lines. */
+    double creditsPosition() const;
+
     /** @return Current Application-owned UI time in milliseconds. */
     int milliseconds() const;
 
@@ -214,26 +310,27 @@ public:
      *
      * @param option Option targeted by option-element actions.
      * @param element Element supplying increment sizes for value actions.
-     * @param keymap Keymap that should handle the key.
+     * @param keymapName Keymap that should handle the key.
      * @param key Key code to route.
      * @return Keymap handling result.
      */
     int runOptionKey(Option& option, InterfaceElementOption& element,
-        Keymap& keymap, int key);
+        KeymapRegistry& keymaps, const char* keymapName, int key);
 
     /**
      * Runs a key through an effect-control element with scoped command context.
      *
      * @param effectControl Effect control targeted by effect actions.
      * @param element Element supplying increment sizes for value actions.
-     * @param effectControlKeymap First keymap to try.
-     * @param optionKeymap Fallback option keymap.
+     * @param effectControlKeymapName First keymap to try.
+     * @param optionKeymapName Fallback option keymap.
      * @param key Key code to route.
      * @return Keymap handling result.
      */
     int runEffectControlKey(EffectControl& effectControl,
-        InterfaceElementOption& element, Keymap& effectControlKeymap,
-        Keymap& optionKeymap, int key);
+        InterfaceElementOption& element, KeymapRegistry& keymaps,
+        const char* effectControlKeymapName, const char* optionKeymapName,
+        int key);
 
     /**
      * Runs a key through an effect-choice list row with scoped command context.
@@ -244,7 +341,7 @@ public:
      * @return Keymap handling result.
      */
     int runEffectChoiceKey(EffectControl& effectControl, Option& option,
-        int key);
+        KeymapRegistry& keymaps, int key);
 
     /**
      * Changes the current scoped option/effect target by an element increment.

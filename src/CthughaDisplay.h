@@ -25,6 +25,8 @@ extern OptionOnOff showFPS;
 class IndexedFrame;
 class DisplayDevice;
 class DisplayRuntime;
+class ErrorMessages;
+class InterfaceRuntime;
 class SecondsClock;
 class VideoFrameContext;
 struct DisplayConfig;
@@ -155,10 +157,13 @@ public:
 //
 class CthughaDisplayX11 : public CthughaDisplay {
     SecondsClock& clock;
+    InterfaceRuntime& interfaceRuntime;
+    ErrorMessages& errorMessages;
 
 public:
     CthughaDisplayX11(DisplayDevice& device, DisplayRuntime& runtime,
-        SecondsClock& clock_);
+        SecondsClock& clock_, InterfaceRuntime& interfaceRuntime_,
+        ErrorMessages& errorMessages_);
     virtual ~CthughaDisplayX11();
     virtual void operator()();
 };
@@ -167,7 +172,8 @@ extern CthughaDisplay* cthughaDisplay;
 
 /** Allocates the frontend-specific display coordinator. */
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
-    DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock);
+    DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock,
+    InterfaceRuntime& interfaceRuntime, ErrorMessages& errorMessages);
 
 void configureCthughaDisplay(const DisplayConfig& config);
 

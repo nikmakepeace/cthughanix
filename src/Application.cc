@@ -145,8 +145,8 @@ Application::Application(int argc, char* argv[])
     videoDirector().setRandomSource(randomSourceValue);
     videoDirector().setTimerFactory(countdownTimerFactoryValue);
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
+    errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue);
-    Keymap::setInterfaceRuntime(interfaceRuntimeValue.get());
 }
 
 Application::Application(int argc, char* argv[],
@@ -167,13 +167,12 @@ Application::Application(int argc, char* argv[],
     videoDirector().setRandomSource(randomSourceValue);
     videoDirector().setTimerFactory(countdownTimerFactoryValue);
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
+    errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue);
-    Keymap::setInterfaceRuntime(interfaceRuntimeValue.get());
 }
 
 Application::~Application() {
     shutdown();
-    Keymap::setInterfaceRuntime(NULL);
     cthugha_clear_logging_runtime(loggingRuntimeValue);
 }
 
@@ -247,13 +246,13 @@ void Application::initSceneRuntime() {
         *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
         *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
     interfaceRuntimeValue->setCommandRouter(runtimeCommandRouterValue.get());
-    Keymap::setRuntimeCommandSink(runtimeChangeMediatorValue.get());
+    interfaceRuntimeValue->setRuntimeCommandSink(runtimeChangeMediatorValue.get());
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
     bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
 void Application::shutdownSceneRuntime() {
-    Keymap::setRuntimeCommandSink(NULL);
+    interfaceRuntimeValue->setRuntimeCommandSink(NULL);
     bindSceneCommandsForLegacyCallbacks(NULL);
     interfaceRuntimeValue->setAutoChangeControls(NULL);
     interfaceRuntimeValue->setCommandRouter(NULL);
@@ -299,13 +298,21 @@ int Application::initMixerRuntime() {
     }
 
     mixerControlsValue.reset(new MixerControls(*mixerSessionValue, logSinkValue));
-    mixerControlsValue->installInto(interfaceMixer);
+    Interface* mixerInterface = interfaceRuntimeValue->find("Mixer");
+    if (mixerInterface == NULL) {
+        logSinkValue.error("Mixer interface is not registered.\n");
+        return 1;
+    }
+    mixerControlsValue->installInto(*mixerInterface);
     return 0;
 }
 
 void Application::shutdownMixerRuntime() {
-    if (mixerControlsValue.get() != NULL)
-        mixerControlsValue->clearInterface(interfaceMixer);
+    if (mixerControlsValue.get() != NULL) {
+        Interface* mixerInterface = interfaceRuntimeValue->find("Mixer");
+        if (mixerInterface != NULL)
+            mixerControlsValue->clearInterface(*mixerInterface);
+    }
     mixerControlsValue.reset();
     mixerSessionValue.reset();
     mixerDeviceValue.reset();
@@ -457,7 +464,7 @@ int Application::initialize() {
         return 0;
     }
 
-    configureKeys(startupConfigValue.input);
+    inputQueueValue.configure(startupConfigValue.input);
     configureCthughaDisplay(startupConfigValue.display);
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
@@ -511,8 +518,12 @@ int Application::initialize() {
     logSinkValue.info("Initializing interface...\n");
     interfaceRuntimeValue->set("main");
 
+    logSinkValue.info("Registering key actions...\n");
+    registerDefaultKeyActions(commandsValue);
+    registerInterfaceKeyActions(commandsValue);
+
     logSinkValue.info("Initializing keymaps...\n");
-    Keymap::init(startupConfigValue.input);
+    keymapsValue.init(startupConfigValue.input, commandsValue);
 
     logSinkValue.info("Initializing display...\n");
     int displayArgc = int(displayArgv.size());
@@ -528,7 +539,8 @@ int Application::initialize() {
         return 0;
     displayRuntimeOwnership->publishAliases();
     displayValue = newCthughaDisplay(displayRuntimeOwnership->device(),
-        displayRuntimeOwnership->runtime(), secondsClockValue);
+        displayRuntimeOwnership->runtime(), secondsClockValue,
+        *interfaceRuntimeValue, *errorMessagesValue);
     cthughaDisplay = displayValue.get();
 
     logSinkValue.info("Initializing the audio-visual bridge...\n");
@@ -565,13 +577,13 @@ void Application::run() {
         double visualFrameStart = 0.0;
 
         DisplayEventStats eventStats
-            = displayRuntimeOwnership->runtime().processEvents();
+            = displayRuntimeOwnership->runtime().processEvents(inputQueueValue);
         if (traceDisplayTiming)
             eventsEnd = secondsClockValue.nowSeconds();
 
         if (traceDisplayTiming)
             preInterfaceStart = secondsClockValue.nowSeconds();
-        interfaceRuntimeValue->runCurrent();
+        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue);
         if (traceDisplayTiming)
             preInterfaceEnd = secondsClockValue.nowSeconds();
 
@@ -587,7 +599,7 @@ void Application::run() {
 
         if (traceDisplayTiming)
             postInterfaceStart = secondsClockValue.nowSeconds();
-        interfaceRuntimeValue->runCurrent();
+        interfaceRuntimeValue->runCurrent(inputQueueValue, keymapsValue);
         if (traceDisplayTiming)
             postInterfaceEnd = secondsClockValue.nowSeconds();
 

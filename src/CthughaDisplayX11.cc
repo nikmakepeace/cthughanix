@@ -46,35 +46,44 @@ public:
 };
 
 class CurrentInterfaceOverlayProducer : public OverlayProducer {
+    InterfaceRuntime& runtime;
+
 public:
+    explicit CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_)
+        : runtime(runtime_) {
+    }
+
     virtual void produceOverlay(OverlaySink& sink) {
-        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-        Interface* currentInterface = runtime != NULL ? runtime->current() : NULL;
+        Interface* currentInterface = runtime.current();
         if (currentInterface == 0)
             return;
 
         ScopedOverlayDisplayDevice scope(sink);
-        currentInterface->display();
+        currentInterface->display(runtime);
     }
 };
 
 class ErrorMessagesOverlayProducer : public OverlayProducer {
     ErrorMessages& errorMessages;
+    InterfaceRuntime& runtime;
 
 public:
-    explicit ErrorMessagesOverlayProducer(ErrorMessages& errorMessages_)
-        : errorMessages(errorMessages_) {
+    ErrorMessagesOverlayProducer(ErrorMessages& errorMessages_,
+        InterfaceRuntime& runtime_)
+        : errorMessages(errorMessages_)
+        , runtime(runtime_) {
     }
 
     virtual void produceOverlay(OverlaySink& sink) {
         ScopedOverlayDisplayDevice scope(sink);
-        errorMessages.display();
+        errorMessages.display(runtime);
     }
 };
 
-static OverlayCommands collectDisplayOverlays(double framesPerSecond) {
-    CurrentInterfaceOverlayProducer interfaceProducer;
-    ErrorMessagesOverlayProducer errorProducer(errors);
+static OverlayCommands collectDisplayOverlays(double framesPerSecond,
+    InterfaceRuntime& runtime, ErrorMessages& errorMessages) {
+    CurrentInterfaceOverlayProducer interfaceProducer(runtime);
+    ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime);
     OverlaySource source(&interfaceProducer, &errorProducer);
     OverlayCommands overlays = source.collect();
     FpsOverlay::append(overlays, framesPerSecond, int(showFPS));
@@ -82,15 +91,20 @@ static OverlayCommands collectDisplayOverlays(double framesPerSecond) {
 }
 
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
-    DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock) {
+    DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock,
+    InterfaceRuntime& interfaceRuntime, ErrorMessages& errorMessages) {
     return std::unique_ptr<CthughaDisplay>(
-        new CthughaDisplayX11(device, runtime, clock));
+        new CthughaDisplayX11(device, runtime, clock, interfaceRuntime,
+            errorMessages));
 }
 
 CthughaDisplayX11::CthughaDisplayX11(DisplayDevice& device,
-    DisplayRuntime& runtime, SecondsClock& clock_)
+    DisplayRuntime& runtime, SecondsClock& clock_,
+    InterfaceRuntime& interfaceRuntime_, ErrorMessages& errorMessages_)
     : CthughaDisplay(device, runtime, clock_)
-    , clock(clock_) {
+    , clock(clock_)
+    , interfaceRuntime(interfaceRuntime_)
+    , errorMessages(errorMessages_) {
 }
 
 CthughaDisplayX11::~CthughaDisplayX11() {
@@ -141,7 +155,8 @@ void CthughaDisplayX11::operator()() {
     int borderClearRequested = target.textOnScreen || needsClear;
     clearBorder();
 
-    OverlayCommands overlays = collectDisplayOverlays(fps);
+    OverlayCommands overlays = collectDisplayOverlays(fps, interfaceRuntime,
+        errorMessages);
     if (traceDisplayTiming)
         displayTiming[5] = clock.nowSeconds();
 

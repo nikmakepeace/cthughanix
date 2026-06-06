@@ -7,8 +7,8 @@ DisplayRuntime::DisplayRuntime(DisplayBackend& backend_)
     : backend(backend_) {
 }
 
-DisplayEventStats DisplayRuntime::processEvents() {
-    return backend.processEvents();
+DisplayEventStats DisplayRuntime::processEvents(InputEventSink& input) {
+    return backend.processEvents(input);
 }
 
 PixelSize DisplayRuntime::outputSize() const {

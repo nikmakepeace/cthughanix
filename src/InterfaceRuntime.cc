@@ -6,11 +6,13 @@
 #include "InterfaceRuntime.h"
 
 #include "EffectControl.h"
+#include "InputQueue.h"
 #include "Interface.h"
 #include "ProcessServices.h"
 #include "RuntimeCommandTargets.h"
 #include "keymap.h"
 
+#include <string.h>
 #include <strings.h>
 
 InterfaceCommandContext::InterfaceCommandContext()
@@ -24,10 +26,23 @@ InterfaceRuntime::InterfaceRuntime(MillisecondClock& clock_)
     , autoChangerStatusProviderValue(NULL)
     , autoChangeControlsValue(NULL)
     , audioProcessingSelectorValue(NULL)
+    , runtimeCommandSinkValue(NULL)
     , commandRouterValue(NULL)
     , clock(clock_)
     , saveToPresetValue(0)
-    , showStatusValue(0) { }
+    , showStatusValue(0)
+    , helpScrollPositionValue(0.0)
+    , helpScrollingValue(0)
+    , creditsPositionValue(0.0)
+    , creditsFirstTimeValue(-1) {
+    extraKeymapValue[0] = '\0';
+}
+
+InterfaceRuntime::~InterfaceRuntime() {
+    for (std::vector<Interface*>::iterator it = ownedInterfacesValue.begin();
+         it != ownedInterfacesValue.end(); ++it)
+        delete *it;
+}
 
 void InterfaceRuntime::registerInterface(Interface& interface_) {
     for (std::vector<Interface*>::iterator it = interfacesValue.begin();
@@ -39,26 +54,60 @@ void InterfaceRuntime::registerInterface(Interface& interface_) {
     interfacesValue.push_back(&interface_);
 }
 
-void InterfaceRuntime::set(const char* name) {
-    if (name == NULL)
+void InterfaceRuntime::registerOwnedInterface(Interface* interface_) {
+    if (interface_ == NULL)
         return;
+
+    ownedInterfacesValue.push_back(interface_);
+    registerInterface(*interface_);
+}
+
+Interface* InterfaceRuntime::find(const char* name) {
+    if (name == NULL)
+        return NULL;
 
     for (std::vector<Interface*>::iterator it = interfacesValue.begin();
          it != interfacesValue.end(); ++it) {
         Interface* candidate = *it;
-        if (strcasecmp(name, candidate->name) == 0) {
-            currentInterfaceValue = candidate;
-            clampCurrentSelection();
-            return;
-        }
+        if (strcasecmp(name, candidate->name) == 0)
+            return candidate;
+    }
+
+    return NULL;
+}
+
+const Interface* InterfaceRuntime::find(const char* name) const {
+    if (name == NULL)
+        return NULL;
+
+    for (std::vector<Interface*>::const_iterator it = interfacesValue.begin();
+         it != interfacesValue.end(); ++it) {
+        const Interface* candidate = *it;
+        if (strcasecmp(name, candidate->name) == 0)
+            return candidate;
+    }
+
+    return NULL;
+}
+
+void InterfaceRuntime::set(const char* name) {
+    if (name == NULL)
+        return;
+
+    Interface* candidate = find(name);
+    if (candidate != NULL) {
+        currentInterfaceValue = candidate;
+        clampCurrentSelection();
+        return;
     }
 
     CTH_ERROR("Unknown interface '%s'\n", name);
 }
 
-void InterfaceRuntime::runCurrent() {
+void InterfaceRuntime::runCurrent(InputQueue& inputQueue,
+    KeymapRegistry& keymaps) {
     if (currentInterfaceValue != NULL)
-        currentInterfaceValue->run(*this);
+        currentInterfaceValue->run(*this, inputQueue, keymaps);
 }
 
 void InterfaceRuntime::clampCurrentSelection() {
@@ -154,6 +203,14 @@ AudioProcessingSelector* InterfaceRuntime::audioProcessingSelector() const {
     return audioProcessingSelectorValue;
 }
 
+void InterfaceRuntime::setRuntimeCommandSink(RuntimeCommandSink* sink) {
+    runtimeCommandSinkValue = sink;
+}
+
+RuntimeCommandSink* InterfaceRuntime::runtimeCommandSink() const {
+    return runtimeCommandSinkValue;
+}
+
 void InterfaceRuntime::setCommandRouter(RuntimeCommandTargetRouter* router) {
     commandRouterValue = router;
 }
@@ -182,6 +239,56 @@ int InterfaceRuntime::showStatus() const {
     return showStatusValue;
 }
 
+void InterfaceRuntime::setExtraKeymap(const char* name) {
+    if (name == NULL) {
+        extraKeymapValue[0] = '\0';
+        return;
+    }
+
+    strncpy(extraKeymapValue, name, sizeof(extraKeymapValue) - 1);
+    extraKeymapValue[sizeof(extraKeymapValue) - 1] = '\0';
+}
+
+const char* InterfaceRuntime::extraKeymap() const {
+    return extraKeymapValue;
+}
+
+void InterfaceRuntime::toggleHelpScrolling() {
+    helpScrollingValue = 1 - helpScrollingValue;
+}
+
+void InterfaceRuntime::scrollHelpBy(double by, int lineCount) {
+    helpScrollPositionValue += by;
+    if ((helpScrollPositionValue < 0.0) && (lineCount > 0))
+        helpScrollPositionValue += lineCount;
+    helpScrollingValue = 0;
+}
+
+void InterfaceRuntime::advanceHelpScroll(double by) {
+    helpScrollPositionValue += by;
+}
+
+double InterfaceRuntime::helpScrollPosition() const {
+    return helpScrollPositionValue;
+}
+
+int InterfaceRuntime::helpScrolling() const {
+    return helpScrollingValue;
+}
+
+double InterfaceRuntime::updateCreditsPosition(int currentTime, int textHeight) {
+    if (creditsFirstTimeValue == -1)
+        creditsFirstTimeValue = currentTime;
+
+    int timeDiff = currentTime - creditsFirstTimeValue;
+    creditsPositionValue = -(double(textHeight) * 0.8) + double(timeDiff) / 250.0;
+    return creditsPositionValue;
+}
+
+double InterfaceRuntime::creditsPosition() const {
+    return creditsPositionValue;
+}
+
 int InterfaceRuntime::milliseconds() const {
     return clock.milliseconds();
 }
@@ -191,39 +298,40 @@ void InterfaceRuntime::clearCommandContext() {
 }
 
 int InterfaceRuntime::runOptionKey(Option& option, InterfaceElementOption& element,
-    Keymap& keymap, int key) {
+    KeymapRegistry& keymaps, const char* keymapName, int key) {
     commandContextValue.option = &option;
     commandContextValue.effectControl = NULL;
     commandContextValue.optionElement = &element;
-    int result = keymap.action(key);
+    int result = keymaps.action(keymapName, key, *this);
     clearCommandContext();
     return result;
 }
 
 int InterfaceRuntime::runEffectControlKey(EffectControl& effectControl,
-    InterfaceElementOption& element, Keymap& effectControlKeymap,
-    Keymap& optionKeymap, int key) {
+    InterfaceElementOption& element, KeymapRegistry& keymaps,
+    const char* effectControlKeymapName, const char* optionKeymapName,
+    int key) {
     commandContextValue.option = &effectControl;
     commandContextValue.effectControl = &effectControl;
     commandContextValue.optionElement = &element;
 
-    int result = effectControlKeymap.action(key);
+    int result = keymaps.action(effectControlKeymapName, key, *this);
     if (result == 1)
-        result = optionKeymap.action(key);
+        result = keymaps.action(optionKeymapName, key, *this);
 
     clearCommandContext();
     return result;
 }
 
 int InterfaceRuntime::runEffectChoiceKey(EffectControl& effectControl,
-    Option& option, int key) {
+    Option& option, KeymapRegistry& keymaps, int key) {
     commandContextValue.option = &option;
     commandContextValue.effectControl = &effectControl;
     commandContextValue.optionElement = NULL;
 
-    int result = Keymap::action("ListOption", key);
+    int result = keymaps.action("ListOption", key, *this);
     if (result)
-        result = Keymap::action("Option", key);
+        result = keymaps.action("Option", key, *this);
 
     clearCommandContext();
     return result;

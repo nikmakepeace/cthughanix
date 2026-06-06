@@ -1,4 +1,5 @@
 #include "DisplayRuntime.h"
+#include "InputQueue.h"
 
 #include <assert.h>
 #include <memory>
@@ -68,7 +69,7 @@ public:
         destroyedObjects.push_back(id);
     }
 
-    virtual DisplayEventStats processEvents() {
+    virtual DisplayEventStats processEvents(InputEventSink&) {
         return DisplayEventStats();
     }
 

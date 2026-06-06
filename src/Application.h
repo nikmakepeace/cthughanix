@@ -10,6 +10,8 @@
 #include "PlatformLifecycle.h"
 #include "Configuration.h"
 #include "FramePacer.h"
+#include "InputQueue.h"
+#include "keymap.h"
 #include "ProcessServices.h"
 #include "VideoFilterchainSequence.h"
 
@@ -28,6 +30,7 @@ class AutoChangeQuietObserver;
 class AutoChangeSettings;
 class CthughaDisplay;
 class DisplayRuntimeOwnership;
+class ErrorMessages;
 class IndexedFrame;
 class InterfaceRuntime;
 class LegacyRuntimeConfigContributor;
@@ -67,6 +70,9 @@ class Application {
     CStdRandomSource randomSourceValue;
     LoggingRuntime loggingRuntimeValue;
     ConsoleLogSink logSinkValue;
+    InputQueue inputQueueValue;
+    CommandRegistry commandsValue;
+    KeymapRegistry keymapsValue;
     int exitStatusValue;
     Config startupConfigValue;
     std::vector<ConfigDiagnostic> startupConfigDiagnostics;
@@ -88,6 +94,7 @@ class Application {
     std::unique_ptr<SceneCommands> sceneCommandsValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
     std::unique_ptr<InterfaceRuntime> interfaceRuntimeValue;
+    std::unique_ptr<ErrorMessages> errorMessagesValue;
     std::unique_ptr<LegacyRuntimeConfigContributor> runtimeConfigContributorValue;
     std::unique_ptr<RuntimePersistence> runtimePersistenceValue;
     std::unique_ptr<RuntimeShutdown> runtimeShutdownValue;

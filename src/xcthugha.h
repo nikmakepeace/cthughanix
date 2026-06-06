@@ -34,6 +34,7 @@ class SceneCommands;
 class RuntimeConfigRegistry;
 class RuntimeCommandTargetRouter;
 class SecondsClock;
+class InputEventSink;
 
 class DisplayDeviceX11 : public DisplayDevice, public RuntimePaletteMetadataTarget {
     Scene& scene;
@@ -134,6 +135,15 @@ public:
     int panelTextCopyY;
     int panelTextCopyWidth;
     int panelTextCopyHeight;
+    InputEventSink* currentInputSink;
+    struct KeyButtonData {
+        DisplayDeviceX11* device;
+        const char* keyText;
+
+        KeyButtonData()
+            : device(NULL)
+            , keyText(NULL) { }
+    } changeKeyButtonData;
 
     enum { shmNone, shmImage, shmPixmap } shmLevel;
     XShmSegmentInfo shminfo;
@@ -168,6 +178,7 @@ protected:
         int pos;
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
+    void enqueuePanelKey(const char* keyText);
     static void menuCB(Widget item, XtPointer data, XtPointer data2);
     static void savePaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
     static void revertPaletteMetadataCB(Widget item, XtPointer data, XtPointer data2);
@@ -197,7 +208,7 @@ public:
     virtual ~DisplayDeviceX11();
 
     int isInitialized() const { return initialized; }
-    virtual DisplayEventStats processEvents();
+    virtual DisplayEventStats processEvents(InputEventSink& input);
 
     friend int cth_init(int* argc, char* argv[]);
 };

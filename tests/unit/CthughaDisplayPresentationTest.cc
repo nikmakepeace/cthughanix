@@ -4,6 +4,7 @@
 #include "DisplayRuntime.h"
 #include "FramePalette.h"
 #include "IndexedFrameTestFixtures.h"
+#include "InputQueue.h"
 #include "ProcessServices.h"
 #include "Screen.h"
 #include "VideoFilterchain.h"
@@ -51,7 +52,7 @@ double DisplayDevice::print(const char*, double y, int, int, int) {
 
 class StaticOutputBackend : public DisplayBackend {
 public:
-    virtual DisplayEventStats processEvents() {
+    virtual DisplayEventStats processEvents(InputEventSink&) {
         return DisplayEventStats();
     }
 

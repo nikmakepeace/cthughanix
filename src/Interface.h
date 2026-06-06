@@ -5,12 +5,14 @@
 
 #include "cthugha.h"
 #include "EffectControl.h"
-#include "keymap.h"
 
 class AutoChangerStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
+class CommandRegistry;
+class InputQueue;
 class InterfaceRuntime;
+class KeymapRegistry;
 class RuntimeConfigRegistry;
 
 class InterfaceElement {
@@ -22,8 +24,11 @@ public:
         : str(t) { }
     virtual ~InterfaceElement() { }
 
-    virtual const char* text(int /* selected */) { return str; }
-    virtual int doKey(int /* key */) { return 1; }
+    virtual const char* text(InterfaceRuntime& /* runtime */, int /* selected */) {
+        return str;
+    }
+    virtual int doKey(InterfaceRuntime& /* runtime */,
+        KeymapRegistry& /* keymaps */, int /* key */) { return 1; }
 };
 
 class Interface {
@@ -44,8 +49,9 @@ public:
     void setElements(InterfaceElement** el, int nEl);
 
     virtual void preRun() { }
-    virtual void display();
-    virtual void doKey(int key);
+    virtual void display(InterfaceRuntime& runtime);
+    virtual void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key);
 
     /**
      * Services the active interface once.
@@ -56,7 +62,8 @@ public:
      * @param runtime Runtime state owning the current interface selection and
      *        adapter pointers.
      */
-    virtual void run(InterfaceRuntime& runtime);
+    virtual void run(InterfaceRuntime& runtime, InputQueue& inputQueue,
+        KeymapRegistry& keymaps);
 };
 
 class InterfaceElementOption : public InterfaceElement {
@@ -66,23 +73,21 @@ public:
     int inc2;
     int inc3;
 
-    static Keymap keymap;
-
     InterfaceElementOption(const char* t, Option* o, int i1 = 1, int i2 = 10, int i3 = 100);
 
-    virtual const char* text(int selected);
-    virtual int doKey(int key);
+    virtual const char* text(InterfaceRuntime& runtime, int selected);
+    virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key);
 };
 
 class InterfaceElementEffectControl : public InterfaceElementOption {
 public:
     EffectControl* effectControl;
 
-    static Keymap effectControlKeymap;
-
     InterfaceElementEffectControl(const char* t, EffectControl* o, int i1 = 1, int i2 = 10, int i3 = 100);
 
-    virtual int doKey(int key);
+    virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key);
 };
 
 class ErrorMessages {
@@ -94,12 +99,9 @@ public:
     ErrorMessages()
         : nMsgs(0) { }
 
-    void addMessage(const char* text);
-    void display();
+    void addMessage(const char* text, InterfaceRuntime& runtime);
+    void display(InterfaceRuntime& runtime);
 };
-
-extern Interface interfaceMixer;
-extern ErrorMessages errors;
 
 /**
  * Registers the existing concrete panel definitions into an owned runtime.
@@ -107,5 +109,6 @@ extern ErrorMessages errors;
  * @param runtime Interface runtime that will own selection/adapter state.
  */
 void registerDefaultInterfaces(InterfaceRuntime& runtime);
+void registerInterfaceKeyActions(CommandRegistry& registry);
 
 #endif

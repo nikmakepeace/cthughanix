@@ -153,7 +153,15 @@ static void testAudioDeviceSettingsAreStartupOnly() {
     assertSourceContains("src/Application.cc",
         "new MixerControls(*mixerSessionValue, logSinkValue)");
     assertSourceContains("src/Application.cc",
-        "mixerControlsValue->installInto(interfaceMixer)");
+        "interfaceRuntimeValue->find(\"Mixer\")");
+    assertSourceContains("src/Application.cc",
+        "mixerControlsValue->installInto(*mixerInterface)");
+    assertSourceDoesNotContain("src/Application.cc",
+        "installInto(interfaceMixer)");
+    assertSourceDoesNotContain("src/Application.cc",
+        "clearInterface(interfaceMixer)");
+    assertSourceDoesNotContain("src/Interface.h",
+        "extern Interface interfaceMixer");
     assertSourceContains("src/AudioSettings.h", "PcmFormat pcmFormat");
     assertSourceContains("src/AudioIngest.h", "PcmFormat pcmFormatValue");
     assertSourceContains("src/AudioIngest.cc",
@@ -915,8 +923,16 @@ static void testLegacyTestOptionWasRemoved() {
 static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc",
         "startupConfigValue.app.optionsSaveEnabled");
-    assertSourceContains("src/Application.cc", "configureKeys(startupConfigValue.input)");
-    assertSourceContains("src/Application.cc", "Keymap::init(startupConfigValue.input)");
+    assertSourceContains("src/Application.h", "InputQueue inputQueueValue");
+    assertSourceContains("src/Application.h", "KeymapRegistry keymapsValue");
+    assertSourceContains("src/Application.cc",
+        "inputQueueValue.configure(startupConfigValue.input)");
+    assertSourceContains("src/Application.cc",
+        "processEvents(inputQueueValue)");
+    assertSourceContains("src/Application.cc",
+        "runCurrent(inputQueueValue, keymapsValue)");
+    assertSourceContains("src/Application.cc", "keymapsValue.init(startupConfigValue.input)");
+    assertSourceDoesNotContain("src/Application.cc", "Keymap::init");
     assertSourceContains("src/Application.cc",
         "remove_continuation_ini(startupConfigValue.paths, logSinkValue)");
     assertSourceContains("src/Application.cc", "initMixerRuntime()");
@@ -967,12 +983,26 @@ static void testApplicationProvidesStartupConfigSlices() {
 static void testInputStartupUsesInputConfig() {
     assertSourceContains("src/Configuration.h", "struct InputConfig");
     assertSourceContains("src/Configuration.h", "InputConfig input");
-    assertSourceContains("src/keys.h", "void configureKeys(const InputConfig& config)");
-    assertSourceContains("src/keymap.h", "static void init(const InputConfig& config)");
+    assertSourceContains("src/InputQueue.h", "class InputQueue");
+    assertSourceContains("src/InputQueue.cc",
+        "escapeKeyEnabled = config.escapeKeyEnabled");
+    assertSourceDoesNotContain("src/keys.h", "configureKeys");
+    assertSourceDoesNotContain("src/keys.h", "getkey()");
+    assertSourceDoesNotContain("src/keys.h", "keys_x11");
+    assertSourceDoesNotContain("src/keys.h", "extern int key_esc");
+    assertSourceContains("src/keymap.h", "void init(const InputConfig& config)");
+    assertSourceDoesNotContain("src/keymap.h",
+        "static void init(const InputConfig& config)");
     assertSourceDoesNotContain("src/Configuration.h",
         "struct AppConfig {\n    int optionsSaveEnabled;\n    int escapeKeyEnabled");
     assertSourceDoesNotContain("src/keymap.h", "keymapFile[PATH_MAX]");
     assertSourceDoesNotContain("src/keymap.cc", "Keymap::configure");
+    assertSourceDoesNotContain("src/keys.cc", "int x11_key");
+    assertSourceDoesNotContain("src/keys.cc", "int key_esc");
+    assertSourceDoesNotContain("src/keys.cc", "keys_x11");
+    assertSourceDoesNotContain("src/keys.cc", "getkey()");
+    assertSourceDoesNotContain("src/DisplayDeviceX11.cc", "keys_x11");
+    assertSourceContains("src/DisplayDeviceX11.cc", "input.pushRawKey");
 }
 
 static void testSceneStartupUsesSceneConfig() {
@@ -1313,7 +1343,7 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("tests/CMakeLists.txt",
         "RuntimeCommandTargets.cc");
     assertSourceContains("src/InterfaceList.cc",
-        "runtime->toggleContextEffectChoiceUse()");
+        "runtime.toggleContextEffectChoiceUse()");
     assertSourceDoesNotExist("src/RuntimeOptionControls.cc");
     assertSourceDoesNotExist("src/RuntimeOptionControls.h");
     assertSourceDoesNotExist("src/RuntimeEffectCatalogControls.cc");
@@ -1446,11 +1476,136 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/InterfaceRuntime.h", "class InterfaceRuntime");
     assertSourceContains("src/Application.h",
         "std::unique_ptr<InterfaceRuntime> interfaceRuntimeValue");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
         "registerDefaultInterfaces(*interfaceRuntimeValue)");
-    assertSourceContains("src/keymap.cc", "Keymap::setInterfaceRuntime");
+    assertSourceDoesNotContain("src/keymap.h", "setInterfaceRuntime");
+    assertSourceDoesNotContain("src/keymap.h", "interfaceRuntime");
+    assertSourceDoesNotContain("src/keymap.cc", "keymapInterfaceRuntime");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap::setInterfaceRuntime");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap::interfaceRuntime");
+    assertSourceDoesNotContain("src/Application.cc",
+        "Keymap::setInterfaceRuntime");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "RuntimeCommandSink* runtimeCommandSinkValue");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "std::vector<Interface*> ownedInterfacesValue");
+    assertSourceContains("src/InterfaceRuntime.cc",
+        "void InterfaceRuntime::registerOwnedInterface");
+    assertSourceContains("src/Interface.cc",
+        "runtime.registerOwnedInterface(new InterfaceMain())");
+    assertSourceContains("src/Interface.cc",
+        "runtime.registerOwnedInterface(new Interface(\"Mixer\", \"Mixer\", NULL))");
+    assertSourceContains("src/Interface.cc",
+        "runtime.registerOwnedInterface(new InterfaceEffectControl())");
+    assertSourceContains("src/Interface.cc",
+        "runtime.registerOwnedInterface(new InterfaceOptions())");
+    assertSourceContains("src/AudioSystem.cc",
+        "runtime.registerOwnedInterface(");
+    assertSourceContains("src/InterfaceList.cc",
+        "runtime.registerOwnedInterface(");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "} interfaceMain");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "static Interface interfaceMixer");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "} interfaceEffectControl");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "Interface interfaceOption");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "elementsOption[]");
+    assertSourceDoesNotContain("src/AudioSystem.cc",
+        "Interface interfacePlayList");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "InterfaceList interfaceList");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "int InterfaceList::size");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "char extraKeymapValue[512]");
+    assertSourceContains("src/Interface.cc",
+        "ACTION(setExtraKeymap) { runtime.setExtraKeymap(p); }");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "interfaceMain.extraKeymap");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "friend class setExtraKeymapAction");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "double helpScrollPositionValue");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "int helpScrollingValue");
+    assertSourceContains("src/InterfaceHelp.cc",
+        "ACTION(toggleScrolling) { runtime.toggleHelpScrolling(); }");
+    assertSourceContains("src/InterfaceHelp.cc",
+        "runtime.scrollHelpBy(-1.0, InterfaceHelp::lineCount())");
+    assertSourceContains("src/InterfaceHelp.cc",
+        "runtime.registerOwnedInterface(new InterfaceHelp())");
+    assertSourceDoesNotContain("src/InterfaceHelp.cc",
+        "} interfaceHelp");
+    assertSourceDoesNotContain("src/InterfaceHelp.cc",
+        "interfaceHelp.scrolling");
+    assertSourceDoesNotContain("src/InterfaceHelp.cc",
+        "interfaceHelp.pos");
+    assertSourceDoesNotContain("src/InterfaceHelp.cc",
+        "friend class toggleScrollingAction");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "double creditsPositionValue");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "int creditsFirstTimeValue");
+    assertSourceContains("src/InterfaceCredits.cc",
+        "runtime.updateCreditsPosition(currentTime");
+    assertSourceContains("src/InterfaceCredits.cc",
+        "runtime.registerOwnedInterface(new InterfaceCredits())");
+    assertSourceDoesNotContain("src/InterfaceCredits.cc",
+        "} interfaceCredits");
+    assertSourceDoesNotContain("src/InterfaceCredits.cc",
+        "int firstTime");
+    assertSourceDoesNotContain("src/InterfaceCredits.cc",
+        "    double pos;");
+    assertSourceContains("src/Application.cc",
+        "interfaceRuntimeValue->setRuntimeCommandSink(runtimeChangeMediatorValue.get())");
+    assertSourceDoesNotContain("src/keymap.h", "setRuntimeCommandSink");
+    assertSourceDoesNotContain("src/keymap.h", "runtimeCommandSink");
+    assertSourceDoesNotContain("src/keymap.cc", "keymapRuntimeCommandSink");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap::runtimeCommandSink");
+    assertSourceDoesNotContain("src/keymap.h", "static Keymap* current");
+    assertSourceDoesNotContain("src/keymap.h", "static void set");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap::current");
+    assertSourceDoesNotContain("src/keymap.cc", "void Keymap::set");
+    assertSourceDoesNotContain("src/keymap.h", "static Keymap* first");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap* Keymap::first");
+    assertSourceDoesNotContain("src/keymap.cc", "Keymap::find");
+    assertSourceDoesNotContain("src/keymap.h", "static Keymap* find");
+    assertSourceDoesNotContain("src/keymap.h",
+        "static int action(const char* name");
+    assertSourceDoesNotContain("src/keymap.cc",
+        "int Keymap::action(const char*");
+    assertSourceContains("src/keymap.cc", "Keymap* keymap = find(\"default\", 1)");
+    assertSourceContains("src/keymap.cc", "keymap = find(lineP, 1)");
+    assertSourceDoesNotContain("src/keymap.cc", "static Keymap");
+    assertSourceDoesNotContain("src/Interface.h", "#include \"keymap.h\"");
+    assertSourceDoesNotContain("src/Interface.h", "static Keymap keymap");
+    assertSourceDoesNotContain("src/Interface.h",
+        "static Keymap effectControlKeymap");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "Keymap InterfaceElementOption::keymap");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "Keymap InterfaceElementEffectControl::effectControlKeymap");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "Keymap InterfaceList::listOptionKeymap");
+    assertSourceContains("src/Interface.cc",
+        "runtime.runOptionKey(*opt, *this, keymaps, \"OptionElement\", key)");
+    assertSourceContains("src/Interface.cc",
+        "*this, keymaps,");
     assertSourceContains("src/CthughaDisplayX11.cc",
-        "runtime->current()");
+        "CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_)");
+    assertSourceContains("src/CthughaDisplayX11.cc",
+        "currentInterface->display(runtime)");
+    assertSourceContains("src/CthughaDisplayX11.cc",
+        "ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime)");
+    assertSourceDoesNotContain("src/Interface.h", "extern ErrorMessages");
+    assertSourceDoesNotContain("src/Interface.cc", "ErrorMessages errors");
+    assertSourceDoesNotContain("src/CthughaDisplayX11.cc",
+        "ErrorMessagesOverlayProducer errorProducer(errors");
 
     assertSourceDoesNotContain("src/Interface.h", "Interface::current");
     assertSourceDoesNotContain("src/Interface.h", "Interface::head");

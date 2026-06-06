@@ -11,6 +11,7 @@
 #include "Scene.h"
 #include "VideoDirector.h"
 #include "flames.h"
+#include "keymap.h"
 #include "TranslationOptions.h"
 #include "waves.h"
 
@@ -22,19 +23,19 @@
 //
 
 class InterfaceList : public Interface {
-    static int size;
+    enum { size = 6 };
     int pos;
     EffectControl* effectControl;
-    static Keymap listOptionKeymap;
 
 public:
     InterfaceList(const char* name, const char* title, EffectControl* o)
         : Interface(name, title, NULL)
+        , pos(0)
         , effectControl(o) { }
 
-    virtual void display() {
+    virtual void display(InterfaceRuntime& runtime) {
 
-        Interface::display();
+        Interface::display(runtime);
 
         int n = effectControl->getNEntries();
         if (n == 0)
@@ -70,42 +71,42 @@ public:
         }
     }
 
-    virtual void doKey(int key) {
+    virtual void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        int key) {
         int ret = key;
         int n = effectControl->getNEntries();
 
         nElements = n;
 
         if ((sel < n) && (sel >= 0)) {
-            InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-            if (runtime != NULL) {
-                ret = runtime->runEffectChoiceKey(*effectControl,
-                    effectControl->entries[sel]->use, key);
-            }
+            ret = runtime.runEffectChoiceKey(*effectControl,
+                effectControl->entries[sel]->use, keymaps, key);
         }
 
         if (ret)
-            ret = Keymap::action(name, key);
+            ret = keymaps.action(name, key, runtime);
         if (ret)
-            ret = Keymap::action("list", key);
+            ret = keymaps.action("list", key, runtime);
         if (ret)
-            ret = Keymap::action("default", key);
+            ret = keymaps.action("default", key, runtime);
 
         nElements = 0;
     }
 };
-Keymap InterfaceList::listOptionKeymap("ListOption");
 
 ACTION(toggleUse) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->toggleContextEffectChoiceUse();
+    runtime.toggleContextEffectChoiceUse();
 }
 
 ACTION(activate) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->activateContextEffectChoice();
+    runtime.activateContextEffectChoice();
+}
+
+void registerListKeyActions(CommandRegistry& registry) {
+#define REGISTER_ACTION(a) registry.registerAction(new a##Action())
+    REGISTER_ACTION(toggleUse);
+    REGISTER_ACTION(activate);
+#undef REGISTER_ACTION
 }
 
 #if 0
@@ -133,40 +134,27 @@ int InterfaceList::do_key(int key) {
 }
 #endif
 
-int InterfaceList::size = 6;
-
-InterfaceList interfaceList0("Display", "Select Display", &screen);
-
-InterfaceList interfaceList1("Flame", "Select Flame", &flame);
-
-InterfaceList interfaceList2("Border", "Select Border of Buffer", &border);
-
-InterfaceList interfaceList3("Translate", "Select Translation Table", &translation);
-
-InterfaceList interfaceList4("Wave", "Select Wave", &wave);
-
-InterfaceList interfaceList6("Table", "Select Sound Table", &table);
-
-InterfaceList interfaceList7("WaveScaling", "Select Wave Scaling", &waveScale);
-
-InterfaceList interfaceList8("Object", "Select 3D Object (for some waves)", &object);
-
-InterfaceList interfaceList9("Palette", "Select Palette", &palette);
-
-InterfaceList interfaceListA("Image", "Select Image", &(videoDirector().imageOption()));
-
-InterfaceList interfaceListB("Flashlight", "Select Flashlight", &flashlight);
-
 void registerListInterfaces(InterfaceRuntime& runtime) {
-    runtime.registerInterface(interfaceList0);
-    runtime.registerInterface(interfaceList1);
-    runtime.registerInterface(interfaceList2);
-    runtime.registerInterface(interfaceList3);
-    runtime.registerInterface(interfaceList4);
-    runtime.registerInterface(interfaceList6);
-    runtime.registerInterface(interfaceList7);
-    runtime.registerInterface(interfaceList8);
-    runtime.registerInterface(interfaceList9);
-    runtime.registerInterface(interfaceListA);
-    runtime.registerInterface(interfaceListB);
+    runtime.registerOwnedInterface(
+        new InterfaceList("Display", "Select Display", &screen));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Flame", "Select Flame", &flame));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Border", "Select Border of Buffer", &border));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Translate", "Select Translation Table", &translation));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Wave", "Select Wave", &wave));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Table", "Select Sound Table", &table));
+    runtime.registerOwnedInterface(
+        new InterfaceList("WaveScaling", "Select Wave Scaling", &waveScale));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Object", "Select 3D Object (for some waves)", &object));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Palette", "Select Palette", &palette));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Image", "Select Image", &(videoDirector().imageOption())));
+    runtime.registerOwnedInterface(
+        new InterfaceList("Flashlight", "Select Flashlight", &flashlight));
 }

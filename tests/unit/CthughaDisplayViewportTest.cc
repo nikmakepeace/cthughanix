@@ -1,6 +1,7 @@
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
+#include "InputQueue.h"
 #include "ProcessServices.h"
 
 #include <assert.h>
@@ -129,7 +130,7 @@ public:
         : outputSizeValue(0, 0) {
     }
 
-    virtual DisplayEventStats processEvents() {
+    virtual DisplayEventStats processEvents(InputEventSink&) {
         return DisplayEventStats();
     }
 

@@ -7,33 +7,25 @@
 #include "RuntimeCommandSink.h"
 
 class InterfaceCredits : public Interface {
-    double pos;
-    int firstTime;
     static const char* credits[];
     static int nCredits;
 
 public:
     InterfaceCredits()
-        : Interface("credits", NULL, NULL)
-        , pos(0)
-        , firstTime(-1) { }
+        : Interface("credits", NULL, NULL) { }
 
-    virtual void doKey(int /* key */) {
-        RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
+    virtual void doKey(InterfaceRuntime& runtime,
+        KeymapRegistry& /* keymaps */, int /* key */) {
+        RuntimeCommandSink* sink = runtime.runtimeCommandSink();
         if (sink != NULL)
             sink->apply(RuntimeCommand::requestClose());
     }
 
-    virtual void display() {
+    virtual void display(InterfaceRuntime& runtime) {
 
-        InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-        const int currentTime = (runtime != NULL) ? runtime->milliseconds() : 0;
-
-        if (firstTime == -1)
-            firstTime = currentTime;
-
-        int time_diff = currentTime - firstTime;
-        pos = -(double(text_size.y) * 0.8) + double(time_diff) / 250.0;
+        const int currentTime = runtime.milliseconds();
+        const double pos = runtime.updateCreditsPosition(currentTime,
+            text_size.y);
 
         for (int i = 1; i < text_size.y; i++) {
             int L = (int(pos) + i) % nCredits;
@@ -42,7 +34,7 @@ public:
             displayDevice->print(credits[L] + 1, -pos + int(pos) + i, 'c', credits[L][0]);
         }
     }
-} interfaceCredits;
+};
 
 #define N "\000"
 #define H "\001"
@@ -117,5 +109,5 @@ const char* InterfaceCredits::credits[] = { E
 int InterfaceCredits::nCredits = sizeof(InterfaceCredits::credits) / sizeof(const char*);
 
 void registerCreditsInterface(InterfaceRuntime& runtime) {
-    runtime.registerInterface(interfaceCredits);
+    runtime.registerOwnedInterface(new InterfaceCredits());
 }

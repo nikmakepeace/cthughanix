@@ -845,13 +845,346 @@ Current Commands/Input status:
 - Done since 73fd509: `Interface::head`, `Interface::current`,
   `currentOption`, `currentEffectControl`, and
   `currentOptionInterfaceElement` are gone from production code.
-- Remaining: `Action::head`, `Keymap::first`, `Keymap::current`, static
-  `Keymap::action(...)`, `Keymap::runtimeCommandSink()`,
-  `Keymap::interfaceRuntime()`, `x11_key`, `key_esc`, and global key
-  associations still need an explicit input/command registry and dispatch
+- Done in the current working tree: raw input now flows through
+  Application-owned `InputQueue`, X11/panel input publishes through
+  `InputEventSink`, key-name lookup is file-local immutable data, and
+  `Keymap::setInterfaceRuntime(...)`/`Keymap::interfaceRuntime()` have been
+  deleted. Key actions and interface rendering now receive
+  `InterfaceRuntime&` explicitly through dispatch/display calls.
+- Done in the current working tree: `ErrorMessages errors` has moved from a
+  public Interface global to Application-owned overlay state passed explicitly
+  into the X11 display coordinator.
+- Done in the current working tree: Application no longer imports the public
+  `interfaceMixer` global; mixer controls get the mixer panel through
+  `InterfaceRuntime::find("Mixer")`.
+- Done in the current working tree: `interfaceMain.extraKeymap` has moved into
+  `InterfaceRuntime`; `setExtraKeymap` now mutates runtime-owned state.
+- Done in the current working tree: `InterfaceHelp::pos`/`scrolling` has moved
+  into `InterfaceRuntime`; help scroll actions and display now operate on
+  runtime-owned state.
+- Done in the current working tree: `InterfaceCredits::pos`/`firstTime` has
+  moved into `InterfaceRuntime`; credits animation now updates runtime-owned
+  state.
+- Done in the current working tree: Help and Credits panel objects are created
+  through `InterfaceRuntime::registerOwnedInterface(...)` instead of static
+  process-lifetime panel instances.
+- Done in the current working tree: Main and Mixer panel objects are also
+  created through `InterfaceRuntime::registerOwnedInterface(...)`; there are no
+  remaining `interfaceMain` or `interfaceMixer` panel globals.
+- Done in the current working tree: EffectControls, Options, playlist, and
+  effect-choice list panels are also created through
+  `InterfaceRuntime::registerOwnedInterface(...)`; the named static interface
+  panel objects have been removed.
+- Done in the current working tree: default keymap loading creates named
+  keymaps from `#keymap` sections, so `Keymap::init(...)` no longer relies on
+  static `Keymap` objects and interface element/list code refers to keymap
+  names instead of static `Keymap` members.
+- Done in the current working tree: dead `Keymap::current` selected-keymap
+  state and `Keymap::set(...)` have been deleted.
+- Done in the current working tree: `Application` owns `KeymapRegistry` as
+  concrete state; `Keymap::first`, static `Keymap::find(...)`, static
+  `Keymap::readFile(...)`, static `Keymap::addList(...)`, static
+  `Keymap::init(...)`, and static keymap-name dispatch have been removed from
+  production. Interface input routing now receives `KeymapRegistry&`
+  explicitly.
+- Remaining: `Action::head`, raw `Action*` binding storage, and global action
+  objects still need an explicit `CommandRegistry`, dispatcher, and command
   context. The stop-and-continue action no longer builds a continuation
   snapshot inside keymap; persistence now snapshots the current runtime config
   through `RuntimeConfigRegistry`.
+
+#### Commands/Input Globals Removal Plan
+
+Do not introduce a broad Commands/Input service layer during this pass.
+Application can own the concrete input queue, keymap registry, command registry,
+dispatcher, and interface runtime directly until the globals are gone. A module
+facade can be added later over already-owned state. This pass should focus on
+turning hidden process state into explicit objects and deleting the compatibility
+escape hatches that would otherwise become permanent public API.
+
+The global inventory tracked for this module is now:
+
+- Removed in the current working tree: raw key state/configuration
+  (`x11_key`, `key_esc`, `configureKeys(...)`, `keys_x11(...)`,
+  `getkey_x11()`, and `getkey()`), and exported key-name lookup state
+  (`keyAssoc`/`nKeyAssoc`).
+- Removed in the current working tree: keymap registry state
+  (`Keymap::first`, static `Keymap::find(...)`, static
+  `Keymap::readFile(...)`, static `Keymap::addList(...)`, static
+  `Keymap::init(...)`, and static keymap-name dispatch). `Application` now owns
+  a concrete `KeymapRegistry`, keymap sections create named keymaps inside that
+  registry, and interface input routing receives `KeymapRegistry&` explicitly.
+- Command/action registry state still remaining: `Action::head`, raw `Action*`
+  binding storage, and global action objects. Static `Keymap` instances from
+  `Keymap::init(...)`, `InterfaceElementOption::keymap`,
+  `InterfaceElementEffectControl::effectControlKeymap`, and
+  `InterfaceList::listOptionKeymap` have been removed; keymap sections now
+  create named keymaps during loading.
+- Removed in the current working tree: runtime target bridges hidden behind
+  keymap statics (`keymapRuntimeCommandSink`, `keymapInterfaceRuntime`,
+  `Keymap::setRuntimeCommandSink(...)`, `Keymap::runtimeCommandSink()`,
+  `Keymap::setInterfaceRuntime(...)`, and `Keymap::interfaceRuntime()`).
+- Global action objects produced by the `ACTION(...)` macro in `keymap.cc`,
+  `Interface.cc`, `InterfaceList.cc`, and `InterfaceHelp.cc`. These are
+  registered by static construction. They now receive `InterfaceRuntime&`
+  explicitly during dispatch, but they still need to become owned command
+  definitions in `CommandRegistry`.
+- Removed in the current working tree: static interface panel objects and their
+  panel-owned state. The named panel instances now register through
+  `InterfaceRuntime::registerOwnedInterface(...)`, while `ErrorMessages`,
+  extra-keymap state, help scrolling state, and credits animation state are
+  owned by Application/`InterfaceRuntime`.
+
+The target call shape before adding a module facade is:
+
+```c++
+DisplayEventStats stats = displayRuntime.processEvents(inputEvents);
+interfaceRuntime.runCurrent(inputEvents, keymaps, dispatcher, commandContext);
+```
+
+`inputEvents`, `keymaps`, `dispatcher`, and `commandContext` are
+Application-owned collaborators. Display/platform code may publish raw input
+events into a narrow input sink, but it must not know command targets. Keymaps
+may translate keys into action invocations, but they must not execute commands.
+Actions may execute only through an explicit `CommandContext` supplied for that
+dispatch.
+
+Migration sequence:
+
+1. Add boundary tests and characterization before moving code.
+   - Add focused tests for X11 key text translation, disabled/enabled ESC
+     handling, shifted-number mapping, named-key lookup, keymap parsing, default
+     binding loading, multi-action bindings, interface option editing, help/list
+     actions, and quit/stop/preset command dispatch.
+   - Extend `ConfigurationDependencyBoundaryTest` with temporary owner lists for
+     the known globals. Each migration step should flip one owner from
+     `assertSourceContains(...)` to `assertSourceDoesNotContain(...)`.
+   - Record current allowed consumers for `Keymap::interfaceRuntime()` and
+     `Keymap::runtimeCommandSink()` so new call sites are blocked immediately.
+
+2. Introduce explicit input event storage without changing dispatch behavior.
+   - Add an `InputEvent`/`InputQueue` pair that can store raw platform key
+     events and return normalized Cthugha key codes in FIFO order.
+   - Move `key_esc` into a `KeyTranslator` or `InputDecoder` instance built
+     from `InputConfig`. `configureKeys(...)` becomes construction/configuration
+     of that object rather than a write to process state.
+   - Keep the existing key constants in `keys.h`, but remove extern mutable
+     state from that header. The key-name table should become file-local
+     immutable data behind a `KeyNameTable`/lookup helper.
+   - Add an adapter only if needed to keep intermediate builds green:
+     `getkey()` may temporarily drain the Application-owned queue through an
+     explicitly installed queue pointer, but that adapter must have a boundary
+     test and a deletion condition: delete when `Interface::run(...)` receives
+     the queue directly.
+
+3. Route display/platform input into the queue instead of `x11_key`.
+   - Change the display event pump from `processEvents()` to
+     `processEvents(InputEventSink&)` or equivalent. X11 should publish a raw
+     key event containing the `XLookupString`/`XKeysymToString` text and modifier
+     state; it should not write `x11_key`.
+   - Delete `keys_x11(...)`, `getkey_x11()`, and the single-key `x11_key`
+     mailbox once X11 and panel callbacks push into the explicit sink.
+   - Preserve the existing run-loop order: pump display events, run the active
+     interface once before frame generation, run/present a frame, then run the
+     active interface again.
+
+4. Split keymap storage from command execution.
+   - Replace `Action::head` with an owned `CommandRegistry` containing named
+     action definitions. Registration order must be explicit, deterministic, and
+     driven by startup functions such as `registerDefaultKeyActions(...)`,
+     `registerInterfaceKeyActions(...)`, `registerListKeyActions(...)`,
+     `registerHelpKeyActions(...)`, and `registerCreditsKeyActions(...)`.
+   - Replace the `ACTION(...)` macro's static self-registration with action
+     objects or function adapters owned by `CommandRegistry`. Action
+     implementations receive `(ActionInvocation, CommandContext&)`; they must
+     not call `Keymap::runtimeCommandSink()` or
+     `Keymap::interfaceRuntime()`.
+   - Parse bindings into action names/parameters or action ids owned by
+     `KeymapRegistry`; do not store raw `Action*` from static objects.
+   - Keep keymap conditional parsing as pure parser support. It may remain in
+     `keymap.cc` initially, but it should depend only on explicit feature flags
+     and the supplied source text.
+
+5. Make `KeymapRegistry` instance-owned.
+   - Move `Keymap::first`, `Keymap::current`, static `find(...)`,
+     static `readFile(...)`, static `addList(...)`, static `set(...)`, and
+     static `action(...)` into an Application-owned `KeymapRegistry`.
+   - Current working tree status: this ownership move is done for keymap
+     storage/loading/name dispatch. `Application` owns `KeymapRegistry`, default
+     keymaps and optional keymap files load through that instance, and
+     `InterfaceRuntime`/interface panels receive the registry explicitly while
+     handling input.
+   - Default keymap definitions should be loaded by an explicit startup call:
+     `keymaps.registerDefaults(defaultKeymapLines, commandRegistry)`, followed
+     by `keymaps.loadFile(config.keymapFile, commandRegistry)`.
+   - Static keymap objects such as `InterfaceElementOption::keymap`,
+     `InterfaceElementEffectControl::effectControlKeymap`, and
+     `InterfaceList::listOptionKeymap` become keymap names or registry handles
+     resolved during interface setup.
+   - Source-boundary target for this step: no `Keymap* Keymap::first`, no
+     `Keymap* Keymap::current`, no static keymap loading/lookup methods, and
+     no production `Keymap::action(const char*, ...)` call sites. `Action::head`
+     remains tracked by the command-registry split in steps 4 and 6.
+
+6. Add a `CommandDispatcher` and per-dispatch `CommandContext`.
+   - `KeymapRegistry` should return action invocations for a key; it should not
+     execute them.
+   - `CommandDispatcher` executes those invocations with a `CommandContext`
+     containing only the explicit targets needed by commands:
+     `RuntimeCommandSink&`, `InterfaceRuntime&`, and scoped option/effect target
+     data when an interface row is editing a value.
+   - Runtime-changing actions (`quit`, `screenChg`, `soundProcess`,
+     `writeIni`, `save`, `restore`, palette actions, etc.) build
+     `RuntimeCommand` values and apply them through the context sink.
+   - Interface-only actions (`up`, `down`, `home`, `end`, `toggleStatus`,
+     `toggleSave`, `setInterface`, `nextInterface`, `prevInterface`,
+     `setExtraKeymap`) mutate only `InterfaceRuntime` through context methods.
+   - Scoped option/effect actions (`chgValue1`, `chgValue2`, `chgValue3`,
+     `setValue`, `lockElement`, `toggleUse`, `activate`) use the same scoped
+     command data currently held by `InterfaceRuntime`, but passed as part of
+     the dispatch context instead of fetched through a global keymap pointer.
+
+7. Make interface input explicit.
+   - Change `InterfaceRuntime::runCurrent()` to receive `InputQueue&`,
+     `KeymapRegistry&`, `CommandDispatcher&`, and a base `CommandContext&`, or
+     add a narrow `InterfaceInputRunner` helper owned by Application that calls
+     into `InterfaceRuntime`. This is still concrete wiring, not a service
+     layer.
+   - Change `Interface::run(...)` so it drains the supplied queue instead of
+     calling `getkey()`.
+   - Change `Interface::doKey(...)`, `InterfaceMain::doKey(...)`,
+     `InterfaceEffectControl::doKey(...)`, `InterfaceList::doKey(...)`,
+     `InterfaceElementOption::doKey(...)`, and
+     `InterfaceElementEffectControl::doKey(...)` to dispatch through explicit
+     registry/dispatcher arguments or through `InterfaceRuntime` methods that
+     receive those collaborators.
+   - Delete `Keymap::setInterfaceRuntime(...)` and
+     `Keymap::setRuntimeCommandSink(...)` once no action or interface code uses
+     them.
+
+8. Move concrete interface panel state out of globals.
+   - Convert `registerDefaultInterfaces(...)`, `registerListInterfaces(...)`,
+     `registerHelpInterface(...)`, `registerCreditsInterface(...)`, and
+     `registerAudioInterfaces(...)` from borrowing static objects to creating
+     `InterfaceRuntime`-owned panel instances.
+   - Replace the public `interfaceMixer` global with a lookup result from
+     `InterfaceRuntime`, so `MixerControls::installInto(...)` and
+     `clearInterface(...)` receive the mixer panel through explicit Application
+     wiring.
+   - Move `interfaceMain.extraKeymap` into `InterfaceRuntime` or an owned main
+     panel instance. The `setExtraKeymap` action should mutate that owned state
+     through `CommandContext`.
+   - Move help scrolling state into the owned help panel instance and register
+     help actions against that instance during setup.
+   - Move `ErrorMessages errors` into `InterfaceRuntime` or an owned interface
+     overlay model. Display overlay production should receive an explicit
+     `OverlayProducer`/interface overlay source from Application instead of
+     reading `errors` or `Keymap::interfaceRuntime()` globally.
+
+9. Tighten boundaries and delete compatibility code.
+   - `keys.h` should expose key constants and small value types only; no
+     mutable externs, no `getkey()`, and no X11-specific translation function.
+   - `keymap.h` should expose the owned registry/definition types only; no
+     static dispatch, static selected keymap, or runtime target accessors.
+   - `Interface.h` should expose interface definitions and runtime-owned
+     registration helpers only; no public panel globals.
+   - Boundary tests should assert that `x11_key`, `key_esc`, `Action::head`,
+     `Keymap::first`, `Keymap::current`, `Keymap::interfaceRuntime`,
+     `Keymap::runtimeCommandSink`, `getkey()`, `keys_x11(...)`,
+     `interfaceMixer`, `interfaceHelp`, `interfaceCredits`, `interfaceMain`,
+     and `ErrorMessages errors` do not appear in production headers or source
+     outside deleted-history comments.
+
+10. Wrap the cleaned concrete parts behind one coherent module API.
+    - Add this only after steps 2-9 have removed the mutable globals and static
+      compatibility accessors. The API should consolidate already-owned
+      concrete parts; it must not become a new home for legacy adapter plumbing
+      or delayed cleanup.
+    - Treat this as a boundary-polishing step over working concrete objects,
+      not as a rescue layer. By the time this starts, raw input should already
+      flow into `InputQueue`, key decoding should already be instance-owned,
+      keymaps should already produce action invocations, command definitions
+      should already live in `CommandRegistry`, and interface panels/overlay
+      state should already be owned by `InterfaceRuntime` or another explicit
+      collaborator.
+    - Introduce a Commands/Input root, for example `CommandsInputRuntime` or
+      `InputCommandRuntime`, owned by `Application`. It should own the
+      `InputQueue`, `KeyTranslator`, `CommandRegistry`, `KeymapRegistry`,
+      `CommandDispatcher`, `CommandContext` factory/state, and
+      `InterfaceRuntime`/owned panels.
+    - Define the public surface around module workflows and ports, not around
+      exposing the pieces. Public callers should see input ingress, startup
+      registration/loading, per-tick input execution, interface selection, and
+      overlay production. The concrete registries, dispatcher, panels, and edit
+      state should become private implementation details of the module root.
+    - Keep the public surface verb-shaped and module-shaped. External code
+      should be able to configure input, load keymaps, register the built-in
+      command/interface definitions, accept platform input, run pending input,
+      run/select the active interface, and provide overlay text or overlay draw
+      commands. It should not fetch registries and panels to assemble those
+      workflows itself.
+    - Expose narrow ports rather than exposing the object graph. Display should
+      receive an `InputEventSink&` or `PlatformInputPort&`. Runtime command
+      execution should enter through a supplied `RuntimeCommandSink&` or a
+      dispatch call that receives one. Overlay rendering should see an
+      `InterfaceOverlaySource&`/`OverlayProducer&`, not `ErrorMessages` or an
+      interface panel global. Tests can use explicit fixture builders instead of
+      singleton back doors.
+    - A plausible first public surface is:
+
+      ```c++
+      class CommandsInputRuntime {
+      public:
+        void configureInput(const InputConfig&);
+        void registerBuiltins(const CommandsInputBuiltins&);
+        void loadKeymaps(const PathConfig&);
+        InputEventSink& inputSink();
+        void runPendingInput(RuntimeCommandSink&);
+        void runCurrentInterface(RuntimeCommandSink&);
+        void selectInterface(const char* name);
+        InterfaceOverlaySource& overlaySource();
+      };
+      ```
+
+      Temporary accessors such as `mixerInterface()` are acceptable only if the
+      next migration still needs a concrete panel during setup. They should have
+      a named deletion condition in the plan or in the boundary test.
+    - Make dependency direction visible in the signatures. Platform/display
+      code can push input and ask for overlay output; runtime code can supply a
+      `RuntimeCommandSink&` for command effects; configuration code can supply
+      `InputConfig`, keymap paths, and built-in definition bundles. None of
+      those customers should reach inward for `KeymapRegistry`,
+      `CommandRegistry`, `InterfaceRuntime`, or panel-specific objects.
+    - Move to this root in small mechanical slices: first move the concrete
+      Application fields into the root without changing behavior, then move
+      registration/setup functions behind `registerBuiltins(...)`, then replace
+      event-loop call sites with `inputSink()`, `runPendingInput(...)`, and
+      `runCurrentInterface(...)`, and finally delete production includes of the
+      concrete registry/panel headers outside the module.
+    - Keep internal services private. Callers should not fetch
+      `KeymapRegistry&`, `CommandRegistry&`, `CommandDispatcher&`, concrete
+      panel objects, or mutable interface internals unless a test fixture or
+      short-lived migration adapter explicitly requires it.
+    - Boundary tests should flip from checking individual concrete ownership in
+      `Application` to checking that production customers depend on the module
+      root or one of its narrow ports. `Application` may construct the root, but
+      display, interface panels, key actions, and runtime command code should
+      not know the root's internal object graph.
+
+Completion criteria for this module:
+
+- Display/platform input reaches Commands/Input only through an explicit queue
+  or sink.
+- Key decoding is instance-owned and configured by `InputConfig`.
+- Keymaps are owned by an explicit registry and produce action invocations
+  without command side effects.
+- Commands execute through a supplied `CommandContext`; no command reaches
+  scene, display, audio, shutdown, runtime persistence, or interface state
+  through process globals.
+- Interface panels and UI overlay/error state are owned by `InterfaceRuntime`
+  or another explicit Application-owned object.
+- The source-boundary test has no remaining allowlist for Commands/Input
+  mutable globals.
 
 ### Scene Module
 
@@ -1217,9 +1550,9 @@ Historical removal order inside Audio and its status:
 - Does not fit as a service: `ApplicationContext`, one-off bridge wrappers,
   `CthughaBuffer` if treated as a peer service rather than frame storage, and
   any logger-to-overlay coupling.
-- Missing from the original service list: `InputQueue`, `CommandDispatcher`,
-  `CommandContext`, `SceneController`, `FrameComposer`, `DisplaySystem`,
-  `PathResolver`, and `ConfigLoader`.
+- Missing from the original service list: `InputQueue`, `CommandRegistry`,
+  `CommandDispatcher`, `CommandContext`, `SceneController`, `FrameComposer`,
+  `DisplaySystem`, `PathResolver`, and `ConfigLoader`.
 
 ## ApplicationContext Service Contracts
 
@@ -1521,8 +1854,10 @@ old names still need to be implemented.
   `currentEffectControl`, and `currentOptionInterfaceElement`.
 - Used by: key/action dispatch, option panels, X11 controls, text overlays,
   ini save/edit actions, and tests that exercise option navigation.
-- Provided to customers: `ApplicationContext` owns `InterfaceManager`;
-  actions receive `InterfaceManager&` or a narrower `OptionEditor&`.
+- Provided to customers: during the globals-removal pass, `Application` owns
+  the concrete `InterfaceRuntime` and any owned panel instances directly;
+  actions receive `InterfaceRuntime&` or narrower option-editing context through
+  `CommandContext`.
 - Lifecycle timing: Created after `AppOptions`, `EffectRegistry`, and
   `VisualCatalogs`; populated during startup UI registration; updated after
   input events and before frame composition; flushed/saved during teardown if
@@ -1541,19 +1876,21 @@ old names still need to be implemented.
   `Keymap::action(...)` dispatch.
 - Used by: command-line/ini keymap loading, X11 input handling,
   key-action execution, UI tests, and help/credits displays.
-- Provided to customers: `ApplicationContext` owns the registry; input systems
-  receive `KeymapRegistry&` for translation/dispatch and actions receive an
-  explicit `CommandContext`.
+- Provided to customers: during the globals-removal pass, `Application` owns
+  the concrete registry directly; input systems receive `KeymapRegistry&` for
+  translation/dispatch and actions receive an explicit `CommandContext`. A
+  higher-level module facade can wrap this later after the registry no longer
+  hides legacy state.
 - Lifecycle timing: Defaults registered before keymap files are read; command
   line/ini can select or override keymaps during startup; dispatch occurs after
   each event pump and before audio/video composition for that frame.
 - References contained: Registered action definitions, keymap definitions,
   selected keymap, `PathConfig` for loading, and maybe `Logger&`; no hidden
   references to scene/display/audio globals.
-- API surface: `registerAction(ActionDefinition)`,
-  `registerKeymap(KeymapDefinition)`, `load(Path)`, `select(name)`,
-  `translate(InputEvent)`, `dispatch(Key, CommandContext&)`, and
-  `bindings() const`.
+- API surface: `registerKeymap(KeymapDefinition)`, `load(Path)`,
+  `select(name)`, `translate(InputEvent)`, `actionsFor(Key)`, and
+  `bindings() const`. Command execution belongs to `CommandDispatcher`, not to
+  the registry.
 
 ### `DisplayRuntimeOwnership`
 
@@ -1757,8 +2094,11 @@ Do not implement split-required services as single classes.
      command registration, and UI edit state independent of display overlays.
    - Done since 73fd509: `InterfaceRuntime` owns interface selection and
      scoped option/effect command context.
-   - Remaining: split static keymap/action registries and raw X11 key globals
-     into explicit input queue/command registry/dispatcher.
+   - Done in the current working tree: raw X11 key globals are replaced by
+     `InputQueue`, and keymap storage/name dispatch is owned by
+     Application-owned `KeymapRegistry`.
+   - Remaining: split `Action::head`, raw `Action*` bindings, and global
+     `ACTION(...)` objects into explicit command registry/dispatcher objects.
    - Recheck target: no `x11_key`, `key_esc`, `Action::head`,
      `Keymap::first`, `Keymap::current`, `Interface::head`,
      `Interface::current`, `currentOption`, `currentEffectControl`, or static

@@ -204,21 +204,88 @@ public:
     }
 };
 
-Action* Action::head = NULL;
-
-Keymap* Keymap::first = NULL;
-Keymap* Keymap::current = NULL;
-static RuntimeCommandSink* keymapRuntimeCommandSink = NULL;
-static InterfaceRuntime* keymapInterfaceRuntime = NULL;
-
 Keymap::Keymap(const char* n)
-    : next(first)
-    , name(n)
+    : next(NULL)
+    , name(NULL)
     , bindingList(NULL) {
-    first = this;
+    name = new char[strlen(n) + 1];
+    strcpy(name, n);
 }
 
-void Keymap::readFile(const char* fileName) {
+Keymap::~Keymap() {
+    delete[] name;
+
+    while (bindingList != NULL) {
+        BindingList* binding = bindingList;
+        bindingList = bindingList->next;
+
+        Binding::ActionList* action = binding->actionList;
+        while (action != NULL) {
+            Binding::ActionList* nextAction = action->next;
+            delete[] action->param;
+            delete action;
+            action = nextAction;
+        }
+
+        delete binding;
+    }
+}
+
+CommandRegistry::CommandRegistry()
+    : firstValue(NULL) { }
+
+CommandRegistry::~CommandRegistry() {
+    while (firstValue != NULL) {
+        Action* action = firstValue;
+        firstValue = firstValue->next;
+        delete action;
+    }
+}
+
+void CommandRegistry::registerAction(Action* action) {
+    if (action == NULL)
+        return;
+
+    for (Action* existing = firstValue; existing != NULL;
+         existing = existing->next) {
+        if (strcasecmp(existing->name, action->name) == 0) {
+            delete action;
+            return;
+        }
+    }
+
+    action->next = firstValue;
+    firstValue = action;
+}
+
+Action* CommandRegistry::findLongestPrefix(const char* text) const {
+    Action* found = NULL;
+    int length = -1;
+
+    for (Action* action = firstValue; action != NULL;
+         action = action->next) {
+        if (((*action) == text) && (action->length() > length)) {
+            found = action;
+            length = action->length();
+        }
+    }
+
+    return found;
+}
+
+KeymapRegistry::KeymapRegistry()
+    : firstValue(NULL) { }
+
+KeymapRegistry::~KeymapRegistry() {
+    while (firstValue != NULL) {
+        Keymap* keymap = firstValue;
+        firstValue = firstValue->next;
+        delete keymap;
+    }
+}
+
+void KeymapRegistry::readFile(const char* fileName,
+    CommandRegistry& commands) {
     FILE* file = fopen(fileName, "r");
     if (file == NULL) {
         CTH_ERRNO(errno, "Can not open keymap file '%s'.", fileName);
@@ -229,7 +296,7 @@ void Keymap::readFile(const char* fileName) {
 
     int lineNr = 0;
     char line[4096];
-    Keymap* keymap = find("default");
+    Keymap* keymap = find("default", 1);
     KeymapConditionState conditions;
 
     while (fgets(line, 4096, file) != NULL) {
@@ -253,7 +320,7 @@ void Keymap::readFile(const char* fileName) {
 
             CTH_DEBUG("      defining keymap '%s'.\n", keymap->name);
         } else {
-            keymap->add(line);
+            keymap->add(line, commands);
         }
     }
 
@@ -269,12 +336,12 @@ void Keymap::readFile(const char* fileName) {
     fclose(file);
 }
 
-void Keymap::addList(int dummy, ...) {
+void KeymapRegistry::addList(CommandRegistry& commands, int dummy, ...) {
 
     va_list ap;
     va_start(ap, dummy); /* Initialize the argument list. */
 
-    Keymap* keymap = find("default");
+    Keymap* keymap = find("default", 1);
     KeymapConditionState conditions;
 
     const char* line = va_arg(ap, const char*);
@@ -294,11 +361,11 @@ void Keymap::addList(int dummy, ...) {
         if (strncasecmp("#keymap", line, 7) == 0) {
             lineP = line + 7;
             skipSpace(lineP);
-            keymap = find(lineP);
+            keymap = find(lineP, 1);
 
             CTH_DEBUG("      defining keymap '%s'.\n", keymap->name);
         } else {
-            keymap->add(line);
+            keymap->add(line, commands);
         }
 
         line = va_arg(ap, const char*);
@@ -309,8 +376,8 @@ void Keymap::addList(int dummy, ...) {
     va_end(ap);
 }
 
-Keymap* Keymap::find(const char* name, int create) {
-    for (Keymap* k = first; k; k = k->next) {
+Keymap* KeymapRegistry::find(const char* name, int create) {
+    for (Keymap* k = firstValue; k; k = k->next) {
         if (strcasecmp(name, k->name) == 0) {
             return k;
         }
@@ -318,12 +385,13 @@ Keymap* Keymap::find(const char* name, int create) {
 
     if (create) {
         CTH_DEBUG("      adding new keymap '%s'.\n", name);
-        char* n = new char[strlen(name) + 1];
-        strcpy(n, name);
-        return new Keymap(n);
+        Keymap* keymap = new Keymap(name);
+        keymap->next = firstValue;
+        firstValue = keymap;
+        return keymap;
     } else {
         CTH_ERROR("Could not find keymap '%s'.\n", name);
-        return first;
+        return firstValue;
     }
 }
 
@@ -343,7 +411,8 @@ void Keymap::add(Binding& b) {
     bindingList = new BindingList(b, bindingList);
 }
 
-Keymap::Binding Keymap::parseBinding(const char* line) {
+Keymap::Binding Keymap::parseBinding(const char* line,
+    CommandRegistry& commands) {
     const char* fullLine = line;
     Binding b;
 
@@ -370,12 +439,12 @@ Keymap::Binding Keymap::parseBinding(const char* line) {
     if ((*line != '\0') && !isspace(*line)) { // a multi-character thing
         line--;
 
-        for (int i = 0; i < nKeyAssoc; i++)
-            if (strncasecmp(keyAssoc[i].name, line, strlen(keyAssoc[i].name)) == 0) {
-                b.key = keyAssoc[i].keyValue;
-                line += strlen(keyAssoc[i].name);
-                i = nKeyAssoc + 1;
-            }
+        int consumed = 0;
+        int namedKey = keyCodeForNamePrefix(line, &consumed);
+        if (consumed > 0) {
+            b.key = namedKey;
+            line += consumed;
+        }
 
         if ((*line != '\0') && !isspace(*line)) {
             CTH_ERROR("Unknown key symbol in keymap line: '%s'\n", fullLine);
@@ -389,16 +458,9 @@ Keymap::Binding Keymap::parseBinding(const char* line) {
     while ((*line) != '\0') {
 
         // try to match an action
-        Action* A = NULL;
-        int l = -1; // find longest match
-        for (Action* a = Action::head; a != NULL; a = a->next) {
-            if (((*a) == line) && (a->nameLen > l)) {
-                A = a;
-                l = a->nameLen;
-            }
-        }
+        Action* A = commands.findLongestPrefix(line);
         if (A) { // found some match
-            line += A->nameLen; // skip command name
+            line += A->length(); // skip command name
 
             skipSpace(line);
 
@@ -435,7 +497,7 @@ Keymap::Binding Keymap::parseBinding(const char* line) {
     return b;
 }
 
-int Keymap::action(int key) {
+int Keymap::action(int key, InterfaceRuntime& runtime) {
 
     BindingList* l = bindingList;
     while (l) {
@@ -445,7 +507,7 @@ int Keymap::action(int key) {
                 if (a->param)
                     sscanf(a->param, "%lf", &value);
 
-                a->action->act(a->param, value);
+                a->action->act(a->param, value, runtime);
             }
             return 0;
         }
@@ -454,162 +516,167 @@ int Keymap::action(int key) {
     return 1;
 }
 
-int Keymap::action(const char* keymap, int key) {
+int KeymapRegistry::action(const char* keymap, int key,
+    InterfaceRuntime& runtime) {
 
-    for (Keymap* k = first; k; k = k->next) {
+    for (Keymap* k = firstValue; k; k = k->next) {
         if (strcasecmp(keymap, k->name) == 0) {
-            return k->action(key);
+            return k->action(key, runtime);
         }
     }
     return 1;
 }
 
-void Keymap::add(const char* line) {
-    Binding b = parseBinding(line);
+void Keymap::add(const char* line, CommandRegistry& commands) {
+    Binding b = parseBinding(line, commands);
     if (b.key != 0)
         add(b);
-}
-
-void Keymap::set(const char* name) {
-
-    Keymap* k = first;
-    while (k) {
-        if (strcasecmp(name, k->name) == 0) {
-            current = k;
-            return;
-        }
-        k = k->next;
-    }
-}
-
-void Keymap::setRuntimeCommandSink(RuntimeCommandSink* sink) {
-    keymapRuntimeCommandSink = sink;
-}
-
-RuntimeCommandSink* Keymap::runtimeCommandSink() {
-    return keymapRuntimeCommandSink;
-}
-
-void Keymap::setInterfaceRuntime(InterfaceRuntime* runtime) {
-    keymapInterfaceRuntime = runtime;
-}
-
-InterfaceRuntime* Keymap::interfaceRuntime() {
-    return keymapInterfaceRuntime;
 }
 
 //
 // intializiation of the default keymaps
 //
-void Keymap::init(const InputConfig& config) {
+void KeymapRegistry::init(const InputConfig& config,
+    CommandRegistry& commands) {
 
-    static Keymap defaultKM("default");
-    static Keymap mainKM("main");
-    static Keymap helpKM("Help");
-    static Keymap soundKM("sound");
-    static Keymap serverKM("server");
-    static Keymap playListKM("playList");
-    static Keymap optionsKM("Options");
-    static Keymap effectControlionsKM("EffectControls");
-    static Keymap listKM("list");
-
-    Keymap::addList(0,
+    addList(commands, 0,
 #include <default.keymap.str>
         NULL);
 
     if (!config.keymapFile.empty())
-        readFile(config.keymapFile.c_str());
+        readFile(config.keymapFile.c_str(), commands);
 }
 
 //
 // all the actions implemented
 //
 
-static void applyRuntimeCommand(const RuntimeCommand& command) {
-    RuntimeCommandSink* sink = Keymap::runtimeCommandSink();
+static void applyRuntimeCommand(const RuntimeCommand& command,
+    InterfaceRuntime& runtime) {
+    RuntimeCommandSink* sink = runtime.runtimeCommandSink();
     if (sink != NULL)
         sink->apply(command);
 }
 
-ACTION(quit) { applyRuntimeCommand(RuntimeCommand::requestClose()); }
+ACTION(quit) { applyRuntimeCommand(RuntimeCommand::requestClose(), runtime); }
 ACTION(stopAndContinue) {
-    applyRuntimeCommand(RuntimeCommand::stopAndContinue());
+    applyRuntimeCommand(RuntimeCommand::stopAndContinue(), runtime);
 }
 
-ACTION(screenChg) { applyRuntimeCommand(RuntimeCommand::changeScreenBy(int(v))); }
-ACTION(zoomChg) { applyRuntimeCommand(RuntimeCommand::changeZoomBy(int(v))); }
-ACTION(flameChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlame, int(v))); }
-ACTION(flameGeneral) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneGeneralFlame, 0)); }
-ACTION(waveChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWave, int(v))); }
-ACTION(waveScaleChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWaveScale, int(v))); }
-ACTION(objectChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneObject, int(v))); }
-ACTION(translateChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTranslation, int(v))); }
-ACTION(soundProcessChg) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingBy(int(v))); }
-ACTION(borderChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneBorder, int(v))); }
-ACTION(flashlightChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlashlight, int(v))); }
-ACTION(paletteChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeScenePalette, int(v))); }
-ACTION(tableChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTable, int(v))); }
-ACTION(imageChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneImage, int(v))); }
-ACTION(lockChg) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock()); }
+ACTION(screenChg) { applyRuntimeCommand(RuntimeCommand::changeScreenBy(int(v)), runtime); }
+ACTION(zoomChg) { applyRuntimeCommand(RuntimeCommand::changeZoomBy(int(v)), runtime); }
+ACTION(flameChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlame, int(v)), runtime); }
+ACTION(flameGeneral) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneGeneralFlame, 0), runtime); }
+ACTION(waveChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWave, int(v)), runtime); }
+ACTION(waveScaleChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneWaveScale, int(v)), runtime); }
+ACTION(objectChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneObject, int(v)), runtime); }
+ACTION(translateChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTranslation, int(v)), runtime); }
+ACTION(soundProcessChg) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingBy(int(v)), runtime); }
+ACTION(borderChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneBorder, int(v)), runtime); }
+ACTION(flashlightChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneFlashlight, int(v)), runtime); }
+ACTION(paletteChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeScenePalette, int(v)), runtime); }
+ACTION(tableChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneTable, int(v)), runtime); }
+ACTION(imageChg) { applyRuntimeCommand(RuntimeCommand::changeSceneBy(RuntimeSceneImage, int(v)), runtime); }
+ACTION(lockChg) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), runtime); }
 
-ACTION(screen) { applyRuntimeCommand(RuntimeCommand::changeScreenTo(p)); }
-ACTION(zoom) { applyRuntimeCommand(RuntimeCommand::changeZoomTo(p)); }
-ACTION(flame) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlame, p)); }
-ACTION(wave) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWave, p)); }
-ACTION(waveScale) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWaveScale, p)); }
-ACTION(object) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneObject, p)); }
-ACTION(translate) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTranslation, p)); }
-ACTION(soundProcess) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingTo(p)); }
-ACTION(border) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneBorder, p)); }
-ACTION(flashlight) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlashlight, p)); }
-ACTION(palette) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeScenePalette, p)); }
-ACTION(table) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTable, p)); }
-ACTION(image) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneImage, p)); }
-ACTION(lock) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock()); }
+ACTION(screen) { applyRuntimeCommand(RuntimeCommand::changeScreenTo(p), runtime); }
+ACTION(zoom) { applyRuntimeCommand(RuntimeCommand::changeZoomTo(p), runtime); }
+ACTION(flame) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlame, p), runtime); }
+ACTION(wave) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWave, p), runtime); }
+ACTION(waveScale) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneWaveScale, p), runtime); }
+ACTION(object) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneObject, p), runtime); }
+ACTION(translate) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTranslation, p), runtime); }
+ACTION(soundProcess) { applyRuntimeCommand(RuntimeCommand::changeSoundProcessingTo(p), runtime); }
+ACTION(border) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneBorder, p), runtime); }
+ACTION(flashlight) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneFlashlight, p), runtime); }
+ACTION(palette) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeScenePalette, p), runtime); }
+ACTION(table) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneTable, p), runtime); }
+ACTION(image) { applyRuntimeCommand(RuntimeCommand::changeSceneTo(RuntimeSceneImage, p), runtime); }
+ACTION(lock) { applyRuntimeCommand(RuntimeCommand::toggleAutoChangeLock(), runtime); }
 
-ACTION(writeIni) { applyRuntimeCommand(RuntimeCommand::writeIni()); }
+ACTION(writeIni) { applyRuntimeCommand(RuntimeCommand::writeIni(), runtime); }
 
-ACTION(restore) { applyRuntimeCommand(RuntimeCommand::restoreScene()); }
+ACTION(restore) { applyRuntimeCommand(RuntimeCommand::restoreScene(), runtime); }
 ACTION(toggleSave) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->toggleSaveToPreset();
+    runtime.toggleSaveToPreset();
 }
-ACTION(save) { applyRuntimeCommand(RuntimeCommand::savePreset(int(v))); }
+ACTION(save) { applyRuntimeCommand(RuntimeCommand::savePreset(int(v)), runtime); }
 ACTION(saveOrRestore) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if ((runtime != NULL) && runtime->saveToPreset()) {
-        applyRuntimeCommand(RuntimeCommand::savePreset(int(v)));
-        runtime->clearSaveToPreset();
+    if (runtime.saveToPreset()) {
+        applyRuntimeCommand(RuntimeCommand::savePreset(int(v)), runtime);
+        runtime.clearSaveToPreset();
     } else {
-        applyRuntimeCommand(RuntimeCommand::restorePreset(int(v)));
+        applyRuntimeCommand(RuntimeCommand::restorePreset(int(v)), runtime);
     }
 }
 
 ACTION(toggleStatus) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->toggleStatus();
+    runtime.toggleStatus();
 }
-ACTION(toggleFPS) { applyRuntimeCommand(RuntimeCommand::toggleShowFps()); }
+ACTION(toggleFPS) { applyRuntimeCommand(RuntimeCommand::toggleShowFps(), runtime); }
 
-ACTION(changeAll) { applyRuntimeCommand(RuntimeCommand::changeAll()); }
-ACTION(changeOne) { applyRuntimeCommand(RuntimeCommand::changeOne()); }
+ACTION(changeAll) { applyRuntimeCommand(RuntimeCommand::changeAll(), runtime); }
+ACTION(changeOne) { applyRuntimeCommand(RuntimeCommand::changeOne(), runtime); }
 
 ACTION(credits) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->set("credits");
+    runtime.set("credits");
 }
 ACTION(setInterface) {
-    InterfaceRuntime* runtime = Keymap::interfaceRuntime();
-    if (runtime != NULL)
-        runtime->set(p);
+    runtime.set(p);
 }
 
 ACTION(randomPalette) {
-    applyRuntimeCommand(RuntimeCommand::randomPalette());
+    applyRuntimeCommand(RuntimeCommand::randomPalette(), runtime);
 }
 ACTION(newRandomPalette) {
-    applyRuntimeCommand(RuntimeCommand::addRandomPalette());
+    applyRuntimeCommand(RuntimeCommand::addRandomPalette(), runtime);
+}
+
+void registerDefaultKeyActions(CommandRegistry& registry) {
+#define REGISTER_ACTION(a) registry.registerAction(new a##Action())
+    REGISTER_ACTION(quit);
+    REGISTER_ACTION(stopAndContinue);
+    REGISTER_ACTION(screenChg);
+    REGISTER_ACTION(zoomChg);
+    REGISTER_ACTION(flameChg);
+    REGISTER_ACTION(flameGeneral);
+    REGISTER_ACTION(waveChg);
+    REGISTER_ACTION(waveScaleChg);
+    REGISTER_ACTION(objectChg);
+    REGISTER_ACTION(translateChg);
+    REGISTER_ACTION(soundProcessChg);
+    REGISTER_ACTION(borderChg);
+    REGISTER_ACTION(flashlightChg);
+    REGISTER_ACTION(paletteChg);
+    REGISTER_ACTION(tableChg);
+    REGISTER_ACTION(imageChg);
+    REGISTER_ACTION(lockChg);
+    REGISTER_ACTION(screen);
+    REGISTER_ACTION(zoom);
+    REGISTER_ACTION(flame);
+    REGISTER_ACTION(wave);
+    REGISTER_ACTION(waveScale);
+    REGISTER_ACTION(object);
+    REGISTER_ACTION(translate);
+    REGISTER_ACTION(soundProcess);
+    REGISTER_ACTION(border);
+    REGISTER_ACTION(flashlight);
+    REGISTER_ACTION(palette);
+    REGISTER_ACTION(table);
+    REGISTER_ACTION(image);
+    REGISTER_ACTION(lock);
+    REGISTER_ACTION(writeIni);
+    REGISTER_ACTION(restore);
+    REGISTER_ACTION(toggleSave);
+    REGISTER_ACTION(save);
+    REGISTER_ACTION(saveOrRestore);
+    REGISTER_ACTION(toggleStatus);
+    REGISTER_ACTION(toggleFPS);
+    REGISTER_ACTION(changeAll);
+    REGISTER_ACTION(changeOne);
+    REGISTER_ACTION(credits);
+    REGISTER_ACTION(setInterface);
+    REGISTER_ACTION(randomPalette);
+    REGISTER_ACTION(newRandomPalette);
+#undef REGISTER_ACTION
 }
