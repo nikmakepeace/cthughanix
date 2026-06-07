@@ -123,10 +123,14 @@ core.*
 CVS/
 
 # Test files
-/*.mp3
-/*.wav
+*.mp3
+*.wav
+!tests/fixtures/
+!tests/fixtures/audio/
+!tests/fixtures/audio/*.wav
+!tests/fixtures/audio/*.mp3
 
-
+# Python bytecode and cache
 __pycache__/
 
 # customised ini file
@@ -142,4 +146,8 @@ __pycache__/
 # build dumps
 /dumps
 
+# 3D model files
 /resources/obj/*
+
+# Random palette maps
+/resources/map/random.*.map

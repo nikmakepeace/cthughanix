@@ -230,3 +230,16 @@
   `cthugha.lock: yes`, warn on likely misspellings such as `chuthga.*`, and decide
   whether future auto-written ini files should keep the old prefix for compatibility.
 - Document `xcthugha` as the current reference target.
+- Update Help text to include the currently mapped keys
+- Update help functionality:
+```--list-palettes (for each map, show index, name, sets)
+--list-palette-sets (for each set, show name)
+--list-palettes=$set_name (for each palette in a set, show name, sets)
+--list-waves (index, name)
+--list-flames (index, name)
+--list-translations (index, name)
+--list-displays (index, name)
+--list-images (index, filename)
+--list-borders (index)
+--list-tables (index)
+--list-sound-processing (index)```

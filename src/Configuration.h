@@ -434,6 +434,7 @@ struct ConfigBuildResult {
     Config config;
     std::vector<ConfigDiagnostic> diagnostics;
     int helpRequested;
+    int versionRequested;
 
     /**
      * Reports whether acquisition and typed conversion succeeded.
@@ -600,6 +601,7 @@ class ConfigurationBuilder {
     DeferredLogBuffer diagnosticsValue;
     ConfigSchema schemaValue;
     int helpRequestedValue;
+    int versionRequestedValue;
 
 public:
     /** Creates an empty builder with no diagnostics. */

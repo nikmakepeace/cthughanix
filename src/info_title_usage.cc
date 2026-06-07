@@ -1,11 +1,9 @@
 #include "cthugha.h"
 #include "information.h"
 #include "AudioOptions.h"
-#include "Option.h"
 #include "DisplayDevice.h"
 #include "CthughaBuffer.h"
 #include "VideoDirector.h"
-#include "QotdMessagesProvider.h"
 #include "TranslationOptions.h"
 #include "configuration_defaults.h"
 
@@ -15,25 +13,17 @@ void title() {
 
     printfv(0,
         "--------------------------------------------------------------------------------\n"
-        "C T H U G H A - L  " VERSION "\n"
+        "C T H U G H A - X  " VERSION "\n"
         "An oscilloscope on acid\n"
-        "by Harald Deischinger\n"
-        "--------------------------------------------------------------------------------\n"
-        "email: deischi@geocities.com\n"
-        "www:   http://www.geocities.com/CapeCanaveral/Lab/6386\n"
-        "mail:  Harald Deischinger\n"
-        "       Am Edhuegel 45\n"
-        "       4115  Kleinzell\n"
-        "       AUSTRIA\n"
-        "--------------------------------------------------------------------------------\n"
-        "Original Program (CTHUGHA V5.1 and V5.3)\n"
-        "  Coded by - Torps Productions: The Digital Aasvogel Group - 1995\n"
-        "  Original Idea & Code:          Kevin Burfitt (zaph@torps.apana.org.au)\n"
-        "--------------------------------------------------------------------------------\n"
-        "Cthugha WWW-Page:            http://www.afn.org/~cthugha\n"
-        "Cthugha newsgroup:           alt.graphics.cthugha\n"
+        "by Harald Deischinger and Nik Makepeace\n"
+        "from an original idea and code by Kevin 'Zaph' Burfitt\n"
+        "further developed by Torps Productions: The Digital Aasvogel Group - 1995\n"
         "--------------------------------------------------------------------------------\n",
         "\n");
+}
+
+void version() {
+    printf("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 static const char* defValue(const char* v) {
@@ -59,8 +49,6 @@ static void PH(const char* txt, const char* def = "") {
 
     printfv(0, fmt, txt, d);
 }
-
-static void PH(const char* txt, const Option& Opt) { PH(txt, Opt.text()); }
 
 static const char* PHInt(int value) {
     static char s[64];
@@ -101,14 +89,19 @@ void usage() {
         audioChannelsText(AUDIO_CONFIG_DEFAULT_CHANNELS));
     PH(" --snd-format FMT    Set sound format to FMT",
         audioSampleFormatText(AUDIO_CONFIG_DEFAULT_FORMAT));
+    PH("");
+
+#if WITH_PULSE == 1
+    PH("PulseAudio output options:");
     PH(" --pulse-server SERVER  Set PulseAudio server",
         AUDIO_CONFIG_DEFAULT_PULSE_SERVER_TEXT);
     PH(" --pulse-latency-ms N  Set PulseAudio target latency");
     PH(" --audio-output-dump FILE  Dump submitted output PCM to WAV");
     PH("");
+#endif
 
 #if WITH_DSP == 1
-    PH("Advanced sound device options:");
+    PH("OSS sound device options:");
     PH(" --snd-method M      Use method M for sound reading",
         PHInt(AUDIO_CONFIG_DEFAULT_DSP_METHOD));
     PH(" --snd-sync          Reset soundcard after reading each block",
@@ -117,9 +110,8 @@ void usage() {
         PHInt(AUDIO_CONFIG_DEFAULT_DSP_FRAGMENTS));
     PH(" --dev-dsp DEV       Set the DSP device to DEV",
         AUDIO_CONFIG_DEFAULT_DSP_DEVICE_PATH);
-#endif
-
     PH("");
+#endif
 
 #if WITH_MIXER == 1
     PH("Mixer options:");
@@ -142,17 +134,23 @@ void usage() {
         PHTimeMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS));
     PH(" -Q, --quiet-time N  Change after short silence",
         PHTimeMs(AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS));
-    PH(" --msg-time N        Time before quiet message are displayed", changeMsgTime.text());
+    PH(" --cumulative-fire-level N      Set cumulative fire threshold to N",
+        PHInt(AUTO_CHANGE_CONFIG_DEFAULT_CUMULATIVE_FIRE_LEVEL));
+    PH("");
+
+    PH("Show a message when the music stops:");
+    PH(" --msg-time N        Time before quiet message are displayed",
+        PHTimeMs(MESSAGES_CONFIG_DEFAULT_QUIET_MESSAGE_MS));
     PH(" --quiet-message-duration-ms N  Quiet message display duration");
     PH(" -q, --quiet-file FILE  Load alternate quiet messages from FILE");
     PH(" --qotd              Enable Quote of the Day quiet messages");
     PH(" --no-qotd           Disable Quote of the Day quiet messages");
-    PH(" --qotd-server SERVER  Quote of the Day server", QotdMessagesProvider::defaultServer());
+    PH(" --qotd-server SERVER  Quote of the Day server",
+        MESSAGES_CONFIG_DEFAULT_QOTD_SERVER_TEXT);
     PH(" --qotd-port PORT    Default Quote of the Day port", MESSAGES_CONFIG_DEFAULT_QOTD_PORT_TEXT);
     PH(" --qotd-prefetch-timeout-ms N  QOTD fetch timeout", qotdPrefetchTimeoutDefault);
-    PH(" --min-noise N       Set level for quiet sound");
-    PH(" --cumulative-fire-level N      Set cumulative fire threshold to N",
-        PHInt(AUTO_CHANGE_CONFIG_DEFAULT_CUMULATIVE_FIRE_LEVEL));
+    PH(" --min-noise N       Set level for quiet sound",
+        PHInt(AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE));
     PH("");
 
     PH("General Effect Controls (\"Buffer\" options):");
@@ -178,7 +176,7 @@ void usage() {
     PH(" -f, --flame N       Start with flame N");
     PH(" -w, --wave N        Start with wave N (how sound is drawn)");
     PH(" --wave-scale N      Start with wave scale value N");
-    PH(" -o, --object N      Start with 3D object N (used by some waves)");
+    PH(" -o, --object N      Start with 3D object N (used by wire waves)");
     PH(" -t, --translation N Start with translation N");
     PH(" --border N          Start with buffer border N");
     PH(" -p, --palette N     Start with palette N");
@@ -186,6 +184,8 @@ void usage() {
     PH(" -m, --sound-processing N  Start with sound processing N");
     PH(" -a, --table N       Start with table N (how palette is used in wave)");
     PH(" --image N           Start with image N");
+    PH("");
+
     PH("Display options:");
     PH(" -D, --disp-mode MODE    Set graphics mode (window size)");
     for (int i = 0; i < nScreenSizes; i++) {
@@ -198,6 +198,9 @@ void usage() {
     PH(" --zoom N            Set Zoom factor to N (0 = fit window/screen)");
     PH(" --max-fps N         Set maximal frames per seond to N (0 = no limit)");
     PH(" --show-fps          Show a live FPS counter");
+    PH("");
+
+#if WITH_X11 == 1
     PH("X11 options:");
     PH(" --root              Display on root window");
     PH(" --install           Install a private colormap");
@@ -208,6 +211,8 @@ void usage() {
     PH(" --no-decorate       Do not decorate window (set override_redirect flag)");
     PH(" --font F            Font to use for Cthugha");
     PH("");
+#endif
+
     PH("General options:");
     PH(" -E, --path LIBDIR   An extra searchpath for map, image and tab-files");
     PH("                     cthugha searches in LIBDIR/map, LIBDIR/img and LIBDIR/tab");
@@ -218,6 +223,7 @@ void usage() {
     PH(" --verbose[=LVL]     Print some extra information");
     PH("                     --verbose without LVL sets a level of 4");
     PH(" --no-verbose        Print no extra information");
+    PH(" --version           Print version information and exit");
     PH(" -?, --help          This Text");
     PH("");
     PH("Most switches can be used in a no-form to disable the feature.");

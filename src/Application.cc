@@ -460,17 +460,22 @@ int Application::initialize() {
     startupConfigDiagnostics = startupConfig.diagnostics;
     loggingRuntimeValue.configure(startupConfigValue.logging);
 
-    emitStartupConfigDiagnostics(startupConfigDiagnostics, logSinkValue);
-    if (!startupConfig.ok()) {
-        title();
-        usage();
-        return 0;
-    }
-
     if (startupConfig.helpRequested) {
         title();
         usage();
         exitStatusValue = 0;
+        return 0;
+    }
+
+    if (startupConfig.versionRequested) {
+        version();
+        exitStatusValue = 0;
+        return 0;
+    }
+
+    emitStartupConfigDiagnostics(startupConfigDiagnostics, logSinkValue);
+    if (!startupConfig.ok()) {
+        usage();
         return 0;
     }
 
@@ -494,7 +499,6 @@ int Application::initialize() {
 
     initSceneRuntime();
 
-    title();
     videoDirectorValue.silenceMessages().initialize();
 
     init_imath();

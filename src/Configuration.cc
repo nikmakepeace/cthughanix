@@ -818,12 +818,28 @@ static bool isHelpOption(const std::string& arg) {
     return arg == "--help" || arg == "-?";
 }
 
+static bool isVersionOption(const std::string& arg) {
+    return arg == "--version";
+}
+
 static int commandLineHelpRequested(const std::vector<std::string>& args) {
     for (int i = 1; i < int(args.size()); i++) {
         const std::string& arg = args[i];
         if (arg == "--")
             break;
         if (isHelpOption(arg))
+            return 1;
+    }
+
+    return 0;
+}
+
+static int commandLineVersionRequested(const std::vector<std::string>& args) {
+    for (int i = 1; i < int(args.size()); i++) {
+        const std::string& arg = args[i];
+        if (arg == "--")
+            break;
+        if (isVersionOption(arg))
             return 1;
     }
 
@@ -1434,6 +1450,8 @@ static void applyCommandLineOption(ConfigPatch& patch,
         if (readShortOptionValue(args, index, arg, &value, diagnostics))
             setBufferSize(patch, "command line", value);
     } else if (isHelpOption(arg)) {
+        return;
+    } else if (isVersionOption(arg)) {
         return;
     } else if (arg == "--") {
         *index = int(args.size());
@@ -2514,11 +2532,13 @@ ConfigPatch CommandLineConfigSource::acquire(DeferredLogBuffer& diagnostics) con
 }
 
 ConfigurationBuilder::ConfigurationBuilder()
-    : helpRequestedValue(0) { }
+    : helpRequestedValue(0)
+    , versionRequestedValue(0) { }
 
 ConfigurationBuilder::ConfigurationBuilder(const DeferredLogBuffer& diagnostics)
     : diagnosticsValue(diagnostics)
-    , helpRequestedValue(0) { }
+    , helpRequestedValue(0)
+    , versionRequestedValue(0) { }
 
 ConfigurationBuilder& ConfigurationBuilder::addSource(
     const ConfigAcquisitionStrategy& source) {
@@ -2565,12 +2585,16 @@ ConfigurationBuilder& ConfigurationBuilder::addCommandLine(
     const std::vector<std::string>& args) {
     CommandLineConfigSource source(args);
     helpRequestedValue = helpRequestedValue || commandLineHelpRequested(args);
+    versionRequestedValue
+        = versionRequestedValue || commandLineVersionRequested(args);
     return addSource(source);
 }
 
 ConfigurationBuilder& ConfigurationBuilder::addCommandLine(
     std::vector<std::string>&& args) {
     helpRequestedValue = helpRequestedValue || commandLineHelpRequested(args);
+    versionRequestedValue
+        = versionRequestedValue || commandLineVersionRequested(args);
     CommandLineConfigSource source(std::move(args));
     return addSource(source);
 }
@@ -2591,6 +2615,7 @@ ConfigBuildResult ConfigurationBuilder::build() const {
     result.config = schemaValue.build(patchValue, diagnostics);
     result.diagnostics = diagnostics.diagnostics();
     result.helpRequested = helpRequestedValue;
+    result.versionRequested = versionRequestedValue;
     return result;
 }
 
