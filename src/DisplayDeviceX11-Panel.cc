@@ -565,8 +565,7 @@ void DisplayDeviceX11::updatePanelSelectionLabels() {
             currentNameOrEmpty(translation) },
         { "Palette", RuntimeConfigSelectionPalette, currentNameOrEmpty(palette) },
         { "Table", RuntimeConfigSelectionTable, currentNameOrEmpty(table) },
-        { "Image", RuntimeConfigSelectionImage,
-            currentNameOrEmpty(sceneCommands.imageOption()) },
+        { "Image", RuntimeConfigSelectionImage, currentNameOrEmpty(images) },
         { "Objects", RuntimeConfigSelectionObject, currentNameOrEmpty(object) },
     };
 
@@ -686,7 +685,7 @@ void DisplayDeviceX11::xcth_create_panel() {
         panelMenuButtons[3]);
     panelMenuButtons[5] = add_menu("Table", &table, panel, quit_button,
         panelMenuButtons[4]);
-    panelMenuButtons[6] = add_menu("Image", &sceneCommands.imageOption(), panel,
+    panelMenuButtons[6] = add_menu("Image", &images, panel,
         quit_button, panelMenuButtons[5]);
     panelMenuButtons[7] = add_menu("Objects", &object, panel, quit_button,
         panelMenuButtons[6]);

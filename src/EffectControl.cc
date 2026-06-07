@@ -1,6 +1,5 @@
 #include "cthugha.h"
 #include "EffectControl.h"
-#include "EffectControlPolicy.h"
 #include "ProcessServices.h"
 
 #include <string>
@@ -49,7 +48,6 @@ EffectControl::EffectControl(int b, const char* n, EffectChoiceList& e, int flag
     oldValues = new int[MAX_HISTORY];
     history = 0;
 
-    effectControlPolicyObserve(*this);
 }
 
 EffectControl& EffectControl::operator=(const EffectControl& other) {
@@ -351,7 +349,6 @@ EffectControl* EffectControl::firstRegistered() { return first; }
 //
 void EffectControl::add(EffectChoice* entry) {
     entries.add(entry);
-    effectControlPolicyObserve(*this);
 }
 void EffectControl::add(EffectChoice** entries, int nEntries) {
     for (int i = 0; i < nEntries; i++)

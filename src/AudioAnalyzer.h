@@ -49,12 +49,12 @@ public:
     int fire() const;
 
     /**
-     * @return Accumulated fire value since the last reset, used by AutoChanger.
+     * @return Accumulated fire value since the last reset, used by SceneChangeScheduler.
      */
     int cumulativeFireLevel() const;
 
     /**
-     * Clears accumulated fire after AutoChanger consumes a threshold crossing.
+     * Clears accumulated fire after SceneChangeScheduler consumes a threshold crossing.
      */
     void resetCumulativeFireLevel();
 };

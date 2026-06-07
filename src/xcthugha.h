@@ -30,7 +30,7 @@ void configureDisplayDeviceX11(const X11Config& config);
 #include "RuntimeCommandSink.h"
 
 class Scene;
-class SceneCommands;
+class ImageOption;
 class RuntimeConfigRegistry;
 class RuntimeCommandTargetRouter;
 class SecondsClock;
@@ -38,7 +38,7 @@ class InputEventSink;
 
 class DisplayDeviceX11 : public DisplayDevice, public RuntimePaletteMetadataTarget {
     Scene& scene;
-    SceneCommands& sceneCommands;
+    ImageOption& images;
     RuntimeCommandSink& runtimeCommands;
     RuntimeCommandTargetRouter& runtimeCommandRouter;
     RuntimeConfigRegistry& runtimeConfigRegistry;
@@ -200,7 +200,7 @@ protected:
     void xcth_create_panel();
 
 public:
-    DisplayDeviceX11(Scene& scene_, SceneCommands& sceneCommands_,
+    DisplayDeviceX11(Scene& scene_, ImageOption& images_,
         RuntimeCommandSink& runtimeCommands_,
         RuntimeCommandTargetRouter& runtimeCommandRouter_,
         RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config,

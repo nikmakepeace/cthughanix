@@ -14,7 +14,6 @@ class RuntimeAutoChangeControls;
 class RuntimeCommandSink;
 class RuntimeDisplayControls;
 class RuntimeEffectControls;
-class SceneCommands;
 
 /**
  * Target for generic runtime option commands.
@@ -85,6 +84,29 @@ public:
 };
 
 /**
+ * Owner port for legacy EffectControls that are still routed by identity.
+ */
+class RuntimeEffectControlOwner {
+public:
+    /** Destroys the owner interface. */
+    virtual ~RuntimeEffectControlOwner() { }
+
+    /** Returns nonzero when this owner handles the supplied control. */
+    virtual int ownsEffectControl(const EffectControl& control) const = 0;
+
+    /** Applies a relative change through the owning subsystem. */
+    virtual void changeEffectControlBy(
+        EffectControl& control, int by, int doSave = 0) = 0;
+
+    /** Applies an absolute change through the owning subsystem. */
+    virtual void changeEffectControlTo(
+        EffectControl& control, const char* to, int doSave = 0) = 0;
+
+    /** Activates one choice through the owning subsystem. */
+    virtual void activateEffectControl(EffectControl& control, int index) = 0;
+};
+
+/**
  * Runtime option target that routes a legacy Option through subsystem ports.
  */
 class RoutedRuntimeOptionTarget : public RuntimeOptionTarget {
@@ -119,7 +141,7 @@ public:
  */
 class RoutedRuntimeEffectControlTarget : public RuntimeEffectControlTarget {
     EffectControl& control;
-    SceneCommands& sceneCommands;
+    RuntimeEffectControlOwner& effectControlOwner;
     RuntimeDisplayControls& displayControls;
     RuntimeEffectControls& effectControls;
 
@@ -128,12 +150,13 @@ public:
      * Creates a routed effect-control target.
      *
      * @param control_ Legacy effect control being routed.
-     * @param sceneCommands_ Scene command port for scene-owned controls.
+     * @param effectControlOwner_ Owner port for migrated controls.
      * @param displayControls_ Display control port.
      * @param effectControls_ Effect control port.
      */
     RoutedRuntimeEffectControlTarget(EffectControl& control_,
-        SceneCommands& sceneCommands_, RuntimeDisplayControls& displayControls_,
+        RuntimeEffectControlOwner& effectControlOwner_,
+        RuntimeDisplayControls& displayControls_,
         RuntimeEffectControls& effectControls_);
 
     /** Applies a relative effect-control change through the owning subsystem. */
@@ -233,7 +256,7 @@ public:
  */
 class RoutedRuntimeCommandTargetRouter : public RuntimeCommandTargetRouter {
     RuntimeCommandSink& runtimeCommands;
-    SceneCommands& sceneCommands;
+    RuntimeEffectControlOwner& effectControlOwner;
     RuntimeDisplayControls& displayControls;
     RuntimeAudioControls& audioControls;
     RuntimeAutoChangeControls& autoChangeControls;
@@ -244,14 +267,15 @@ public:
      * Creates a routed target router.
      *
      * @param runtimeCommands_ Command sink that executes target-backed commands.
-     * @param sceneCommands_ Scene command port for scene-owned controls.
+     * @param effectControlOwner_ Owner port for migrated controls.
      * @param displayControls_ Display control port.
      * @param audioControls_ Audio control port.
      * @param autoChangeControls_ Auto-change control port.
      * @param effectControls_ Effect control port.
      */
     RoutedRuntimeCommandTargetRouter(RuntimeCommandSink& runtimeCommands_,
-        SceneCommands& sceneCommands_, RuntimeDisplayControls& displayControls_,
+        RuntimeEffectControlOwner& effectControlOwner_,
+        RuntimeDisplayControls& displayControls_,
         RuntimeAudioControls& audioControls_,
         RuntimeAutoChangeControls& autoChangeControls_,
         RuntimeEffectControls& effectControls_);

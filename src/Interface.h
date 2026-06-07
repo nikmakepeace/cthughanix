@@ -6,7 +6,6 @@
 #include "cthugha.h"
 #include "EffectControl.h"
 
-class AutoChangerStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
 class CommandContext;

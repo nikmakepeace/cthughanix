@@ -485,35 +485,131 @@ static void testAudioFrameOwnsPerFrameMetrics() {
         "const AcousticContext* acousticContext() const");
     assertSourceContains("src/PresentationComposer.cc",
         "ScreenRenderContext(source, destination, frameTimeSeconds,");
-    assertSourceContains("src/AutoChanger.cc",
-        "void AutoChanger::operator()(const AudioMetrics& metrics)");
-    assertSourceContains("src/AutoChanger.h",
+    assertSourceContains("src/SceneChangeScheduler.cc",
+        "void SceneChangeScheduler::operator()(const AudioMetrics& metrics)");
+    assertSourceContains("src/SceneChangeScheduler.h",
         "AcousticContext& acousticContext_");
-    assertSourceContains("src/AutoChanger.h", "class AutoChangeQuietObserver");
-    assertSourceContains("src/AutoChanger.h",
+    assertSourceContains("src/SceneChangeScheduler.h",
+        "class AutoChangeQuietObserver");
+    assertSourceContains("src/SceneChangeScheduler.h",
         "AutoChangeQuietObserver& quietObserver_");
-    assertSourceContains("src/AutoChanger.h", "LogSink& log_");
-    assertSourceContains("src/AutoChanger.cc", "log.debug");
-    assertSourceContains("src/AutoChanger.cc",
+    assertSourceContains("src/SceneChangeScheduler.h", "LogSink& log_");
+    assertSourceContains("src/SceneChangeScheduler.cc", "log.debug");
+    assertSourceContains("src/SceneChangeScheduler.cc",
         "quietObserver.observeQuiet(quiet_length)");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "videoDirector()");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "#include \"VideoDirector.h\"");
-    assertSourceContains("src/AutoChanger.h", "mutable char statusTextValue[512]");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "static char txt");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "#include \"cthugha.h\"");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "CTH_DEBUG");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "videoDirector()");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "#include \"VideoDirector.h\"");
+    assertSourceContains("src/SceneChangeScheduler.h",
+        "mutable char statusTextValue[512]");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "static char txt");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "#include \"cthugha.h\"");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "CTH_DEBUG");
     assertSourceContains("src/Application.h",
-        "std::unique_ptr<AutoChanger> autoChangerValue");
+        "std::unique_ptr<SceneChangeScheduler> sceneChangeSchedulerValue");
     assertSourceContains("src/Application.cc",
-        "autoChangerValue.reset(new AutoChanger");
+        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler");
     assertSourceContains("src/Application.cc",
-        "(*autoChangerValue)(frame.metrics)");
-    assertSourceContains("src/AutoChanger.h",
-        "class AutoChanger : public AutoChangerStatusProvider");
+        "(*sceneChangeSchedulerValue)(frame.metrics)");
+    assertSourceContains("src/SceneChangeScheduler.h",
+        "class SceneChangeScheduler : public SceneChangeStatusProvider");
+    assertSourceContains("src/SceneChangeScheduler.h",
+        "SceneCommandTarget& sceneCommands");
+    assertSourceContains("src/Scene.h", "enum SceneSelectionTarget");
+    assertSourceContains("src/Scene.h",
+        "void change(SceneSelectionTarget target, int by)");
+    assertSourceContains("src/RuntimeChangeMediator.h",
+        "SceneCommandTarget& sceneCommands");
+    assertSourceDoesNotContain("src/RuntimeChangeMediator.h",
+        "SceneCommands& sceneCommands");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "sceneSelectionTargetFromRuntime(target)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "sceneCommands.change(sceneSelectionTargetFromRuntime(target), by)");
+    assertSourceContains("src/RuntimeChangeMediator.cc",
+        "sceneCommands.change(sceneSelectionTargetFromRuntime(target), to)");
+    assertSourceContains("src/Scene.h",
+        "class SceneCommandsTarget : public SceneCommandTarget");
+    assertSourceContains("src/LegacySceneEffectControlTarget.h",
+        "class SceneCommandsEffectControlOwner : public RuntimeEffectControlOwner");
+    assertSourceContains("src/LegacySceneEffectControlTarget.h",
+        "virtual int ownsEffectControl(const EffectControl& option) const");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlTarget.h",
+        "class SceneEffectControlTarget");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlTarget.h",
+        "SceneCommandsEffectControlTarget");
+    assertSourceDoesNotContain("src/Scene.h",
+        "class SceneEffectControlTarget");
+    assertSourceDoesNotContain("src/Scene.h",
+        "class SceneCommandsEffectControlTarget : public SceneEffectControlTarget");
+    assertSourceDoesNotContain("src/Scene.h",
+        "friend class SceneCommandsEffectControlTarget");
+    assertSourceDoesNotContain("src/Scene.h",
+        "friend class SceneCommandsEffectControlOwner");
+    assertSourceDoesNotContain("src/Scene.h",
+        "EffectControl& option");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "#include \"LegacySceneEffectControlTarget.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "#include \"LegacySceneEffectControlCatalog.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "#include \"EffectControlPolicy.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "#include \"EffectRegistry.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "#include \"EffectPresetCatalog.h\"");
+    assertSourceContains("src/SceneRuntime.h",
+        "std::unique_ptr<RuntimeEffectControlOwner> effectControlOwnerValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "SceneEffectControlTarget");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneSelectionPolicyApplier sceneSelectionPolicyApplierValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<EffectPolicyApplier> effectPolicyApplierValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<EffectRegistry> effectRegistryValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<EffectPresetCatalog> effectPresetCatalogValue");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "#include \"LegacySceneEffectControlTarget.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "#include \"LegacySceneEffectControlCatalog.h\"");
+    assertSourceContains("src/SceneRuntime.cc",
+        "#include \"RuntimeCommandTargets.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "#include \"EffectControlPolicy.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "#include \"EffectRegistry.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "#include \"EffectPresetCatalog.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "new SceneCommandsEffectControlOwner");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "new SceneCommandsEffectControlOwner");
+    assertSourceContains("src/CMakeLists.txt",
+        "LegacySceneEffectControlTarget.cc");
+    assertSourceContains("src/Application.cc",
+        "sceneRuntimeValue->commandTarget()");
+    assertSourceContains("src/Application.cc",
+        "sceneRuntimeValue->effectControlOwner()");
+    assertSourceDoesNotContain("src/Application.cc",
+        "sceneRuntimeValue->effectControlTarget()");
+    assertSourceContains("src/SceneChangeScheduler.cc",
+        "sceneCommands.changeOne()");
+    assertSourceContains("src/SceneChangeScheduler.cc",
+        "sceneCommands.changeAll()");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "RuntimeCommandSink");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "RuntimeCommand::changeOne()");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "RuntimeCommand::changeAll()");
     assertSourceContains("src/InterfaceRuntime.h",
-        "const AutoChangerStatusProvider* autoChangerStatusProviderValue");
+        "const SceneChangeStatusProvider* sceneChangeStatusProviderValue");
     assertSourceContains("src/Application.cc",
-        "interfaceRuntimeValue->setAutoChangerStatusProvider(autoChangerValue.get())");
+        "interfaceRuntimeValue->setSceneChangeStatusProvider(\n"
+        "        sceneChangeSchedulerValue.get())");
     assertSourceContains("src/Application.cc", "class VideoDirectorQuietObserver");
     assertSourceContains("src/Application.cc",
         "autoChangeQuietObserverValue.reset(");
@@ -534,7 +630,7 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceDoesNotContain("src/AudioProcessor.cc", "audioFrameCurrent");
     assertSourceDoesNotContain("src/AudioProcessor.cc", "audioFrameRawData");
     assertSourceDoesNotContain("src/AudioProcessor.cc", "audioFrameProcessedWaveData");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "audioFrameMetrics");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "audioFrameMetrics");
     assertSourceDoesNotContain("src/Border.cc", "audioFrameRawData");
     assertSourceDoesNotContain("src/display.cc", "audioFrameMetrics");
     assertSourceDoesNotContain("src/display.cc", "audioFrameProcessedWaveData");
@@ -548,9 +644,9 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceDoesNotContain("src/AudioAnalyzer.cc", "sound_minnoise");
     assertSourceDoesNotContain("src/Interface.cc", "sound_minnoise");
     assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc", "sound_minnoise");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "audioMetrics.");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern AutoChanger* autoChanger");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "AutoChanger* autoChanger");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "audioMetrics.");
+    assertSourceDoesNotExist("src/AutoChanger.h");
+    assertSourceDoesNotExist("src/AutoChanger.cc");
     assertSourceDoesNotContain("src/Interface.cc", "autoChanger->");
     assertSourceDoesNotContain("src/display.cc", "audioMetrics.");
 }
@@ -586,7 +682,9 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/Application.cc",
         "interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get())");
     assertSourceContains("src/Application.cc",
-        "autoChangerValue.reset(new AutoChanger(*runtimeChangeMediatorValue");
+        "sceneRuntimeValue->commandTarget()");
+    assertSourceContains("src/Application.cc",
+        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler(sceneRuntimeValue->commandTarget()");
     assertSourceContains("src/Application.cc",
         "millisecondClockValue, randomSourceValue");
     assertSourceContains("src/Application.h",
@@ -611,10 +709,10 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceDoesNotContain("src/Application.cc", "time(0)");
     assertSourceContains("tests/unit/ProcessServicesTest.cc",
         "testSeededRandomSourcesAreDeterministicAndIndependent");
-    assertSourceContains("src/AutoChanger.h", "MillisecondClock& clock");
-    assertSourceContains("src/AutoChanger.h", "RandomSource& randomSource");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "gettime()");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "rand()");
+    assertSourceContains("src/SceneChangeScheduler.h", "MillisecondClock& clock");
+    assertSourceContains("src/SceneChangeScheduler.h", "RandomSource& randomSource");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "gettime()");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "rand()");
     assertSourceContains("src/VideoDirector.h", "RandomSource* randomSourceValue");
     assertSourceContains("src/VideoDirector.cc",
         "silenceMessage.setRandomSource(randomSource)");
@@ -627,14 +725,15 @@ static void testAutoChangeSettingsAreApplicationOwned() {
         "testDefaultMessagesUseInjectedRandomSource");
     assertSourceContains("src/Application.cc",
         "*autoChangeSettingsValue");
-    assertSourceContains("src/AutoChanger.h",
+    assertSourceContains("src/SceneChangeScheduler.h",
         "const AutoChangeSettings& settings");
-    assertSourceContains("src/AutoChanger.cc", "settings.quietMs()");
-    assertSourceContains("src/AutoChanger.cc", "settings.waitMinMs()");
-    assertSourceContains("src/AutoChanger.cc", "settings.waitRandomMs()");
-    assertSourceContains("src/AutoChanger.cc", "settings.cumulativeFireLevel()");
-    assertSourceContains("src/AutoChanger.cc", "settings.locked()");
-    assertSourceContains("src/AutoChanger.cc", "settings.changeLittle()");
+    assertSourceContains("src/SceneChangeScheduler.cc", "settings.quietMs()");
+    assertSourceContains("src/SceneChangeScheduler.cc", "settings.waitMinMs()");
+    assertSourceContains("src/SceneChangeScheduler.cc", "settings.waitRandomMs()");
+    assertSourceContains("src/SceneChangeScheduler.cc",
+        "settings.cumulativeFireLevel()");
+    assertSourceContains("src/SceneChangeScheduler.cc", "settings.locked()");
+    assertSourceContains("src/SceneChangeScheduler.cc", "settings.changeLittle()");
     assertSourceContains("src/RuntimeAutoChangeControls.cc",
         "autoChangeControls.changeOptionBy(option, by)");
     assertSourceContains("src/Interface.cc",
@@ -647,18 +746,30 @@ static void testAutoChangeSettingsAreApplicationOwned() {
         "runtime_auto_change_controls_test");
     assertSourceContains("tests/unit/RuntimeAutoChangeControlsTest.cc",
         "class FakeAutoChangeSettings");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeQuiet");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeWaitMin");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionTime changeWaitRandom");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionInt changeCumulativeFireLevel");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionOnOff lock");
-    assertSourceDoesNotContain("src/AutoChanger.h", "extern OptionOnOff change_little");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeQuiet");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeWaitMin");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionTime changeWaitRandom");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionInt changeCumulativeFireLevel");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionOnOff lock");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "OptionOnOff change_little");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionTime changeQuiet");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionTime changeWaitMin");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionTime changeWaitRandom");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionInt changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionOnOff lock");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h",
+        "extern OptionOnOff change_little");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionTime changeQuiet");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionTime changeWaitMin");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionTime changeWaitRandom");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionInt changeCumulativeFireLevel");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionOnOff lock");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "OptionOnOff change_little");
     assertSourceDoesNotContain("src/Application.cc",
         "configureAutoChanger(startupConfigValue.autoChange)");
     assertSourceDoesNotContain("src/Interface.cc", "&changeWaitMin");
@@ -951,7 +1062,11 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Configuration.h", "struct AudioAnalysisConfig");
     assertSourceContains("src/Configuration.h", "AudioAnalysisConfig audioAnalysis");
     assertSourceDoesNotContain("src/Application.cc", "configureAudioAnalyzer");
-    assertSourceContains("src/Application.cc", "configureEffectPolicy(startupConfigValue.effectPolicy)");
+    assertSourceContains("src/Application.cc",
+        "sceneRuntimeValue->configureEffectPolicy(startupConfigValue.effectPolicy)");
+    assertSourceContains("src/Application.cc",
+        "init_flashlight();\n"
+        "    sceneRuntimeValue->configureEffectPolicy(startupConfigValue.effectPolicy)");
     assertSourceContains("src/Application.cc", "configureTranslationOptions(startupConfigValue.effectPolicy)");
     assertSourceContains("src/Application.cc", "configureWaveOptions(startupConfigValue.effectPolicy)");
     assertSourceContains("src/Application.cc", "configurePaletteOptions(startupConfigValue.effectPolicy)");
@@ -961,7 +1076,14 @@ static void testApplicationProvidesStartupConfigSlices() {
         "videoDirectorValue.configureTransitions(startupConfigValue.sceneTransition)");
     assertSourceContains("src/Application.cc",
         "videoDirectorValue.configureQuietMessages(startupConfigValue.messages)");
-    assertSourceContains("src/Application.cc", "sceneCommands().applyStartupConfig(startupConfigValue.scene)");
+    assertSourceContains("src/SceneRuntime.h",
+        "void applyStartupConfig(const SceneConfig& config)");
+    assertSourceContains("src/SceneRuntime.cc",
+        "commandsValue.applyStartupConfig(config)");
+    assertSourceContains("src/Application.cc",
+        "sceneRuntimeValue->applyStartupConfig(startupConfigValue.scene)");
+    assertSourceDoesNotContain("src/Application.cc",
+        "sceneCommands().applyStartupConfig(startupConfigValue.scene)");
     assertSourceContains("src/Application.cc",
         "applyDisplayPresentationStartupChoice(startupConfigValue.scene");
     assertSourceDoesNotContain("src/Application.cc", "Keymap::configure");
@@ -975,8 +1097,9 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceDoesNotContain("src/Option.cc", "options_save");
     assertSourceDoesNotContain("src/Option.h", "configureApplicationOptions");
     assertSourceDoesNotContain("src/Option.cc", "configureApplicationOptions");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "configureQuietMessages");
-    assertSourceDoesNotContain("src/AutoChanger.h", "MessagesConfig");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "configureQuietMessages");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.h", "MessagesConfig");
     assertSourceDoesNotContain("src/Configuration.h", "AutoChangeConfig {\n"
         "    int quietMs;\n"
         "    int waitMinMs;\n"
@@ -1031,18 +1154,306 @@ static void testInputStartupUsesInputConfig() {
 static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Configuration.h", "SceneConfig scene");
     assertSourceContains("src/Scene.cc", "SceneCommands::applyStartupConfig");
+    assertSourceContains("src/SceneRuntime.h", "class SceneRuntime");
+    assertSourceContains("src/SceneRuntime.h", "SceneRuntime(SceneGeometry& geometry");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneVisualCatalogFactory& visualCatalogFactory");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneVisualCatalogFactoryResult visualCatalogFactoryResultValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<SceneVisualCatalogs> visualCatalogsValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<SceneRuntimeControlBridge> controlBridgeValue");
+    assertSourceContains("src/SceneRuntime.h", "SceneSelectionState selectionStateValue");
+    assertSourceContains("src/SceneRuntime.h", "SceneCommands commandsValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<EffectRegistry> effectRegistryValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<EffectPresetCatalog> effectPresetCatalogValue");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneSelectionRegistry sceneEffectRegistryValue");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneSelectionPresetCatalog sceneSelectionPresetCatalogValue");
+    assertSourceContains("src/SceneRuntime.h",
+        "SceneSelectionPolicyApplier sceneSelectionPolicyApplierValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "EffectPresetSceneCatalog scenePresetCatalogValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "SceneCommands& commands()");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "CthughaBuffer");
+    assertSourceDoesNotContain("src/SceneRuntime.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceContains("src/SceneRuntime.h", "SceneSerializer serializerValue");
+    assertSourceContains("src/SceneRuntime.cc",
+        "SceneCommandDependencies(\n"
+        "              *visualCatalogFactoryResultValue.visualCatalogs");
+    assertSourceContains("src/SceneRuntime.cc",
+        "sceneEffectRegistryValue, sceneSelectionPresetCatalogValue");
+    assertSourceContains("src/SceneRuntime.cc",
+        "sceneSelectionPolicyApplierValue(sceneEffectRegistryValue,\n"
+        "          sceneSelectionPresetCatalogValue)");
+    assertSourceContains("src/SceneRuntime.cc",
+        "sceneSelectionPolicyApplierValue.configure(policy)");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "scenePresetCatalogValue(*effectPresetCatalogValue");
+    assertSourceContains("src/SceneRuntime.cc",
+        "visualCatalogFactory.create(selectionStateValue)");
+    assertSourceContains("src/SceneRuntime.cc",
+        "*visualCatalogFactoryResultValue.controlBridge");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "registerControls(*effectRegistryValue)");
+    assertSourceContains("src/SceneRuntime.cc",
+        "sceneEffectRegistryValue.registerSelections");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneSelectionRegistry : public SceneEffectRegistry");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "RegistrySceneEffectRegistry sceneEffectRegistryValue");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "legacyEffectControls");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "dynamic_cast<void*>");
+    assertSourceContains("src/CMakeLists.txt", "SceneRuntime.cc");
     assertSourceContains("src/Scene.h", "class SceneCommandDependencies");
+    assertSourceContains("src/Scene.h", "class SceneGeometry");
+    assertSourceContains("src/Scene.h", "ScenePresetCatalog& presets");
+    assertSourceDoesNotContain("src/Scene.h", "EffectPresetCatalog");
     assertSourceContains("src/SceneDependencies.h", "class SceneEffectRegistry");
+    assertSourceContains("src/SceneDependencies.h", "class ScenePresetCatalog");
+    assertSourceContains("src/CMakeLists.txt", "SceneRuntimeDependencies.cc");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
+        "class EffectPresetSceneCatalog");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneSelectionPresetCatalog : public ScenePresetCatalog");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneSelectionPolicyApplier");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class EffectPresetSceneCatalog");
+    assertSourceContains("src/SceneGeometry.h", "class SceneGeometry");
+    assertSourceContains("src/CMakeLists.txt", "SceneGeometry.cc");
+    assertSourceDoesNotExist("src/CthughaBufferSceneGeometry.h");
+    assertSourceDoesNotExist("src/CthughaBufferSceneGeometry.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "CthughaBufferSceneGeometry.cc");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "CthughaBuffer");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceContains("src/VideoDirector.h",
+        "class VideoDirector : public SceneObserver, public SceneGeometry");
+    assertSourceContains("src/VideoDirector.h", "#include \"SceneGeometry.h\"");
+    assertSourceContains("src/VideoDirector.h", "virtual int width() const");
+    assertSourceContains("src/VideoDirector.h", "virtual int height() const");
+    assertSourceContains("src/VideoDirector.cc", "return targetBuffer.width()");
+    assertSourceContains("src/VideoDirector.cc", "return targetBuffer.height()");
     assertSourceContains("src/Application.h", "VideoDirector videoDirectorValue");
-    assertSourceContains("src/Application.cc", "SceneCommandDependencies sceneDependencies");
+    assertSourceDoesNotContain("src/Application.h",
+        "std::unique_ptr<SceneGeometry> sceneGeometryValue");
+    assertSourceDoesNotContain("src/Application.h",
+        "std::unique_ptr<SceneVisualSelections> sceneVisualSelectionsValue");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<SceneVisualCatalogFactory> sceneVisualCatalogFactoryValue");
+    assertSourceDoesNotContain("src/Application.h", "LegacySceneVisualCatalogs.h");
+    assertSourceDoesNotContain("src/Application.h", "SceneDependencies.h");
+    assertSourceDoesNotContain("src/Application.h", "CthughaBufferSceneGeometry.h");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<SceneRuntime> sceneRuntimeValue");
+    assertSourceContains("src/Application.h",
+        "class SceneRuntime");
+    assertSourceDoesNotContain("src/Application.cc",
+        "#include \"CthughaBufferSceneGeometry.h\"");
+    assertSourceDoesNotContain("src/Application.cc",
+        "sceneGeometryValue");
+    assertSourceContains("src/Application.cc",
+        "createLegacySceneVisualCatalogFactory(flame, flameGeneral, wave");
+    assertSourceDoesNotContain("src/Application.cc",
+        "sceneVisualSelectionsValue = createLegacySceneSelectionAdapters");
+    assertSourceDoesNotContain("src/Application.cc",
+        "#include \"LegacySceneSelectionAdapters.h\"");
+    assertSourceContains("src/Application.cc",
+        "flameGeneral, wave,\n"
+        "            waveScale, table, object");
+    assertSourceContains("src/Application.cc",
+        "sceneRuntimeValue.reset(new SceneRuntime(videoDirectorValue,\n"
+        "        *sceneVisualCatalogFactoryValue, randomSourceValue))");
+    assertSourceDoesNotContain("src/Application.cc",
+        "new LegacySceneVisualCatalogFactory(*sceneVisualSelectionsValue)");
+    assertSourceContains("src/Application.cc",
+        "videoDirectorValue.bindScene(sceneRuntimeValue->scene())");
+    assertSourceContains("src/Application.cc",
+        "*sceneVisualCatalogFactoryValue, randomSourceValue)");
+    assertSourceDoesNotContain("src/Application.cc",
+        "SceneCommandDependencies sceneDependencies");
+    assertSourceDoesNotContain("src/Application.cc",
+        "new SceneCommands(*sceneValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "CthughaBufferSceneGeometry geometryValue");
+    assertSourceDoesNotContain("src/Application.h",
+        "LegacySceneVisualCatalogs sceneVisualCatalogsValue");
+    assertSourceContains("src/SceneDependencies.h", "class SceneVisualCatalogs");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneOptionSelection");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneVisualSelections");
+    assertSourceContains("src/SceneVisualSelections.h", "class SceneOptionSelection");
+    assertSourceContains("src/SceneVisualSelections.h", "class SceneVisualSelections");
+    assertSourceContains("src/SceneVisualSelections.h",
+        "const char* to, RandomSource& randomSource) = 0;\n"
+        "    virtual int changeRandom(RandomSource& randomSource) = 0;\n"
+        "    virtual void setValue(int index) = 0;");
+    assertSourceContains("src/CMakeLists.txt", "SceneVisualSelections.cc");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class SceneEffectControlSelection");
+    assertSourceContains("src/LegacySceneEffectControlSelection.h",
+        "class SceneEffectControlSelection : public virtual SceneOptionSelection");
+    assertSourceContains("src/LegacySceneEffectControlSelection.h",
+        "virtual void activate(int index) = 0;");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "#include \"LegacySceneEffectControlSelection.h\"");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "#include \"LegacySceneEffectControlSelection.h\"");
+    assertSourceContains("src/SceneDependencies.h", "class SceneSelectionSynchronizer");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneRuntimeControlBridge : public SceneSelectionSynchronizer");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class SceneRuntimeControlBridge");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneEffectControlCatalog");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
+        "class SceneEffectControlCatalog : public SceneRuntimeControlBridge");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
+        "virtual int isSceneOption(const EffectControl& option) const = 0;");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class EffectControl;");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "EffectControl& option");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneVisualCatalogFactoryResult");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "std::unique_ptr<SceneVisualCatalogs> visualCatalogs");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "std::unique_ptr<SceneRuntimeControlBridge> controlBridge");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneVisualCatalogFactory");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class SceneVisualCatalogFactoryResult");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class SceneVisualCatalogFactory");
+    assertSourceContains("src/Scene.h", "class SceneSelectionState");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "SceneSelectionState& selectionState");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "selectionState.update(settings)");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "return selectionState.settings()");
+    assertSourceContains("src/LegacySceneVisualCatalogs.h",
+        "class LegacySceneVisualCatalogs : public SceneVisualCatalogs");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
+        "public SceneEffectControlCatalog");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "class LegacySceneEffectControlCatalog : public SceneEffectControlCatalog");
+    assertSourceContains("src/LegacySceneVisualCatalogs.h",
+        "class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory");
+    assertSourceContains("src/LegacySceneVisualCatalogs.h",
+        "std::unique_ptr<SceneVisualSelections> ownedSelections");
+    assertSourceContains("src/LegacySceneVisualCatalogs.h",
+        "std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "createLegacySceneVisualCatalogFactory");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "createLegacySceneSelectionAdapters(\n"
+        "            flame, generalFlame, wave, waveScale, table, object");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"display.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"flames.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"waves.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"Border.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"Flashlight.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "#include \"TranslationOptions.h\"");
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "std::unique_ptr<SceneVisualSelections> createLegacySceneSelectionAdapters");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneSelectionAdapters : public SceneVisualSelections");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneFlameSelection");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneImageSelection");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
+        "class LegacySceneFlameSelection");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
+        "class LegacySceneImageSelection");
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
+        "class LegacySceneWaveObjectSource : public SceneWaveObjectSource");
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
+        "class LegacyScenePaletteRandomizer : public ScenePaletteRandomizer");
+    assertSourceContains("src/LegacySceneCatalogAdapters.h",
+        "class SceneWaveObjectSource");
+    assertSourceContains("src/LegacySceneCatalogAdapters.h",
+        "class ScenePaletteRandomizer");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
+        "class LegacySceneWaveObjectSource");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
+        "class LegacyScenePaletteRandomizer");
+    assertSourceContains("src/CMakeLists.txt", "LegacySceneCatalogAdapters.cc");
+    assertSourceContains("src/CMakeLists.txt", "LegacySceneEffectControlCatalog.cc");
+    assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionAdapters.cc");
+    assertSourceContains("src/CMakeLists.txt", "LegacySceneVisualCatalogs.cc");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "FlameOption&");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "GeneralFlameOption&");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "WaveOption&");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "TranslateOption&");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "PaletteOption&");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "ImageOption&");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "FlameOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "GeneralFlameOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "WaveOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "TranslateOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "PaletteOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "ImageOption");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "LegacySceneWaveObjectSource");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "LegacySceneWaveObjectSource");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "LegacyScenePaletteRandomizer");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneWaveObjectSource");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "class ScenePaletteRandomizer");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "FlameOption");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "WaveOption");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "PaletteOption");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "ImageOption");
+    assertSourceContains("src/Scene.h", "SceneVisualCatalogs& visualCatalogs");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.visualCatalogs.currentSettings(geometry)");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.visualCatalogs.applyStartupConfig(config, randomSource)");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "effectControls.isSceneOption(option)");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "dependencies.effectControls.isSceneOption(option)");
+    assertSourceContains("src/Scene.cc",
+        "void SceneCommands::refreshFromOptionsAndMaybeCueImage");
+    assertSourceContains("src/Scene.cc",
+        "syncFromOptionsAndMaybeCueImage(dependencies.selectionSync.syncFromControls())");
+    assertSourceContains("src/Scene.cc",
+        "(forcedChanges & SceneImageChanged) != 0");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "dependencies.effectControls.isImageOption");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "isImageOption");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
+        "isImageOption");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "dependencies.visualCatalogs.isImageOption");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "dependencies.visualCatalogs.isSceneOption");
     assertSourceDoesNotContain("src/VideoDirector.h", "VideoDirector& videoDirector()");
     assertSourceDoesNotContain("src/VideoDirector.cc", "VideoDirector& videoDirector()");
     assertSourceDoesNotContain("src/Scene.h", "sceneCommandsForLegacyCallbacks");
     assertSourceDoesNotContain("src/Scene.cc", "sceneCommandsForLegacyCallbacks");
     assertSourceDoesNotContain("src/Scene.cc", "applyStartupChoice(screen");
-    assertSourceContains("src/Scene.cc", "config.flame");
-    assertSourceContains("src/Scene.cc", "config.wave");
-    assertSourceContains("src/Scene.cc", "config.palette");
+    assertSourceDoesNotContain("src/Scene.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.flame");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.wave");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.palette");
+    assertSourceDoesNotContain("src/Scene.h", "FlameOption& flame");
+    assertSourceDoesNotContain("src/Scene.h", "WaveOption& wave");
+    assertSourceDoesNotContain("src/Scene.h", "PaletteOption& palette");
+    assertSourceDoesNotContain("src/Scene.cc", "dependencies.flame");
+    assertSourceDoesNotContain("src/Scene.cc", "dependencies.wave");
+    assertSourceDoesNotContain("src/Scene.cc", "dependencies.palette");
     assertSourceDoesNotContain("src/options.cc", "flame.setInitialEntry");
     assertSourceDoesNotContain("src/options.cc", "wave.setInitialEntry");
     assertSourceDoesNotContain("src/options.cc", "waveScale.setInitialEntry");
@@ -1056,6 +1467,27 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/options.cc", "screen.setInitialEntry");
     assertSourceDoesNotContain("src/options.cc", "audioProcessing.setInitialEntry");
     assertSourceDoesNotContain("src/IniFiles.cc", "effectControlGetIniInitials");
+}
+
+static void testSceneSnapshotFlowsThroughFrameContext() {
+    assertSourceContains("src/Scene.h", "class SceneSnapshot");
+    assertSourceContains("src/Scene.h", "SceneSnapshot snapshot() const");
+    assertSourceContains("src/Scene.cc",
+        "return SceneSnapshot(settingsValue, versionValue)");
+    assertSourceContains("src/VideoFilterchain.h", "class SceneSnapshot");
+    assertSourceContains("src/VideoFilterchain.h",
+        "const SceneSnapshot* sceneSnapshot");
+    assertSourceContains("src/VideoFilterchain.cc", "sceneSnapshot(0)");
+    assertSourceContains("src/Application.h",
+        "const SceneSnapshot& sceneSnapshot");
+    assertSourceContains("src/Application.cc",
+        "context.sceneSnapshot = sceneSnapshot");
+    assertSourceContains("src/Application.cc",
+        "SceneSnapshot sceneSnapshot = sceneRuntimeValue->snapshot()");
+    assertSourceContains("src/Application.cc",
+        "runVideoFilterchain(audioFrame, sceneSnapshot)");
+    assertSourceContains("src/Application.cc",
+        "acousticContextValue, &sceneSnapshot");
 }
 
 static void testIniPersistenceUsesRuntimePersistenceAdapter() {
@@ -1146,14 +1578,29 @@ static void testIniPersistenceUsesRuntimePersistenceAdapter() {
         "assert(lastIniLogSink == &testLogSink)");
     assertSourceContains("tests/unit/RuntimePersistenceTest.cc",
         "assert(lastContinuationLogSink == &testLogSink)");
+    assertSourceContains("src/SceneSerializer.h", "class SceneSerializer");
+    assertSourceContains("src/SceneSerializer.cc",
+        "config.scene.flame = persistedName(settings.flameName)");
+    assertSourceContains("src/SceneSerializer.cc",
+        "config.scene.image = persistedName(settings.imageName)");
+    assertSourceContains("src/Application.cc",
+        "runtimeConfigRegistryValue->addContributor(sceneRuntimeValue->serializer())");
+    assertSourceDoesNotContain("src/Application.h",
+        "std::unique_ptr<SceneSerializer> sceneSerializerValue");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "SceneCommands");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "sceneCommands");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "ImageOption");
     assertSourceContains("src/LegacyRuntimeConfigContributor.cc",
         "audioProcessingState.text()");
     assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
         "audioProcessing.text()");
     assertSourceDoesNotContain("src/keymap.cc",
         "audioProcessing.text()");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "write_ini");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "options_save");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "write_ini");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "options_save");
     assertSourceDoesNotExist("src/EffectControlIni.cc");
     assertSourceDoesNotExist("src/EffectControlIni.h");
     assertSourceDoesNotContain("src/CMakeLists.txt", "EffectControlIni.cc");
@@ -1327,7 +1774,17 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/RuntimeCommandTargets.h",
         "class RuntimeEffectControlTarget");
     assertSourceContains("src/RuntimeCommandTargets.h",
+        "class RuntimeEffectControlOwner");
+    assertSourceContains("src/RuntimeCommandTargets.h",
         "class RoutedRuntimeEffectControlTarget");
+    assertSourceContains("src/RuntimeCommandTargets.h",
+        "RuntimeEffectControlOwner& effectControlOwner");
+    assertSourceDoesNotContain("src/RuntimeCommandTargets.h",
+        "SceneEffectControlTarget");
+    assertSourceDoesNotContain("src/RuntimeCommandTargets.cc",
+        "#include \"LegacySceneEffectControlTarget.h\"");
+    assertSourceDoesNotContain("src/RuntimeCommandTargets.h",
+        "SceneCommands& sceneCommands");
     assertSourceContains("src/RuntimeCommandTargets.h",
         "class RuntimeCommandTargetRouter");
     assertSourceContains("src/RuntimeCommandTargets.h",
@@ -1414,7 +1871,7 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
         "#include \"AudioProcessor.h\"");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
-        "#include \"AutoChanger.h\"");
+        "#include \"SceneChangeScheduler.h\"");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
         "#include \"CthughaDisplay.h\"");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
@@ -1443,8 +1900,26 @@ static void testX11PanelInputsUseRuntimeCommands() {
         "RuntimeCommand::savePaletteMetadata");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "RuntimeCommand::revertPaletteMetadata");
+    assertSourceContains("src/DisplayDevice.h", "ImageOption& images");
+    assertSourceContains("src/xcthugha.h", "ImageOption& images");
+    assertSourceDoesNotContain("src/DisplayDevice.h", "SceneCommands");
+    assertSourceDoesNotContain("src/xcthugha.h", "SceneCommands");
+    assertSourceDoesNotContain("src/DisplayDeviceX11.cc",
+        "SceneCommands& sceneCommands");
+    assertSourceDoesNotContain("src/Application.h",
+        "SceneCommands& sceneCommands");
+    assertSourceContains("src/Application.cc",
+        "videoDirectorValue.imageOption(), *runtimeChangeMediatorValue");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(images)");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "add_menu(\"Image\", &images");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
         "d->opt->setValue");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "sceneCommands.imageOption()");
+    assertSourceDoesNotContain("src/Scene.h", "imageOption()");
+    assertSourceDoesNotContain("src/Scene.cc", "SceneCommands::imageOption");
 }
 
 static void testSelectionDisplaysUseRuntimeConfigRegistry() {
@@ -1679,7 +2154,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceDoesNotContain("src/Interface.cc",
         "runtimeConfigRegistryValue =");
     assertSourceDoesNotContain("src/Interface.cc",
-        "autoChangerStatusProviderValue =");
+        "sceneChangeStatusProviderValue =");
     assertSourceDoesNotContain("src/Interface.cc",
         "autoChangeControlsValue =");
     assertSourceDoesNotContain("src/Interface.cc",
@@ -1743,14 +2218,18 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/palettes.cc", "::Random(3)");
     assertSourceDoesNotContain("src/palettes.cc", "::Random(256)");
     assertSourceDoesNotContain("src/display.h", "static void Random()");
-    assertSourceContains("src/SceneDependencies.cc",
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
         "PaletteEntry::randomizeLast(randomSource)");
-    assertSourceContains("src/SceneDependencies.cc",
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
+        "PaletteEntry::addRandom(randomSource)");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "PaletteEntry::randomizeLast(randomSource)");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "PaletteEntry::addRandom(randomSource)");
     assertSourceContains("src/Scene.cc",
-        "dependencies.paletteRandomizer.randomizeLast(randomSource)");
+        "dependencies.visualCatalogs.randomPalette(randomSource)");
     assertSourceContains("src/Scene.cc",
-        "dependencies.paletteRandomizer.addRandom(randomSource)");
+        "dependencies.visualCatalogs.addRandomPalette(randomSource)");
     assertSourceContains("tests/unit/PaletteRandomGeneratorTest.cc",
         "testRandomPaletteUsesInjectedRandomSource");
     assertSourceContains("tests/CMakeLists.txt", "palette_random_generator_test");
@@ -1784,6 +2263,14 @@ static void testWavesUseInjectedRandomSource() {
 }
 
 static void testImagePlacementUsesInjectedRandomSource() {
+    assertSourceContains("src/VideoDirector.h",
+        "explicit VideoDirector(CthughaBuffer& targetBuffer_)");
+    assertSourceContains("src/VideoDirector.h",
+        "CthughaBuffer& targetBuffer");
+    assertSourceContains("src/Application.cc",
+        "videoDirectorValue(CthughaBuffer::buffer)");
+    assertSourceDoesNotContain("src/VideoDirector.cc",
+        "CthughaBuffer::buffer");
     assertSourceContains("src/Image.h",
         "int bufferHeight, RandomSource& randomSource) const");
     assertSourceContains("src/Image.cc",
@@ -1799,12 +2286,25 @@ static void testImagePlacementUsesInjectedRandomSource() {
 
 static void testGeneralFlameUsesInjectedRandomSource() {
     assertSourceContains("src/Scene.h", "RandomSource& randomSource");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "palette, border, flashlight, images)");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.imageOption(), sceneWaveObjectsValue");
-    assertSourceContains("src/Scene.cc",
-        "dependencies.generalFlame.changeRandom(randomSource)");
-    assertSourceContains("src/Scene.cc",
-        "applyStartupChoice(dependencies.generalFlame, config.generalFlame");
+        "flashlight, videoDirectorValue.imageOption());");
+    assertSourceContains("src/Application.cc",
+        "*sceneVisualCatalogFactoryValue, randomSourceValue)");
+    assertSourceContains("src/SceneRuntime.cc",
+        "RandomSource& randomSource)");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "case SceneSelectionGeneralFlame");
+    assertSourceDoesNotContain("src/Scene.h", "changeGeneralFlame");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "selections.generalFlame().changeRandom(randomSource)");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "setValue(randomSource.uniformInt(generalFlameStates))");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "generalFlameOption.changeRandom(randomSource, 0)");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "selections.generalFlame(), config.generalFlame");
     assertSourceContains("src/flames.h",
         "void changeRandom(RandomSource& randomSource, int doSave = 1)");
     assertSourceContains("src/flames.cc",
@@ -1834,17 +2334,231 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/EffectControl.cc", "rand()");
     assertSourceDoesNotContain("src/EffectControl.cc", "value = Random");
     assertSourceDoesNotContain("src/EffectControl.cc", "return Random");
-    assertSourceContains("src/Scene.cc", "option.change(to, randomSource, doSave)");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "selection->change(to, randomSource)");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "option.change(to, randomSource, doSave)");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "effectRegistry.saveAll()");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "dependencies.effectRegistry.saveAll()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "EffectControl::save()");
     assertSourceContains("src/Scene.cc",
         "dependencies.effectRegistry.changeAll(randomSource)");
     assertSourceContains("src/Scene.cc",
         "dependencies.effectRegistry.changeOne(randomSource)");
-    assertSourceContains("src/SceneDependencies.cc",
+    assertSourceContains("src/Scene.cc",
+        "dependencies.selectionSync.syncFromControls()");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "return imageChangeFrom(previousImageValue)");
+    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
+        "testChangeOneUsesSyncReturnedImageChangeForCue");
+    assertSourceContains("src/EffectRegistry.cc",
+        "void EffectRegistry::changeAll(RandomSource& randomSource)");
+    assertSourceContains("src/EffectRegistry.cc",
+        "EffectControl* EffectRegistry::changeOne(RandomSource& randomSource)");
+    assertSourceContains("src/EffectRegistry.cc",
+        "saveAll();\n    selected->changeRandom(randomSource, 0)");
+    assertSourceDoesNotContain("src/EffectRegistry.cc",
+        "selected->changeRandom(randomSource, 1)");
+    assertSourceContains("tests/unit/EffectControlRandomTest.cc",
+        "testEffectRegistryChangeOneSavesOnlyExplicitControls");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionRegistry::changeAll(RandomSource& randomSource)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "entries[i].selection->changeRandom(randomSource)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionRegistry::changeOne(RandomSource& randomSource)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "selection->changeRandom(randomSource)");
+    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
+        "testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionPresetCatalog::save(int slot)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "slots[slot].saveCurrentValues(registry)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionPresetCatalog::restore(int slot)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "slots[slot].restoreValues(registry)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionPresetCatalog::setValue(");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "void SceneSelectionPolicyApplier::configure(const EffectPolicy& policy)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "applyAllowedChoicePolicy(selection, allowedChoices)");
+    assertSourceContains("src/SceneRuntimeDependencies.cc",
+        "applyPresetPolicy(selection, presetPolicies, presets)");
+    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
+        "testSceneSelectionPresetCatalogOwnsSelectionSnapshots");
+    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
+        "testSceneSelectionPolicyApplierUsesSceneSelections");
+    assertSourceDoesNotContain("tests/unit/SceneCommandsSyncTest.cc",
+        "testEffectPresetSceneCatalogFallsBackToLegacyAndOverridesWithSceneSlot");
+    assertSourceDoesNotContain("src/Scene.cc",
+        "#include \"EffectPresetCatalog.h\"");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
+        "legacyPresets");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
+        "EffectPresetSceneCatalog");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
+        "EffectPresetCatalog");
+    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
+        "class RecordingPresetCatalog : public ScenePresetCatalog");
+    assertSourceDoesNotContain("tests/unit/SceneCommandsSyncTest.cc",
+        "#include \"EffectPresetCatalog.h\"");
+    assertSourceContains("src/EffectControlPolicy.h",
+        "class EffectPolicyApplier");
+    assertSourceContains("src/EffectControlPolicy.cc",
+        "void EffectPolicyApplier::applyAll()");
+    assertSourceDoesNotContain("src/EffectControlPolicy.cc",
+        "activeEffectPolicyApplier");
+    assertSourceDoesNotContain("src/EffectControlPolicy.h",
+        "configureEffectPolicy(");
+    assertSourceDoesNotContain("src/EffectControlPolicy.h",
+        "effectControlPolicyObserve(");
+    assertSourceDoesNotContain("src/EffectControl.cc",
+        "#include \"EffectControlPolicy.h\"");
+    assertSourceDoesNotContain("src/EffectControl.cc",
+        "effectControlPolicyObserve(");
+    assertSourceDoesNotContain("src/EffectPresetCatalog.cc",
+        "EffectControl::firstRegistered()");
+    assertSourceDoesNotContain("src/EffectControlPolicy.cc",
+        "EffectControl::firstRegistered()");
+    assertSourceContains("src/SceneRuntimeDependencies.h",
+        "class SceneSelectionRegistry : public SceneEffectRegistry");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
+        "class RegistrySceneEffectRegistry");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class RegistrySceneEffectRegistry");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class LegacySceneEffectRegistry");
+    assertSourceDoesNotContain("src/SceneDependencies.cc",
         "EffectControl::changeAll(randomSource)");
-    assertSourceContains("src/SceneDependencies.cc",
+    assertSourceDoesNotContain("src/SceneDependencies.cc",
         "EffectControl::changeOne(randomSource)");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
+        "registry.changeAll(randomSource)");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
+        "registry.changeOne(randomSource)");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "EffectControl* changeOne");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
+        "EffectControl* RegistrySceneEffectRegistry::changeOne");
+    assertSourceContains("src/SceneRuntime.cc",
+        "createEffectControlOwner(");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "SceneEffectControlCatalog::createEffectControlOwner");
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
+        "legacyEffectControls");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
+        "registerSelection(registry");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "dynamic_cast<SceneEffectControlSelection*>");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "effectSelection->syncFromControl()");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "registerSelection(registry");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+        "registerControl(registry)");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "registry.registerControl(option)");
+    assertSourceContains("src/SceneChoiceSelection.h",
+        "class SceneChoiceCatalog");
+    assertSourceContains("src/SceneChoiceSelection.h", "class SceneChoice");
+    assertSourceContains("src/SceneChoiceSelection.h", "class SceneChoiceLock");
+    assertSourceContains("src/SceneChoiceSelection.h",
+        "class SceneChoiceSelection : public virtual SceneOptionSelection");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.h",
+        "#include \"EffectControl.h\"");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.h", "EffectControl&");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.h", "EffectChoice");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.h", "OptionOnOff");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.cc",
+        "#include \"EffectControl.h\"");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "EffectControl");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "EffectChoice");
+    assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "OptionOnOff");
+    assertSourceContains("src/CMakeLists.txt", "SceneChoiceSelection.cc");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class EffectControlSceneChoice : public SceneChoice");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class EffectControlSceneChoiceLock : public SceneChoiceLock");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class EffectControlSceneChoiceCatalog : public SceneChoiceCatalog");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneEffectControlSelection : public SceneChoiceSelection");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "public SceneEffectControlSelection");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneOptionSelection");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneChoiceCatalog");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "int selectedValue");
+    assertSourceContains("src/SceneChoiceSelection.h",
+        "std::unique_ptr<SceneChoiceCatalog> catalog");
+    assertSourceContains("src/SceneChoiceSelection.h",
+        "std::vector<SceneChoice*> choices");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "void SceneChoiceSelection::refreshCatalog() const");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "choices.push_back(catalog->choiceAt(i))");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "return int(choices.size())");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "SceneChoice* choice = choiceAt(i)");
+    assertSourceContains("src/SceneChoiceSelection.cc",
+        "void SceneChoiceSelection::selectionChanged() { }");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "void LegacySceneEffectControlSelection::selectionChanged()");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "option.setValue(currentValue())");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "void SceneChoiceSelection::mirrorToControl()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "EffectControl& SceneChoiceSelection::control()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "choices.push_back(const_cast<EffectControl&>(option)[i])");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "return SceneChoiceSelection::currentValue()");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<FlameEntry*>(currentEffectChoice())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<WaveEntry*>(currentEffectChoice())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<TranslateEntry*>(currentEffectChoice())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "return (entry != 0) ? entry->table() : TranslationTable()");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<PaletteEntry*>(currentEffectChoice())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<ImageEntry*>(currentEffectChoice())");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "translationOption.translationTable(currentValue())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "EffectControl& flame, EffectControl& generalFlame, EffectControl& wave");
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "EffectControl& translation, EffectControl& palette, EffectControl& border");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "FlameOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "GeneralFlameOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "WaveOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "TranslateOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "PaletteOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "ImageOption");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "FlameOption&");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "GeneralFlameOption&");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "WaveOption&");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "TranslateOption&");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "PaletteOption&");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc", "ImageOption&");
+    assertSourceDoesNotContain("src/Application.cc",
+        "effectRegistryValue.registerControl(flame)");
     assertSourceContains("tests/unit/EffectControlRandomTest.cc",
         "testStaticRandomChangesUseInjectedRandomSource");
+    assertSourceContains("tests/unit/EffectControlRandomTest.cc",
+        "testEffectRegistryRandomChangesUseExplicitControls");
     assertSourceContains("tests/CMakeLists.txt", "effect_control_random_test");
 }
 
@@ -1882,7 +2596,8 @@ static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
     assertSourceDoesNotContain("src/AudioSettings.cc", "DEFAULT_SOUND_DSP_METHOD");
     assertSourceDoesNotContain("src/AudioOutput.cc", "DEFAULT_PULSE_LATENCY_MS");
     assertSourceDoesNotContain("src/AudioAnalyzer.cc", "DEFAULT_SOUND_MINNOISE");
-    assertSourceDoesNotContain("src/AutoChanger.cc", "DEFAULT_CHANGE_QUIET_MS");
+    assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
+        "DEFAULT_CHANGE_QUIET_MS");
     assertSourceDoesNotContain("src/CthughaDisplay.cc", "DEFAULT_MAX_FRAMES_PER_SECOND");
     assertSourceDoesNotContain("src/DisplayDevice.cc", "DEFAULT_DISPLAY_TEXT_ON_TERM");
     assertSourceDoesNotContain("src/DisplayDeviceX11.cc", "DEFAULT_X11_MIT_SHM");
@@ -1913,6 +2628,7 @@ int main() {
     testAutoChangeSettingsAreApplicationOwned();
     testInputStartupUsesInputConfig();
     testSceneStartupUsesSceneConfig();
+    testSceneSnapshotFlowsThroughFrameContext();
     testIniPersistenceUsesRuntimePersistenceAdapter();
     testRuntimeLifecycleRequestsUseMediator();
     testRuntimeCommandsUseSubsystemControlPorts();

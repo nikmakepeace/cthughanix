@@ -3,25 +3,18 @@
 #ifndef CTHUGHA_SCENE_DEPENDENCIES_H
 #define CTHUGHA_SCENE_DEPENDENCIES_H
 
-#include "Wave.h"
+#include "Scene.h"
+#include "SceneGeometry.h"
 
-class EffectControl;
+class IndexedImage;
 class RandomSource;
-
-/**
- * Provides the currently selected wave object for scene wave configuration.
- */
-class SceneWaveObjectSource {
-public:
-    virtual ~SceneWaveObjectSource();
-    virtual WObject* currentObject() = 0;
-};
+struct SceneConfig;
 
 /**
  * Registry operations over scene-editable effect controls.
  *
- * The Scene module uses this as an explicit port until EffectControl registry
- * state is owned by a real EffectRegistry instead of the legacy static list.
+ * This keeps SceneCommands independent of the EffectControl-backed registry
+ * while the legacy control model remains in use.
  */
 class SceneEffectRegistry {
 public:
@@ -29,45 +22,49 @@ public:
     virtual void saveAll() = 0;
     virtual void restoreAll() = 0;
     virtual void changeAll(RandomSource& randomSource) = 0;
-    virtual EffectControl* changeOne(RandomSource& randomSource) = 0;
+    virtual void changeOne(RandomSource& randomSource) = 0;
 };
 
 /**
- * Palette catalog operations used by palette randomization commands.
+ * Preset operations over scene-editable effect values.
  */
-class ScenePaletteRandomizer {
+class ScenePresetCatalog {
 public:
-    virtual ~ScenePaletteRandomizer();
-    virtual int randomizeLast(RandomSource& randomSource) = 0;
-    virtual int addRandom(RandomSource& randomSource) = 0;
+    virtual ~ScenePresetCatalog();
+    virtual void restore(int slot) = 0;
+    virtual void save(int slot) = 0;
 };
 
 /**
- * Compatibility adapter for the legacy global wave object catalog.
+ * Synchronizes Scene-owned selection state from external mutation sources.
  */
-class LegacySceneWaveObjectSource : public SceneWaveObjectSource {
+class SceneSelectionSynchronizer {
 public:
-    virtual WObject* currentObject();
+    virtual ~SceneSelectionSynchronizer();
+    virtual unsigned int syncFromControls() = 0;
 };
 
 /**
- * Compatibility adapter for the legacy EffectControl static registry.
+ * Scene-facing visual catalog and selection port.
+ *
+ * SceneCommands mutates this port, while adapters decide how those changes map
+ * to legacy option catalogs during the migration to scene-owned selection state.
  */
-class LegacySceneEffectRegistry : public SceneEffectRegistry {
+class SceneVisualCatalogs {
 public:
-    virtual void saveAll();
-    virtual void restoreAll();
-    virtual void changeAll(RandomSource& randomSource);
-    virtual EffectControl* changeOne(RandomSource& randomSource);
-};
+    virtual ~SceneVisualCatalogs();
 
-/**
- * Compatibility adapter for the legacy palette-entry static catalog commands.
- */
-class LegacyScenePaletteRandomizer : public ScenePaletteRandomizer {
-public:
-    virtual int randomizeLast(RandomSource& randomSource);
-    virtual int addRandom(RandomSource& randomSource);
+    virtual const SceneSettings& currentSettings(SceneGeometry& geometry) = 0;
+    virtual const IndexedImage* currentImage() = 0;
+
+    virtual void applyStartupConfig(
+        const SceneConfig& config, RandomSource& randomSource) = 0;
+    virtual unsigned int change(
+        SceneSelectionTarget target, int by, RandomSource& randomSource) = 0;
+    virtual unsigned int change(SceneSelectionTarget target, const char* to,
+        RandomSource& randomSource) = 0;
+    virtual unsigned int randomPalette(RandomSource& randomSource) = 0;
+    virtual unsigned int addRandomPalette(RandomSource& randomSource) = 0;
 };
 
 #endif

@@ -7,6 +7,7 @@
 #include "Option.h"
 #include "ProcessServices.h"
 #include "Scene.h"
+#include "SceneGeometry.h"
 #include "SilenceMessage.h"
 #include "VideoFilterchainSequence.h"
 
@@ -23,12 +24,13 @@ class VideoFilterchain;
  * VideoDirector observes Scene changes, configures the concrete filters in a
  * VideoFilterchain, and arms one-shot image/text cue stages.
  */
-class VideoDirector : public SceneObserver {
+class VideoDirector : public SceneObserver, public SceneGeometry {
     ImageOption images;
     RandomLegalImagePlacementStrategy imagePlacementStrategy;
     CStdRandomSource fallbackRandomSource;
     RandomSource* randomSourceValue;
     SilenceMessage silenceMessage;
+    CthughaBuffer& targetBuffer;
     Scene* scene;
     VideoFilterchain* filterchain;
     CthughaBuffer* buffer;
@@ -63,7 +65,7 @@ class VideoDirector : public SceneObserver {
     void applyPendingTextCue();
 
 public:
-    VideoDirector();
+    explicit VideoDirector(CthughaBuffer& targetBuffer_);
     ~VideoDirector();
 
     /**
@@ -96,6 +98,12 @@ public:
     /** @return Image option collection used by scene commands and image loading. */
     ImageOption& imageOption();
 
+    /** @return Target frame width used for Scene wave/image selections. */
+    virtual int width() const;
+
+    /** @return Target frame height used for Scene wave/image selections. */
+    virtual int height() const;
+
     /** @return Quiet-message provider used for silence text cues. */
     SilenceMessage& silenceMessages();
 
@@ -120,7 +128,7 @@ public:
      * Applies pending scene changes and any queued cues before returning.
      *
      * @param filterchain Filterchain to configure; not owned by the director.
-     * @return Global CthughaBuffer used by the configured filterchain.
+     * @return Configured CthughaBuffer used by the filterchain.
      */
     CthughaBuffer* configureFilterchain(VideoFilterchain& filterchain);
 

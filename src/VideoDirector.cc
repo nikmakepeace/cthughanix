@@ -77,12 +77,13 @@ static const ColorPalette* scenePaletteColors(const SceneSettings& settings) {
     return (settings.palette != 0) ? &settings.palette->colors() : 0;
 }
 
-VideoDirector::VideoDirector()
+VideoDirector::VideoDirector(CthughaBuffer& targetBuffer_)
     : images(0, "image")
     , imagePlacementStrategy()
     , fallbackRandomSource()
     , randomSourceValue(&fallbackRandomSource)
     , silenceMessage()
+    , targetBuffer(targetBuffer_)
     , scene(0)
     , filterchain(0)
     , buffer(0)
@@ -124,6 +125,14 @@ void VideoDirector::configureQuietMessages(const MessagesConfig& messagesConfig)
 
 ImageOption& VideoDirector::imageOption() {
     return images;
+}
+
+int VideoDirector::width() const {
+    return targetBuffer.width();
+}
+
+int VideoDirector::height() const {
+    return targetBuffer.height();
 }
 
 void VideoDirector::bindScene(Scene& scene_) {
@@ -349,14 +358,12 @@ void VideoDirector::sceneCue(Scene& scene_, const SceneCue& cue) {
 }
 
 CthughaBuffer* VideoDirector::configureFilterchain(VideoFilterchain& filterchain_) {
-    CthughaBuffer* targetBuffer = &CthughaBuffer::buffer;
-
     if (filterchain != &filterchain_) {
         filterchain = &filterchain_;
         pendingSceneChanges |= SceneAllChanged;
     }
-    if (buffer != targetBuffer) {
-        buffer = targetBuffer;
+    if (buffer != &targetBuffer) {
+        buffer = &targetBuffer;
         pendingSceneChanges |= SceneAllChanged;
     }
 
@@ -367,5 +374,5 @@ CthughaBuffer* VideoDirector::configureFilterchain(VideoFilterchain& filterchain
     applyPendingImageCue();
     applyPendingTextCue();
 
-    return targetBuffer;
+    return &targetBuffer;
 }

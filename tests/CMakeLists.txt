@@ -72,6 +72,7 @@ add_executable(random_palette_persistence_test
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoiceLoader.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -97,6 +98,7 @@ add_executable(image_placement_test
     ${CMAKE_SOURCE_DIR}/src/Image.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -126,6 +128,7 @@ add_executable(general_flame_option_test
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -152,6 +155,7 @@ add_executable(effect_control_random_test
     unit/EffectControlRandomTest.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
     ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
@@ -180,6 +184,7 @@ add_executable(screen_renderer_characterization_test
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -351,6 +356,7 @@ add_executable(presentation_composer_test
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -388,6 +394,7 @@ add_executable(cthugha_display_presentation_test
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -501,6 +508,7 @@ add_executable(cthugha_display_viewport_test
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
@@ -749,6 +757,7 @@ add_executable(effect_preset_catalog_test
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
@@ -779,6 +788,32 @@ target_include_directories(runtime_command_test PRIVATE
 target_link_libraries(runtime_command_test PRIVATE m)
 
 add_test(NAME runtime_command_test COMMAND runtime_command_test)
+
+add_executable(scene_commands_sync_test
+    unit/SceneCommandsSyncTest.cc
+    ${CMAKE_SOURCE_DIR}/src/Scene.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneGeometry.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneDependencies.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneRuntimeDependencies.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/LegacySceneEffectControlTarget.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+)
+
+target_include_directories(scene_commands_sync_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(scene_commands_sync_test PRIVATE m)
+
+add_test(NAME scene_commands_sync_test COMMAND scene_commands_sync_test)
 
 add_executable(mixer_session_test
     unit/MixerSessionTest.cc
@@ -1156,34 +1191,34 @@ target_link_libraries(runtime_change_mediator_test PRIVATE m)
 
 add_test(NAME runtime_change_mediator_test COMMAND runtime_change_mediator_test)
 
-add_executable(auto_changer_command_sink_test
-    unit/AutoChangerCommandSinkTest.cc
-    ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
+add_executable(scene_change_scheduler_test
+    unit/SceneChangeSchedulerTest.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneChangeScheduler.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
-    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
-target_include_directories(auto_changer_command_sink_test PRIVATE
+target_include_directories(scene_change_scheduler_test PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/src
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(auto_changer_command_sink_test PRIVATE m)
+target_link_libraries(scene_change_scheduler_test PRIVATE m)
 
-add_test(NAME auto_changer_command_sink_test COMMAND auto_changer_command_sink_test)
+add_test(NAME scene_change_scheduler_test COMMAND scene_change_scheduler_test)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_library(format_warning_clean OBJECT
-        ${CMAKE_SOURCE_DIR}/src/AutoChanger.cc
+        ${CMAKE_SOURCE_DIR}/src/SceneChangeScheduler.cc
         ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
         ${CMAKE_SOURCE_DIR}/src/EffectChoiceLoader.cc
         ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+        ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
         ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
         ${CMAKE_SOURCE_DIR}/src/Interface.cc
         ${CMAKE_SOURCE_DIR}/src/InterfaceList.cc

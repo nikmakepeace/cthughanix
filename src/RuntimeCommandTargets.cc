@@ -8,7 +8,6 @@
 #include "RuntimeAutoChangeControls.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
-#include "Scene.h"
 
 RoutedRuntimeOptionTarget::RoutedRuntimeOptionTarget(Option& option_,
     RuntimeDisplayControls& displayControls_,
@@ -46,19 +45,19 @@ RuntimeChangeSet RoutedRuntimeOptionTarget::changeTo(const char* to) {
 }
 
 RoutedRuntimeEffectControlTarget::RoutedRuntimeEffectControlTarget(
-    EffectControl& control_, SceneCommands& sceneCommands_,
+    EffectControl& control_, RuntimeEffectControlOwner& effectControlOwner_,
     RuntimeDisplayControls& displayControls_,
     RuntimeEffectControls& effectControls_)
     : control(control_)
-    , sceneCommands(sceneCommands_)
+    , effectControlOwner(effectControlOwner_)
     , displayControls(displayControls_)
     , effectControls(effectControls_) { }
 
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeBy(int by) {
     RuntimeChangeSet changes;
 
-    if (sceneCommands.isSceneOption(control)) {
-        sceneCommands.change(control, by, 0);
+    if (effectControlOwner.ownsEffectControl(control)) {
+        effectControlOwner.changeEffectControlBy(control, by, 0);
         changes.sceneChanges = 1;
         return changes;
     }
@@ -73,8 +72,8 @@ RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeBy(int by) {
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeTo(const char* to) {
     RuntimeChangeSet changes;
 
-    if (sceneCommands.isSceneOption(control)) {
-        sceneCommands.change(control, to, 0);
+    if (effectControlOwner.ownsEffectControl(control)) {
+        effectControlOwner.changeEffectControlTo(control, to, 0);
         changes.sceneChanges = 1;
         return changes;
     }
@@ -89,8 +88,8 @@ RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeTo(const char* to) {
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::activate(int index) {
     RuntimeChangeSet changes;
 
-    if (sceneCommands.isSceneOption(control)) {
-        sceneCommands.activate(control, index);
+    if (effectControlOwner.ownsEffectControl(control)) {
+        effectControlOwner.activateEffectControl(control, index);
         changes.sceneChanges = 1;
         return changes;
     }
@@ -111,13 +110,14 @@ void RoutedRuntimeEffectControlTarget::toggleChoiceUse(int index) {
 }
 
 RoutedRuntimeCommandTargetRouter::RoutedRuntimeCommandTargetRouter(
-    RuntimeCommandSink& runtimeCommands_, SceneCommands& sceneCommands_,
+    RuntimeCommandSink& runtimeCommands_,
+    RuntimeEffectControlOwner& effectControlOwner_,
     RuntimeDisplayControls& displayControls_,
     RuntimeAudioControls& audioControls_,
     RuntimeAutoChangeControls& autoChangeControls_,
     RuntimeEffectControls& effectControls_)
     : runtimeCommands(runtimeCommands_)
-    , sceneCommands(sceneCommands_)
+    , effectControlOwner(effectControlOwner_)
     , displayControls(displayControls_)
     , audioControls(audioControls_)
     , autoChangeControls(autoChangeControls_)
@@ -125,7 +125,7 @@ RoutedRuntimeCommandTargetRouter::RoutedRuntimeCommandTargetRouter(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlBy(
     EffectControl& control, int by) {
-    RoutedRuntimeEffectControlTarget target(control, sceneCommands,
+    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
         displayControls, effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::changeEffectControlBy(target, by));
@@ -133,7 +133,7 @@ RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlBy(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlTo(
     EffectControl& control, const char* to) {
-    RoutedRuntimeEffectControlTarget target(control, sceneCommands,
+    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
         displayControls, effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::changeEffectControlTo(target, to));
@@ -141,7 +141,7 @@ RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlTo(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::activateEffectControl(
     EffectControl& control, int index) {
-    RoutedRuntimeEffectControlTarget target(control, sceneCommands,
+    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
         displayControls, effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::activateEffectControl(target, index));
@@ -149,7 +149,7 @@ RuntimeChangeSet RoutedRuntimeCommandTargetRouter::activateEffectControl(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::toggleEffectChoiceUse(
     EffectControl& control, int index) {
-    RoutedRuntimeEffectControlTarget target(control, sceneCommands,
+    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
         displayControls, effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::toggleEffectChoiceUse(target, index));
@@ -171,7 +171,7 @@ RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeOptionTo(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::toggleEffectControlLock(
     EffectControl& control) {
-    RoutedRuntimeEffectControlTarget target(control, sceneCommands,
+    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
         displayControls, effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::toggleEffectControlLock(target));

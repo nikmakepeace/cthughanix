@@ -2,6 +2,7 @@ set(CTHUGHA_COMMON_SOURCES
     Option.cc
     OptionInt.cc
     EffectControl.cc
+    EffectRegistry.cc
     EffectControlPolicy.cc
     EffectPresetCatalog.cc
     EffectChoiceLoader.cc
@@ -24,7 +25,18 @@ set(CTHUGHA_COMMON_SOURCES
     AutoChangeControls.cc
     RuntimeFactory.cc
     Scene.cc
+    SceneGeometry.cc
     SceneDependencies.cc
+    SceneRuntimeDependencies.cc
+    SceneChoiceSelection.cc
+    SceneVisualSelections.cc
+    LegacySceneCatalogAdapters.cc
+    LegacySceneEffectControlCatalog.cc
+    LegacySceneEffectControlTarget.cc
+    LegacySceneSelectionAdapters.cc
+    LegacySceneVisualCatalogs.cc
+    SceneRuntime.cc
+    SceneSerializer.cc
     RuntimeCommand.cc
     RuntimeDisplayControls.cc
     RuntimeAudioControls.cc
@@ -64,7 +76,7 @@ set(CTHUGHA_COMMON_SOURCES
     DisplayDevice.cc
     DisplayRuntime.cc
     DisplayRuntimeOwnership.cc
-    AutoChanger.cc
+    SceneChangeScheduler.cc
     AudioAnalyzer.cc
     CthughaDisplay.cc
     Border.cc

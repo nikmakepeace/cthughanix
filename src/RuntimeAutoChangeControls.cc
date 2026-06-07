@@ -1,5 +1,5 @@
 /** @file
- * Runtime AutoChanger control adapter.
+ * Runtime automatic scene-change control adapter.
  */
 
 #include "RuntimeAutoChangeControls.h"

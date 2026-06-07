@@ -18,7 +18,7 @@
 InterfaceRuntime::InterfaceRuntime(MillisecondClock& clock_)
     : currentInterfaceValue(NULL)
     , runtimeConfigRegistryValue(NULL)
-    , autoChangerStatusProviderValue(NULL)
+    , sceneChangeStatusProviderValue(NULL)
     , autoChangeControlsValue(NULL)
     , audioProcessingSelectorValue(NULL)
     , clock(clock_)
@@ -173,13 +173,13 @@ const RuntimeConfigRegistry* InterfaceRuntime::runtimeConfigRegistry() const {
     return runtimeConfigRegistryValue;
 }
 
-void InterfaceRuntime::setAutoChangerStatusProvider(
-    const AutoChangerStatusProvider* provider) {
-    autoChangerStatusProviderValue = provider;
+void InterfaceRuntime::setSceneChangeStatusProvider(
+    const SceneChangeStatusProvider* provider) {
+    sceneChangeStatusProviderValue = provider;
 }
 
-const AutoChangerStatusProvider* InterfaceRuntime::autoChangerStatusProvider() const {
-    return autoChangerStatusProviderValue;
+const SceneChangeStatusProvider* InterfaceRuntime::sceneChangeStatusProvider() const {
+    return sceneChangeStatusProviderValue;
 }
 
 void InterfaceRuntime::setAutoChangeControls(AutoChangeControls* controls) {

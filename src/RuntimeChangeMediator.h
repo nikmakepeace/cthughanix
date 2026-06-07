@@ -13,10 +13,10 @@ class RuntimeDisplayControls;
 class RuntimeAudioControls;
 class RuntimeAutoChangeControls;
 class RuntimeEffectControls;
-class SceneCommands;
+class SceneCommandTarget;
 
 class RuntimeChangeMediator : public RuntimeCommandSink {
-    SceneCommands& sceneCommands;
+    SceneCommandTarget& sceneCommands;
     RuntimePersistence& runtimePersistence;
     RuntimeShutdown& runtimeShutdown;
     RuntimeDisplayControls& displayControls;
@@ -31,15 +31,15 @@ public:
     /**
      * Creates a mediator for live runtime commands.
      *
-     * @param sceneCommands_ Scene command facade used for scene changes.
+     * @param sceneCommands_ Scene command target used for scene changes.
      * @param runtimePersistence_ Persistence port used for runtime saves.
      * @param runtimeShutdown_ Shutdown port used for close requests.
      * @param displayControls_ Display/presentation control port.
      * @param audioControls_ Audio control port.
-     * @param autoChangeControls_ AutoChanger control port.
+     * @param autoChangeControls_ Automatic scene-change control port.
      * @param effectControls_ Legacy EffectControl state port.
      */
-    RuntimeChangeMediator(SceneCommands& sceneCommands_,
+    RuntimeChangeMediator(SceneCommandTarget& sceneCommands_,
         RuntimePersistence& runtimePersistence_,
         RuntimeShutdown& runtimeShutdown_,
         RuntimeDisplayControls& displayControls_,

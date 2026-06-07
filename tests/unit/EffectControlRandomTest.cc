@@ -3,7 +3,7 @@
  */
 
 #include "EffectControl.h"
-#include "EffectControlPolicy.h"
+#include "EffectRegistry.h"
 #include "ProcessServices.h"
 #include "RuntimeEffectControls.h"
 
@@ -16,8 +16,6 @@ int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
-
-void effectControlPolicyObserve(EffectControl&) { }
 
 class SequenceRandomSource : public RandomSource {
     std::vector<int> values;
@@ -92,6 +90,66 @@ static void testStaticRandomChangesUseInjectedRandomSource() {
     assert(changeAllRandom.requestedRange(1) == 2);
 }
 
+static void testEffectRegistryRandomChangesUseExplicitControls() {
+    EffectControl& first = newAutoChangeControl("registry-first");
+    EffectControl& omitted = newAutoChangeControl("registry-omitted");
+    EffectControl& second = newAutoChangeControl("registry-second");
+    EffectRegistry registry;
+    registry.registerControl(first);
+    registry.registerControl(second);
+
+    std::vector<int> changeAllValues;
+    changeAllValues.push_back(1);
+    changeAllValues.push_back(1);
+    SequenceRandomSource changeAllRandom(changeAllValues);
+
+    registry.changeAll(changeAllRandom);
+
+    assert(int(first) == 1);
+    assert(int(omitted) == 0);
+    assert(int(second) == 1);
+    assert(changeAllRandom.requestedRange(0) == 2);
+    assert(changeAllRandom.requestedRange(1) == 2);
+
+    first.change("first", 0);
+    second.change("first", 0);
+
+    std::vector<int> changeOneValues;
+    changeOneValues.push_back(1);
+    changeOneValues.push_back(1);
+    SequenceRandomSource changeOneRandom(changeOneValues);
+
+    EffectControl* changed = registry.changeOne(changeOneRandom);
+
+    assert(changed == &second);
+    assert(int(first) == 0);
+    assert(int(second) == 1);
+    assert(changeOneRandom.requestedRange(0) == 2);
+    assert(changeOneRandom.requestedRange(1) == 2);
+}
+
+static void testEffectRegistryChangeOneSavesOnlyExplicitControls() {
+    EffectControl& registered = newAutoChangeControl("registry-save-registered");
+    EffectControl& omitted = newAutoChangeControl("registry-save-omitted");
+    EffectRegistry registry;
+    registry.registerControl(registered);
+
+    std::vector<int> changeOneValues;
+    changeOneValues.push_back(1);
+    SequenceRandomSource changeOneRandom(changeOneValues);
+
+    EffectControl* changed = registry.changeOne(changeOneRandom);
+
+    assert(changed == &registered);
+    assert(int(registered) == 1);
+
+    omitted.change("second", 0);
+    EffectControl::restore();
+
+    assert(int(registered) == 0);
+    assert(int(omitted) == 1);
+}
+
 static void testChangeRandomUsesInjectedRandomSource() {
     EffectControl& control = newControl("random-control");
     std::vector<int> values;
@@ -158,6 +216,8 @@ static void testOptNrUsesInjectedRandomSourceForFallbacks() {
 
 int main() {
     testStaticRandomChangesUseInjectedRandomSource();
+    testEffectRegistryRandomChangesUseExplicitControls();
+    testEffectRegistryChangeOneSavesOnlyExplicitControls();
     testChangeRandomUsesInjectedRandomSource();
     testEmptyTextUsesInjectedRandomSource();
     testInvalidTextUsesInjectedRandomSource();

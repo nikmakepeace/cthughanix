@@ -55,6 +55,7 @@ endif()
 add_executable(visual_effects_bench
     VideoEffectsBench.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc

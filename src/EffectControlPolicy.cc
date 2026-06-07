@@ -2,8 +2,8 @@
 
 #include "EffectControlPolicy.h"
 
-#include "Configuration.h"
 #include "EffectControl.h"
+#include "EffectRegistry.h"
 #include "EffectPresetCatalog.h"
 
 #include <cctype>
@@ -13,10 +13,6 @@
 #include <vector>
 
 namespace {
-
-static int policyConfigured = 0;
-static std::vector<EffectChoicePolicy> configuredAllowedChoices;
-static std::vector<EffectPresetPolicy> configuredPresets;
 
 static bool controlMatchesCatalogEntryKey(EffectControl& option,
     const std::string& catalogEntryKey, std::string* choiceName) {
@@ -84,10 +80,11 @@ static bool resolveChoiceSelection(EffectControl& option,
     return parseChoiceNumber(choiceText, option.getNEntries(), selection);
 }
 
-static void applyAllowedChoicePolicy(EffectControl& option) {
+static void applyAllowedChoicePolicy(EffectControl& option,
+    const std::vector<EffectChoicePolicy>& allowedChoices) {
     for (std::vector<EffectChoicePolicy>::const_iterator it
-         = configuredAllowedChoices.begin();
-         it != configuredAllowedChoices.end(); ++it) {
+         = allowedChoices.begin();
+         it != allowedChoices.end(); ++it) {
         std::string choiceName;
         if (!controlMatchesCatalogEntryKey(option, it->catalogEntryKey,
                 &choiceName))
@@ -99,10 +96,12 @@ static void applyAllowedChoicePolicy(EffectControl& option) {
     }
 }
 
-static void applyPresetPolicy(EffectControl& option) {
+static void applyPresetPolicy(EffectControl& option,
+    const std::vector<EffectPresetPolicy>& presetPolicies,
+    EffectPresetCatalog& presets) {
     for (std::vector<EffectPresetPolicy>::const_iterator it
-         = configuredPresets.begin();
-         it != configuredPresets.end(); ++it) {
+         = presetPolicies.begin();
+         it != presetPolicies.end(); ++it) {
         int selection = 0;
 
         if (!controlMatchesCatalogName(option, it->catalogName))
@@ -110,27 +109,45 @@ static void applyPresetPolicy(EffectControl& option) {
         if (!resolveChoiceSelection(option, it->choiceText, &selection))
             continue;
 
-        effectPresetCatalog.setValue(it->slot, option, selection);
+        presets.setValue(it->slot, option, selection);
     }
 }
 
 }
 
-void configureEffectPolicy(const EffectPolicy& policy) {
-    configuredAllowedChoices = policy.allowedChoices;
-    configuredPresets = policy.presets;
+EffectPolicyApplier::EffectPolicyApplier(EffectRegistry& registry_,
+    EffectPresetCatalog& presets_)
+    : registry(registry_)
+    , presets(presets_)
+    , policyConfigured(0)
+    , allowedChoices()
+    , presetPolicies() { }
+
+EffectPolicyApplier::~EffectPolicyApplier() { }
+
+void EffectPolicyApplier::configure(const EffectPolicy& policy) {
+    allowedChoices = policy.allowedChoices;
+    presetPolicies = policy.presets;
     policyConfigured = 1;
 
-    for (EffectControl* option = EffectControl::firstRegistered();
-         option != NULL; option = option->nextRegistered()) {
-        effectControlPolicyObserve(*option);
-    }
+    applyAll();
 }
 
-void effectControlPolicyObserve(EffectControl& option) {
+void EffectPolicyApplier::observe(EffectControl& option) {
     if (!policyConfigured)
         return;
 
-    applyAllowedChoicePolicy(option);
-    applyPresetPolicy(option);
+    applyAllowedChoicePolicy(option, allowedChoices);
+    applyPresetPolicy(option, presetPolicies, presets);
+}
+
+void EffectPolicyApplier::applyAll() {
+    if (!policyConfigured)
+        return;
+
+    for (int i = 0; i < registry.count(); i++) {
+        EffectControl* option = registry.controlAt(i);
+        if (option != 0)
+            observe(*option);
+    }
 }

@@ -7,7 +7,7 @@
 
 #include <vector>
 
-class AutoChangerStatusProvider;
+class SceneChangeStatusProvider;
 class AutoChangeControls;
 class AudioProcessingSelector;
 class CommandContext;
@@ -33,7 +33,7 @@ class InterfaceRuntime {
     std::vector<Interface*> ownedInterfacesValue;
     Interface* currentInterfaceValue;
     RuntimeConfigRegistry* runtimeConfigRegistryValue;
-    const AutoChangerStatusProvider* autoChangerStatusProviderValue;
+    const SceneChangeStatusProvider* sceneChangeStatusProviderValue;
     AutoChangeControls* autoChangeControlsValue;
     AudioProcessingSelector* audioProcessingSelectorValue;
     MillisecondClock& clock;
@@ -160,15 +160,15 @@ public:
      *
      * @param provider Provider to read; NULL hides auto-change status.
      */
-    void setAutoChangerStatusProvider(
-        const AutoChangerStatusProvider* provider);
+    void setSceneChangeStatusProvider(
+        const SceneChangeStatusProvider* provider);
 
     /**
      * Returns the provider used for automatic scene-change status text.
      *
-     * @return Installed provider, or NULL when AutoChanger is unavailable.
+     * @return Installed provider, or NULL when automatic scene changes are unavailable.
      */
-    const AutoChangerStatusProvider* autoChangerStatusProvider() const;
+    const SceneChangeStatusProvider* sceneChangeStatusProvider() const;
 
     /**
      * Installs Option adapters for automatic scene-change panel controls.

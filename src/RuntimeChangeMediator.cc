@@ -13,7 +13,41 @@
 #include "RuntimeShutdown.h"
 #include "Scene.h"
 
-RuntimeChangeMediator::RuntimeChangeMediator(SceneCommands& sceneCommands_,
+namespace {
+
+static SceneSelectionTarget sceneSelectionTargetFromRuntime(
+    RuntimeSceneTarget target) {
+    switch (target) {
+    case RuntimeSceneFlame:
+        return SceneSelectionFlame;
+    case RuntimeSceneGeneralFlame:
+        return SceneSelectionGeneralFlame;
+    case RuntimeSceneWave:
+        return SceneSelectionWave;
+    case RuntimeSceneWaveScale:
+        return SceneSelectionWaveScale;
+    case RuntimeSceneObject:
+        return SceneSelectionObject;
+    case RuntimeSceneTranslation:
+        return SceneSelectionTranslation;
+    case RuntimeSceneBorder:
+        return SceneSelectionBorder;
+    case RuntimeSceneFlashlight:
+        return SceneSelectionFlashlight;
+    case RuntimeScenePalette:
+        return SceneSelectionPalette;
+    case RuntimeSceneTable:
+        return SceneSelectionTable;
+    case RuntimeSceneImage:
+        return SceneSelectionImage;
+    }
+
+    return SceneSelectionFlame;
+}
+
+}
+
+RuntimeChangeMediator::RuntimeChangeMediator(SceneCommandTarget& sceneCommands_,
     RuntimePersistence& runtimePersistence_, RuntimeShutdown& runtimeShutdown_,
     RuntimeDisplayControls& displayControls_, RuntimeAudioControls& audioControls_,
     RuntimeAutoChangeControls& autoChangeControls_,
@@ -29,42 +63,7 @@ RuntimeChangeMediator::RuntimeChangeMediator(SceneCommands& sceneCommands_,
 RuntimeChangeSet RuntimeChangeMediator::applySceneBy(RuntimeSceneTarget target, int by) {
     RuntimeChangeSet changes;
 
-    switch (target) {
-    case RuntimeSceneFlame:
-        sceneCommands.changeFlame(by);
-        break;
-    case RuntimeSceneGeneralFlame:
-        sceneCommands.changeGeneralFlame();
-        break;
-    case RuntimeSceneWave:
-        sceneCommands.changeWave(by);
-        break;
-    case RuntimeSceneWaveScale:
-        sceneCommands.changeWaveScale(by);
-        break;
-    case RuntimeSceneObject:
-        sceneCommands.changeObject(by);
-        break;
-    case RuntimeSceneTranslation:
-        sceneCommands.changeTranslation(by);
-        break;
-    case RuntimeSceneBorder:
-        sceneCommands.changeBorder(by);
-        break;
-    case RuntimeSceneFlashlight:
-        sceneCommands.changeFlashlight(by);
-        break;
-    case RuntimeScenePalette:
-        sceneCommands.changePalette(by);
-        break;
-    case RuntimeSceneTable:
-        sceneCommands.changeTable(by);
-        break;
-    case RuntimeSceneImage:
-        sceneCommands.changeImage(by);
-        break;
-    }
-
+    sceneCommands.change(sceneSelectionTargetFromRuntime(target), by);
     changes.sceneChanges = 1;
     return changes;
 }
@@ -73,42 +72,7 @@ RuntimeChangeSet RuntimeChangeMediator::applySceneTo(
     RuntimeSceneTarget target, const char* to) {
     RuntimeChangeSet changes;
 
-    switch (target) {
-    case RuntimeSceneFlame:
-        sceneCommands.changeFlame(to);
-        break;
-    case RuntimeSceneGeneralFlame:
-        sceneCommands.changeGeneralFlame();
-        break;
-    case RuntimeSceneWave:
-        sceneCommands.changeWave(to);
-        break;
-    case RuntimeSceneWaveScale:
-        sceneCommands.changeWaveScale(to);
-        break;
-    case RuntimeSceneObject:
-        sceneCommands.changeObject(to);
-        break;
-    case RuntimeSceneTranslation:
-        sceneCommands.changeTranslation(to);
-        break;
-    case RuntimeSceneBorder:
-        sceneCommands.changeBorder(to);
-        break;
-    case RuntimeSceneFlashlight:
-        sceneCommands.changeFlashlight(to);
-        break;
-    case RuntimeScenePalette:
-        sceneCommands.changePalette(to);
-        break;
-    case RuntimeSceneTable:
-        sceneCommands.changeTable(to);
-        break;
-    case RuntimeSceneImage:
-        sceneCommands.changeImage(to);
-        break;
-    }
-
+    sceneCommands.change(sceneSelectionTargetFromRuntime(target), to);
     changes.sceneChanges = 1;
     return changes;
 }

@@ -10,33 +10,33 @@
 class AutoChangeControls;
 class Option;
 
-/** Controls runtime AutoChanger commands. */
+/** Controls runtime automatic scene-change settings. */
 class RuntimeAutoChangeControls {
 public:
     /** Destroys the auto-change controls interface. */
     virtual ~RuntimeAutoChangeControls() { }
 
-    /** Toggles AutoChanger's lock setting. */
+    /** Toggles automatic scene-change lock setting. */
     virtual void toggleLock() = 0;
 
     /**
-     * Attempts to change an AutoChanger-owned option by relative offset.
+     * Attempts to change an automatic scene-change option by relative offset.
      *
      * @param option Option to inspect and possibly change.
      * @param by Relative offset to apply.
      * @param changes Change flags to merge auto-change effects into.
-     * @return Nonzero when the option belongs to AutoChanger behavior.
+     * @return Nonzero when the option belongs to automatic scene-change behavior.
      */
     virtual int changeAutoChangeOptionBy(
         Option& option, int by, RuntimeChangeSet& changes) = 0;
 
     /**
-     * Attempts to change an AutoChanger-owned option by value text.
+     * Attempts to change an automatic scene-change option by value text.
      *
      * @param option Option to inspect and possibly change.
      * @param to Value text to select.
      * @param changes Change flags to merge auto-change effects into.
-     * @return Nonzero when the option belongs to AutoChanger behavior.
+     * @return Nonzero when the option belongs to automatic scene-change behavior.
      */
     virtual int changeAutoChangeOptionTo(
         Option& option, const char* to, RuntimeChangeSet& changes) = 0;
@@ -57,27 +57,27 @@ public:
     explicit DefaultRuntimeAutoChangeControls(
         AutoChangeControls& autoChangeControls_);
 
-    /** Toggles AutoChanger's lock setting. */
+    /** Toggles automatic scene-change lock setting. */
     virtual void toggleLock();
 
     /**
-     * Attempts to change an AutoChanger-owned option by relative offset.
+     * Attempts to change an automatic scene-change option by relative offset.
      *
      * @param option Option to inspect and possibly change.
      * @param by Relative offset to apply.
      * @param changes Change flags to merge auto-change effects into.
-     * @return Nonzero when the option belongs to AutoChanger behavior.
+     * @return Nonzero when the option belongs to automatic scene-change behavior.
      */
     virtual int changeAutoChangeOptionBy(
         Option& option, int by, RuntimeChangeSet& changes);
 
     /**
-     * Attempts to change an AutoChanger-owned option by value text.
+     * Attempts to change an automatic scene-change option by value text.
      *
      * @param option Option to inspect and possibly change.
      * @param to Value text to select.
      * @param changes Change flags to merge auto-change effects into.
-     * @return Nonzero when the option belongs to AutoChanger behavior.
+     * @return Nonzero when the option belongs to automatic scene-change behavior.
      */
     virtual int changeAutoChangeOptionTo(
         Option& option, const char* to, RuntimeChangeSet& changes);

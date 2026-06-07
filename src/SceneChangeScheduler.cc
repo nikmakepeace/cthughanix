@@ -2,18 +2,18 @@
  * Automatic scene-change policy implementation.
  */
 
-#include "AutoChanger.h"
+#include "SceneChangeScheduler.h"
 #include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
 #include "ProcessServices.h"
-#include "RuntimeCommandSink.h"
+#include "Scene.h"
 
-AutoChanger::AutoChanger(RuntimeCommandSink& runtimeCommands_,
+SceneChangeScheduler::SceneChangeScheduler(SceneCommandTarget& sceneCommands_,
     const AutoChangeSettings& settings_,
     AcousticContext& acousticContext_, MillisecondClock& clock_,
     RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,
     LogSink& log_)
-    : runtimeCommands(runtimeCommands_)
+    : sceneCommands(sceneCommands_)
     , settings(settings_)
     , acousticContextValue(acousticContext_)
     , clock(clock_)
@@ -31,14 +31,14 @@ AutoChanger::AutoChanger(RuntimeCommandSink& runtimeCommands_,
     quietSince = clock.milliseconds();
 }
 
-AutoChanger::~AutoChanger() { }
+SceneChangeScheduler::~SceneChangeScheduler() { }
 
-int AutoChanger::nextWaitTime() {
+int SceneChangeScheduler::nextWaitTime() {
     return settings.waitMinMs()
         + randomSource.uniformInt(settings.waitRandomRangeMs());
 }
 
-void AutoChanger::operator()(const AudioMetrics& metrics) {
+void SceneChangeScheduler::operator()(const AudioMetrics& metrics) {
 
     int now = clock.milliseconds();
 
@@ -82,16 +82,16 @@ void AutoChanger::operator()(const AudioMetrics& metrics) {
         }
 }
 
-void AutoChanger::change() {
+void SceneChangeScheduler::change() {
 
     if (settings.changeLittle()) {
-        runtimeCommands.apply(RuntimeCommand::changeOne());
+        sceneCommands.changeOne();
     } else {
-        runtimeCommands.apply(RuntimeCommand::changeAll());
+        sceneCommands.changeAll();
     }
 }
 
-const char* AutoChanger::status() const {
+const char* SceneChangeScheduler::status() const {
     if (settings.locked()) {
         snprintf(statusTextValue, sizeof(statusTextValue), "locked ");
     } else {
@@ -105,6 +105,6 @@ const char* AutoChanger::status() const {
     return statusTextValue;
 }
 
-const char* AutoChanger::autoChangerStatus() const {
+const char* SceneChangeScheduler::sceneChangeStatus() const {
     return status();
 }

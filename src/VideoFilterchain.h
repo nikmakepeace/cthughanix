@@ -11,6 +11,7 @@
 
 class CthughaBuffer;
 class FramePalette;
+class SceneSnapshot;
 
 /**
  * Per-frame inputs shared by every video filter.
@@ -34,6 +35,9 @@ public:
 
     /** Higher-level acoustic state used by sound-reactive filters, or NULL. */
     const AcousticContext* acousticContext;
+
+    /** Immutable scene state for this visual frame, or NULL when unavailable. */
+    const SceneSnapshot* sceneSnapshot;
 
     /** Current visual-frame timestamp, in seconds. */
     double now;

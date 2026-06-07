@@ -47,7 +47,7 @@ public:
 enum EffectControlFlags {
     EFFECT_CONTROL_NO_FLAGS = 0,
 
-    // This option participates in AutoChanger's random/all changes.  New
+    // This option participates in automatic scene random/all changes.  New
     // EffectControls should opt in deliberately so construction alone does not
     // make them runtime mutation targets.
     EFFECT_CONTROL_AUTO_CHANGE = 1 << 0
@@ -313,6 +313,7 @@ public:
 
     static EffectControl* firstRegistered();
 
+    friend class EffectRegistry;
     friend class InterfaceList;
     friend class activateAction;
 };

@@ -9,24 +9,17 @@
 #include <string>
 #include <vector>
 
-class EffectControl;
-class EffectPresetCatalog;
-class CthughaBuffer;
 class Flame;
-class FlameOption;
-class GeneralFlameOption;
-class ImageOption;
 class IndexedImage;
 class PaletteEntry;
-class PaletteOption;
 class RandomSource;
 class SceneEffectRegistry;
-class ScenePaletteRandomizer;
-class SceneWaveObjectSource;
+class SceneGeometry;
+class ScenePresetCatalog;
+class SceneSelectionSynchronizer;
+class SceneVisualCatalogs;
 struct SceneConfig;
-class TranslateOption;
 class Wave;
-class WaveOption;
 
 enum SceneChange {
     SceneNoChange = 0,
@@ -36,12 +29,27 @@ enum SceneChange {
     ScenePaletteChanged = 1 << 3,
     SceneBorderChanged = 1 << 4,
     SceneFlashlightChanged = 1 << 5,
+    SceneImageChanged = 1 << 6,
     SceneAllChanged = 0x7fffffff
 };
 
 enum SceneCueType {
     SceneCueInjectImage,
     SceneCueInjectText
+};
+
+enum SceneSelectionTarget {
+    SceneSelectionFlame,
+    SceneSelectionGeneralFlame,
+    SceneSelectionWave,
+    SceneSelectionWaveScale,
+    SceneSelectionObject,
+    SceneSelectionTranslation,
+    SceneSelectionBorder,
+    SceneSelectionFlashlight,
+    SceneSelectionPalette,
+    SceneSelectionTable,
+    SceneSelectionImage
 };
 
 class SceneSettings {
@@ -71,8 +79,31 @@ public:
     const char* objectName;
     const char* borderName;
     const char* flashlightName;
+    const char* imageName;
 
     SceneSettings();
+};
+
+class SceneSelectionState {
+    SceneSettings settingsValue;
+
+public:
+    SceneSelectionState();
+
+    void update(const SceneSettings& settings);
+    const SceneSettings& settings() const;
+};
+
+class SceneSnapshot {
+    SceneSettings settingsValue;
+    unsigned int versionValue;
+
+public:
+    SceneSnapshot();
+    SceneSnapshot(const SceneSettings& settings_, unsigned int version_);
+
+    const SceneSettings& settings() const;
+    unsigned int version() const;
 };
 
 class SceneCue {
@@ -93,30 +124,14 @@ class Scene;
 
 class SceneCommandDependencies {
 public:
-    FlameOption& flame;
-    GeneralFlameOption& generalFlame;
-    WaveOption& wave;
-    EffectControl& waveScale;
-    EffectControl& table;
-    EffectControl& object;
-    TranslateOption& translation;
-    PaletteOption& palette;
-    EffectControl& border;
-    EffectControl& flashlight;
-    ImageOption& images;
-    SceneWaveObjectSource& waveObjects;
+    SceneVisualCatalogs& visualCatalogs;
+    SceneSelectionSynchronizer& selectionSync;
     SceneEffectRegistry& effectRegistry;
-    EffectPresetCatalog& presets;
-    ScenePaletteRandomizer& paletteRandomizer;
+    ScenePresetCatalog& presets;
 
-    SceneCommandDependencies(FlameOption& flame_, GeneralFlameOption& generalFlame_,
-        WaveOption& wave_, EffectControl& waveScale_, EffectControl& table_,
-        EffectControl& object_, TranslateOption& translation_,
-        PaletteOption& palette_, EffectControl& border_,
-        EffectControl& flashlight_, ImageOption& images_,
-        SceneWaveObjectSource& waveObjects_,
-        SceneEffectRegistry& effectRegistry_, EffectPresetCatalog& presets_,
-        ScenePaletteRandomizer& paletteRandomizer_);
+    SceneCommandDependencies(SceneVisualCatalogs& visualCatalogs_,
+        SceneSelectionSynchronizer& selectionSync_,
+        SceneEffectRegistry& effectRegistry_, ScenePresetCatalog& presets_);
 };
 
 class SceneObserver {
@@ -139,6 +154,7 @@ public:
 
     const SceneSettings& settings() const;
     unsigned int version() const;
+    SceneSnapshot snapshot() const;
 
     void setSettings(const SceneSettings& settings, unsigned int forcedChanges = 0);
     void emitCue(SceneCue cue);
@@ -149,74 +165,98 @@ public:
     void removeObserver(SceneObserver& observer);
 };
 
+class SceneCommandTarget {
+public:
+    virtual ~SceneCommandTarget() { }
+
+    /** Restores the live scene controls from their saved values. */
+    virtual void restore() = 0;
+
+    /** Restores one saved effect preset into the live scene. */
+    virtual void restorePreset(int slot) = 0;
+
+    /** Saves the live scene effect values into one preset slot. */
+    virtual void savePreset(int slot) = 0;
+
+    /** Randomizes the currently selected random palette. */
+    virtual void randomPalette() = 0;
+
+    /** Adds and selects a new random palette entry. */
+    virtual void addRandomPalette() = 0;
+
+    /** Applies a whole-scene automatic/random change. */
+    virtual void changeAll() = 0;
+
+    /** Applies a one-option automatic/random scene change. */
+    virtual void changeOne() = 0;
+
+    /** Changes one named scene selection by relative offset. */
+    virtual void change(SceneSelectionTarget target, int by) = 0;
+
+    /** Changes one named scene selection by value text. */
+    virtual void change(SceneSelectionTarget target, const char* to) = 0;
+};
+
 class SceneCommands {
     Scene& scene;
-    CthughaBuffer& buffer;
+    SceneGeometry& geometry;
     SceneCommandDependencies dependencies;
     RandomSource& randomSource;
 
     SceneSettings settingsFromOptions();
-    Wave* selectRunnableWave(const WaveConfig& config);
     void syncFromOptions(unsigned int forcedChanges);
     void emitImageCue();
-    void syncFromOptionsAndMaybeCueImage(const EffectControl& option, unsigned int forcedChanges);
+    void syncFromOptionsAndMaybeCueImage(unsigned int forcedChanges);
 
 public:
     /**
      * Creates a command facade over scene-related runtime option state.
      *
      * @param scene_ Scene state object to update.
-     * @param buffer_ Visual buffer used to validate wave/image context.
+     * @param geometry_ Frame geometry used to validate wave/image context.
      * @param dependencies_ Explicit scene-editing controls and support ports.
      * @param randomSource_ Application-owned source for scene randomization.
      */
-    SceneCommands(Scene& scene_, CthughaBuffer& buffer_,
+    SceneCommands(Scene& scene_, SceneGeometry& geometry_,
         const SceneCommandDependencies& dependencies_,
         RandomSource& randomSource_);
 
     Scene& sceneState() { return scene; }
     const Scene& sceneState() const { return scene; }
 
-    ImageOption& imageOption() { return dependencies.images; }
-
     void applyStartupConfig(const SceneConfig& config);
     void initializeFromOptions();
     void refreshFromOptions(unsigned int forcedChanges = 0);
+    void refreshFromOptionsAndMaybeCueImage(unsigned int forcedChanges);
 
-    int isSceneOption(const EffectControl& option) const;
-    void change(EffectControl& option, int by, int doSave = 0);
-    void change(EffectControl& option, const char* to, int doSave = 0);
-    void activate(EffectControl& option, int index);
+    void change(SceneSelectionTarget target, int by);
+    void change(SceneSelectionTarget target, const char* to);
 
-    void changeFlame(int by);
-    void changeFlame(const char* to);
-    void changeGeneralFlame();
-    void changeWave(int by);
-    void changeWave(const char* to);
-    void changeWaveScale(int by);
-    void changeWaveScale(const char* to);
-    void changeObject(int by);
-    void changeObject(const char* to);
-    void changeTranslation(int by);
-    void changeTranslation(const char* to);
-    void changeBorder(int by);
-    void changeBorder(const char* to);
-    void changeFlashlight(int by);
-    void changeFlashlight(const char* to);
-    void changePalette(int by);
-    void changePalette(const char* to);
     void randomPalette();
     void addRandomPalette();
-    void changeTable(int by);
-    void changeTable(const char* to);
-    void changeImage(int by);
-    void changeImage(const char* to);
 
     void changeAll();
     void changeOne();
     void restore();
     void restorePreset(int slot);
     void savePreset(int slot);
+};
+
+class SceneCommandsTarget : public SceneCommandTarget {
+    SceneCommands& sceneCommands;
+
+public:
+    explicit SceneCommandsTarget(SceneCommands& sceneCommands_);
+
+    virtual void changeAll();
+    virtual void changeOne();
+    virtual void restore();
+    virtual void restorePreset(int slot);
+    virtual void savePreset(int slot);
+    virtual void randomPalette();
+    virtual void addRandomPalette();
+    virtual void change(SceneSelectionTarget target, int by);
+    virtual void change(SceneSelectionTarget target, const char* to);
 };
 
 #endif

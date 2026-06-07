@@ -1,19 +1,10 @@
 #include "cthugha.h"
 #include "Scene.h"
 #include "SceneDependencies.h"
-#include "EffectPresetCatalog.h"
-#include "Border.h"
 #include "Configuration.h"
-#include "CthughaBuffer.h"
-#include "Flashlight.h"
-#include "Image.h"
 #include "ProcessServices.h"
-#include "Screen.h"
-#include "display.h"
-#include "flames.h"
-#include "TranslationOptions.h"
-#include "waves.h"
 
+#include <cstring>
 #include <unistd.h>
 
 SceneSettings::SceneSettings()
@@ -36,7 +27,36 @@ SceneSettings::SceneSettings()
     , paletteName("unknown")
     , objectName("unknown")
     , borderName("unknown")
-    , flashlightName("unknown") { }
+    , flashlightName("unknown")
+    , imageName("unknown") { }
+
+SceneSelectionState::SceneSelectionState()
+    : settingsValue() { }
+
+void SceneSelectionState::update(const SceneSettings& settings) {
+    settingsValue = settings;
+}
+
+const SceneSettings& SceneSelectionState::settings() const {
+    return settingsValue;
+}
+
+SceneSnapshot::SceneSnapshot()
+    : settingsValue()
+    , versionValue(0) { }
+
+SceneSnapshot::SceneSnapshot(
+    const SceneSettings& settings_, unsigned int version_)
+    : settingsValue(settings_)
+    , versionValue(version_) { }
+
+const SceneSettings& SceneSnapshot::settings() const {
+    return settingsValue;
+}
+
+unsigned int SceneSnapshot::version() const {
+    return versionValue;
+}
 
 SceneCue::SceneCue()
     : type(SceneCueInjectImage)
@@ -81,6 +101,10 @@ unsigned int Scene::version() const {
     return versionValue;
 }
 
+SceneSnapshot Scene::snapshot() const {
+    return SceneSnapshot(settingsValue, versionValue);
+}
+
 unsigned int Scene::compareSettings(const SceneSettings& settings) const {
     unsigned int changes = SceneNoChange;
 
@@ -105,6 +129,9 @@ unsigned int Scene::compareSettings(const SceneSettings& settings) const {
 
     if (settingsValue.flashlightEnabled != settings.flashlightEnabled)
         changes |= SceneFlashlightChanged;
+
+    if (std::strcmp(settingsValue.imageName, settings.imageName) != 0)
+        changes |= SceneImageChanged;
 
     return changes;
 }
@@ -157,82 +184,24 @@ void Scene::removeObserver(SceneObserver& observer) {
     }
 }
 
-SceneCommandDependencies::SceneCommandDependencies(FlameOption& flame_,
-    GeneralFlameOption& generalFlame_, WaveOption& wave_,
-    EffectControl& waveScale_, EffectControl& table_, EffectControl& object_,
-    TranslateOption& translation_, PaletteOption& palette_,
-    EffectControl& border_, EffectControl& flashlight_, ImageOption& images_,
-    SceneWaveObjectSource& waveObjects_,
-    SceneEffectRegistry& effectRegistry_, EffectPresetCatalog& presets_,
-    ScenePaletteRandomizer& paletteRandomizer_)
-    : flame(flame_)
-    , generalFlame(generalFlame_)
-    , wave(wave_)
-    , waveScale(waveScale_)
-    , table(table_)
-    , object(object_)
-    , translation(translation_)
-    , palette(palette_)
-    , border(border_)
-    , flashlight(flashlight_)
-    , images(images_)
-    , waveObjects(waveObjects_)
+SceneCommandDependencies::SceneCommandDependencies(
+    SceneVisualCatalogs& visualCatalogs_,
+    SceneSelectionSynchronizer& selectionSync_,
+    SceneEffectRegistry& effectRegistry_, ScenePresetCatalog& presets_)
+    : visualCatalogs(visualCatalogs_)
+    , selectionSync(selectionSync_)
     , effectRegistry(effectRegistry_)
-    , presets(presets_)
-    , paletteRandomizer(paletteRandomizer_) { }
+    , presets(presets_) { }
 
-SceneCommands::SceneCommands(Scene& scene_, CthughaBuffer& buffer_,
+SceneCommands::SceneCommands(Scene& scene_, SceneGeometry& geometry_,
     const SceneCommandDependencies& dependencies_, RandomSource& randomSource_)
     : scene(scene_)
-    , buffer(buffer_)
+    , geometry(geometry_)
     , dependencies(dependencies_)
     , randomSource(randomSource_) { }
 
-Wave* SceneCommands::selectRunnableWave(const WaveConfig& config) {
-    int nEntries = dependencies.wave.getNEntries();
-
-    for (int i = 0; i < nEntries; i++) {
-        Wave* selectedWave = dependencies.wave.currentWave();
-        if (selectedWave == 0 || selectedWave->canRun(config))
-            return selectedWave;
-
-        dependencies.wave.change(+1, 0);
-    }
-
-    return 0;
-}
-
 SceneSettings SceneCommands::settingsFromOptions() {
-    SceneSettings settings;
-
-    settings.flame = dependencies.flame.currentFlame();
-    settings.generalFlame = int(dependencies.generalFlame);
-    settings.flameName = (settings.flame != 0) ? settings.flame->name() : "unknown";
-    settings.generalFlameName = dependencies.generalFlame.text();
-
-    settings.waveConfig = WaveConfig(int(dependencies.waveScale),
-        int(dependencies.table), dependencies.waveObjects.currentObject(),
-        buffer.width(), buffer.height());
-    settings.wave = selectRunnableWave(settings.waveConfig);
-    settings.waveName = (settings.wave != 0) ? settings.wave->name() : "unknown";
-    settings.waveScaleName = dependencies.waveScale.currentName();
-    settings.tableName = dependencies.table.currentName();
-    settings.objectName = dependencies.object.currentName();
-
-    settings.translationTable = dependencies.translation.currentTranslationTable();
-    settings.translateIndex = dependencies.translation.currentN();
-    settings.translationName = dependencies.translation.currentName();
-
-    settings.palette = dependencies.palette.currentPaletteEntry();
-    settings.paletteIndex = dependencies.palette.currentN();
-    settings.paletteName = dependencies.palette.currentName();
-
-    settings.borderMode = int(dependencies.border);
-    settings.flashlightEnabled = int(dependencies.flashlight) != 0;
-    settings.borderName = dependencies.border.currentName();
-    settings.flashlightName = dependencies.flashlight.currentName();
-
-    return settings;
+    return dependencies.visualCatalogs.currentSettings(geometry);
 }
 
 void SceneCommands::syncFromOptions(unsigned int forcedChanges) {
@@ -240,35 +209,18 @@ void SceneCommands::syncFromOptions(unsigned int forcedChanges) {
 }
 
 void SceneCommands::emitImageCue() {
-    scene.emitImageCue(dependencies.images.currentImage());
+    scene.emitImageCue(dependencies.visualCatalogs.currentImage());
 }
 
 void SceneCommands::syncFromOptionsAndMaybeCueImage(
-    const EffectControl& option, unsigned int forcedChanges) {
+    unsigned int forcedChanges) {
     syncFromOptions(forcedChanges);
-    if (&option == &dependencies.images)
+    if ((forcedChanges & SceneImageChanged) != 0)
         emitImageCue();
 }
 
-static void applyStartupChoice(EffectControl& option, const std::string& choice,
-    RandomSource& randomSource) {
-    option.change(choice.c_str(), randomSource, 0);
-}
-
 void SceneCommands::applyStartupConfig(const SceneConfig& config) {
-    applyStartupChoice(dependencies.waveScale, config.waveScale, randomSource);
-    applyStartupChoice(dependencies.table, config.table, randomSource);
-    applyStartupChoice(dependencies.object, config.object, randomSource);
-    applyStartupChoice(dependencies.wave, config.wave, randomSource);
-    applyStartupChoice(dependencies.flame, config.flame, randomSource);
-    applyStartupChoice(dependencies.generalFlame, config.generalFlame,
-        randomSource);
-    applyStartupChoice(dependencies.translation, config.translation, randomSource);
-    applyStartupChoice(dependencies.palette, config.palette, randomSource);
-    applyStartupChoice(dependencies.border, config.border, randomSource);
-    applyStartupChoice(dependencies.flashlight, config.flashlight, randomSource);
-    applyStartupChoice(dependencies.images, config.image, randomSource);
-
+    dependencies.visualCatalogs.applyStartupConfig(config, randomSource);
     initializeFromOptions();
 }
 
@@ -281,105 +233,100 @@ void SceneCommands::refreshFromOptions(unsigned int forcedChanges) {
     syncFromOptions(forcedChanges);
 }
 
-int SceneCommands::isSceneOption(const EffectControl& option) const {
-    return (&option == &dependencies.flame)
-        || (&option == &dependencies.generalFlame)
-        || (&option == &dependencies.wave)
-        || (&option == &dependencies.waveScale)
-        || (&option == &dependencies.object)
-        || (&option == &dependencies.translation)
-        || (&option == &dependencies.border)
-        || (&option == &dependencies.flashlight)
-        || (&option == &dependencies.palette)
-        || (&option == &dependencies.table)
-        || (&option == &dependencies.images);
+void SceneCommands::refreshFromOptionsAndMaybeCueImage(
+    unsigned int forcedChanges) {
+    syncFromOptionsAndMaybeCueImage(forcedChanges);
 }
 
-void SceneCommands::change(EffectControl& option, int by, int doSave) {
-    option.change(by, doSave);
-    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
+void SceneCommands::change(SceneSelectionTarget target, int by) {
+    unsigned int forcedChanges
+        = dependencies.visualCatalogs.change(target, by, randomSource);
+    syncFromOptions(forcedChanges);
+    if (target == SceneSelectionImage)
+        emitImageCue();
 }
 
-void SceneCommands::change(EffectControl& option, const char* to, int doSave) {
-    option.change(to, randomSource, doSave);
-    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
+void SceneCommands::change(SceneSelectionTarget target, const char* to) {
+    unsigned int forcedChanges
+        = dependencies.visualCatalogs.change(target, to, randomSource);
+    syncFromOptions(forcedChanges);
+    if (target == SceneSelectionImage)
+        emitImageCue();
 }
-
-void SceneCommands::activate(EffectControl& option, int index) {
-    if ((index < 0) || (index >= option.getNEntries()))
-        return;
-
-    option[index]->setUse(1);
-    option.setValue(index);
-    option.change(0, 0);
-    syncFromOptionsAndMaybeCueImage(option, SceneNoChange);
-}
-
-void SceneCommands::changeFlame(int by) { change(dependencies.flame, by, 0); }
-void SceneCommands::changeFlame(const char* to) { change(dependencies.flame, to, 0); }
-
-void SceneCommands::changeGeneralFlame() {
-    dependencies.generalFlame.changeRandom(randomSource);
-    syncFromOptions(SceneFlameChanged);
-}
-
-void SceneCommands::changeWave(int by) { change(dependencies.wave, by, 0); }
-void SceneCommands::changeWave(const char* to) { change(dependencies.wave, to, 0); }
-void SceneCommands::changeWaveScale(int by) { change(dependencies.waveScale, by, 0); }
-void SceneCommands::changeWaveScale(const char* to) { change(dependencies.waveScale, to, 0); }
-void SceneCommands::changeObject(int by) { change(dependencies.object, by, 0); }
-void SceneCommands::changeObject(const char* to) { change(dependencies.object, to, 0); }
-void SceneCommands::changeTranslation(int by) { change(dependencies.translation, by, 0); }
-void SceneCommands::changeTranslation(const char* to) { change(dependencies.translation, to, 0); }
-void SceneCommands::changeBorder(int by) { change(dependencies.border, by, 0); }
-void SceneCommands::changeBorder(const char* to) { change(dependencies.border, to, 0); }
-void SceneCommands::changeFlashlight(int by) { change(dependencies.flashlight, by, 0); }
-void SceneCommands::changeFlashlight(const char* to) { change(dependencies.flashlight, to, 0); }
-void SceneCommands::changePalette(int by) { change(dependencies.palette, by, 0); }
-void SceneCommands::changePalette(const char* to) { change(dependencies.palette, to, 0); }
 
 void SceneCommands::randomPalette() {
-    dependencies.palette.setValue(
-        dependencies.paletteRandomizer.randomizeLast(randomSource));
-    syncFromOptions(ScenePaletteChanged);
+    syncFromOptions(dependencies.visualCatalogs.randomPalette(randomSource));
 }
 
 void SceneCommands::addRandomPalette() {
-    dependencies.palette.setValue(
-        dependencies.paletteRandomizer.addRandom(randomSource));
-    syncFromOptions(ScenePaletteChanged);
+    syncFromOptions(dependencies.visualCatalogs.addRandomPalette(randomSource));
 }
-
-void SceneCommands::changeTable(int by) { change(dependencies.table, by, 0); }
-void SceneCommands::changeTable(const char* to) { change(dependencies.table, to, 0); }
-void SceneCommands::changeImage(int by) { change(dependencies.images, by, 0); }
-void SceneCommands::changeImage(const char* to) { change(dependencies.images, to, 0); }
 
 void SceneCommands::changeAll() {
     dependencies.effectRegistry.changeAll(randomSource);
+    dependencies.selectionSync.syncFromControls();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
-    EffectControl* changedOption = dependencies.effectRegistry.changeOne(randomSource);
-    syncFromOptions(SceneNoChange);
-    if (changedOption == &dependencies.images)
-        emitImageCue();
+    dependencies.effectRegistry.changeOne(randomSource);
+    syncFromOptionsAndMaybeCueImage(dependencies.selectionSync.syncFromControls());
 }
 
 void SceneCommands::restore() {
     dependencies.effectRegistry.restoreAll();
+    dependencies.selectionSync.syncFromControls();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::restorePreset(int slot) {
     dependencies.presets.restore(slot);
+    dependencies.selectionSync.syncFromControls();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::savePreset(int slot) {
     dependencies.presets.save(slot);
+}
+
+SceneCommandsTarget::SceneCommandsTarget(SceneCommands& sceneCommands_)
+    : sceneCommands(sceneCommands_) { }
+
+void SceneCommandsTarget::changeAll() {
+    sceneCommands.changeAll();
+}
+
+void SceneCommandsTarget::changeOne() {
+    sceneCommands.changeOne();
+}
+
+void SceneCommandsTarget::restore() {
+    sceneCommands.restore();
+}
+
+void SceneCommandsTarget::restorePreset(int slot) {
+    sceneCommands.restorePreset(slot);
+}
+
+void SceneCommandsTarget::savePreset(int slot) {
+    sceneCommands.savePreset(slot);
+}
+
+void SceneCommandsTarget::randomPalette() {
+    sceneCommands.randomPalette();
+}
+
+void SceneCommandsTarget::addRandomPalette() {
+    sceneCommands.addRandomPalette();
+}
+
+void SceneCommandsTarget::change(SceneSelectionTarget target, int by) {
+    sceneCommands.change(target, by);
+}
+
+void SceneCommandsTarget::change(SceneSelectionTarget target, const char* to) {
+    sceneCommands.change(target, to);
 }

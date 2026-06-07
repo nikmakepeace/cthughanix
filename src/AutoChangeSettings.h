@@ -10,9 +10,9 @@
 /**
  * Read/write settings port for automatic scene-change policy.
  *
- * AutoChanger reads this object, runtime controls mutate it, and persistence
- * snapshots it. Implementations own the values; callers must not depend on
- * legacy global Option storage for these fields.
+ * SceneChangeScheduler reads this object, runtime controls mutate it, and
+ * persistence snapshots it. Implementations own the values; callers must not
+ * depend on legacy global Option storage for these fields.
  */
 class AutoChangeSettings {
 public:
@@ -59,7 +59,7 @@ public:
     /** @param value Nonzero to lock automatic scene changes. */
     virtual void setLocked(int value) = 0;
 
-    /** @return Nonzero when AutoChanger should change one option only. */
+    /** @return Nonzero when SceneChangeScheduler should change one option only. */
     virtual int changeLittle() const = 0;
 
     /** @param value Nonzero to change one option only. */
@@ -133,7 +133,7 @@ public:
     /** @param value Nonzero to lock automatic scene changes. */
     virtual void setLocked(int value);
 
-    /** @return Nonzero when AutoChanger should change one option only. */
+    /** @return Nonzero when SceneChangeScheduler should change one option only. */
     virtual int changeLittle() const;
 
     /** @param value Nonzero to change one option only. */

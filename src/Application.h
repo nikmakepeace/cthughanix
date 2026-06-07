@@ -13,7 +13,6 @@
 #include "InputQueue.h"
 #include "keymap.h"
 #include "ProcessServices.h"
-#include "SceneDependencies.h"
 #include "VideoDirector.h"
 #include "VideoFilterchainSequence.h"
 
@@ -26,7 +25,6 @@ class AudioIngest;
 class AudioProcessingSelector;
 class AudioProcessingState;
 class AudioProcessor;
-class AutoChanger;
 class AutoChangeControls;
 class AutoChangeQuietObserver;
 class AutoChangeSettings;
@@ -49,7 +47,10 @@ class RuntimeEffectControls;
 class RuntimePersistence;
 class RuntimeShutdown;
 class Scene;
-class SceneCommands;
+class SceneChangeScheduler;
+class SceneRuntime;
+class SceneSnapshot;
+class SceneVisualCatalogFactory;
 class VideoFilterchain;
 
 /**
@@ -92,13 +93,10 @@ class Application {
     std::unique_ptr<AutoChangeSettings> autoChangeSettingsValue;
     std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
     std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
-    std::unique_ptr<AutoChanger> autoChangerValue;
+    std::unique_ptr<SceneChangeScheduler> sceneChangeSchedulerValue;
     VideoDirector videoDirectorValue;
-    LegacySceneWaveObjectSource sceneWaveObjectsValue;
-    LegacySceneEffectRegistry sceneEffectRegistryValue;
-    LegacyScenePaletteRandomizer scenePaletteRandomizerValue;
-    std::unique_ptr<Scene> sceneValue;
-    std::unique_ptr<SceneCommands> sceneCommandsValue;
+    std::unique_ptr<SceneVisualCatalogFactory> sceneVisualCatalogFactoryValue;
+    std::unique_ptr<SceneRuntime> sceneRuntimeValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
     std::unique_ptr<InterfaceRuntime> interfaceRuntimeValue;
     std::unique_ptr<ErrorMessages> errorMessagesValue;
@@ -135,7 +133,7 @@ class Application {
     /** @return True when the application should leave the main loop. */
     bool closeRequested() const;
 
-    /** Destroys Scene/SceneCommands and disconnects legacy scene callbacks. */
+    /** Destroys scene-adjacent runtime command and persistence objects. */
     void shutdownSceneRuntime();
 
     /** Creates and installs OSS mixer controls for DSP input sessions. */
@@ -173,7 +171,8 @@ class Application {
      *
      * @return Published IndexedFrame for display, or NULL when no frame is ready.
      */
-    const IndexedFrame* runVideoFilterchain(AudioFrame& frame);
+    const IndexedFrame* runVideoFilterchain(
+        AudioFrame& frame, const SceneSnapshot& sceneSnapshot);
 
 public:
     /**
@@ -217,10 +216,10 @@ public:
     void run();
 
     /**
-     * Initializes scene state and command facade.
+     * Initializes scene state and command ports.
      *
      * Must run before option parsing that can route changes through legacy
-     * callbacks into SceneCommands.
+     * callbacks into Scene runtime command targets.
      */
     void initSceneRuntime();
 
@@ -254,8 +253,6 @@ public:
     /** @return Active Scene. Valid after initSceneRuntime(). */
     Scene& scene();
 
-    /** @return Active SceneCommands facade. Valid after initSceneRuntime(). */
-    SceneCommands& sceneCommands();
 };
 
 #endif

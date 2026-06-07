@@ -2,17 +2,17 @@
  * Automatic scene-change policy driven by audio metrics and acoustic context.
  */
 
-#ifndef __AUTO_CHANGER_H
-#define __AUTO_CHANGER_H
+#ifndef CTHUGHA_SCENE_CHANGE_SCHEDULER_H
+#define CTHUGHA_SCENE_CHANGE_SCHEDULER_H
 
-#include "AutoChangerStatusProvider.h"
+#include "SceneChangeStatusProvider.h"
 
-class RuntimeCommandSink;
 class AcousticContext;
 class AutoChangeSettings;
 class LogSink;
 class MillisecondClock;
 class RandomSource;
+class SceneCommandTarget;
 struct AudioMetrics;
 
 /**
@@ -32,8 +32,8 @@ public:
     virtual int observeQuiet(int quietLength) = 0;
 };
 
-class AutoChanger : public AutoChangerStatusProvider {
-    RuntimeCommandSink& runtimeCommands;
+class SceneChangeScheduler : public SceneChangeStatusProvider {
+    SceneCommandTarget& sceneCommands;
     const AutoChangeSettings& settings;
     AcousticContext& acousticContextValue;
     MillisecondClock& clock;
@@ -52,29 +52,29 @@ public:
     /**
      * Creates the automatic scene changer.
      *
-     * @param runtimeCommands_ Runtime command sink used for automatic scene
-     *        mutations. The referenced object must outlive this AutoChanger.
+     * @param sceneCommands_ Scene command target used for automatic scene
+     *        mutations. The referenced object must outlive this scheduler.
      * @param settings_ Automatic scene-change settings. The referenced object
-     *        must outlive this AutoChanger.
+     *        must outlive this scheduler.
      * @param acousticContext_ Rolling acoustic state used for fire-triggered
-     *        scene changes. The referenced object must outlive this AutoChanger.
+     *        scene changes. The referenced object must outlive this scheduler.
      * @param clock_ Clock used for wait/quiet timing. The referenced object
-     *        must outlive this AutoChanger.
+     *        must outlive this scheduler.
      * @param randomSource_ Random source used for wait jitter. The referenced
-     *        object must outlive this AutoChanger.
+     *        object must outlive this scheduler.
      * @param quietObserver_ Observer notified about quiet audio periods. The
-     *        referenced object must outlive this AutoChanger.
+     *        referenced object must outlive this scheduler.
      * @param log_ Diagnostic sink. The referenced object must outlive this
-     *        AutoChanger.
+     *        scheduler.
      */
-    AutoChanger(RuntimeCommandSink& runtimeCommands_,
+    SceneChangeScheduler(SceneCommandTarget& sceneCommands_,
         const AutoChangeSettings& settings_,
         AcousticContext& acousticContext_, MillisecondClock& clock_,
         RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,
         LogSink& log_);
 
     /** Releases automatic scene-change policy state. */
-    ~AutoChanger();
+    ~SceneChangeScheduler();
 
     /**
      * Runs one automatic-change policy step using supplied audio metrics.
@@ -86,9 +86,8 @@ public:
     /**
      * Applies the selected automatic change action.
      *
-     * Uses the little option to choose between changing one eligible EffectControl
-     * and changing the whole unlocked scene option set. Exact entry selection is
-     * still owned by the runtime command handler and legacy EffectControl policy.
+     * Uses the little option to choose between changing one eligible scene option
+     * and changing the whole unlocked scene option set.
      */
     void change();
 
@@ -103,7 +102,7 @@ public:
      *
      * @return Pointer to instance-owned text valid until the next status call.
      */
-    virtual const char* autoChangerStatus() const;
+    virtual const char* sceneChangeStatus() const;
 };
 
 #endif

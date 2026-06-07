@@ -2,7 +2,7 @@
 #include "Interface.h"
 #include "InterfaceRuntime.h"
 #include "AutoChangeControls.h"
-#include "AutoChangerStatusProvider.h"
+#include "SceneChangeStatusProvider.h"
 #include "InputQueue.h"
 #include "keys.h"
 #include "imath.h"
@@ -130,10 +130,10 @@ void Interface::display(InterfaceRuntime& runtime) {
     int showStatus = runtime.showStatus();
     if (showStatus) {
         static char str[512];
-        const AutoChangerStatusProvider* provider =
-            runtime.autoChangerStatusProvider();
+        const SceneChangeStatusProvider* provider =
+            runtime.sceneChangeStatusProvider();
         const char* autoChangeStatus = provider != NULL
-            ? provider->autoChangerStatus()
+            ? provider->sceneChangeStatus()
             : "";
         snprintf(str, sizeof(str), "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
             autoChangeStatus);

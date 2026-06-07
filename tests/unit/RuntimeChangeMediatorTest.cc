@@ -3,7 +3,6 @@
  */
 
 #include "EffectControl.h"
-#include "EffectControlPolicy.h"
 #include "RuntimeAudioControls.h"
 #include "RuntimeAutoChangeControls.h"
 #include "RuntimeChangeMediator.h"
@@ -37,9 +36,6 @@ int cth_log_errno(int, const char*, ...) {
     return 0;
 }
 
-void effectControlPolicyObserve(EffectControl&) { }
-void configureEffectPolicy(const EffectPolicy&) { }
-
 struct SceneCommandRecord {
     const char* name;
     int value;
@@ -63,55 +59,120 @@ static void resetSceneRecord() {
     currentSceneOption = 0;
 }
 
-static SceneCommands& fakeSceneCommands() {
-    static char storage[sizeof(SceneCommands)];
-    return *reinterpret_cast<SceneCommands*>(storage);
+static void recordSceneSelectionBy(SceneSelectionTarget target, int by) {
+    switch (target) {
+    case SceneSelectionFlame:
+        recordSceneCommand("flame-by", by);
+        break;
+    case SceneSelectionGeneralFlame:
+        recordSceneCommand("general-flame");
+        break;
+    case SceneSelectionWave:
+        recordSceneCommand("wave-by", by);
+        break;
+    case SceneSelectionWaveScale:
+        recordSceneCommand("wave-scale-by", by);
+        break;
+    case SceneSelectionObject:
+        recordSceneCommand("object-by", by);
+        break;
+    case SceneSelectionTranslation:
+        recordSceneCommand("translation-by", by);
+        break;
+    case SceneSelectionBorder:
+        recordSceneCommand("border-by", by);
+        break;
+    case SceneSelectionFlashlight:
+        recordSceneCommand("flashlight-by", by);
+        break;
+    case SceneSelectionPalette:
+        recordSceneCommand("palette-by", by);
+        break;
+    case SceneSelectionTable:
+        recordSceneCommand("table-by", by);
+        break;
+    case SceneSelectionImage:
+        recordSceneCommand("image-by", by);
+        break;
+    }
 }
 
-int SceneCommands::isSceneOption(const EffectControl& option) const {
-    return &option == currentSceneOption;
+static void recordSceneSelectionTo(SceneSelectionTarget target, const char* to) {
+    switch (target) {
+    case SceneSelectionFlame:
+        recordSceneCommand("flame-to", 0, to);
+        break;
+    case SceneSelectionGeneralFlame:
+        recordSceneCommand("general-flame");
+        break;
+    case SceneSelectionWave:
+        recordSceneCommand("wave-to", 0, to);
+        break;
+    case SceneSelectionWaveScale:
+        recordSceneCommand("wave-scale-to", 0, to);
+        break;
+    case SceneSelectionObject:
+        recordSceneCommand("object-to", 0, to);
+        break;
+    case SceneSelectionTranslation:
+        recordSceneCommand("translation-to", 0, to);
+        break;
+    case SceneSelectionBorder:
+        recordSceneCommand("border-to", 0, to);
+        break;
+    case SceneSelectionFlashlight:
+        recordSceneCommand("flashlight-to", 0, to);
+        break;
+    case SceneSelectionPalette:
+        recordSceneCommand("palette-to", 0, to);
+        break;
+    case SceneSelectionTable:
+        recordSceneCommand("table-to", 0, to);
+        break;
+    case SceneSelectionImage:
+        recordSceneCommand("image-to", 0, to);
+        break;
+    }
 }
 
-void SceneCommands::change(EffectControl& option, int by, int) {
-    recordSceneCommand("change-by", by, 0, &option);
-}
+class RecordingSceneCommandTarget : public SceneCommandTarget {
+public:
+    virtual void restore() { recordSceneCommand("restore"); }
+    virtual void restorePreset(int slot) {
+        recordSceneCommand("restore-preset", slot);
+    }
+    virtual void savePreset(int slot) { recordSceneCommand("save-preset", slot); }
+    virtual void randomPalette() { recordSceneCommand("random-palette"); }
+    virtual void addRandomPalette() { recordSceneCommand("add-random-palette"); }
+    virtual void changeAll() { recordSceneCommand("change-all"); }
+    virtual void changeOne() { recordSceneCommand("change-one"); }
+    virtual void change(SceneSelectionTarget target, int by) {
+        recordSceneSelectionBy(target, by);
+    }
+    virtual void change(SceneSelectionTarget target, const char* to) {
+        recordSceneSelectionTo(target, to);
+    }
+};
 
-void SceneCommands::change(EffectControl& option, const char* to, int) {
-    recordSceneCommand("change-to", 0, to, &option);
-}
+class RecordingEffectControlOwner : public RuntimeEffectControlOwner {
+public:
+    virtual int ownsEffectControl(const EffectControl& option) const {
+        return &option == currentSceneOption;
+    }
 
-void SceneCommands::activate(EffectControl& option, int index) {
-    recordSceneCommand("activate", index, 0, &option);
-}
+    virtual void changeEffectControlBy(EffectControl& option, int by, int) {
+        recordSceneCommand("change-by", by, 0, &option);
+    }
 
-void SceneCommands::changeFlame(int by) { recordSceneCommand("flame-by", by); }
-void SceneCommands::changeFlame(const char* to) { recordSceneCommand("flame-to", 0, to); }
-void SceneCommands::changeGeneralFlame() { recordSceneCommand("general-flame"); }
-void SceneCommands::changeWave(int by) { recordSceneCommand("wave-by", by); }
-void SceneCommands::changeWave(const char* to) { recordSceneCommand("wave-to", 0, to); }
-void SceneCommands::changeWaveScale(int by) { recordSceneCommand("wave-scale-by", by); }
-void SceneCommands::changeWaveScale(const char* to) { recordSceneCommand("wave-scale-to", 0, to); }
-void SceneCommands::changeObject(int by) { recordSceneCommand("object-by", by); }
-void SceneCommands::changeObject(const char* to) { recordSceneCommand("object-to", 0, to); }
-void SceneCommands::changeTranslation(int by) { recordSceneCommand("translation-by", by); }
-void SceneCommands::changeTranslation(const char* to) { recordSceneCommand("translation-to", 0, to); }
-void SceneCommands::changeBorder(int by) { recordSceneCommand("border-by", by); }
-void SceneCommands::changeBorder(const char* to) { recordSceneCommand("border-to", 0, to); }
-void SceneCommands::changeFlashlight(int by) { recordSceneCommand("flashlight-by", by); }
-void SceneCommands::changeFlashlight(const char* to) { recordSceneCommand("flashlight-to", 0, to); }
-void SceneCommands::changePalette(int by) { recordSceneCommand("palette-by", by); }
-void SceneCommands::changePalette(const char* to) { recordSceneCommand("palette-to", 0, to); }
-void SceneCommands::randomPalette() { recordSceneCommand("random-palette"); }
-void SceneCommands::addRandomPalette() { recordSceneCommand("add-random-palette"); }
-void SceneCommands::changeTable(int by) { recordSceneCommand("table-by", by); }
-void SceneCommands::changeTable(const char* to) { recordSceneCommand("table-to", 0, to); }
-void SceneCommands::changeImage(int by) { recordSceneCommand("image-by", by); }
-void SceneCommands::changeImage(const char* to) { recordSceneCommand("image-to", 0, to); }
-void SceneCommands::changeAll() { recordSceneCommand("change-all"); }
-void SceneCommands::changeOne() { recordSceneCommand("change-one"); }
-void SceneCommands::restore() { recordSceneCommand("restore"); }
-void SceneCommands::restorePreset(int slot) { recordSceneCommand("restore-preset", slot); }
-void SceneCommands::savePreset(int slot) { recordSceneCommand("save-preset", slot); }
+    virtual void changeEffectControlTo(EffectControl& option, const char* to,
+        int) {
+        recordSceneCommand("change-to", 0, to, &option);
+    }
+
+    virtual void activateEffectControl(EffectControl& option, int index) {
+        recordSceneCommand("activate", index, 0, &option);
+    }
+};
 
 class RecordingPaletteMetadataTarget : public RuntimePaletteMetadataTarget {
 public:
@@ -560,6 +621,8 @@ public:
     RecordingRuntimeAudioControls audioControls;
     RecordingRuntimeAutoChangeControls autoChangeControls;
     RecordingRuntimeEffectControls effectControls;
+    RecordingSceneCommandTarget sceneCommands;
+    RecordingEffectControlOwner effectControlOwner;
     RuntimeChangeMediator mediator;
     RoutedRuntimeCommandTargetRouter targetRouter;
 
@@ -570,9 +633,11 @@ public:
         , audioControls()
         , autoChangeControls()
         , effectControls()
-        , mediator(fakeSceneCommands(), persistence, shutdown, displayControls,
+        , sceneCommands()
+        , effectControlOwner()
+        , mediator(sceneCommands, persistence, shutdown, displayControls,
               audioControls, autoChangeControls, effectControls)
-        , targetRouter(mediator, fakeSceneCommands(), displayControls,
+        , targetRouter(mediator, effectControlOwner, displayControls,
               audioControls, autoChangeControls, effectControls) { }
 };
 

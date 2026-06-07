@@ -13,7 +13,6 @@
 #include "AudioProcessing.h"
 #include "AudioProcessor.h"
 #include "AutoChangeControls.h"
-#include "AutoChanger.h"
 #include "AutoChangeSettings.h"
 #include "Border.h"
 #include "EffectChoiceLoader.h"
@@ -22,12 +21,11 @@
 #include "DisplayBackend.h"
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
-#include "EffectControlPolicy.h"
-#include "EffectPresetCatalog.h"
 #include "Flashlight.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
+#include "LegacySceneVisualCatalogs.h"
 #include "Mixer.h"
 #include "IniFiles.h"
 #include "Option.h"
@@ -41,6 +39,8 @@
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
+#include "SceneChangeScheduler.h"
+#include "SceneRuntime.h"
 #include "Screen.h"
 #include "VideoDirector.h"
 #include "VideoFilterchain.h"
@@ -88,14 +88,15 @@ public:
 };
 
 static VideoFrameContext videoFrameContextFor(const AudioFrame& frame,
-    const AcousticContext& acousticContext, double frameNow,
-    double frameDeltaT) {
+    const AcousticContext& acousticContext, const SceneSnapshot* sceneSnapshot,
+    double frameNow, double frameDeltaT) {
     VideoFrameContext context;
     context.audioFrame = &frame;
     context.rawAudioData = frame.raw;
     context.processedWaveData = frame.processedWaveData;
     context.audioMetrics = &frame.metrics;
     context.acousticContext = &acousticContext;
+    context.sceneSnapshot = sceneSnapshot;
     context.now = frameNow;
     context.deltaT = frameDeltaT;
     return context;
@@ -146,6 +147,7 @@ Application::Application(int argc, char* argv[])
     , logSinkValue(loggingRuntimeValue)
     , exitStatusValue(1)
     , acousticContextValue(&logSinkValue)
+    , videoDirectorValue(CthughaBuffer::buffer)
     , platformLifecycle(logSinkValue, PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
     , startupInitialized(0)
@@ -153,6 +155,12 @@ Application::Application(int argc, char* argv[])
     cthugha_install_logging_runtime(loggingRuntimeValue);
     videoDirectorValue.setRandomSource(randomSourceValue);
     videoDirectorValue.setTimerFactory(countdownTimerFactoryValue);
+    sceneVisualCatalogFactoryValue
+        = createLegacySceneVisualCatalogFactory(flame, flameGeneral, wave,
+            waveScale, table, object, translation, palette, border,
+            flashlight, videoDirectorValue.imageOption());
+    sceneRuntimeValue.reset(new SceneRuntime(videoDirectorValue,
+        *sceneVisualCatalogFactoryValue, randomSourceValue));
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption());
@@ -168,6 +176,7 @@ Application::Application(int argc, char* argv[],
     , logSinkValue(loggingRuntimeValue)
     , exitStatusValue(1)
     , acousticContextValue(&logSinkValue)
+    , videoDirectorValue(CthughaBuffer::buffer)
     , platformLifecycle(logSinkValue, PlatformLifecycleCallbacks(
           &Application::platformWillSuspend, &Application::platformDidResume, this))
     , startupInitialized(0)
@@ -175,6 +184,12 @@ Application::Application(int argc, char* argv[],
     cthugha_install_logging_runtime(loggingRuntimeValue);
     videoDirectorValue.setRandomSource(randomSourceValue);
     videoDirectorValue.setTimerFactory(countdownTimerFactoryValue);
+    sceneVisualCatalogFactoryValue
+        = createLegacySceneVisualCatalogFactory(flame, flameGeneral, wave,
+            waveScale, table, object, translation, palette, border,
+            flashlight, videoDirectorValue.imageOption());
+    sceneRuntimeValue.reset(new SceneRuntime(videoDirectorValue,
+        *sceneVisualCatalogFactoryValue, randomSourceValue));
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption());
@@ -208,20 +223,10 @@ bool Application::closeRequested() const {
 }
 
 void Application::initSceneRuntime() {
-    if (sceneValue.get() != NULL)
+    if (runtimeConfigRegistryValue.get() != NULL)
         return;
 
-    // SceneCommands is the modern target for legacy option callbacks, so create
-    // it before full option parsing can trigger scene-changing work.
-    sceneValue.reset(new Scene);
-    videoDirectorValue.bindScene(*sceneValue);
-    SceneCommandDependencies sceneDependencies(flame, flameGeneral, wave,
-        waveScale, table, object, translation, palette, border, flashlight,
-        videoDirectorValue.imageOption(), sceneWaveObjectsValue,
-        sceneEffectRegistryValue, effectPresetCatalog,
-        scenePaletteRandomizerValue);
-    sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
-        sceneDependencies, randomSourceValue));
+    videoDirectorValue.bindScene(sceneRuntimeValue->scene());
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
     audioProcessorValue.reset(new AudioProcessor());
     audioProcessingStateValue.reset(new AudioProcessingState(randomSourceValue));
@@ -232,9 +237,10 @@ void Application::initSceneRuntime() {
         new OwnedAutoChangeSettings(startupConfigValue.autoChange));
     autoChangeControlsValue.reset(
         new AutoChangeControls(*autoChangeSettingsValue, logSinkValue));
+    runtimeConfigRegistryValue->addContributor(sceneRuntimeValue->serializer());
     runtimeConfigContributorValue.reset(
-        new LegacyRuntimeConfigContributor(*sceneCommandsValue,
-            *autoChangeSettingsValue, *audioProcessingStateValue));
+        new LegacyRuntimeConfigContributor(*autoChangeSettingsValue,
+            *audioProcessingStateValue));
     runtimeConfigRegistryValue->addContributor(*runtimeConfigContributorValue);
     runtimePersistenceValue.reset(
         new IniRuntimePersistence(*runtimeConfigRegistryValue, logSinkValue));
@@ -251,12 +257,12 @@ void Application::initSceneRuntime() {
     interfaceRuntimeValue->setRuntimeConfigRegistry(runtimeConfigRegistryValue.get());
     interfaceRuntimeValue->setAudioProcessingSelector(audioProcessingSelectorValue.get());
     runtimeChangeMediatorValue.reset(new RuntimeChangeMediator(
-        *sceneCommandsValue, *runtimePersistenceValue,
+        sceneRuntimeValue->commandTarget(), *runtimePersistenceValue,
         *runtimeShutdownValue, *runtimeDisplayControlsValue,
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
         *runtimeEffectControlsValue));
     runtimeCommandRouterValue.reset(new RoutedRuntimeCommandTargetRouter(
-        *runtimeChangeMediatorValue, *sceneCommandsValue,
+        *runtimeChangeMediatorValue, sceneRuntimeValue->effectControlOwner(),
         *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
         *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
@@ -275,15 +281,13 @@ void Application::shutdownSceneRuntime() {
     runtimeDisplayControlsValue.reset();
     runtimePersistenceValue.reset();
     runtimeShutdownValue.reset();
-    runtimeConfigRegistryValue.reset();
     runtimeConfigContributorValue.reset();
+    runtimeConfigRegistryValue.reset();
     autoChangeControlsValue.reset();
     autoChangeSettingsValue.reset();
     audioProcessingSelectorValue.reset();
     audioProcessingStateValue.reset();
     audioProcessorValue.reset();
-    sceneCommandsValue.reset();
-    sceneValue.reset();
 }
 
 int Application::initMixerRuntime() {
@@ -374,19 +378,20 @@ void Application::initAudioFramePipeline() {
     if (autoChangeQuietObserverValue.get() == NULL)
         autoChangeQuietObserverValue.reset(
             new VideoDirectorQuietObserver(videoDirectorValue));
-    if (autoChangerValue.get() == NULL
-        && runtimeChangeMediatorValue.get() != NULL
+    if (sceneChangeSchedulerValue.get() == NULL
+        && sceneRuntimeValue.get() != NULL
         && autoChangeSettingsValue.get() != NULL)
-        autoChangerValue.reset(new AutoChanger(*runtimeChangeMediatorValue,
+        sceneChangeSchedulerValue.reset(new SceneChangeScheduler(sceneRuntimeValue->commandTarget(),
             *autoChangeSettingsValue, acousticContextValue,
             millisecondClockValue, randomSourceValue,
             *autoChangeQuietObserverValue, logSinkValue));
-    interfaceRuntimeValue->setAutoChangerStatusProvider(autoChangerValue.get());
+    interfaceRuntimeValue->setSceneChangeStatusProvider(
+        sceneChangeSchedulerValue.get());
 }
 
 void Application::shutdownAudioFramePipeline() {
-    interfaceRuntimeValue->setAutoChangerStatusProvider(NULL);
-    autoChangerValue.reset();
+    interfaceRuntimeValue->setSceneChangeStatusProvider(NULL);
+    sceneChangeSchedulerValue.reset();
     autoChangeQuietObserverValue.reset();
     audioFramePipelineValue.reset();
 }
@@ -394,18 +399,19 @@ void Application::shutdownAudioFramePipeline() {
 void Application::runAudioFramePipeline(AudioFrame& frame) {
     initAudioFramePipeline();
     audioFramePipelineValue->processFrame(frame);
-    if (autoChangerValue.get() != NULL)
-        (*autoChangerValue)(frame.metrics);
+    if (sceneChangeSchedulerValue.get() != NULL)
+        (*sceneChangeSchedulerValue)(frame.metrics);
 }
 
-const IndexedFrame* Application::runVideoFilterchain(AudioFrame& frame) {
+const IndexedFrame* Application::runVideoFilterchain(
+    AudioFrame& frame, const SceneSnapshot& sceneSnapshot) {
     initVideoFilterchain();
 
     // The filterchain receives a snapshot-like context for this visual frame.
     // Audio frame data and frame-local metrics are owned by AudioIngest; filters
     // borrow them only during run().
     VideoFrameContext context = videoFrameContextFor(frame, acousticContextValue,
-        displayValue->currentFrameTimeSeconds(),
+        &sceneSnapshot, displayValue->currentFrameTimeSeconds(),
         displayValue->currentFrameDeltaSeconds());
 
     logSinkValue.trace("video runtime", "running filterchain=%p filters=%d\n",
@@ -443,11 +449,7 @@ void Application::shutdown() {
 }
 
 Scene& Application::scene() {
-    return *sceneValue;
-}
-
-SceneCommands& Application::sceneCommands() {
-    return *sceneCommandsValue;
+    return sceneRuntimeValue->scene();
 }
 
 int Application::initialize() {
@@ -477,7 +479,6 @@ int Application::initialize() {
 #ifdef CTH_XWIN
     configureDisplayDeviceX11(startupConfigValue.x11);
 #endif
-    configureEffectPolicy(startupConfigValue.effectPolicy);
     configureTranslationOptions(startupConfigValue.effectPolicy);
     configureWaveOptions(startupConfigValue.effectPolicy);
     configurePaletteOptions(startupConfigValue.effectPolicy);
@@ -517,9 +518,10 @@ int Application::initialize() {
     }
     init_border();
     init_flashlight();
+    sceneRuntimeValue->configureEffectPolicy(startupConfigValue.effectPolicy);
 
     logSinkValue.info("Setting initial effect controls...\n");
-    sceneCommands().applyStartupConfig(startupConfigValue.scene);
+    sceneRuntimeValue->applyStartupConfig(startupConfigValue.scene);
     applyDisplayPresentationStartupChoice(startupConfigValue.scene,
         randomSourceValue);
     audioProcessingSelectorValue->configureStartup(startupConfigValue.scene);
@@ -541,10 +543,9 @@ int Application::initialize() {
     if (displayFrontendInitializer->initializeDisplayFrontend(
             &displayArgc, displayArgv.data()))
         return 0;
-    displayRuntimeOwnership = newDisplayDevice(scene(), sceneCommands(),
-        *runtimeChangeMediatorValue,
-        *runtimeCommandRouterValue,
-        *runtimeConfigRegistryValue,
+    displayRuntimeOwnership = newDisplayDevice(scene(),
+        videoDirectorValue.imageOption(), *runtimeChangeMediatorValue,
+        *runtimeCommandRouterValue, *runtimeConfigRegistryValue,
         startupConfigValue.display, secondsClockValue);
     if (displayRuntimeOwnership.get() == NULL)
         return 0;
@@ -665,7 +666,7 @@ void Application::runFrame(int doDisplay) {
         frameTiming[0] = secondsClockValue.nowSeconds();
 
     // Advance display timing first so owned frame time describes this visual frame for
-    // audio analysis, AutoChanger policy, and all visual filters.
+    // audio analysis, scene-change policy, and all visual filters.
     displayValue->nextFrame();
     if (traceFrameTiming)
         frameTiming[1] = secondsClockValue.nowSeconds();
@@ -686,9 +687,10 @@ void Application::runFrame(int doDisplay) {
         frameTiming[3] = secondsClockValue.nowSeconds();
 
     // Mutate Cthugha's indexed active/passive buffers and publish a frame view.
-    const IndexedFrame* indexedFrame = runVideoFilterchain(audioFrame);
+    SceneSnapshot sceneSnapshot = sceneRuntimeValue->snapshot();
+    const IndexedFrame* indexedFrame = runVideoFilterchain(audioFrame, sceneSnapshot);
     VideoFrameContext presentationContext = videoFrameContextFor(audioFrame,
-        acousticContextValue, displayValue->currentFrameTimeSeconds(),
+        acousticContextValue, &sceneSnapshot, displayValue->currentFrameTimeSeconds(),
         displayValue->currentFrameDeltaSeconds());
     if (traceFrameTiming)
         frameTiming[4] = secondsClockValue.nowSeconds();
