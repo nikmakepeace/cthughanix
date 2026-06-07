@@ -122,11 +122,6 @@ void VideoDirector::configureQuietMessages(const MessagesConfig& messagesConfig)
     silenceMessage.configure(messagesConfig);
 }
 
-VideoDirector& videoDirector() {
-    static VideoDirector director;
-    return director;
-}
-
 ImageOption& VideoDirector::imageOption() {
     return images;
 }

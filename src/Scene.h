@@ -10,14 +10,23 @@
 #include <vector>
 
 class EffectControl;
+class EffectPresetCatalog;
 class CthughaBuffer;
 class Flame;
+class FlameOption;
+class GeneralFlameOption;
 class ImageOption;
 class IndexedImage;
 class PaletteEntry;
+class PaletteOption;
 class RandomSource;
+class SceneEffectRegistry;
+class ScenePaletteRandomizer;
+class SceneWaveObjectSource;
 struct SceneConfig;
+class TranslateOption;
 class Wave;
+class WaveOption;
 
 enum SceneChange {
     SceneNoChange = 0,
@@ -82,6 +91,34 @@ public:
 
 class Scene;
 
+class SceneCommandDependencies {
+public:
+    FlameOption& flame;
+    GeneralFlameOption& generalFlame;
+    WaveOption& wave;
+    EffectControl& waveScale;
+    EffectControl& table;
+    EffectControl& object;
+    TranslateOption& translation;
+    PaletteOption& palette;
+    EffectControl& border;
+    EffectControl& flashlight;
+    ImageOption& images;
+    SceneWaveObjectSource& waveObjects;
+    SceneEffectRegistry& effectRegistry;
+    EffectPresetCatalog& presets;
+    ScenePaletteRandomizer& paletteRandomizer;
+
+    SceneCommandDependencies(FlameOption& flame_, GeneralFlameOption& generalFlame_,
+        WaveOption& wave_, EffectControl& waveScale_, EffectControl& table_,
+        EffectControl& object_, TranslateOption& translation_,
+        PaletteOption& palette_, EffectControl& border_,
+        EffectControl& flashlight_, ImageOption& images_,
+        SceneWaveObjectSource& waveObjects_,
+        SceneEffectRegistry& effectRegistry_, EffectPresetCatalog& presets_,
+        ScenePaletteRandomizer& paletteRandomizer_);
+};
+
 class SceneObserver {
 public:
     virtual ~SceneObserver() { }
@@ -115,7 +152,7 @@ public:
 class SceneCommands {
     Scene& scene;
     CthughaBuffer& buffer;
-    ImageOption& images;
+    SceneCommandDependencies dependencies;
     RandomSource& randomSource;
 
     SceneSettings settingsFromOptions();
@@ -130,16 +167,17 @@ public:
      *
      * @param scene_ Scene state object to update.
      * @param buffer_ Visual buffer used to validate wave/image context.
-     * @param images_ Image option collection owned by video policy.
+     * @param dependencies_ Explicit scene-editing controls and support ports.
      * @param randomSource_ Application-owned source for scene randomization.
      */
-    SceneCommands(Scene& scene_, CthughaBuffer& buffer_, ImageOption& images_,
+    SceneCommands(Scene& scene_, CthughaBuffer& buffer_,
+        const SceneCommandDependencies& dependencies_,
         RandomSource& randomSource_);
 
     Scene& sceneState() { return scene; }
     const Scene& sceneState() const { return scene; }
 
-    ImageOption& imageOption() { return images; }
+    ImageOption& imageOption() { return dependencies.images; }
 
     void applyStartupConfig(const SceneConfig& config);
     void initializeFromOptions();
@@ -180,8 +218,5 @@ public:
     void restorePreset(int slot);
     void savePreset(int slot);
 };
-
-void bindSceneCommandsForLegacyCallbacks(SceneCommands* commands);
-SceneCommands* sceneCommandsForLegacyCallbacks();
 
 #endif

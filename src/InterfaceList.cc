@@ -9,7 +9,7 @@
 #include "Flashlight.h"
 #include "RuntimeCommandSink.h"
 #include "Scene.h"
-#include "VideoDirector.h"
+#include "Image.h"
 #include "flames.h"
 #include "keymap.h"
 #include "TranslationOptions.h"
@@ -139,7 +139,7 @@ int InterfaceList::do_key(int key) {
 }
 #endif
 
-void registerListInterfaces(InterfaceRuntime& runtime) {
+void registerListInterfaces(InterfaceRuntime& runtime, ImageOption& images) {
     runtime.registerOwnedInterface(
         new InterfaceList("Display", "Select Display", &screen));
     runtime.registerOwnedInterface(
@@ -159,7 +159,7 @@ void registerListInterfaces(InterfaceRuntime& runtime) {
     runtime.registerOwnedInterface(
         new InterfaceList("Palette", "Select Palette", &palette));
     runtime.registerOwnedInterface(
-        new InterfaceList("Image", "Select Image", &(videoDirector().imageOption())));
+        new InterfaceList("Image", "Select Image", &images));
     runtime.registerOwnedInterface(
         new InterfaceList("Flashlight", "Select Flashlight", &flashlight));
 }

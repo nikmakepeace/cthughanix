@@ -582,7 +582,7 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
     assertSourceContains("src/Application.cc",
-        "videoDirector().setRandomSource(randomSourceValue)");
+        "videoDirectorValue.setRandomSource(randomSourceValue)");
     assertSourceContains("src/Application.cc",
         "interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get())");
     assertSourceContains("src/Application.cc",
@@ -958,10 +958,12 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc",
         "audioProcessingSelectorValue->configureStartup(startupConfigValue.scene)");
     assertSourceContains("src/Application.cc",
-        "videoDirector().configureTransitions(startupConfigValue.sceneTransition)");
+        "videoDirectorValue.configureTransitions(startupConfigValue.sceneTransition)");
     assertSourceContains("src/Application.cc",
-        "videoDirector().configureQuietMessages(startupConfigValue.messages)");
+        "videoDirectorValue.configureQuietMessages(startupConfigValue.messages)");
     assertSourceContains("src/Application.cc", "sceneCommands().applyStartupConfig(startupConfigValue.scene)");
+    assertSourceContains("src/Application.cc",
+        "applyDisplayPresentationStartupChoice(startupConfigValue.scene");
     assertSourceDoesNotContain("src/Application.cc", "Keymap::configure");
     assertSourceDoesNotContain("src/Application.cc", "EffectControl::changeToInitial");
     assertSourceDoesNotContain("src/Application.cc", "audioProcessing.changeToInitial");
@@ -1029,6 +1031,15 @@ static void testInputStartupUsesInputConfig() {
 static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Configuration.h", "SceneConfig scene");
     assertSourceContains("src/Scene.cc", "SceneCommands::applyStartupConfig");
+    assertSourceContains("src/Scene.h", "class SceneCommandDependencies");
+    assertSourceContains("src/SceneDependencies.h", "class SceneEffectRegistry");
+    assertSourceContains("src/Application.h", "VideoDirector videoDirectorValue");
+    assertSourceContains("src/Application.cc", "SceneCommandDependencies sceneDependencies");
+    assertSourceDoesNotContain("src/VideoDirector.h", "VideoDirector& videoDirector()");
+    assertSourceDoesNotContain("src/VideoDirector.cc", "VideoDirector& videoDirector()");
+    assertSourceDoesNotContain("src/Scene.h", "sceneCommandsForLegacyCallbacks");
+    assertSourceDoesNotContain("src/Scene.cc", "sceneCommandsForLegacyCallbacks");
+    assertSourceDoesNotContain("src/Scene.cc", "applyStartupChoice(screen");
     assertSourceContains("src/Scene.cc", "config.flame");
     assertSourceContains("src/Scene.cc", "config.wave");
     assertSourceContains("src/Scene.cc", "config.palette");
@@ -1507,7 +1518,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Application.h",
         "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
-        "registerDefaultInterfaces(*interfaceRuntimeValue)");
+        "registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption())");
     assertSourceDoesNotContain("src/keymap.h", "setInterfaceRuntime");
     assertSourceDoesNotContain("src/keymap.h", "interfaceRuntime");
     assertSourceDoesNotContain("src/keymap.cc", "keymapInterfaceRuntime");
@@ -1528,7 +1539,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new Interface(\"Mixer\", \"Mixer\", NULL))");
     assertSourceContains("src/Interface.cc",
-        "runtime.registerOwnedInterface(new InterfaceEffectControl())");
+        "runtime.registerOwnedInterface(new InterfaceEffectControl(images))");
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new InterfaceOptions())");
     assertSourceContains("src/AudioSystem.cc",
@@ -1732,10 +1743,14 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/palettes.cc", "::Random(3)");
     assertSourceDoesNotContain("src/palettes.cc", "::Random(256)");
     assertSourceDoesNotContain("src/display.h", "static void Random()");
-    assertSourceContains("src/Scene.cc",
+    assertSourceContains("src/SceneDependencies.cc",
         "PaletteEntry::randomizeLast(randomSource)");
-    assertSourceContains("src/Scene.cc",
+    assertSourceContains("src/SceneDependencies.cc",
         "PaletteEntry::addRandom(randomSource)");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.paletteRandomizer.randomizeLast(randomSource)");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.paletteRandomizer.addRandom(randomSource)");
     assertSourceContains("tests/unit/PaletteRandomGeneratorTest.cc",
         "testRandomPaletteUsesInjectedRandomSource");
     assertSourceContains("tests/CMakeLists.txt", "palette_random_generator_test");
@@ -1785,11 +1800,11 @@ static void testImagePlacementUsesInjectedRandomSource() {
 static void testGeneralFlameUsesInjectedRandomSource() {
     assertSourceContains("src/Scene.h", "RandomSource& randomSource");
     assertSourceContains("src/Application.cc",
-        "videoDirector().imageOption(), randomSourceValue)");
+        "videoDirectorValue.imageOption(), sceneWaveObjectsValue");
     assertSourceContains("src/Scene.cc",
-        "flameGeneral.changeRandom(randomSource)");
+        "dependencies.generalFlame.changeRandom(randomSource)");
     assertSourceContains("src/Scene.cc",
-        "applyStartupChoice(flameGeneral, config.generalFlame, randomSource)");
+        "applyStartupChoice(dependencies.generalFlame, config.generalFlame");
     assertSourceContains("src/flames.h",
         "void changeRandom(RandomSource& randomSource, int doSave = 1)");
     assertSourceContains("src/flames.cc",
@@ -1820,8 +1835,14 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/EffectControl.cc", "value = Random");
     assertSourceDoesNotContain("src/EffectControl.cc", "return Random");
     assertSourceContains("src/Scene.cc", "option.change(to, randomSource, doSave)");
-    assertSourceContains("src/Scene.cc", "EffectControl::changeAll(randomSource)");
-    assertSourceContains("src/Scene.cc", "EffectControl::changeOne(randomSource)");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.effectRegistry.changeAll(randomSource)");
+    assertSourceContains("src/Scene.cc",
+        "dependencies.effectRegistry.changeOne(randomSource)");
+    assertSourceContains("src/SceneDependencies.cc",
+        "EffectControl::changeAll(randomSource)");
+    assertSourceContains("src/SceneDependencies.cc",
+        "EffectControl::changeOne(randomSource)");
     assertSourceContains("tests/unit/EffectControlRandomTest.cc",
         "testStaticRandomChangesUseInjectedRandomSource");
     assertSourceContains("tests/CMakeLists.txt", "effect_control_random_test");
@@ -1834,7 +1855,7 @@ static void testQotdTimingUsesApplicationCountdownTimers() {
     assertSourceContains("src/Application.h",
         "SystemCountdownTimerFactory countdownTimerFactoryValue");
     assertSourceContains("src/Application.cc",
-        "videoDirector().setTimerFactory(countdownTimerFactoryValue)");
+        "videoDirectorValue.setTimerFactory(countdownTimerFactoryValue)");
     assertSourceContains("src/VideoDirector.h",
         "void setTimerFactory(CountdownTimerFactory& timerFactory)");
     assertSourceContains("src/SilenceMessage.h",

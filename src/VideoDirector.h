@@ -141,9 +141,6 @@ public:
     virtual void sceneCue(Scene& scene, const SceneCue& cue);
 };
 
-/** @return Process-wide video director singleton. */
-VideoDirector& videoDirector();
-
 /** Maximum quiet interval before a text cue, in milliseconds. */
 extern OptionTime changeMsgTime;
 

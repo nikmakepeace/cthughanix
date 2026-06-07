@@ -14,6 +14,7 @@ class CommandDispatcher;
 class CommandRegistry;
 class InputQueue;
 class InterfaceRuntime;
+class ImageOption;
 class KeymapRegistry;
 class RuntimeConfigRegistry;
 
@@ -116,7 +117,7 @@ public:
  *
  * @param runtime Interface runtime that will own selection/adapter state.
  */
-void registerDefaultInterfaces(InterfaceRuntime& runtime);
+void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images);
 void registerInterfaceKeyActions(CommandRegistry& registry);
 
 #endif

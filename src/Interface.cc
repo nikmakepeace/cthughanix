@@ -16,7 +16,7 @@
 #include "RuntimeConfigSelection.h"
 #include "RuntimeCommandSink.h"
 #include "Scene.h"
-#include "VideoDirector.h"
+#include "Image.h"
 #include "flames.h"
 #include "TranslationOptions.h"
 #include "keymap.h"
@@ -25,6 +25,8 @@
 #include <ctype.h>
 #include <signal.h>
 #include <string>
+
+extern OptionTime changeMsgTime;
 
 ////////////////////////////////////////////////////////////////////////////
 
@@ -402,9 +404,12 @@ public:
 ACTION(setExtraKeymap) { context.runtime().setExtraKeymap(invocation.param); }
 
 class InterfaceEffectControl : public Interface {
+    ImageOption& images;
+
 public:
-    InterfaceEffectControl()
-        : Interface("EffectControls", "Effect Controls", NULL) {
+    explicit InterfaceEffectControl(ImageOption& images_)
+        : Interface("EffectControls", "Effect Controls", NULL)
+        , images(images_) {
 
         nElements = 13;
         elements = new InterfaceElement*[nElements];
@@ -447,7 +452,7 @@ public:
             elements[10]
                 = new InterfaceElementRuntimeConfigEffectControl(
                     "Image (x,X))          : %s",
-                    &videoDirector().imageOption(),
+                    &images,
                     RuntimeConfigSelectionImage);
             elements[11] = new InterfaceElementRuntimeConfigEffectControl(
                 "3D-Object (j,J)       : %s", &object,
@@ -477,7 +482,7 @@ public:
         O(7) = &table;
         O(8) = &waveScale;
         O(9) = &palette;
-        O(10) = &videoDirector().imageOption();
+        O(10) = &images;
         O(11) = &object;
         O(12) = &flashlight;
     }
@@ -535,7 +540,7 @@ public:
     }
 };
 
-void registerListInterfaces(InterfaceRuntime& runtime);
+void registerListInterfaces(InterfaceRuntime& runtime, ImageOption& images);
 void registerHelpInterface(InterfaceRuntime& runtime);
 void registerCreditsInterface(InterfaceRuntime& runtime);
 void registerAudioInterfaces(InterfaceRuntime& runtime);
@@ -562,13 +567,13 @@ void registerInterfaceKeyActions(CommandRegistry& registry) {
     registerHelpKeyActions(registry);
 }
 
-void registerDefaultInterfaces(InterfaceRuntime& runtime) {
+void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images) {
     runtime.registerOwnedInterface(new InterfaceMain());
     runtime.registerOwnedInterface(new Interface("Mixer", "Mixer", NULL));
-    runtime.registerOwnedInterface(new InterfaceEffectControl());
+    runtime.registerOwnedInterface(new InterfaceEffectControl(images));
     runtime.registerOwnedInterface(new InterfaceOptions());
     registerAudioInterfaces(runtime);
-    registerListInterfaces(runtime);
+    registerListInterfaces(runtime, images);
     registerHelpInterface(runtime);
     registerCreditsInterface(runtime);
 }

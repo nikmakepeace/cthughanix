@@ -99,11 +99,14 @@ This status was cross-checked against commits `73fd509..20276a8` on
   `Keymap::first`, `Keymap::current`, static `Keymap::action(...)`,
   `x11_key`, and `key_esc` remain.
 - Partial: Scene owns more state through `Scene`/`SceneCommands`, owned
-  auto-change settings, and runtime controls, but `EffectControl::first`,
-  visual catalog/list globals, `videoDirector()`, and the scene command
-  compatibility bridge remain. `AutoChanger` is no longer global or
-  bridge-owned, but it still lives in `Application` rather than as Scene-owned
-  policy.
+  auto-change settings, and runtime controls. Current working-tree follow-up
+  makes `SceneCommands` receive explicit `SceneCommandDependencies`, moves the
+  legacy display presentation startup choice out of Scene, deletes the
+  `sceneCommandsForLegacyCallbacks()` bridge, and replaces the process-wide
+  `videoDirector()` accessor with an Application-owned `VideoDirector`.
+  Remaining Scene work is concentrated in `EffectControl::first`, visual
+  catalog/list globals, preset traversal, and moving `AutoChanger` from
+  `Application` into Scene-owned scheduling policy.
 - Partial: Frame Mutation and Display still have older display/frame globals
   and renderer-local statics. Audio and frame timing now pass through explicit
   frame contexts, but `CthughaBuffer::buffer`, display backend globals,
@@ -185,12 +188,11 @@ first.
      `VisualCatalogs`, `SceneSerializer`, and a Scene-owned
      `SceneChangeScheduler` to absorb `AutoChanger` policy. Then make
      `SceneCommands` a real command target over owned scene state instead of a
-     compatibility bridge.
+     dependency-explicit facade over legacy controls.
    - Why: this directly attacks the biggest remaining runtime-domain globals:
-     visual selections, `EffectControl::first`, preset traversal,
-     `videoDirector()` scene policy, and `sceneCommandsForLegacyCallbacks()`.
-     It also finishes the cleanup that Audio and Runtime Reconfiguration are
-     currently waiting on.
+     visual selections, `EffectControl::first`, preset traversal, and catalog
+     policy. It also finishes the cleanup that Audio and Runtime
+     Reconfiguration are currently waiting on.
 
 3. Frame Mutation
    - How: extract `FrameStore` from `CthughaBuffer::buffer/current`, move
@@ -370,8 +372,11 @@ first.
 - Done since 73fd509: the process-wide `autoChanger` pointer was removed.
   Current working-tree follow-up removed the intermediate bridge wrapper and
   keeps the current `AutoChanger` instance in `Application`.
-- `videoDirector()` singleton.
-- `sceneCommandsForLegacyCallbacks()` global bridge.
+- Done in current working tree: the `videoDirector()` singleton accessor was
+  removed; `Application` owns a concrete `VideoDirector` and passes its
+  `ImageOption&` explicitly to scene/UI setup.
+- Done in current working tree: the `sceneCommandsForLegacyCallbacks()` global
+  bridge was deleted after Commands/Input no longer used it.
 
 ### Audio State
 
@@ -414,11 +419,14 @@ Remaining audio-adjacent work:
 
 ### Video And Screen Rendering State
 
-- `VideoDirector.cc` is a singleton and still reads `cthughaDisplay`,
-  `CthughaBuffer::buffer`, `maxFramesPerSecond`, `changeMsgTime`, and
-  `paletteSmoothingChance`.
-- `SceneCommands` is explicit as a facade, but it still reads every visual
-  option singleton to build `SceneSettings`.
+- `VideoDirector` is Application-owned in the current working tree, but it
+  still reads `cthughaDisplay`, `CthughaBuffer::buffer`,
+  `maxFramesPerSecond`, `changeMsgTime`, and palette-smoothing state.
+- `SceneCommands` is explicit as a facade over `SceneCommandDependencies`.
+  Current behavior still uses legacy global visual controls supplied by
+  Application wiring, plus named compatibility adapters for wave-object,
+  effect-registry, and palette-randomization operations, until
+  `EffectRegistry`/`VisualCatalogs` replace those legacy controls.
 - Done since 73fd509: `display.cc` renderer audio inputs now arrive through
   `ScreenRenderContext` rather than global audio facades/metrics.
 - `display.cc` also keeps renderer state in file-scope statics:
@@ -449,8 +457,7 @@ Remaining audio-adjacent work:
   and `RuntimeShutdown`.
 - Remaining: key actions/static keymaps still call into global registries or
   static dispatch paths (`screen`, `zoom`, `displayDevice`,
-  `sceneCommandsForLegacyCallbacks()`, `Keymap::action(...)`), and raw X11 key
-  input still uses globals.
+  `Keymap::action(...)`), and raw X11 key input still uses globals.
 
 ### Ini Persistence And Platform State
 
@@ -1290,6 +1297,202 @@ Completion criteria for this module:
   and Scene should consume them through policy.
 - Missing candidates: `SceneController`, `SceneState`, `SceneSnapshot`,
   `SceneChangeScheduler`, and `SceneSerializer`.
+
+#### Scene Hidden Dependency Removal Plan
+
+Scene's job in this refactor is narrower than some of the historical names
+suggest. `Scene` is the read/write runtime configuration surface for the
+current visual interpretation of audio: selected flame, wave, table, object,
+translation, palette, image cue, border, flashlight, and related display names
+needed by diagnostics/persistence. `Scene` reports those changes to observers
+and can emit semantic one-shot cues such as "inject this image" or "inject this
+text." The video filterchain decides how to execute those selections, and
+catalog/effect policy decides which features are valid, enabled, or mutually
+legal. Scene must not absorb those policy or execution responsibilities merely
+to remove globals.
+
+Before this pass, the Scene-related hidden dependencies were:
+
+- `SceneCommands` reads the visual option globals directly: `flame`,
+  `flameGeneral`, `wave`, `waveScale`, `table`, `object`, `translation`,
+  `palette`, `border`, and `flashlight`. It also reaches through
+  `currentWaveObject()` to resolve object-capable wave configuration.
+- `SceneCommands` receives `ImageOption&` explicitly, but production obtains
+  that option by calling the `videoDirector()` singleton. Interface panels do
+  the same, so image selection still depends on a process-wide video director
+  rather than an explicit Scene/UI dependency.
+- `SceneCommands::applyStartupConfig(...)` mutates the display-side `screen`
+  option through `SceneConfig::presentation`. Presentation is not part of the
+  visual interpretation scene. It belongs to Display or Runtime Display
+  controls, so Scene should stop owning that startup side effect.
+- Whole-scene random/change/restore operations still call
+  `EffectControl::changeAll(...)`, `EffectControl::changeOne(...)`, and
+  `EffectControl::restore()` through the hidden `EffectControl::first`
+  registry. Preset restore/save still calls the global `effectPresetCatalog`,
+  which walks the same hidden registry.
+- Palette randomization still calls static `PaletteEntry` operations. Those
+  operations are catalog behavior, not Scene state. Scene commands may request
+  "randomize the current palette" through an explicit collaborator, but they
+  should not own palette-file/catalog policy.
+- `EffectControlPolicy` stores process-wide configured policy and applies it
+  by walking `EffectControl::firstRegistered()`. That policy can decide what is
+  allowed to be selectable or saved in presets, but it must not become owned by
+  `Scene`.
+- `VideoDirector` is still available through `videoDirector()`, reads global
+  frame/display values, and observes Scene to configure the filterchain. This
+  execution-side observer should be Application-owned and passed explicitly to
+  the code that needs it. Removing the singleton is a Scene-supporting step,
+  not a reason to move filterchain execution into Scene.
+- `sceneCommandsForLegacyCallbacks()` remains as a compatibility bridge even
+  though Commands/Input no longer uses it. It should be deleted now so new code
+  cannot hide SceneCommands behind a process-wide pointer again.
+
+The target responsibility split is:
+
+- `Scene`: owns only the current scene settings, versioning, observer
+  notification, and semantic cues. It stores borrowed references to selected
+  catalog entries in `SceneSettings`, but it does not decide whether the
+  entries are legal or how filters consume them.
+- `SceneCommands`: is a command target over explicit scene-editing
+  collaborators. It may mutate selection controls and then publish the resulting
+  `SceneSettings`, but every mutable control, registry, preset catalog,
+  palette-randomization hook, wave-object source, image option, buffer geometry
+  source, and random source must appear in its constructor or in an owned
+  dependency aggregate.
+- `EffectPolicy` and future `EffectRegistry`/`VisualCatalogs`: own
+  registration, allowed choices, allowed combinations, preset-entry resolution,
+  and catalog lookup. Scene consumes their resolved controls/entries through
+  narrow ports; it does not own the policy.
+- `VideoDirector` and future Frame Mutation: observe Scene snapshots/cues and
+  execute them by configuring the filterchain. They may smooth palettes, arm
+  image/text stages, place images, and set filter stage modes; Scene only says
+  what the current configuration is.
+- Display/Runtime Display controls: own presentation-screen selection. Startup
+  `SceneConfig::presentation` is a legacy config field name and should be
+  applied by Application or Display wiring until the Display module owns its
+  serializer.
+- `SceneChangeScheduler`: future Scene-owned automatic change policy. It
+  receives audio analysis snapshots, clock, random source, auto-change settings,
+  quiet-message observer, and a scene command target. It emits scene command
+  intents. It does not read audio globals, mutate filterchains, call
+  `videoDirector()`, or decide catalog legality.
+
+Implementation sequence for the Scene pass:
+
+1. Make `SceneCommands` dependencies explicit without changing behavior.
+   - Add a `SceneCommandDependencies` aggregate that names every current
+     scene-editing control and support collaborator: flame controls, wave
+     controls, table/object controls, translation, palette, border,
+     flashlight, image option, wave-object source, effect registry adapter,
+     preset catalog, and palette randomizer.
+   - Add narrow ports for legacy support behavior that is still global today:
+     `SceneWaveObjectSource`, `SceneEffectRegistry`, and
+     `ScenePaletteRandomizer`. Their legacy implementations may call
+     `currentWaveObject()`, `EffectControl` static registry operations, and
+     `PaletteEntry` static operations, but those calls must live in named
+     compatibility adapters and be passed into `SceneCommands`.
+   - Update `SceneCommands` so all reads/writes go through
+     `SceneCommandDependencies`. After this step, `Scene.cc` should no longer
+     read the visual option globals directly except in compatibility adapter
+     implementations with a removal path.
+   - Keep `CthughaBuffer&` explicit for now because wave/image configuration
+     still needs current buffer dimensions. The Frame Mutation pass will later
+     replace it with frame geometry or a `FrameStore`/`SceneGeometry` port.
+
+2. Stop treating display presentation as Scene state.
+   - Remove the `screen` mutation from `SceneCommands::applyStartupConfig`.
+   - Apply `SceneConfig::presentation` from `Application` through an explicit
+     display-side startup call while Display still owns `screen` as a legacy
+     `EffectControl`.
+   - Update comments/tests to record that this is a temporary Display
+     ownership gap, not a Scene dependency.
+
+3. Remove process-wide Scene/Video compatibility entry points that are no
+   longer required.
+   - Delete `bindSceneCommandsForLegacyCallbacks(...)` and
+     `sceneCommandsForLegacyCallbacks()`.
+   - Make `Application` own a concrete `VideoDirector` instance and pass it
+     where needed. Interface registration and image loading should receive
+     `ImageOption&` explicitly instead of calling `videoDirector()`.
+   - Delete `VideoDirector& videoDirector()` once production callers use the
+     Application-owned instance.
+   - Update source-boundary tests so new production call sites cannot re-add
+     these process-wide bridges.
+
+4. Introduce the real Scene registry/catalog owners in smaller follow-up
+   slices.
+   - Replace `SceneEffectRegistry`'s legacy implementation with an owned
+     `EffectRegistry` that stores registered controls, supports ordered
+     iteration, and exposes save/restore/random-change operations without
+     `EffectControl::first`.
+   - Convert `EffectControl` construction/registration so controls register
+     into the owned registry during Application startup instead of linking into
+     a static list. Until all constructors can receive the registry, keep the
+     legacy adapter isolated and guarded by source-boundary tests.
+   - Move `EffectPresetCatalog` into Scene support as an owned object that
+     receives an `EffectRegistry&` for traversal. Preset policy from
+     Configuration should populate that owned catalog through an explicit
+     policy applier, not through a global.
+   - Convert `EffectControlPolicy` into an `EffectPolicyApplier` that receives
+     `EffectPolicy`, `EffectRegistry&`, and the owned preset catalog. This
+     keeps legality/allowlist policy outside `Scene` while making policy inputs
+     explicit.
+   - Introduce `VisualCatalogs` only after the registry move is underway.
+     Catalogs should own/resolve named entries; Scene stores the selected
+     runtime references and names. Catalogs should enforce "available" and
+     "allowed" rules; Scene should not.
+
+5. Add `SceneSerializer` after Scene state no longer depends on hidden option
+   traversal.
+   - Serialize from `SceneSettings`/`SceneSnapshot` plus explicit display/audio
+     contributors where needed. Do not walk `EffectControl::first`.
+   - Replace `LegacyRuntimeConfigContributor` with module-owned contributors:
+     Scene contributes flame/wave/table/object/translation/palette/border/
+     flashlight/image; Display contributes presentation; Audio contributes
+     audio-processing.
+   - Keep Configuration responsible for ini format and keys, but not for
+     discovering live Scene values through globals.
+
+6. Move automatic scene-change policy into Scene support without changing
+   Scene's state-only boundary.
+   - Rename/reframe `AutoChanger` as `SceneChangeScheduler` or wrap it behind
+     that port.
+   - Construct it from explicit collaborators: auto-change settings,
+     `RuntimeCommandSink` or direct scene command target, `MillisecondClock`,
+     `RandomSource`, `AudioAnalysisSnapshot`/metrics input, quiet-message
+     observer, and `LogSink`.
+   - Application should call the scheduler with the current audio analysis
+     after audio processing and before video filterchain execution. The
+     scheduler may request scene changes; VideoDirector/filterchain execution
+     remains elsewhere.
+
+7. Tighten tests after each slice.
+   - Boundary tests should fail on new `videoDirector()`,
+     `sceneCommandsForLegacyCallbacks()`, `EffectControl::firstRegistered()`
+     outside named adapters, direct Scene use of visual option globals, and
+     Scene-owned mutation of `screen`.
+   - Behavior tests should pin that startup scene selections still apply,
+     presentation startup selection still applies through Display-side wiring,
+     image selection still appears in the EffectControls/Image panels, image
+     cues still emit when image selection changes, random palette commands still
+     use the injected random source, and quiet-message cues still reach the
+     filterchain observer.
+
+Current pass scope:
+
+- Implemented in the current working tree: steps 1-3. `SceneCommands` now
+  receives a `SceneCommandDependencies` aggregate plus named legacy adapters
+  for wave-object lookup, effect-registry traversal, and palette
+  randomization; `SceneCommands::applyStartupConfig(...)` no longer mutates
+  the display-side `screen`; `Application` applies that presentation startup
+  choice explicitly; the `sceneCommandsForLegacyCallbacks()` bridge is gone;
+  `Application` owns `VideoDirector`; interface registration/image loading
+  receive `ImageOption&` explicitly; and source-boundary tests block the old
+  singleton/bridge from returning.
+- Leave steps 4-6 as named follow-up work because they require changing how
+  static visual controls are constructed and registered across many files.
+  The new adapters and boundary tests are the temporary compatibility surface
+  that keeps this pass honest.
 
 ### Audio Module
 
@@ -2187,18 +2390,23 @@ Do not implement split-required services as single classes.
    - Red 1 tests: scene state, catalog resolution, effect changes, presets, and
      auto-change policy run against fixture catalogs/options/audio snapshots.
    - Red 2 tests: `SceneCommands`, key actions, UI lists, preset loading, and
-     auto-change no longer read visual option globals or `videoDirector()`.
+     auto-change no longer read visual option globals or director singletons.
    - Green targets: `EffectRegistry`, `VisualCatalogs`, scene selection state,
      scene serializer, and `AutoChanger` as Scene-owned
      `SceneChangeScheduler`.
    - Done since 73fd509: startup scene config is slice-based; `Scene` and
      `SceneCommands` exist; auto-change settings are owned; `autoChanger` is no
      longer a process-wide pointer.
+   - Done in current working tree: `SceneCommands` dependencies are explicit
+     through `SceneCommandDependencies`; legacy registry/catalog behavior is
+     isolated behind named adapters; display presentation startup selection
+     moved out of `SceneCommands`; `videoDirector()` and
+     `sceneCommandsForLegacyCallbacks()` were deleted; UI/image setup receives
+     `ImageOption&` explicitly.
    - Remaining: own visual selections, effect registry/catalogs, presets,
      scene serialization, and move AutoChanger policy out of `Application`.
    - Recheck target: no visual selection globals, `EffectControl::first`,
-     hidden preset traversal, `sceneCommandsForLegacyCallbacks()`, or global
-     `autoChanger`.
+     hidden preset traversal, or global `autoChanger`.
 
 6. Audio - complete for runtime ownership, with Scene-owned policy cleanup remaining
    - API first: `AudioAcquisitionRuntime`, `AudioPassthrough`, raw

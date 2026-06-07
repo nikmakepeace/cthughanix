@@ -24,6 +24,7 @@ set(CTHUGHA_COMMON_SOURCES
     AutoChangeControls.cc
     RuntimeFactory.cc
     Scene.cc
+    SceneDependencies.cc
     RuntimeCommand.cc
     RuntimeDisplayControls.cc
     RuntimeAudioControls.cc

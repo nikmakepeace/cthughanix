@@ -13,6 +13,8 @@
 #include "InputQueue.h"
 #include "keymap.h"
 #include "ProcessServices.h"
+#include "SceneDependencies.h"
+#include "VideoDirector.h"
 #include "VideoFilterchainSequence.h"
 
 #include <memory>
@@ -91,6 +93,10 @@ class Application {
     std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
     std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
     std::unique_ptr<AutoChanger> autoChangerValue;
+    VideoDirector videoDirectorValue;
+    LegacySceneWaveObjectSource sceneWaveObjectsValue;
+    LegacySceneEffectRegistry sceneEffectRegistryValue;
+    LegacyScenePaletteRandomizer scenePaletteRandomizerValue;
     std::unique_ptr<Scene> sceneValue;
     std::unique_ptr<SceneCommands> sceneCommandsValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;

@@ -23,6 +23,7 @@
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
 #include "EffectControlPolicy.h"
+#include "EffectPresetCatalog.h"
 #include "Flashlight.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
@@ -40,6 +41,7 @@
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
+#include "Screen.h"
 #include "VideoDirector.h"
 #include "VideoFilterchain.h"
 #include "VideoFilterchainFactory.h"
@@ -60,9 +62,12 @@
 static int initializeVisualCatalogs(const CthughaBuffer& buffer,
     const PathConfig& pathConfig, RandomSource& randomSource);
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
-    const PathConfig& pathConfig, LogSink& log);
+    const PathConfig& pathConfig, CthughaBuffer& targetBuffer,
+    ImageOption& images, LogSink& log);
 static void emitStartupConfigDiagnostics(
     const std::vector<ConfigDiagnostic>& diagnostics, LogSink& log);
+static void applyDisplayPresentationStartupChoice(const SceneConfig& sceneConfig,
+    RandomSource& randomSource);
 
 class VideoDirectorQuietObserver : public AutoChangeQuietObserver {
     VideoDirector& videoDirectorValue;
@@ -114,18 +119,22 @@ static void emitStartupConfigDiagnostics(
 }
 
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
-    const PathConfig& pathConfig, LogSink& log) {
+    const PathConfig& pathConfig, CthughaBuffer& targetBuffer,
+    ImageOption& images, LogSink& log) {
     if (!effectPolicy.imageFilesEnabled)
         return 0;
 
     log.info("  loading image files...\n");
-    CthughaBuffer& targetBuffer = CthughaBuffer::buffer;
-    ImageOption& images = videoDirector().imageOption();
     int result = images.loadImages(pathConfig, targetBuffer.width(),
         targetBuffer.height());
     log.info("  number of loaded image files: %d\n", images.getNEntries());
 
     return result;
+}
+
+static void applyDisplayPresentationStartupChoice(const SceneConfig& sceneConfig,
+    RandomSource& randomSource) {
+    screen.change(sceneConfig.presentation.c_str(), randomSource, 0);
 }
 
 Application::Application(int argc, char* argv[])
@@ -142,11 +151,11 @@ Application::Application(int argc, char* argv[])
     , startupInitialized(0)
     , shutdownComplete(0) {
     cthugha_install_logging_runtime(loggingRuntimeValue);
-    videoDirector().setRandomSource(randomSourceValue);
-    videoDirector().setTimerFactory(countdownTimerFactoryValue);
+    videoDirectorValue.setRandomSource(randomSourceValue);
+    videoDirectorValue.setTimerFactory(countdownTimerFactoryValue);
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
-    registerDefaultInterfaces(*interfaceRuntimeValue);
+    registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption());
 }
 
 Application::Application(int argc, char* argv[],
@@ -164,11 +173,11 @@ Application::Application(int argc, char* argv[],
     , startupInitialized(0)
     , shutdownComplete(0) {
     cthugha_install_logging_runtime(loggingRuntimeValue);
-    videoDirector().setRandomSource(randomSourceValue);
-    videoDirector().setTimerFactory(countdownTimerFactoryValue);
+    videoDirectorValue.setRandomSource(randomSourceValue);
+    videoDirectorValue.setTimerFactory(countdownTimerFactoryValue);
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
-    registerDefaultInterfaces(*interfaceRuntimeValue);
+    registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption());
 }
 
 Application::~Application() {
@@ -205,9 +214,14 @@ void Application::initSceneRuntime() {
     // SceneCommands is the modern target for legacy option callbacks, so create
     // it before full option parsing can trigger scene-changing work.
     sceneValue.reset(new Scene);
-    videoDirector().bindScene(*sceneValue);
+    videoDirectorValue.bindScene(*sceneValue);
+    SceneCommandDependencies sceneDependencies(flame, flameGeneral, wave,
+        waveScale, table, object, translation, palette, border, flashlight,
+        videoDirectorValue.imageOption(), sceneWaveObjectsValue,
+        sceneEffectRegistryValue, effectPresetCatalog,
+        scenePaletteRandomizerValue);
     sceneCommandsValue.reset(new SceneCommands(*sceneValue, CthughaBuffer::buffer,
-        videoDirector().imageOption(), randomSourceValue));
+        sceneDependencies, randomSourceValue));
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
     audioProcessorValue.reset(new AudioProcessor());
     audioProcessingStateValue.reset(new AudioProcessingState(randomSourceValue));
@@ -246,13 +260,11 @@ void Application::initSceneRuntime() {
         *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
         *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
-    bindSceneCommandsForLegacyCallbacks(sceneCommandsValue.get());
 }
 
 void Application::shutdownSceneRuntime() {
-    bindSceneCommandsForLegacyCallbacks(NULL);
     interfaceRuntimeValue->setAutoChangeControls(NULL);
-    videoDirector().unbindScene();
+    videoDirectorValue.unbindScene();
     interfaceRuntimeValue->setAudioProcessingSelector(NULL);
     interfaceRuntimeValue->setRuntimeConfigRegistry(NULL);
     runtimeCommandRouterValue.reset();
@@ -319,7 +331,7 @@ void Application::initVideoFilterchain() {
         return;
 
     VideoFilterchainFactory factory;
-    videoFilterchainSequence = videoDirector().defaultFilterchainSequence();
+    videoFilterchainSequence = videoDirectorValue.defaultFilterchainSequence();
     videoFilterchain.reset(factory.create(videoFilterchainSequence));
 
     if (displayRuntimeOwnership.get() != NULL)
@@ -361,7 +373,7 @@ void Application::initAudioFramePipeline() {
     }
     if (autoChangeQuietObserverValue.get() == NULL)
         autoChangeQuietObserverValue.reset(
-            new VideoDirectorQuietObserver(videoDirector()));
+            new VideoDirectorQuietObserver(videoDirectorValue));
     if (autoChangerValue.get() == NULL
         && runtimeChangeMediatorValue.get() != NULL
         && autoChangeSettingsValue.get() != NULL)
@@ -398,7 +410,7 @@ const IndexedFrame* Application::runVideoFilterchain(AudioFrame& frame) {
 
     logSinkValue.trace("video runtime", "running filterchain=%p filters=%d\n",
         videoFilterchain.get(), videoFilterchain.get() ? videoFilterchain->size() : 0);
-    CthughaBuffer* buffer = videoDirector().configureFilterchain(*videoFilterchain);
+    CthughaBuffer* buffer = videoDirectorValue.configureFilterchain(*videoFilterchain);
     if (buffer != NULL) {
         videoFilterchain->run(*buffer, context);
         return &videoFilterchain->indexedFrame();
@@ -469,8 +481,8 @@ int Application::initialize() {
     configureTranslationOptions(startupConfigValue.effectPolicy);
     configureWaveOptions(startupConfigValue.effectPolicy);
     configurePaletteOptions(startupConfigValue.effectPolicy);
-    videoDirector().configureTransitions(startupConfigValue.sceneTransition);
-    videoDirector().configureQuietMessages(startupConfigValue.messages);
+    videoDirectorValue.configureTransitions(startupConfigValue.sceneTransition);
+    videoDirectorValue.configureQuietMessages(startupConfigValue.messages);
     CthughaBuffer::buffer.setDimensions(startupConfigValue.display.bufferWidth,
         startupConfigValue.display.bufferHeight);
 
@@ -482,7 +494,7 @@ int Application::initialize() {
     initSceneRuntime();
 
     title();
-    videoDirector().silenceMessages().initialize();
+    videoDirectorValue.silenceMessages().initialize();
 
     init_imath();
 
@@ -498,7 +510,8 @@ int Application::initialize() {
         return 0;
     CthughaBuffer::buffer.allocatePixels();
     if (loadEffectPolicyImages(startupConfigValue.effectPolicy,
-            startupConfigValue.paths, logSinkValue)) {
+            startupConfigValue.paths, CthughaBuffer::buffer,
+            videoDirectorValue.imageOption(), logSinkValue)) {
         exitStatusValue = 0;
         return 0;
     }
@@ -507,6 +520,8 @@ int Application::initialize() {
 
     logSinkValue.info("Setting initial effect controls...\n");
     sceneCommands().applyStartupConfig(startupConfigValue.scene);
+    applyDisplayPresentationStartupChoice(startupConfigValue.scene,
+        randomSourceValue);
     audioProcessingSelectorValue->configureStartup(startupConfigValue.scene);
 
     // Interface/keymaps are available before display creation so early display
