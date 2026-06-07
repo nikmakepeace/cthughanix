@@ -18,9 +18,11 @@ passes immutable slices to subsystem startup APIs.
 
 The remaining work is no longer one giant globals cleanup. It is a set of
 module-boundary closures. Configuration, Runtime Reconfiguration, Commands and
-Input, Audio, and Application Lifecycle all have substantial explicit
-ownership in place. Scene, Frame Mutation, Display, and the diagnostics tail of
-Process Services still contain the largest runtime-domain globals.
+Input, Audio, Scene, and Application Lifecycle all have substantial explicit
+ownership in place. Frame Mutation, Display, and the diagnostics tail of
+Process Services still contain the largest runtime-domain globals. Scene's
+remaining adapter edge is tied to the legacy visual catalog and frame mutation
+stack.
 
 ## Target Shape
 
@@ -42,12 +44,10 @@ The module boundaries are:
 - Display
 
 Each module should have an owned root or a small set of owned roots, explicit
-ports for other modules, and tests that protect the boundary. For example, the
-current `AutoChanger` behavior should become Scene-owned
-`SceneChangeScheduler` policy that receives clock, random source, auto-change
-settings, audio analysis snapshots, and a scene command target. It should not
-read global audio metrics, global time, global random, display state, or a
-director singleton.
+ports for other modules, and tests that protect the boundary. The current
+`SceneChangeScheduler` shape is the model: it receives clock, random source,
+auto-change settings, diagnostics, and a scene command target instead of
+reaching through process globals.
 
 ## Module Boundaries
 
@@ -91,9 +91,8 @@ supplied through a per-dispatch `CommandContext`.
 
 ### Scene
 
-Owns current visual scene state, effect/control registration, visual catalog
-resolution, preset traversal, scene serialization, semantic cues, and automatic
-scene-change policy.
+Owns current visual scene state, selection registry/presets, visual catalog
+ports, scene serialization, semantic cues, and automatic scene-change policy.
 
 Scene should describe what visual state is selected. It should not mutate
 frame buffers, present frames, own display geometry, or execute filterchain
@@ -154,8 +153,6 @@ Remaining lifecycle-adjacent debt:
 
 - `CTH_*` macros still use `LegacyLoggingAdapter.cc` while older modules move
   to explicit `LogSink&`;
-- Application still owns `AutoChanger`, even though its policy belongs under
-  Scene as `SceneChangeScheduler`;
 - Display compatibility aliases are still installed from Application
   (`cthughaDisplay`, `displayDevice`, `displayBackend`, and `displayRuntime`).
 
@@ -204,15 +201,12 @@ Modules should not receive `Application&` or a whole application context.
    graph.
 2. As module roots land, move related fields out of `Application` into those
    roots without changing run-loop order.
-3. Move Application-owned `AutoChanger` construction into Scene as
-   `SceneChangeScheduler`; leave Application responsible only for calling the
-   scheduler at the correct frame boundary.
-4. Continue replacing `CTH_*` call sites with explicit `LogSink&` per module.
+3. Continue replacing `CTH_*` call sites with explicit `LogSink&` per module.
    Delete `LegacyLoggingAdapter.cc` only after production callers no longer
    need the macro bridge.
-5. Delete display alias publication when the Display module owns backend,
+4. Delete display alias publication when the Display module owns backend,
    device, facade, and overlay paths behind explicit ports.
-6. Keep source-boundary tests blocking reintroduction of process-global time,
+5. Keep source-boundary tests blocking reintroduction of process-global time,
    random, shutdown, lifecycle, and logging state.
 
 ### Configuration
@@ -236,8 +230,9 @@ Remaining configuration debt is mostly ownership clarity:
 
 - Configuration still defines keys and schemas for domains whose live state is
   still legacy `Option`/`EffectControl` state.
-- Scene and Display still need module-owned serializers before Configuration
-  is fully isolated from live runtime traversal.
+- Scene selections now contribute through `SceneSerializer`; display
+  presentation, audio-processing, auto-change, and a few effect-policy toggles
+  still pass through `LegacyRuntimeConfigContributor`.
 - Some startup field names, such as presentation inside `SceneConfig`, still
   reflect historical ownership even when Application now routes the value to
   Display-side startup logic.
@@ -254,7 +249,7 @@ Remaining configuration debt is mostly ownership clarity:
   logging configuration is finalized.
 - `PathConfig` / future `PathResolver`: resolved resource and file paths.
 - `ConfigPersistence` / `RuntimePersistence`: save coordination.
-- Module serializers: `SceneSerializer`, `DisplaySerializer`,
+- Module serializers: existing `SceneSerializer`, future `DisplaySerializer`,
   `AudioSerializer`, and any Application/Logging contributors.
 
 #### API Surface
@@ -299,11 +294,11 @@ Runtime persistence surface:
 2. Move live runtime values out of legacy options as Scene and Display get
    owned state.
 3. Replace `LegacyRuntimeConfigContributor` with module contributors:
-   Scene contributes scene selections, Display contributes presentation and
-   display values, Audio contributes audio-processing/runtime values, and
-   Application contributes lifecycle/config-save toggles.
-4. Add `SceneSerializer` and `DisplaySerializer` so persistence does not walk
-   `EffectControl::firstRegistered()` or global display options.
+   Display contributes presentation and display values, Audio contributes
+   audio-processing/runtime values, and Application contributes lifecycle,
+   auto-change, and config-save toggles.
+4. Add `DisplaySerializer` and `AudioSerializer` so persistence does not walk
+   global display/audio options.
 5. Keep source strategies pure: they may produce `ConfigPatch` values and
    diagnostics, but must not initialize buffers, open devices, load catalogs,
    mutate options, or emit runtime commands.
@@ -331,8 +326,10 @@ Remaining debt:
   live value, parsing, UI text, lock/use state, side effects, and persistence.
 - Routed option/effect targets still adapt legacy objects rather than typed
   module-owned state.
-- Scene and Display need owned live state before Runtime Reconfiguration can
-  become mostly metadata plus typed dispatch.
+- Display still needs owned live state before Runtime Reconfiguration can
+  become mostly metadata plus typed dispatch. Scene command routing is typed,
+  but legacy effect-control targets remain as adapters until native visual
+  catalogs replace `LegacyScene*`.
 
 #### Services Needed
 
@@ -345,8 +342,7 @@ Remaining debt:
 - `RuntimeConfigRegistry` and module contributors.
 - `RuntimeOptionTarget` and `RuntimeEffectControlTarget` while legacy options
   still need target-backed routing.
-- Future typed module targets, such as `SceneCommandTarget` and
-  `DisplayCommandTarget`.
+- Existing `SceneCommandTarget` and future `DisplayCommandTarget`.
 
 #### API Surface
 
@@ -383,8 +379,8 @@ Subsystem ports should expose verbs, not raw state:
 
 1. Keep the mediator thin: it should translate commands to module ports, not
    own state or perform hidden global writes.
-2. As Scene gets `EffectRegistry`, `VisualCatalogs`, and `SceneState`, replace
-   routed legacy effect-control targets with typed Scene targets.
+2. Retire routed legacy effect-control targets after native visual catalogs
+   replace `LegacyScene*`.
 3. As Display gets `DisplaySystem`/`DisplayGeometry`/presentation state,
    replace routed display option writes with typed Display commands.
 4. Replace `LegacyRuntimeConfigContributor` with module serializers and
@@ -493,61 +489,36 @@ also has a cleaner setup port.
 
 #### Current State
 
-`Scene` now owns the current scene settings, versioning, observer
-notification, and semantic cues. `SceneCommands` is an explicit command facade
-over `SceneCommandDependencies`; it no longer directly searches for most
-legacy collaborators. Production wiring passes:
+`Scene` and `SceneRuntime` now have an explicit dependency boundary. Scene
+commands, selection history, presets, startup effect policy, serialization, and
+automatic scene-change policy are all owned by Scene-facing types.
 
-- flame, general-flame, wave, wave-scale, table, object, translation, palette,
-  border, flashlight, and image controls;
-- `SceneWaveObjectSource` for the current wave object;
-- `SceneEffectRegistry` for save/restore/change-one/change-all operations;
-- `EffectPresetCatalog`;
-- `ScenePaletteRandomizer`;
-- `CthughaBuffer&` for current geometry;
-- Application-owned `RandomSource&`.
+The remaining Scene-facing debt is intentionally quarantined in `LegacyScene*`
+adapters:
 
-Scene-supporting cleanup already landed:
-
-- display presentation startup selection moved out of
-  `SceneCommands::applyStartupConfig(...)`;
-- `Application` owns `VideoDirector`;
-- the `videoDirector()` singleton accessor is gone;
-- the `sceneCommandsForLegacyCallbacks()` bridge is gone;
-- image loading and UI registration receive `ImageOption&` explicitly.
-
-Remaining Scene debt is the biggest runtime-domain cluster:
-
-- visual selection state still lives in global `EffectControl`/option objects
-  such as `flame`, `wave`, `translation`, `palette`, `border`, and
-  `flashlight`;
-- `EffectControl::first` / `firstRegistered()` is still the hidden registry
-  for randomization, save/restore, policy, UI lists, and presets;
-- `EffectPresetCatalog` still traverses the hidden effect registry;
-- `EffectControlPolicy` still applies policy by walking the hidden registry;
-- visual catalogs and lists remain process-wide;
-- `SceneCommands` still needs `CthughaBuffer::buffer` geometry through an
-  explicit but legacy `CthughaBuffer&`;
-- `AutoChanger` is Application-owned and should move to Scene support.
+- `Application` still creates `createLegacySceneVisualCatalogFactory(...)` from
+  global visual `EffectControl`/option objects such as `flame`, `wave`,
+  `translation`, `palette`, `border`, and `flashlight`.
+- `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogs`, and
+  `LegacySceneEffectControlCatalog` translate those legacy controls into
+  `SceneVisualSelections`, `SceneVisualCatalogs`, and runtime effect-control
+  routing.
+- The adapter remains necessary until the visual catalog/filterchain side owns
+  flames, waves, palettes, images, translation tables, and frame geometry
+  without `CthughaBuffer::buffer` or process-wide option catalogs.
 
 #### Services Needed
 
-- `SceneState` / existing `Scene`: current settings, version, observers, and
-  semantic cues.
-- `SceneSnapshot`: immutable per-frame view of selected scene state.
-- `SceneCommandTarget` / evolved `SceneCommands`: command API over scene-owned
-  state.
-- `EffectRegistry`: owned registry of scene-editable controls.
-- `VisualCatalogs`: named flame/wave/table/object/translation/palette/image
-  catalogs and allowed-choice resolution.
-- `EffectPolicyApplier`: applies startup `EffectPolicy` to an explicit
-  registry/catalog set.
-- Owned `EffectPresetCatalog`: presets over an explicit `EffectRegistry`.
-- `ScenePaletteRandomizer`: catalog-owned palette randomization.
-- `SceneGeometry` or `FrameGeometry`: buffer dimensions needed for wave/image
-  selection without depending on `CthughaBuffer::buffer`.
-- `SceneSerializer`: current Scene persistence.
-- `SceneChangeScheduler`: Scene-owned automatic change policy.
+- Native `SceneVisualCatalogFactory` / `SceneVisualSelections`: backed by owned
+  visual catalog state rather than legacy `EffectControl` globals.
+- Owned visual catalogs for flame, wave, table, object, translation, palette,
+  image, border, and flashlight choices, including allowed-choice metadata.
+- Native `ScenePaletteRandomizer` and wave-object source owned by the visual
+  catalog/runtime boundary rather than `LegacySceneCatalogAdapters`.
+- `FrameGeometry` from Frame Mutation so Scene and visual catalogs do not depend
+  on `VideoDirector`/`CthughaBuffer` as geometry providers.
+- Removal-condition tests for deleting `LegacyScene*` once the native visual
+  factory replaces `createLegacySceneVisualCatalogFactory(...)`.
 
 #### API Surface
 
@@ -567,7 +538,7 @@ public:
 };
 ```
 
-Command surface should evolve from legacy controls toward scene-owned targets:
+Command surface is now scene-owned:
 
 ```c++
 class SceneCommandTarget {
@@ -584,7 +555,7 @@ public:
 };
 ```
 
-Scheduler surface:
+Desired scheduler handoff after the Audio analysis snapshot work:
 
 ```c++
 class SceneChangeScheduler {
@@ -597,32 +568,17 @@ public:
 
 #### Migration Plan
 
-1. Keep the current `SceneCommandDependencies` adapters as the only allowed
-   compatibility surface while replacing the internals.
-2. Introduce `EffectRegistry` and register effect controls into it during
-   Application/Scene startup instead of linking them through
-   `EffectControl::first`.
-3. Convert `EffectPresetCatalog` to receive `EffectRegistry&` rather than
-   traversing `EffectControl::firstRegistered()`.
-4. Convert `EffectControlPolicy` into an `EffectPolicyApplier` over
-   `EffectPolicy`, `EffectRegistry&`, and the owned preset catalog.
-5. Introduce `VisualCatalogs` for named entries and allowed-choice resolution.
-   Scene should store selected references/names; catalogs decide availability
-   and legality.
-6. Replace `SceneCommands` reads/writes of legacy global visual controls with
-   scene-owned selection state and catalog lookups.
-7. Replace the explicit `CthughaBuffer&` dependency with a geometry provider
-   from Frame Mutation.
-8. Add `SceneSerializer` and replace `LegacyRuntimeConfigContributor` for
-   scene selections.
-9. Move Application-owned `AutoChanger` into Scene support as
-   `SceneChangeScheduler`. It receives auto-change settings, audio analysis,
-   clock, random source, quiet-message observer, scene command target, and
-   log sink.
-10. Keep boundary tests blocking new `videoDirector()`,
-    `sceneCommandsForLegacyCallbacks()`, direct Scene mutation of `screen`,
-    direct `EffectControl::firstRegistered()` traversal outside named
-    adapters, and direct visual-option globals in Scene code.
+1. Keep `LegacyScene*` as the only allowed compatibility surface while the
+   visual/filterchain runtime is still legacy-backed.
+2. Deglobalize Frame Mutation: introduce owned frame storage/geometry and split
+   `VideoDirector`/filterchain responsibilities away from `CthughaBuffer`
+   aliases.
+3. Introduce native visual catalogs and selection storage for flames, waves,
+   translations, palettes, images, border, flashlight, and related metadata.
+4. Replace `createLegacySceneVisualCatalogFactory(...)` in `Application` with
+   the native `SceneVisualCatalogFactory`.
+5. Delete `LegacyScene*` adapters and their boundary exceptions once no
+   production wiring needs legacy visual `EffectControl&` inputs.
 
 ### Audio
 
@@ -647,8 +603,9 @@ Processing and analysis are explicit:
 
 Remaining audio-adjacent debt:
 
-- `AutoChanger` still consumes `AcousticContext` and frame metrics from
-  Application; the policy belongs under Scene.
+- `SceneChangeScheduler` still receives mutable `AcousticContext&` plus
+  per-frame `AudioMetrics`; this should become an immutable
+  `AudioAnalysisSnapshot` handoff.
 - Audio ingest still receives visual frame-window sizing from
   `CthughaBuffer::buffer.maxDimension()` during Application startup. That
   should become a Frame Mutation geometry dependency.
@@ -713,16 +670,14 @@ public:
 
 1. Keep Audio policy-free: it produces raw/processed frame products and
    analysis, but does not decide scene changes.
-2. Move automatic scene-change consumption of audio products into Scene's
-   `SceneChangeScheduler`.
-3. Introduce `AudioAnalysisSnapshot` so Scene and Frame Mutation receive an
+2. Introduce `AudioAnalysisSnapshot` so Scene and Frame Mutation receive an
    immutable view rather than a mutable `AcousticContext&`.
-4. Replace `CthughaBuffer::buffer.maxDimension()` in audio startup with a
+3. Replace `CthughaBuffer::buffer.maxDimension()` in audio startup with a
    `FrameGeometry`/`AudioGeometry` value from Frame Mutation.
-5. Optionally wrap `AudioIngest`, processing, analysis, passthrough, and mixer
+4. Optionally wrap `AudioIngest`, processing, analysis, passthrough, and mixer
    setup behind an `AudioModule` root once Scene and Frame geometry boundaries
    are clearer.
-6. Keep boundary tests blocking audio facade functions, global audio metrics,
+5. Keep boundary tests blocking audio facade functions, global audio metrics,
    global analyzer/context objects, mixer globals, dump globals, and direct
    audio-to-scene policy.
 
@@ -797,17 +752,19 @@ public:
 2. Move `CthughaBuffer::buffer`/`current` users to explicit `FrameStore&`,
    `IndexedFrame&`, or frame views. Keep temporary aliases only behind
    boundary tests.
-3. Replace Scene and Audio geometry reads from `CthughaBuffer::buffer` with
-   `FrameGeometry`.
+3. Replace Application's Scene/Audio geometry wiring from
+   `CthughaBuffer::buffer`/`VideoDirector` with `FrameGeometry`.
 4. Move `display.cc` renderer statics into renderer-state objects owned by
    Frame Mutation.
 5. Move filterchain diagnostic throttles into filter instances.
 6. Split `VideoDirector`: Scene transition/cue policy remains with Scene or
    director support, while frame composition/configuration moves into
    `FrameComposer`.
-7. Move mutable math/render tables into explicit render-owned state or make
+7. Use the native frame/visual runtime to replace `LegacyScene*` visual catalog
+   adapters.
+8. Move mutable math/render tables into explicit render-owned state or make
    them immutable file-local tables.
-8. Keep Display receiving completed frames, not mutable buffer globals.
+9. Keep Display receiving completed frames, not mutable buffer globals.
 
 ### Display
 
@@ -897,24 +854,27 @@ void present(const IndexedDisplayFrame& frame,
 
 ## Recommended Next Module
 
-The next high-value module is Scene.
+The next high-value module is Frame Mutation / video filterchain.
 
-Commands/Input is ready for a polishing root, but Scene still owns the largest
-runtime-domain dependency knot: visual selection globals, the hidden
-`EffectControl` registry, preset traversal, catalog policy, Scene
-serialization, and Application-owned auto-change policy. Closing Scene also
-unblocks cleaner Runtime Reconfiguration, Audio policy separation, and the
-Frame Mutation handoff.
+Scene's runtime boundary is explicit now. The remaining Scene-facing legacy code
+is the well-named `LegacyScene*` adapter layer, which exists because production
+visual catalogs and selections are still backed by global `EffectControl`
+objects, `VideoDirector`, and `CthughaBuffer`. Deglobalizing frame mutation and
+native visual catalogs should make those adapters fall away naturally.
 
-Recommended Scene order:
+Recommended Frame/Visual order:
 
-1. Add `EffectRegistry` and move registry traversal out of
-   `EffectControl::first`.
-2. Move presets and effect policy onto the explicit registry.
-3. Introduce `VisualCatalogs` and scene-owned selection state.
-4. Add `SceneSerializer` and replace the legacy runtime config contributor.
-5. Move `AutoChanger` into Scene as `SceneChangeScheduler`.
-6. Replace the `CthughaBuffer&` Scene dependency with frame geometry.
+1. Introduce owned `FrameStore`/`FrameGeometry` while keeping behavior compatible
+   with `CthughaBuffer`.
+2. Split `VideoDirector` so frame composition/filterchain ownership moves toward
+   `FrameComposer` and Scene receives only cue/transition-facing ports.
+3. Move frame/window sizing for Scene and Audio from `CthughaBuffer::buffer` to
+   explicit geometry values.
+4. Introduce native visual catalogs/selections for flames, waves, translations,
+   palettes, images, border, and flashlight.
+5. Replace `createLegacySceneVisualCatalogFactory(...)` in `Application`.
+6. Delete `LegacyScene*` once no production path needs legacy visual
+   `EffectControl&` adapters.
 
 ## Cross-Cutting Guard Rails
 
