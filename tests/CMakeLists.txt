@@ -965,9 +965,25 @@ add_test(NAME scene_choice_list_catalog_test
 add_executable(scene_built_in_choice_catalogs_test
     unit/SceneBuiltInChoiceCatalogsTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneBuiltInChoiceCatalogs.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneTypedVisualCatalogs.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceListCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(scene_built_in_choice_catalogs_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
 )
 
 target_include_directories(scene_built_in_choice_catalogs_test PRIVATE

@@ -31,6 +31,32 @@ int sceneBuiltInFlameChoiceInUse(int index);
 int sceneBuiltInWaveChoiceInUse(int index);
 
 /**
+ * Creates the built-in flame Scene choice catalog.
+ *
+ * The returned catalog owns its choices and the supplied lock. Choice payloads
+ * point at the native built-in Flame catalog.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @return Owned catalog with all built-in flame choices.
+ */
+SceneChoiceCatalog* createSceneFlameChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock);
+
+/**
+ * Creates the built-in wave Scene choice catalog.
+ *
+ * The returned catalog owns its choices and the supplied lock. Choice payloads
+ * point at the native built-in Wave catalog.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @return Owned catalog with all built-in wave choices.
+ */
+SceneChoiceCatalog* createSceneWaveChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock);
+
+/**
  * Creates the fixed wave-scale Scene choice catalog.
  *
  * The returned catalog owns its choices and the supplied lock.

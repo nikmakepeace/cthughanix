@@ -2906,6 +2906,10 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
         "createSceneWaveScaleChoiceCatalog");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
+        "createSceneFlameChoiceCatalog");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
+        "createSceneWaveChoiceCatalog");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
         "createSceneFlashlightChoiceCatalog");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
         "sceneBuiltInFlameChoiceInUse");
@@ -2925,18 +2929,46 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectControl");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
         "#include \"SceneChoiceListCatalog.h\"");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
+        "#include \"SceneTypedVisualCatalogs.h\"");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
+        "#include \"Flame.h\"");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
+        "#include \"Wave.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneChoiceListCatalog.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"flames.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"waves.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"display.h\"");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneBuiltInChoiceCatalogs.h\"");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"LegacySceneChoiceLock.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "legacyChoiceInUse");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
         "sceneBuiltInFlameChoiceInUse(i)");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
         "sceneBuiltInWaveChoiceInUse(i)");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "sceneBuiltInFlameChoiceInUse(i)");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "sceneBuiltInWaveChoiceInUse(i)");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "nFlameCatalogEntries");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "flameByIndex");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "nWaveCatalogEntries");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "waveByIndex");
+    assertSourceContains("tests/unit/SceneBuiltInChoiceCatalogsTest.cc",
+        "testFlameCatalogBuildsTypedNativeChoices");
+    assertSourceContains("tests/unit/SceneBuiltInChoiceCatalogsTest.cc",
+        "testWaveCatalogBuildsTypedNativeChoices");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"SceneChoiceListCatalog.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
@@ -3015,12 +3047,12 @@ static void testEffectControlUsesInjectedRandomSource() {
         "class LegacySceneImageSelection");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneFlameChoiceSelection(\n"
-        "                createSceneFlameChoiceCatalog(flame)");
+        "                createSceneFlameChoiceCatalog(flame.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneGeneralFlameSelectionValue(generalFlame.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneWaveChoiceSelection(\n"
-        "                createSceneWaveChoiceCatalog(wave)");
+        "                createSceneWaveChoiceCatalog(wave.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneChoiceSelection(\n"
         "                createSceneWaveScaleChoiceCatalog(waveScale.name()");

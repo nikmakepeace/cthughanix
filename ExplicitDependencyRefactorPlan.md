@@ -975,6 +975,10 @@ from this plan.
    - Flame and wave default availability is native
      `SceneBuiltInChoiceCatalogs` metadata instead of a read through legacy
      `EffectChoice::inUse()`.
+   - Built-in flame and wave catalog construction lives in
+     `SceneBuiltInChoiceCatalogs`; the temporary legacy selection factory only
+     supplies option names, lock state, and current-value mirrors for those
+     selections.
    - Translation entries are generated into native `SceneTranslationCatalog`
      ownership, mirrored into the temporary legacy translation option, and used
      directly by Scene translation selections.

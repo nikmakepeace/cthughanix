@@ -2,7 +2,10 @@
 
 #include "SceneBuiltInChoiceCatalogs.h"
 
+#include "Flame.h"
 #include "SceneChoiceListCatalog.h"
+#include "SceneTypedVisualCatalogs.h"
+#include "Wave.h"
 
 #include <cstdio>
 
@@ -17,6 +20,36 @@ int sceneBuiltInFlameChoiceInUse(int index) {
 
 int sceneBuiltInWaveChoiceInUse(int index) {
     return (index >= 0) && (index < 33);
+}
+
+SceneChoiceCatalog* createSceneFlameChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock) {
+    SceneFlameChoiceCatalog* catalog = new SceneFlameChoiceCatalog(
+        catalogName, lock);
+
+    for (int i = 0; i < nFlameCatalogEntries; i++) {
+        const Flame* flame = flameByIndex(i);
+        if (flame != 0)
+            catalog->addChoice(
+                flame, flame->name(), sceneBuiltInFlameChoiceInUse(i));
+    }
+
+    return catalog;
+}
+
+SceneChoiceCatalog* createSceneWaveChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock) {
+    SceneWaveChoiceCatalog* catalog = new SceneWaveChoiceCatalog(
+        catalogName, lock);
+
+    for (int i = 0; i < nWaveCatalogEntries; i++) {
+        Wave* wave = waveByIndex(i);
+        if (wave != 0)
+            catalog->addChoice(
+                wave, wave->name(), sceneBuiltInWaveChoiceInUse(i));
+    }
+
+    return catalog;
 }
 
 SceneChoiceCatalog* createSceneWaveScaleChoiceCatalog(

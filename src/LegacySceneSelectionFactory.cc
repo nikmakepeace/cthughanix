@@ -14,41 +14,8 @@
 #include "SceneTypedVisualCatalogs.h"
 #include "SceneVisualSelectionSet.h"
 #include "SceneWaveObjectCatalog.h"
-#include "display.h"
-#include "flames.h"
-#include "waves.h"
 
 namespace {
-
-static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
-    EffectControl& option) {
-    SceneFlameChoiceCatalog* catalog = new SceneFlameChoiceCatalog(
-        option.name(), new LegacySceneChoiceLock(option.lock));
-
-    for (int i = 0; i < nFlameCatalogEntries; i++) {
-        const Flame* flame = flameByIndex(i);
-        if (flame != 0)
-            catalog->addChoice(
-                flame, flame->name(), sceneBuiltInFlameChoiceInUse(i));
-    }
-
-    return catalog;
-}
-
-static SceneChoiceCatalog* createSceneWaveChoiceCatalog(
-    EffectControl& option) {
-    SceneWaveChoiceCatalog* catalog = new SceneWaveChoiceCatalog(
-        option.name(), new LegacySceneChoiceLock(option.lock));
-
-    for (int i = 0; i < nWaveCatalogEntries; i++) {
-        Wave* wave = waveByIndex(i);
-        if (wave != 0)
-            catalog->addChoice(
-                wave, wave->name(), sceneBuiltInWaveChoiceInUse(i));
-    }
-
-    return catalog;
-}
 
 static SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
     EffectControl& option, const SceneWaveObjectCatalog& waveObjects) {
@@ -116,12 +83,16 @@ createLegacySceneSelectionAdapters(
         images,
         std::unique_ptr<SceneVisualSelections>(new SceneVisualSelectionSet(
             new SceneFlameChoiceSelection(
-                createSceneFlameChoiceCatalog(flame), int(flame)),
+                createSceneFlameChoiceCatalog(flame.name(),
+                    new LegacySceneChoiceLock(flame.lock)),
+                int(flame)),
             new SceneGeneralFlameSelectionValue(generalFlame.name(),
                 new LegacySceneChoiceLock(generalFlame.lock),
                 int(generalFlame)),
             new SceneWaveChoiceSelection(
-                createSceneWaveChoiceCatalog(wave), int(wave)),
+                createSceneWaveChoiceCatalog(wave.name(),
+                    new LegacySceneChoiceLock(wave.lock)),
+                int(wave)),
             new SceneChoiceSelection(
                 createSceneWaveScaleChoiceCatalog(waveScale.name(),
                     new LegacySceneChoiceLock(waveScale.lock)),
