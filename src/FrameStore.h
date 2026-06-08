@@ -3,7 +3,7 @@
 #ifndef CTHUGHA_FRAME_STORE_H
 #define CTHUGHA_FRAME_STORE_H
 
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 #include "FrameGeometry.h"
 
 /**
@@ -49,13 +49,13 @@ public:
 /**
  * Owns active/passive indexed frame storage for Frame Generator rendering.
  *
- * The store currently wraps a CthughaBuffer implementation so legacy filters
- * can be passed an explicit buffer reference. That compatibility buffer is
- * owned here and is never reached through process-wide aliases.
+ * The store owns the render target passed to filter, flame, translate, wave,
+ * border, image, text, and frame-publication stages. Pixel storage is never
+ * reached through process-wide aliases.
  */
 class FrameStore {
     FrameGeometry geometryValue;
-    CthughaBuffer bufferValue;
+    FrameRenderTarget bufferValue;
 
 public:
     /** Creates storage with the default geometry but no allocated pixels. */
@@ -89,15 +89,11 @@ public:
     /** @return First hidden row below the active visible image. */
     unsigned char* activeBottomHiddenRows();
 
-    /**
-     * @return Explicit compatibility buffer for legacy filters.
-     */
-    CthughaBuffer& compatibilityBuffer();
+    /** @return Mutable render target used by generator stages. */
+    FrameRenderTarget& renderTarget();
 
-    /**
-     * @return Explicit compatibility buffer for legacy filters.
-     */
-    const CthughaBuffer& compatibilityBuffer() const;
+    /** @return Immutable render target used by generator stages. */
+    const FrameRenderTarget& renderTarget() const;
 };
 
 #endif

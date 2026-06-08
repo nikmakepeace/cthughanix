@@ -61,23 +61,24 @@ static void testFrameGeneratorOwnsApplicationStorageAndPipeline() {
     assertSourceContains("src/Application.cc",
         "frameGeneratorValue.geometry().maxDimension()");
     assertSourceContains("src/Application.cc", "frameGeneratorValue.render");
-    assertSourceDoesNotContain("src/Application.cc", "CthughaBuffer::buffer");
-    assertSourceDoesNotContain("src/Application.cc", "CthughaBuffer::current");
+    assertSourceDoesNotContain("src/Application.cc", "CthughaBuffer");
+    assertSourceDoesNotContain("src/Application.h", "CthughaBuffer");
+    assertSourceDoesNotContain("src/Application.cc", "FrameRenderTarget");
+    assertSourceDoesNotContain("src/Application.h", "FrameRenderTarget");
     assertSourceDoesNotContain("src/Application.h", "VideoDirector");
     assertSourceDoesNotContain("src/Application.cc", "VideoDirector");
     assertSourceDoesNotContain("src/Application.h", "videoFilterchain");
     assertSourceDoesNotContain("src/Application.cc", "videoFilterchain");
 }
 
-static void testLegacyBufferAliasesAreGone() {
-    assertSourceDoesNotContain("src/CthughaBuffer.h",
-        "static CthughaBuffer buffer");
-    assertSourceDoesNotContain("src/CthughaBuffer.h",
-        "static CthughaBuffer* current");
-    assertSourceDoesNotContain("src/CthughaBuffer.cc",
-        "CthughaBuffer::buffer");
-    assertSourceDoesNotContain("src/CthughaBuffer.cc",
-        "CthughaBuffer::current");
+static void testLegacyCthughaBufferIsRetired() {
+    assertSourceDoesNotExist("src/CthughaBuffer.h");
+    assertSourceDoesNotExist("src/CthughaBuffer.cc");
+    assertSourceDoesNotContain("src/FrameRenderTarget.h", "static ");
+    assertSourceDoesNotContain("src/FrameRenderTarget.cc",
+        "FrameRenderTarget::buffer");
+    assertSourceDoesNotContain("src/FrameRenderTarget.cc",
+        "FrameRenderTarget::current");
 }
 
 static void testOldVideoDirectorIsRetired() {
@@ -87,15 +88,15 @@ static void testOldVideoDirectorIsRetired() {
 
 static void testDisplayNeverReadsGeneratorCurrentStorage() {
     assertSourceDoesNotContain("src/CthughaDisplay.cc",
-        "CthughaBuffer::current");
+        "FrameRenderTarget::current");
     assertSourceDoesNotContain("src/CthughaDisplay.cc",
-        "#include \"CthughaBuffer.h\"");
+        "#include \"FrameRenderTarget.h\"");
     assertSourceDoesNotContain("src/CthughaDisplay.h", "presentCurrent");
     assertSourceDoesNotContain("src/CthughaDisplay.cc", "presentCurrent");
     assertSourceDoesNotContain("src/DisplayDeviceX11.cc",
-        "CthughaBuffer::current");
+        "FrameRenderTarget::current");
     assertSourceDoesNotContain("src/DisplayDeviceX11.cc",
-        "#include \"CthughaBuffer.h\"");
+        "#include \"FrameRenderTarget.h\"");
 }
 
 static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
@@ -110,6 +111,8 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
         "src/FrameGeneratorSceneBinding.cc",
         "src/FrameGeometry.h",
         "src/FrameGeometry.cc",
+        "src/FrameRenderTarget.h",
+        "src/FrameRenderTarget.cc",
         "src/FrameStore.h",
         "src/FrameStore.cc",
         "src/FrameTransitionController.h",
@@ -130,8 +133,9 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
     assertFilesDoNotContain(files, fileCount, "DisplayRuntime");
     assertFilesDoNotContain(files, fileCount, "RuntimeCommand");
     assertFilesDoNotContain(files, fileCount, "RuntimePersistence");
-    assertFilesDoNotContain(files, fileCount, "CthughaBuffer::buffer");
-    assertFilesDoNotContain(files, fileCount, "CthughaBuffer::current");
+    assertFilesDoNotContain(files, fileCount, "CthughaBuffer");
+    assertFilesDoNotContain(files, fileCount, "FrameRenderTarget::buffer");
+    assertFilesDoNotContain(files, fileCount, "FrameRenderTarget::current");
     assertFilesDoNotContain(files, fileCount, "#include \"CthughaDisplay.h\"");
     assertFilesDoNotContain(files, fileCount, "#include \"DisplayDevice.h\"");
     assertFilesDoNotContain(files, fileCount, "#include \"DisplayRuntime.h\"");
@@ -151,7 +155,7 @@ static void testGeneratorDiagnosticsAndMathTablesAreOwned() {
 
 int main() {
     testFrameGeneratorOwnsApplicationStorageAndPipeline();
-    testLegacyBufferAliasesAreGone();
+    testLegacyCthughaBufferIsRetired();
     testOldVideoDirectorIsRetired();
     testDisplayNeverReadsGeneratorCurrentStorage();
     testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands();

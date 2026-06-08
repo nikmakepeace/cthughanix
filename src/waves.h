@@ -8,7 +8,7 @@
 #include "EffectControl.h"
 #include "Wave.h"
 
-class CthughaBuffer;
+class FrameRenderTarget;
 
 /**
  * Effect choice that points at one built-in Wave catalog item.

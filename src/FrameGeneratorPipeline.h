@@ -1,13 +1,13 @@
 // Frame Generator filterchain ownership.
 
-#ifndef CTHUGHA_FRAME_FILTERCHAIN_PIPELINE_H
-#define CTHUGHA_FRAME_FILTERCHAIN_PIPELINE_H
+#ifndef CTHUGHA_FRAME_GENERATOR_PIPELINE_H
+#define CTHUGHA_FRAME_GENERATOR_PIPELINE_H
 
 #include "VideoFilterchainFactory.h"
 
 #include <memory>
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class FramePalette;
 class IndexedFrame;
 class VideoFrameContext;
@@ -48,11 +48,11 @@ public:
     /**
      * Runs the owned filterchain against explicit storage and context.
      *
-     * @param buffer Active/passive indexed storage to mutate.
+     * @param target Active/passive indexed render target to mutate.
      * @param context Borrowed inputs for this frame only.
      * @return Published frame descriptor owned by the filterchain.
      */
-    const IndexedFrame& render(CthughaBuffer& buffer,
+    const IndexedFrame& render(FrameRenderTarget& target,
         const VideoFrameContext& context);
 };
 

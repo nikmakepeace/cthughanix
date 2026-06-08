@@ -1,7 +1,7 @@
 #ifndef __FLAME_H
 #define __FLAME_H
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class VideoFrameContext;
 
 /**
@@ -66,7 +66,7 @@ public:
      * @param context Current visual frame context.
      * @param runtime Flame lookup tables and general-flame setting.
      */
-    typedef void (*Function)(CthughaBuffer& buffer,
+    typedef void (*Function)(FrameRenderTarget& buffer,
         const VideoFrameContext& context, FlameRuntime& runtime);
 
 private:
@@ -98,7 +98,7 @@ public:
      * @param generalFlame Encoded general-flame option value.
      * @param lookupTables Precomputed flame math tables.
      */
-    void execute(CthughaBuffer& buffer, const VideoFrameContext& context,
+    void execute(FrameRenderTarget& buffer, const VideoFrameContext& context,
         int generalFlame, const FlameLookupTables& lookupTables) const;
 };
 

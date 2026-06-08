@@ -13,14 +13,14 @@ VideoFrameContext::VideoFrameContext()
 
 VideoFilter::~VideoFilter() { }
 
-VideoFrame::VideoFrame(CthughaBuffer& buffer_, const VideoFrameContext& context_,
+VideoFrame::VideoFrame(FrameRenderTarget& buffer_, const VideoFrameContext& context_,
     FramePalette* framePalette_, IndexedFrame* indexedFrame_)
     : bufferValue(&buffer_)
     , contextValue(&context_)
     , framePaletteValue(framePalette_)
     , indexedFrameValue(indexedFrame_) { }
 
-CthughaBuffer& VideoFrame::buffer() {
+FrameRenderTarget& VideoFrame::buffer() {
     return *bufferValue;
 }
 
@@ -174,7 +174,7 @@ void VideoFilterchain::refresh() {
         filters[i].filter->refresh();
 }
 
-void VideoFilterchain::run(CthughaBuffer& buffer, const VideoFrameContext& context) {
+void VideoFilterchain::run(FrameRenderTarget& buffer, const VideoFrameContext& context) {
     indexedFrameValue = IndexedFrame();
     VideoFrame frame(buffer, context, framePaletteValue, &indexedFrameValue);
 

@@ -6,7 +6,6 @@
 #include "imath.h"
 #include "xcthugha.h"
 #include "InputQueue.h"
-#include "CthughaBuffer.h"
 #include "Interface.h"
 #include "Image.h"
 #include "FramePalette.h"

@@ -3,7 +3,7 @@
 
 #include <vector>
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class RandomSource;
 class VideoFrameContext;
 
@@ -267,7 +267,7 @@ public:
      * @param context Current video frame audio/time context.
      * @param runtime Wave config, state, lookup tables, and fire budget.
      */
-    typedef void (*Function)(CthughaBuffer& buffer,
+    typedef void (*Function)(FrameRenderTarget& buffer,
         const VideoFrameContext& context, WaveRuntime& runtime);
 
     /**
@@ -319,7 +319,7 @@ public:
      * @param lookupTables Shared lookup-table cache.
      * @param randomSource Random source used by renderer effects.
      */
-    void execute(CthughaBuffer& buffer, const VideoFrameContext& context,
+    void execute(FrameRenderTarget& buffer, const VideoFrameContext& context,
         const WaveConfig& config, int needsConfiguration, WaveState& state,
         WaveLookupTables& lookupTables, RandomSource& randomSource) const;
 };

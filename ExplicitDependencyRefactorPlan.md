@@ -734,7 +734,7 @@ The remaining implicit dependencies are:
 - `FrameGeneratorSceneBinding`: observes a `Scene` for changes and one-shot
   image/text cues. It queues generator work but does not own scene selection
   policy.
-- `FrameFilterchainPipeline` / `FrameComposer`: owns the filterchain and
+- `FrameGeneratorPipeline` / `FrameComposer`: owns the filterchain and
   converts a `FrameGeneratorContext` plus `FrameStore` into an `IndexedFrame`.
 - `FrameTransitionController`: owns palette smoothing, image-cue palette mode,
   and other frame-generation transition settings currently hidden in
@@ -789,157 +789,175 @@ public:
 
 #### Migration Plan
 
-The refactor is complete only when no production object in this module obtains
-dependencies through `CthughaBuffer::buffer`, `CthughaBuffer::current`,
-`cthughaDisplay`, display globals, or process-wide mutable math tables. All
-runtime collaborators must be supplied by constructor, method parameter, or an
-owned object created by `Application`.
+The high-risk implicit-dependency migration is complete. Frame Generator now
+has an Application-owned `FrameGeneratorRuntime`, `FrameGeometry`, `FrameStore`,
+`FrameGeneratorPipeline`, `FrameGeneratorSceneBinding`, and
+`FrameTransitionController`. `VideoDirector` is deleted, static
+`CthughaBuffer::buffer`/`current` aliases are gone, Display no longer falls
+back to generator storage, and boundary tests block display/runtime-command
+reach-through from the generation path.
 
-1. **Rename the boundary before moving behavior.**
-   Treat new code and tests as `FrameGenerator*`. Keep old filenames such as
-   `VideoFilterchain` only as implementation details until a mechanical rename
-   is safe. Update docs and boundary tests so "Frame Mutation" is a legacy term
-   and "Frame Generator" is the module name.
+The remaining Frame Generator work is compatibility cleanup and boundary
+hardening:
 
-2. **Add guard tests before production migration.**
-   Add a source-boundary test for the new module that initially records the
-   allowed compatibility files and then tightens after each phase. The final
-   assertions must block:
-   - `CthughaBuffer::buffer` and `CthughaBuffer::current` in production `src/`;
-   - `cthughaDisplay`, `DisplayDevice`, `DisplayRuntime`, `RuntimeCommand*`,
-     `RuntimePersistence`, `screen`, `zoom`, or display geometry globals from
-     Frame Generator headers and implementation;
-   - `CthughaBuffer::current` in `CthughaDisplay.cc` and X11 display code;
-   - `static int debugReports` in `VideoFilters.cc`;
-   - `extern int sine`, `sin360`, `init_imath()`, `isin()`, or `icos()` in wave
-     generator code once `FrameMathTables` exists.
+1. **Make stride, padding, and hidden-border ownership coherent in
+   `FrameStore`.**
+   Current compatibility surface: `FrameBufferView` already has `pitch()`, but
+   it is always set to visible width. Hidden-border rows are represented in
+   `FrameGeometry`, while the actual allocation still inherits a hardcoded
+   hidden-row count from the compatibility buffer.
 
-3. **Introduce `FrameGeometry` as a value and a narrow port.**
-   Build `FrameGeometry` from startup `DisplayConfig.bufferWidth` and
-   `bufferHeight`. Include hidden border rows because flame feedback relies on
-   that storage, but do not expose pixels through geometry. `Application` should
-   configure this immediately after startup config is built and before any
-   subsystem needs visual dimensions.
+   Concrete changes required:
+   - Introduce an explicit storage-layout value owned by `FrameStore`, such as
+     `FrameStorageLayout`, containing visible size, row pitch/stride, top/bottom
+     hidden rows, total allocation bytes, and visible-start offsets.
+   - Decide whether hidden rows are storage policy only or part of logical
+     frame geometry. Keep `FrameGeometry` limited to the dimensions needed by
+     Scene, Audio, catalogs, and image placement.
+   - Allocate active/passive memory from `FrameStorageLayout` and make
+     `FrameBufferView::pitch()` the actual row distance.
+   - Port every row-walking loop in filters, translation, waves, border, image,
+     text, and commit/export code to advance by pitch instead of assuming
+     `row + y * width`.
+   - Make hidden rows available as pitched views or typed ranges, not raw
+     pointer offsets derived from visible width.
 
-4. **Wire geometry explicitly before storage changes.**
-   Replace Scene geometry construction from `VideoDirector` with
-   `frameGenerator.sceneGeometry()`. Replace Audio ingest sizing from
-   `CthughaBuffer::buffer.maxDimension()` with
-   `frameGenerator.geometry().maxDimension()` or a copied `AudioGeometry` value.
-   Replace visual catalog and image-loading geometry reads with
-   `FrameGeometry`. At the end of this phase, Scene and Audio know dimensions
-   but cannot reach frame pixels.
+   Completion gate: tests construct a store with pitch greater than width and a
+   non-default hidden-row count, then prove filters/render-target helpers use
+   pitch and hidden-row layout correctly.
 
-5. **Introduce `FrameStore` behind behavior-compatible storage.**
-   Make `FrameStore` own the active/passive indexed buffers and hidden rows.
-   It may initially contain a `CthughaBuffer` implementation object so existing
-   flame, translate, wave, border, image, and commit filters can still receive
-   an injected buffer reference. The important rule is that the implementation
-   object is owned by `FrameStore`; it is never reached through static aliases.
-   Add tests for resize, hidden border offsets, active/passive swap semantics,
-   clear semantics, and `IndexedFrame` publication.
+2. **Rename or port legacy `VideoFilterchain`, `VideoFilters`, and
+   `VideoFrameContext` APIs.**
+   Current compatibility surface: these APIs keep the old video/filterchain
+   vocabulary alive so existing filters can be moved under
+   `FrameGeneratorRuntime` without rewriting every type at once. They are not
+   cross-module ports anymore; they are internal generation mechanics.
 
-6. **Create the Application-owned module root.**
-   Add `FrameGeneratorRuntime` as an `Application` member or owned pointer with
-   lifetime longer than Display and the filterchain output it presents.
-   Construction dependencies are `RandomSource&`, `LogSink&`, and any clock or
-   frame-budget provider needed by generator policy. Configuration dependencies
-   are passed through `configure(...)`, not read from globals. Member order must
-   guarantee:
-   - process services outlive `FrameGeneratorRuntime`;
-   - `FrameGeneratorRuntime` outlives `SceneRuntime` ports that borrow its
-     `SceneGeometry`;
-   - Display is destroyed before `FrameGeneratorRuntime`, because the last
-     presented `IndexedFrame` may point into `FrameStore`;
-   - scene binding is unbound before `SceneRuntime` is destroyed.
+   Concrete changes required:
+   - Rename or replace `VideoFrameContext` with a Frame Generator input type,
+     such as `FrameGeneratorInputs` or `FrameRenderContext`, that contains only
+     explicit per-frame audio, scene snapshot, timing, and frame-budget data.
+   - Rename or replace `VideoFilterchain`, `VideoFilterchainSequence`,
+     `VideoFilterchainFactory`, `VideoFilterFrame`, and filter base types with
+     `FrameGenerator*` names.
+   - Update `FrameGeneratorRuntime`, `FrameGeneratorPipeline`, and
+     `FrameGeneratorSceneBinding` public headers so they do not include
+     `VideoFilterchain*.h`, return `VideoFilterchain*` types, or expose methods
+     named `videoFrameContext()`.
+   - If some old implementation must remain temporarily, move it behind a
+     private adapter boundary used only by `.cc` files and name that adapter as
+     temporary in the boundary test.
+   - Update CMake targets, unit tests, benchmarks, and source-boundary tests to
+     use the new names.
 
-7. **Move filterchain ownership from `Application` into Frame Generator.**
-   `Application` should stop owning `videoFilterchain` and
-   `videoFilterchainSequence`. `FrameGeneratorRuntime` owns the factory,
-   filterchain, frame palette, pending scene-change flags, and refresh/rebuild
-   behavior. The render call becomes:
-   - build a `FrameGeneratorContext` from explicit per-frame inputs;
-   - apply queued scene changes and cues to the owned filterchain;
-   - run the filterchain against `FrameStore`;
-   - return an explicit `IndexedFrame` result.
+   Completion gate: public Frame Generator headers and tests use only
+   `FrameGenerator*` or neutral names; any remaining `Video*` names are private
+   implementation files with explicit removal tests.
 
-8. **Split `VideoDirector` by responsibility, then delete it.**
-   Move responsibilities to these owners:
-   - `FrameGeneratorSceneBinding`: observes `Scene` changes and cues, queues
-     image/text cue data, and marks filterchain settings dirty.
-   - `FrameTransitionController`: owns palette smoothing settings and image cue
-     palette behavior.
-   - `FrameFilterchainConfigurator`: applies `SceneSnapshot.settings()` and
-     queued cues to filter instances.
-   - Scene or Runtime Reconfiguration: owns quiet-message policy and emits
-     `SceneCue` text messages. `SilenceMessage`, `changeMsgTime`, and quiet
-     duration state must not stay in Frame Generator.
-   After the split, there should be no object that both observes Scene policy
-   and owns target pixels.
+3. **Replace remaining generator-side legacy logging macros with explicit
+   `LogSink&`.**
+   Current compatibility surface: generator-adjacent code still uses `CTH_*`
+   macros because many legacy filters and catalog loaders were written before
+   diagnostics were injectable services.
 
-9. **Make frame-budget and timing inputs explicit.**
-   Remove `VideoDirector` reads of `cthughaDisplay->rollingFps`. Pass the
-   current rolling FPS or a `FrameBudget` value through `FrameGeneratorContext`.
-   Palette smoothing and text durations should use that explicit value. The
-   generator must not include `CthughaDisplay.h` or any display backend header.
+   Concrete changes required:
+   - Decide where diagnostics enter the module: `FrameGeneratorRuntime`,
+     `FrameGeneratorPipeline`, filter constructors, or a small
+     `FrameGeneratorDiagnostics`/`LogSink&` port.
+   - Thread that diagnostics port into filters and helper functions that log
+     during configure/render/catalog work.
+   - Replace `CTH_DEBUG`, `CTH_INFO`, `CTH_WARN`, `CTH_ERROR`, and
+     `CTH_TRACE` uses in Frame Generator sources with explicit `LogSink` calls.
+   - Remove `cthugha.h` includes from Frame Generator sources that only needed
+     legacy logging macros.
+   - Keep any process-level macro bridge in Application/legacy modules, not in
+     Frame Generator.
 
-10. **Remove display fallback reads of generator storage.**
-    Require `Application` to pass the `IndexedFrame` returned by
-    `FrameGeneratorRuntime::render(...)` to Display. Remove the
-    `presentCurrent(...)` fallback that lets `CthughaDisplay` read
-    `CthughaBuffer::current`. Replace X11 fallback indexed-display dimensions
-    with explicit presentation frame or viewport dimensions. Display may cache
-    the last supplied frame view for the duration of presentation, but it must
-    never ask Frame Generator for "current" mutable storage.
+   Completion gate: source-boundary tests fail on `CTH_*` macros and logging
+   bridge includes in the Frame Generator path, and generator tests can inject
+   a fake or silent log sink.
 
-11. **Move generator diagnostics into owned objects.**
-    Convert the `FrameCommitFilter` diagnostic throttle from a function-local
-    static to a `FrameCommitFilter` member. Any future diagnostic counters live
-    in the filter, `FrameFilterchainPipeline`, or `FrameGeneratorRuntime`, and
-    receive logging through an explicit `LogSink&`.
+4. **Replace the `VideoFrameContext`/`AcousticContext` compatibility input with
+   a typed audio analysis snapshot.**
+   Current compatibility surface: `FrameGeneratorContext` wraps
+   `VideoFrameContext`, which carries raw audio pointers, processed wave data,
+   `AudioMetrics`, `AcousticContext`, `SceneSnapshot`, and timing as one legacy
+   compatibility bundle.
 
-12. **Move mutable math tables into generator-owned state.**
-    Replace `Application::init_imath()` and global `sine`/`sin360` reads in
-    wave generation with `FrameMathTables` supplied through `WaveRuntime` or
-    `WaveLookupTables`. The resulting tables may be immutable after
-    construction, but their owner must be explicit. Display-side math cleanup is
-    separate unless a display renderer is reading the same global table.
+   Concrete changes required:
+   - Define the immutable audio-analysis product that Frame Generator actually
+     needs, such as `AudioAnalysisSnapshot`, with the current fire/beat/quiet
+     and acoustic values consumed by filters and scene-change visuals.
+   - Have the Audio module produce that snapshot alongside the raw and
+     processed audio buffers for the frame.
+   - Replace `VideoFrameContext` inside `FrameGeneratorContext` with explicit
+     fields or narrow views for raw PCM, processed wave data, audio metrics or
+     analysis snapshot, scene snapshot, frame time, frame delta, and frame
+     budget.
+   - Port filters and wave renderers to read the new typed fields instead of
+     reaching through `context.audioMetrics`, `context.acousticContext`, or
+     legacy helper functions.
+   - Keep any borrow-only pointers visibly scoped to a single `render(...)`
+     call.
 
-13. **Hide or retire `CthughaBuffer`.**
-    Once all production call sites receive `FrameStore&`, `FrameBufferView&`,
-    or `IndexedFrame`, make `CthughaBuffer` a private compatibility
-    implementation detail or rename it to the new storage type. Remove the
-    static `buffer` and `current` declarations. Benchmarks/tests may create
-    local stores explicitly, but production code must not have a process-wide
-    buffer.
+   Completion gate: Frame Generator does not include `AudioAnalyzer.h` or
+   expose `AcousticContext`/`VideoFrameContext`; tests prove render-time audio
+   inputs are borrowed only for one frame and can be supplied by a small test
+   fixture.
 
-14. **Keep presentation renderer state in Display.**
-    Do not move `display.cc` state such as `perm_lines`, height-field rotation,
-    `screen_bent` animation values, or `zicks` into Frame Generator. Those are
-    `ScreenRenderContext` presentation effects over an already generated
-    source frame. Track them under the Display plan as display-owned renderer
-    state.
+5. **Move visual catalogs and selections off global `EffectControl` objects.**
+   Current compatibility surface: `LegacyScene*` adapters translate Scene
+   selections to global `EffectControl` and `EffectChoiceList` objects for
+   flames, waves, translations, palettes, images, border, and flashlight. This
+   lets the explicit Scene boundary coexist with legacy visual catalogs.
 
-15. **Tighten lifecycle tests at the end.**
-    Add or update tests that prove:
-    - `FrameGeneratorRuntime` can be constructed with explicit process services
-      and configured with explicit startup values;
-    - `SceneRuntime` receives only a `SceneGeometry&` or value, not frame
-      storage;
-    - Audio ingest receives only a geometry value;
-    - one render borrows audio/context inputs only for the call;
-    - the returned `IndexedFrame` remains valid until the next render, resize,
-      or generator shutdown;
-    - shutdown unbinds Scene before destroying Scene runtime and destroys
-      Display before frame storage.
+   Concrete changes required:
+   - Create owned catalog/selection objects for each visual family:
+     flame/general flame, wave/wave-scale/table/object, translation, palette,
+     image, border, and flashlight.
+   - Move catalog loading and generated entries into those owners instead of
+     global `EffectControl` instances.
+   - Expose typed Scene selection ports and runtime-command targets for those
+     owners, including save/restore and random/change-one/change-all behavior.
+   - Update `SceneRuntime` construction so it receives native visual catalogs
+     instead of `createLegacySceneVisualCatalogFactory(...)`.
+   - Move ini serialization and runtime config contribution from legacy
+     adapters to the native catalog/selection owners.
+   - Delete `LegacySceneVisualCatalogs`, `LegacySceneSelectionAdapters`, and
+     related legacy effect-control adapters once no production path uses them.
 
-16. **Completion gate.**
-    Run the normal build/test/check sequence plus the new boundary tests. The
-    Frame Generator refactor is not complete until production `src/` has no
-    direct references to `CthughaBuffer::buffer`, `CthughaBuffer::current`, or
-    display globals, and the only remaining globals touched by generation code
-    are immutable catalog definitions or temporary compatibility aliases with a
-    named removal test.
+   Completion gate: Application no longer passes global visual options into
+   Scene setup; `LegacyScene*` files are gone; and boundary tests block Scene
+   and Frame Generator from depending on global `EffectControl` visual
+   selections.
+
+Related Display follow-up: **Finish the separate Display cleanup that remains
+outside Frame Generator.**
+
+Current compatibility surface: Display still publishes legacy aliases and owns
+renderer state through file-scope/function-local statics because older
+presentation, overlay, panel, and event code expected global display access.
+This is outside Frame Generator as long as generated frames are handed to
+Display explicitly.
+
+Concrete changes required:
+- Remove normal runtime reads/writes of `cthughaDisplay`, `displayDevice`,
+  `displayBackend`, and `displayRuntime`; route callers through explicit
+  Display module ports instead.
+- Move `display.cc` renderer state such as animation counters, height-field
+  rotation, scratch buffers, and presentation effects into Display-owned
+  runtime objects.
+- Keep Display presentation API explicit: it receives an `IndexedFrame`,
+  presentation context, viewport/display config, and input sink, and it does
+  not ask Frame Generator for current pixels.
+- Route raw display events to Commands/Input through an input queue or sink
+  instead of dispatching commands or mutating options through globals.
+- Update X11/SDL/device tests and source-boundary tests around the new Display
+  module ports.
+
+Completion gate: production runtime code has no display aliases/globals,
+Display renderer state is object-owned, Display never reads Frame Generator
+storage, and Display never dispatches commands through global state.
 
 ### Display
 

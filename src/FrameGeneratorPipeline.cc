@@ -40,8 +40,8 @@ FramePalette* FrameGeneratorPipeline::framePalette() const {
     return framePaletteFromFilterchain(*filterchainValue);
 }
 
-const IndexedFrame& FrameGeneratorPipeline::render(CthughaBuffer& buffer,
+const IndexedFrame& FrameGeneratorPipeline::render(FrameRenderTarget& target,
     const VideoFrameContext& context) {
-    filterchainValue->run(buffer, context);
+    filterchainValue->run(target, context);
     return filterchainValue->indexedFrame();
 }

@@ -9,7 +9,7 @@
 
 #include <vector>
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class FramePalette;
 class SceneSnapshot;
 
@@ -55,7 +55,7 @@ public:
  * optional frame palette, and final published IndexedFrame.
  */
 class VideoFrame {
-    CthughaBuffer* bufferValue;
+    FrameRenderTarget* bufferValue;
     const VideoFrameContext* contextValue;
     FramePalette* framePaletteValue;
     IndexedFrame* indexedFrameValue;
@@ -69,11 +69,11 @@ public:
      * @param framePalette_ Palette state to update or read, or NULL.
      * @param indexedFrame_ Destination for final display frame publication.
      */
-    VideoFrame(CthughaBuffer& buffer_, const VideoFrameContext& context_,
+    VideoFrame(FrameRenderTarget& buffer_, const VideoFrameContext& context_,
         FramePalette* framePalette_, IndexedFrame* indexedFrame_);
 
     /** @return Active/passive indexed pixel buffer for this frame. */
-    CthughaBuffer& buffer();
+    FrameRenderTarget& buffer();
 
     /** @return Borrowed audio/time context for this frame. */
     const VideoFrameContext& context() const;
@@ -234,7 +234,7 @@ public:
      * @param buffer Active/passive indexed pixel buffer to mutate.
      * @param context Per-frame audio/time context; borrowed during the call.
      */
-    void run(CthughaBuffer& buffer, const VideoFrameContext& context);
+    void run(FrameRenderTarget& buffer, const VideoFrameContext& context);
 
     /** @return Number of registered filter entries, not number of stages. */
     int size() const;

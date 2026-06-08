@@ -5,7 +5,7 @@
 
 #include "TranslationTable.h"
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class VideoFrameContext;
 
 /**
@@ -41,7 +41,7 @@ public:
      *        the translation table.
      * @param context Current video frame context; currently unused by translate.
      */
-    void execute(CthughaBuffer& buffer, const VideoFrameContext& context) const;
+    void execute(FrameRenderTarget& buffer, const VideoFrameContext& context) const;
 };
 
 #endif

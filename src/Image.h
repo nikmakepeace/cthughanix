@@ -4,7 +4,7 @@
 #include "ColorPalette.h"
 #include "EffectControl.h"
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class RandomSource;
 struct PathConfig;
 

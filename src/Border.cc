@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "Border.h"
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 #include "VideoFilterchain.h"
 #include "cth_buffer.h"
 
@@ -35,7 +35,7 @@ static void copyAudioBorderRow(unsigned char* destination, int width,
         memset(destination + copyBytes, 0, width - copyBytes);
 }
 
-void apply_border(CthughaBuffer& buffer, const VideoFrameContext& context, int borderMode) {
+void apply_border(FrameRenderTarget& buffer, const VideoFrameContext& context, int borderMode) {
     unsigned char* active = buffer.activePixels();
     if (active == 0)
         return;

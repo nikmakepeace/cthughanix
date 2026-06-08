@@ -7,7 +7,7 @@
 
 #include "EffectControl.h"
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class VideoFrameContext;
 
 extern EffectControl border;
@@ -22,6 +22,6 @@ void init_border();
  * @param context Current visual-frame audio and timing context.
  * @param borderMode Border mode selected by the border option.
  */
-void apply_border(CthughaBuffer& buffer, const VideoFrameContext& context, int borderMode);
+void apply_border(FrameRenderTarget& buffer, const VideoFrameContext& context, int borderMode);
 
 #endif

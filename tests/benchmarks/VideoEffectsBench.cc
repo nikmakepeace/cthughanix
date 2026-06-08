@@ -1,4 +1,4 @@
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 #include "CthughaDisplay.h"
 #include "FrameStore.h"
 #include "Flame.h"
@@ -401,8 +401,8 @@ FrameStore& benchmarkStore() {
     return store;
 }
 
-CthughaBuffer& benchmarkBuffer() {
-    return benchmarkStore().compatibilityBuffer();
+FrameRenderTarget& benchmarkBuffer() {
+    return benchmarkStore().renderTarget();
 }
 
 void copyImageWithHiddenRows(unsigned char* visibleBuffer, const ImageFixture& image) {
@@ -419,7 +419,7 @@ void copyImageWithHiddenRows(unsigned char* visibleBuffer, const ImageFixture& i
 }
 
 void resetForFlame(const BufferFixture& fixture) {
-    CthughaBuffer& buffer = benchmarkBuffer();
+    FrameRenderTarget& buffer = benchmarkBuffer();
     copyImageWithHiddenRows(buffer.activePixels(),
         fixture.active.pixels.empty() ? zeroImage() : fixture.active);
     copyImageWithHiddenRows(buffer.passivePixels(),
@@ -427,7 +427,7 @@ void resetForFlame(const BufferFixture& fixture) {
 }
 
 void resetForTranslate(const BufferFixture& fixture) {
-    CthughaBuffer& buffer = benchmarkBuffer();
+    FrameRenderTarget& buffer = benchmarkBuffer();
     copyImageWithHiddenRows(buffer.activePixels(),
         fixture.active.pixels.empty() ? fixture.base : fixture.active);
     copyImageWithHiddenRows(buffer.passivePixels(),
@@ -490,7 +490,7 @@ static void BM_Flame(benchmark::State& state, const Flame* flame,
 
     VideoFrameContext context;
     static FlameLookupTables lookupTables;
-    CthughaBuffer& buffer = benchmarkBuffer();
+    FrameRenderTarget& buffer = benchmarkBuffer();
 
     for (auto _ : state) {
         state.PauseTiming();
@@ -511,7 +511,7 @@ static void BM_TranslateEntry(benchmark::State& state, TranslateEntry* entry,
 
     VideoFrameContext context;
     Translate translate(entry->table());
-    CthughaBuffer& buffer = benchmarkBuffer();
+    FrameRenderTarget& buffer = benchmarkBuffer();
 
     for (auto _ : state) {
         state.PauseTiming();

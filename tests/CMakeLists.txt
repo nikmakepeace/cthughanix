@@ -125,7 +125,7 @@ add_executable(general_flame_option_test
     unit/GeneralFlameOptionTest.cc
     ${CMAKE_SOURCE_DIR}/src/flames.cc
     ${CMAKE_SOURCE_DIR}/src/Flame.cc
-    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderTarget.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
@@ -243,7 +243,7 @@ add_executable(frame_store_test
     ${CMAKE_SOURCE_DIR}/src/SceneGeometry.cc
     ${CMAKE_SOURCE_DIR}/src/FrameGeometry.cc
     ${CMAKE_SOURCE_DIR}/src/FrameStore.cc
-    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderTarget.cc
 )
 
 target_include_directories(frame_store_test PRIVATE
@@ -447,7 +447,7 @@ add_executable(cthugha_display_presentation_test
     ${CMAKE_SOURCE_DIR}/src/Screen.cc
     ${CMAKE_SOURCE_DIR}/src/ScreenRenderContext.cc
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
-    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderTarget.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
@@ -561,7 +561,7 @@ add_executable(cthugha_display_viewport_test
     ${CMAKE_SOURCE_DIR}/src/Screen.cc
     ${CMAKE_SOURCE_DIR}/src/ScreenRenderContext.cc
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
-    ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderTarget.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc

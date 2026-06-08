@@ -126,7 +126,7 @@ set(CTHUGHA_COMMON_SOURCES
     AudioProcessingSelector.cc
     AudioProcessor.cc
     AudioFftProcessor.cc
-    CthughaBuffer.cc
+    FrameRenderTarget.cc
     ApplicationDisplayFrontend.cc
     Application.cc
     main.cc

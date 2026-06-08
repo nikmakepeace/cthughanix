@@ -77,10 +77,10 @@ unsigned char* FrameStore::activeBottomHiddenRows() {
     return bufferValue.activeBottomHiddenRows();
 }
 
-CthughaBuffer& FrameStore::compatibilityBuffer() {
+FrameRenderTarget& FrameStore::renderTarget() {
     return bufferValue;
 }
 
-const CthughaBuffer& FrameStore::compatibilityBuffer() const {
+const FrameRenderTarget& FrameStore::renderTarget() const {
     return bufferValue;
 }

@@ -1,6 +1,6 @@
 #include "cthugha.h"
 #include "Border.h"
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 #include "Flame.h"
 #include "Flashlight.h"
 #include "FramePalette.h"
@@ -36,7 +36,7 @@ void ImageFilter::execute(VideoFrame& frame) {
     if (image == 0 || !placement.visible())
         return;
 
-    CthughaBuffer& buffer = frame.buffer();
+    FrameRenderTarget& buffer = frame.buffer();
     unsigned char* active = buffer.activePixels();
     unsigned char* passive = buffer.passivePixels();
     const unsigned char* sourcePixels = image->pixels();
@@ -292,7 +292,7 @@ static int textInjectionInkColor(const FramePalette* framePalette, int requested
     return bestBrightness > 0 ? bestColor : 255;
 }
 
-static void textInjectionDrawLine(CthughaBuffer& buffer, const BitmapFont& font,
+static void textInjectionDrawLine(FrameRenderTarget& buffer, const BitmapFont& font,
     const std::string& line, int x, int y, int color) {
     unsigned char* pixels = buffer.activePixels();
     if (pixels == 0)
@@ -321,7 +321,7 @@ void TextInjectionFilter::execute(VideoFrame& frame) {
     if (framesRemaining <= 0 || message.empty())
         return;
 
-    CthughaBuffer& buffer = frame.buffer();
+    FrameRenderTarget& buffer = frame.buffer();
     if (font == 0 || font->glyphWidth <= 0 || font->glyphHeight <= 0
         || buffer.activePixels() == 0) {
         framesRemaining = 0;
@@ -376,7 +376,7 @@ void FrameCommitFilter::setSceneNames(const char* flameName_, const char* waveNa
 
 void FrameCommitFilter::execute(VideoFrame& frame) {
     CTH_TRACE("committing indexed buffer frame\n", "video filterchain");
-    CthughaBuffer& buffer = frame.buffer();
+    FrameRenderTarget& buffer = frame.buffer();
 
     if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
         int nonzero = 0;
@@ -463,7 +463,7 @@ IndexedFrameFilter::IndexedFrameFilter() { }
 
 void IndexedFrameFilter::execute(VideoFrame& frame) {
     CTH_TRACE("publishing indexed frame\n", "video filterchain");
-    CthughaBuffer& buffer = frame.buffer();
+    FrameRenderTarget& buffer = frame.buffer();
     frame.publishIndexedFrame(IndexedFrame(buffer.passivePixels(),
         buffer.width(), buffer.height(), buffer.width(), frame.framePalette()));
 }

@@ -6,7 +6,6 @@
 #include "InputQueue.h"
 #include "keys.h"
 #include "imath.h"
-#include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "AudioProcessing.h"

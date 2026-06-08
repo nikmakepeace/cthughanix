@@ -5,7 +5,6 @@
 #include "imath.h"
 #include "Border.h"
 #include "DisplayDevice.h"
-#include "CthughaBuffer.h"
 #include "Flashlight.h"
 #include "RuntimeCommandSink.h"
 #include "Scene.h"

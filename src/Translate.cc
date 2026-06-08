@@ -2,7 +2,7 @@
 
 #include "cthugha.h"
 #include "Translate.h"
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 
 Translate::Translate()
     : tableValue() { }
@@ -18,7 +18,7 @@ int Translate::ready() const {
     return tableValue.ready();
 }
 
-void Translate::execute(CthughaBuffer& buffer, const VideoFrameContext& context) const {
+void Translate::execute(FrameRenderTarget& buffer, const VideoFrameContext& context) const {
     (void)context;
 
     int i;

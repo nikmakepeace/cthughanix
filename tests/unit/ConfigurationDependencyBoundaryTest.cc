@@ -1181,8 +1181,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/SceneRuntime.h",
         "EffectPresetSceneCatalog scenePresetCatalogValue");
     assertSourceDoesNotContain("src/SceneRuntime.h", "SceneCommands& commands()");
-    assertSourceDoesNotContain("src/SceneRuntime.h", "CthughaBuffer");
-    assertSourceDoesNotContain("src/SceneRuntime.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceDoesNotContain("src/SceneRuntime.h", "FrameRenderTarget");
+    assertSourceDoesNotContain("src/SceneRuntime.cc", "#include \"FrameRenderTarget.h\"");
     assertSourceContains("src/SceneRuntime.h", "SceneSerializer serializerValue");
     assertSourceContains("src/SceneRuntime.cc",
         "SceneCommandDependencies(\n"
@@ -1235,6 +1235,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/CMakeLists.txt", "CthughaBufferSceneGeometry.cc");
     assertSourceDoesNotContain("src/SceneDependencies.h", "CthughaBuffer");
     assertSourceDoesNotContain("src/SceneDependencies.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceDoesNotContain("src/SceneDependencies.h", "FrameRenderTarget");
+    assertSourceDoesNotContain("src/SceneDependencies.cc", "#include \"FrameRenderTarget.h\"");
     assertSourceContains("src/FrameGeometry.h",
         "class FrameGeometry : public SceneGeometry");
     assertSourceContains("src/FrameGeometry.h", "#include \"SceneGeometry.h\"");
@@ -1448,6 +1450,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/Scene.cc", "sceneCommandsForLegacyCallbacks");
     assertSourceDoesNotContain("src/Scene.cc", "applyStartupChoice(screen");
     assertSourceDoesNotContain("src/Scene.cc", "#include \"CthughaBuffer.h\"");
+    assertSourceDoesNotContain("src/Scene.cc", "#include \"FrameRenderTarget.h\"");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.flame");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.wave");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.palette");

@@ -1,10 +1,10 @@
 #include "cthugha.h"
-#include "CthughaBuffer.h"
+#include "FrameRenderTarget.h"
 #include "imath.h"
 
 static const int hiddenBorderRowsPerSide = 3; // Unit: rows; used above and below visible pixels by BorderFilter and flame feedback.
 
-CthughaBuffer::CthughaBuffer()
+FrameRenderTarget::FrameRenderTarget()
     : activeAllocation(0)
     , passiveAllocation(0)
     , activeBuffer(0)
@@ -12,53 +12,53 @@ CthughaBuffer::CthughaBuffer()
     , widthValue(160)
     , heightValue(100) { }
 
-CthughaBuffer::~CthughaBuffer() {
+FrameRenderTarget::~FrameRenderTarget() {
     delete[] activeAllocation;
     delete[] passiveAllocation;
 }
 
-int CthughaBuffer::width() const {
+int FrameRenderTarget::width() const {
     return widthValue;
 }
 
-int CthughaBuffer::height() const {
+int FrameRenderTarget::height() const {
     return heightValue;
 }
 
-int CthughaBuffer::size() const {
+int FrameRenderTarget::size() const {
     return widthValue * heightValue;
 }
 
-int CthughaBuffer::bottom() const {
+int FrameRenderTarget::bottom() const {
     return heightValue - 1;
 }
 
-int CthughaBuffer::maxDimension() const {
+int FrameRenderTarget::maxDimension() const {
     return max(widthValue, heightValue);
 }
 
-int CthughaBuffer::hiddenBorderRows() const {
+int FrameRenderTarget::hiddenBorderRows() const {
     return hiddenBorderRowsPerSide;
 }
 
-int CthughaBuffer::hiddenBorderByteCount() const {
+int FrameRenderTarget::hiddenBorderByteCount() const {
     return hiddenBorderRows() * width();
 }
 
-void CthughaBuffer::setDimensions(int width_, int height_) {
+void FrameRenderTarget::setDimensions(int width_, int height_) {
     widthValue = width_;
     heightValue = height_;
 }
 
-int CthughaBuffer::allocationByteCount() const {
+int FrameRenderTarget::allocationByteCount() const {
     return size() + 2 * hiddenBorderByteCount();
 }
 
-unsigned char* CthughaBuffer::visiblePixels(unsigned char* allocation) const {
+unsigned char* FrameRenderTarget::visiblePixels(unsigned char* allocation) const {
     return allocation == 0 ? 0 : allocation + hiddenBorderByteCount();
 }
 
-void CthughaBuffer::allocatePixels() {
+void FrameRenderTarget::allocatePixels() {
 
     delete[] activeAllocation;
     delete[] passiveAllocation;
@@ -72,7 +72,7 @@ void CthughaBuffer::allocatePixels() {
     memset(passiveAllocation, 0, allocationByteCount());
 }
 
-void CthughaBuffer::swapBuffers() {
+void FrameRenderTarget::swapBuffers() {
     unsigned char* allocation = activeAllocation;
     activeAllocation = passiveAllocation;
     passiveAllocation = allocation;
@@ -82,33 +82,33 @@ void CthughaBuffer::swapBuffers() {
     passiveBuffer = t;
 }
 
-void CthughaBuffer::clear() {
+void FrameRenderTarget::clear() {
     if (activeAllocation != 0)
         memset(activeAllocation, 0, allocationByteCount());
     if (passiveAllocation != 0)
         memset(passiveAllocation, 0, allocationByteCount());
 }
 
-unsigned char* CthughaBuffer::activePixels() {
+unsigned char* FrameRenderTarget::activePixels() {
     return activeBuffer;
 }
 
-unsigned char* CthughaBuffer::passivePixels() {
+unsigned char* FrameRenderTarget::passivePixels() {
     return passiveBuffer;
 }
 
-const unsigned char* CthughaBuffer::activePixels() const {
+const unsigned char* FrameRenderTarget::activePixels() const {
     return activeBuffer;
 }
 
-const unsigned char* CthughaBuffer::passivePixels() const {
+const unsigned char* FrameRenderTarget::passivePixels() const {
     return passiveBuffer;
 }
 
-unsigned char* CthughaBuffer::activeTopHiddenRows() {
+unsigned char* FrameRenderTarget::activeTopHiddenRows() {
     return activeBuffer == 0 ? 0 : activeBuffer - hiddenBorderByteCount();
 }
 
-unsigned char* CthughaBuffer::activeBottomHiddenRows() {
+unsigned char* FrameRenderTarget::activeBottomHiddenRows() {
     return activeBuffer == 0 ? 0 : activeBuffer + size();
 }

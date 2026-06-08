@@ -12,8 +12,8 @@ class RandomSource;
 //
 // Remarks:
 //
-// * CthughaBuffer must be inidializes BEFORE any initial values
-//   are set for the EffectControls
+// * Visual catalog dimensions must be configured before initial values that
+//   depend on generated or file-backed entries are applied.
 //
 
 class EffectChoice {

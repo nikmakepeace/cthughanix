@@ -5,7 +5,7 @@
 
 #include "EffectControl.h"
 
-class CthughaBuffer;
+class FrameRenderTarget;
 class FramePalette;
 class VideoFrameContext;
 

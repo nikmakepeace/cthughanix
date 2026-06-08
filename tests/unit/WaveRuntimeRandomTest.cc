@@ -16,41 +16,41 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
-void wave_dotHor(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_dotVert(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_lineHor(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_lineVert(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_spike(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_spikeH(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff9(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff10(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff11(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff14(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff15(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_buff16(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_pete0(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_pete1(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_pete2(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_fract1(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_fract2(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_test(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_aaron(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire1(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire1dot5(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire1dot55(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire1dot6(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire2(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_wire2dot1(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_lineHLdiff(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_spiral(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_pyro(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_warp(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_laser(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_corner(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_jump(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_sticks(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_grid(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
-void wave_none(CthughaBuffer&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_dotHor(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_dotVert(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_lineHor(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_lineVert(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_spike(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_spikeH(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff9(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff10(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff11(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff14(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff15(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_buff16(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_pete0(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_pete1(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_pete2(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_fract1(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_fract2(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_test(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_aaron(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire1(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire1dot5(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire1dot55(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire1dot6(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire2(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_wire2dot1(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_lineHLdiff(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_spiral(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_pyro(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_warp(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_laser(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_corner(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_jump(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_sticks(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_grid(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
+void wave_none(FrameRenderTarget&, const VideoFrameContext&, WaveRuntime&) { }
 
 class SequenceRandomSource : public RandomSource {
     std::vector<int> values;

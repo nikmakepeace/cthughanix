@@ -60,7 +60,7 @@ static void testFrameStoreClearsVisibleAndHiddenStorage() {
     int allocationBytes = geometry.width() * geometry.height()
         + 2 * geometry.hiddenBorderByteCount();
     memset(store.activeTopHiddenRows(), 0x7f, allocationBytes);
-    memset(store.compatibilityBuffer().passivePixels(), 0x55,
+    memset(store.renderTarget().passivePixels(), 0x55,
         geometry.width() * geometry.height());
 
     store.clear();
@@ -69,7 +69,7 @@ static void testFrameStoreClearsVisibleAndHiddenStorage() {
     for (int i = 0; i < allocationBytes; ++i)
         assert(activeAllocation[i] == 0);
 
-    const unsigned char* passive = store.compatibilityBuffer().passivePixels();
+    const unsigned char* passive = store.renderTarget().passivePixels();
     for (int i = 0; i < geometry.width() * geometry.height(); ++i)
         assert(passive[i] == 0);
 }
