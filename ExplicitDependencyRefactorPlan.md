@@ -913,9 +913,12 @@ from this plan.
    or Display follow-up work, but they are no longer generator render inputs.
 
 5. **Move visual catalogs and selections off global `EffectControl` objects.
-   Status: remaining.**
-   Compatibility surface: temporary visual `EffectControl` entries still used
-   to load, name, lock, select, randomize, or mirror visual choices.
+   Status: complete for Frame Generator.**
+   Compatibility surface: temporary visual `EffectControl` entries were used
+   to load, name, lock, select, randomize, or mirror visual choices for Scene
+   and Frame Generator. Remaining legacy visual `EffectControl` globals are
+   outside the generator path and belong to Display/list/interface compatibility
+   cleanup.
 
    Purpose: stand in for native visual owners while the old visual system still
    owns file loading, generated catalog construction, current-value lookup,
@@ -953,7 +956,7 @@ from this plan.
    construction no longer need visual `EffectControl&` inputs; and boundary
    tests block global visual `EffectControl` dependencies from those modules.
 
-   Current progress toward that gate:
+   Completed gate:
    - General-flame selection is native.
    - Flame and wave selections point at typed `Flame` and `Wave` catalog items.
    - Flame and wave default availability is native
