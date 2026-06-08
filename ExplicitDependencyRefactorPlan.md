@@ -945,6 +945,10 @@ changes needed before the surface can disappear.
    owner ports, and no command/config path identifies a visual option by
    `EffectControl&` identity.
 
+   Current progress: `SceneEffectChoiceCatalog` has been deleted. The remaining
+   selection adapter uses `LegacySceneChoiceLock` only for legacy lock state;
+   visual choices themselves no longer borrow `EffectChoiceList` entries.
+
    Concrete changes required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`
      with native command targets keyed by typed scene-selection identifiers.

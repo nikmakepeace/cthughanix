@@ -4,10 +4,10 @@
 
 #include "EffectControl.h"
 #include "Image.h"
+#include "LegacySceneChoiceLock.h"
 #include "LegacySceneEffectControlBindings.h"
 #include "SceneChoiceListCatalog.h"
 #include "SceneChoiceSelection.h"
-#include "SceneEffectChoiceCatalog.h"
 #include "SceneGeneralFlameSelectionValue.h"
 #include "SceneTypedVisualCatalogs.h"
 #include "TranslationOptions.h"
@@ -19,16 +19,6 @@
 #include <memory>
 
 namespace {
-
-class LegacySceneEffectChoiceSelection : public SceneChoiceSelection {
-protected:
-    EffectChoice* currentEffectChoice();
-    const EffectChoice* currentEffectChoice() const;
-
-public:
-    LegacySceneEffectChoiceSelection(
-        SceneChoiceCatalog* catalog, int selectedValue);
-};
 
 class LegacySceneSelectionAdapters : public SceneVisualSelections,
     public LegacySceneEffectControlBindings {
@@ -97,7 +87,7 @@ static void addLegacyChoiceAliases(
 static SceneChoiceCatalog* createOwnedSceneChoiceCatalog(
     EffectControl& option) {
     SceneChoiceListCatalog* catalog = new SceneChoiceListCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     int nEntries = option.getNEntries();
     for (int i = 0; i < nEntries; i++) {
@@ -120,7 +110,7 @@ static int legacyChoiceInUse(EffectControl& option, int index, int defaultUse) {
 static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
     EffectControl& option) {
     SceneFlameChoiceCatalog* catalog = new SceneFlameChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     for (int i = 0; i < nFlameCatalogEntries; i++) {
         const Flame* flame = flameByIndex(i);
@@ -135,7 +125,7 @@ static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
 static SceneChoiceCatalog* createSceneWaveChoiceCatalog(
     EffectControl& option) {
     SceneWaveChoiceCatalog* catalog = new SceneWaveChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     for (int i = 0; i < nWaveCatalogEntries; i++) {
         Wave* wave = waveByIndex(i);
@@ -150,7 +140,7 @@ static SceneChoiceCatalog* createSceneWaveChoiceCatalog(
 static SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
     EffectControl& option) {
     SceneWaveObjectChoiceCatalog* catalog = new SceneWaveObjectChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     for (int i = 0; i < option.getNEntries(); i++) {
         EffectChoice* choice = option[i];
@@ -165,7 +155,7 @@ static SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
 static SceneChoiceCatalog* createSceneTranslationChoiceCatalog(
     EffectControl& option) {
     SceneTranslationChoiceCatalog* catalog = new SceneTranslationChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
     TranslateOption* translateOption = dynamic_cast<TranslateOption*>(&option);
 
     for (int i = 0; i < option.getNEntries(); i++) {
@@ -184,7 +174,7 @@ static SceneChoiceCatalog* createSceneTranslationChoiceCatalog(
 static SceneChoiceCatalog* createScenePaletteChoiceCatalog(
     EffectControl& option) {
     ScenePaletteChoiceCatalog* catalog = new ScenePaletteChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     for (int i = 0; i < option.getNEntries(); i++) {
         PaletteEntry* entry = dynamic_cast<PaletteEntry*>(option[i]);
@@ -197,7 +187,7 @@ static SceneChoiceCatalog* createScenePaletteChoiceCatalog(
 
 static SceneChoiceCatalog* createSceneImageChoiceCatalog(EffectControl& option) {
     SceneImageChoiceCatalog* catalog = new SceneImageChoiceCatalog(
-        option.name(), new SceneEffectChoiceLock(option.lock));
+        option.name(), new LegacySceneChoiceLock(option.lock));
 
     for (int i = 0; i < option.getNEntries(); i++) {
         ImageEntry* entry = dynamic_cast<ImageEntry*>(option[i]);
@@ -207,23 +197,6 @@ static SceneChoiceCatalog* createSceneImageChoiceCatalog(EffectControl& option) 
     }
 
     return catalog;
-}
-
-LegacySceneEffectChoiceSelection::LegacySceneEffectChoiceSelection(
-    SceneChoiceCatalog* catalog, int selectedValue)
-    : SceneChoiceSelection(catalog, selectedValue) { }
-
-EffectChoice* LegacySceneEffectChoiceSelection::currentEffectChoice() {
-    SceneEffectChoice* choice
-        = dynamic_cast<SceneEffectChoice*>(currentChoice());
-    return (choice != 0) ? &choice->effectChoice() : 0;
-}
-
-const EffectChoice* LegacySceneEffectChoiceSelection::currentEffectChoice()
-    const {
-    const SceneEffectChoice* choice
-        = dynamic_cast<const SceneEffectChoice*>(currentChoice());
-    return (choice != 0) ? &choice->effectChoice() : 0;
 }
 
 LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_,
@@ -244,7 +217,7 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     , imagesControl(images_)
     , flameValue(createSceneFlameChoiceCatalog(flame_), int(flame_))
     , generalFlameValue(generalFlame_.name(),
-          new SceneEffectChoiceLock(generalFlame_.lock), int(generalFlame_))
+          new LegacySceneChoiceLock(generalFlame_.lock), int(generalFlame_))
     , waveValue(createSceneWaveChoiceCatalog(wave_), int(wave_))
     , waveScaleValue(createOwnedSceneChoiceCatalog(waveScale_),
           int(waveScale_))
