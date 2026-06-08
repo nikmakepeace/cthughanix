@@ -3,16 +3,16 @@
 #ifndef CTHUGHA_LEGACY_SCENE_VISUAL_CATALOG_FACTORY_H
 #define CTHUGHA_LEGACY_SCENE_VISUAL_CATALOG_FACTORY_H
 
-#include "LegacySceneCatalogAdapters.h"
-#include "LegacySceneSelectionAdapters.h"
 #include "SceneRuntimeDependencies.h"
 
 #include <memory>
 
 class ImageOption;
 class LegacySceneControlMirror;
+class LegacySceneSelectionAdapterSet;
 class SceneImageCatalog;
 class ScenePaletteCatalog;
+class ScenePaletteRandomizer;
 class SceneTranslationCatalog;
 class SceneWaveObjectCatalog;
 
@@ -37,6 +37,9 @@ public:
      */
     explicit LegacySceneVisualCatalogFactory(
         std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_);
+
+    /** Destroys owned adapter and randomizer objects after SceneRuntime use. */
+    ~LegacySceneVisualCatalogFactory();
 
     /**
      * Creates visual catalogs, control bridge, and selection registry input.

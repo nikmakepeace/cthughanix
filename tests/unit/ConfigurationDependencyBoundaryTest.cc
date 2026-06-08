@@ -1457,10 +1457,18 @@ static void testSceneStartupUsesSceneConfig() {
         "class LegacySceneVisualCatalogs");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.h",
         "public SceneEffectControlCatalog");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.h",
+        "#include \"LegacySceneCatalogAdapters.h\"");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.h",
+        "#include \"LegacySceneSelectionAdapters.h\"");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
         "class LegacySceneSelectionSynchronizer : public SceneRuntimeControlBridge");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
         "class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory");
+    assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
+        "class LegacySceneSelectionAdapterSet");
+    assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
+        "class ScenePaletteRandomizer");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
         "std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
@@ -1481,6 +1489,10 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
         "palette, border, flashlight, images, waveObjects, imageCatalog,\n"
         "            paletteCatalog, translations)");
+    assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
+        "#include \"LegacySceneCatalogAdapters.h\"");
+    assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
+        "#include \"LegacySceneSelectionAdapters.h\"");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
         "#include \"display.h\"");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",

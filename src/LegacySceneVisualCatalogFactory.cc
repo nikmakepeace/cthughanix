@@ -27,6 +27,8 @@ LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
     , controlMirror(*ownedAdapters->controlMirror)
     , paletteRandomizer(createLegacyScenePaletteRandomizer()) { }
 
+LegacySceneVisualCatalogFactory::~LegacySceneVisualCatalogFactory() { }
+
 SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
     SceneSelectionState& selectionState) {
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs(
