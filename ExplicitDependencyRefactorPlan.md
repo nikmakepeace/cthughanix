@@ -984,8 +984,11 @@ it, and what must be true before the item can be erased from this plan.
    - Wave-object entries are copied into native `SceneWaveObjectCatalog`
      ownership after the legacy object loader runs, and Scene object selections
      use that native catalog.
-   - Palette and image selections copy typed payloads into owned Scene catalog
-     entries after legacy loaders populate their temporary entries.
+   - Image entries are copied into native `SceneImageCatalog` ownership after
+     the explicit Frame Generator image option loads, and Scene image
+     selections use that native catalog.
+   - Palette selections copy typed payloads into owned Scene catalog entries
+     after legacy loaders populate their temporary entries.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - `Application` creates the temporary visual factory and `SceneRuntime`

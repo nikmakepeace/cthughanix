@@ -1014,6 +1014,37 @@ target_link_libraries(scene_wave_object_catalog_test PRIVATE m)
 add_test(NAME scene_wave_object_catalog_test
     COMMAND scene_wave_object_catalog_test)
 
+add_executable(scene_image_catalog_test
+    unit/SceneImageCatalogTest.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(scene_image_catalog_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+)
+
+target_include_directories(scene_image_catalog_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(scene_image_catalog_test PRIVATE m)
+
+add_test(NAME scene_image_catalog_test
+    COMMAND scene_image_catalog_test)
+
 add_executable(legacy_scene_choice_lock_test
     unit/LegacySceneChoiceLockTest.cc
     ${CMAKE_SOURCE_DIR}/src/LegacySceneChoiceLock.cc

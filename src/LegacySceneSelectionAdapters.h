@@ -9,6 +9,7 @@
 #include <memory>
 
 class EffectControl;
+class SceneImageCatalog;
 class SceneTranslationCatalog;
 class SceneWaveObjectCatalog;
 
@@ -43,6 +44,7 @@ createLegacySceneSelectionAdapters(
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
     const SceneWaveObjectCatalog& waveObjects,
+    const SceneImageCatalog& imageCatalog,
     const SceneTranslationCatalog& translations);
 
 /**

@@ -1294,6 +1294,7 @@ static void testSceneStartupUsesSceneConfig() {
         "createLegacySceneVisualCatalogFactory(\n"
         "                frameGeneratorValue.imageOption(),\n"
         "                *sceneWaveObjectCatalogValue,\n"
+        "                *sceneImageCatalogValue,\n"
         "                *sceneTranslationCatalogValue)");
     assertSourceDoesNotContain("src/Application.cc",
         "cthugha_install_logging_runtime(loggingRuntimeValue);\n"
@@ -1448,7 +1449,8 @@ static void testSceneStartupUsesSceneConfig() {
         "createLegacySceneSelectionAdapters(\n"
         "            flame, flameGeneral, wave, waveScale, table, object");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
-        "palette, border, flashlight, images, waveObjects, translations)");
+        "palette, border, flashlight, images, waveObjects, imageCatalog,\n"
+        "            translations)");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
         "#include \"display.h\"");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
@@ -2506,13 +2508,15 @@ static void testImagePlacementUsesInjectedRandomSource() {
 static void testGeneralFlameUsesInjectedRandomSource() {
     assertSourceContains("src/Scene.h", "RandomSource& randomSource");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
-        "palette, border, flashlight, images, waveObjects, translations)");
+        "palette, border, flashlight, images, waveObjects, imageCatalog,\n"
+        "            translations)");
     assertSourceDoesNotContain("src/Application.cc",
         "flashlight, frameGeneratorValue.imageOption());");
     assertSourceContains("src/Application.cc",
         "createLegacySceneVisualCatalogFactory(\n"
         "                frameGeneratorValue.imageOption(),\n"
         "                *sceneWaveObjectCatalogValue,\n"
+        "                *sceneImageCatalogValue,\n"
         "                *sceneTranslationCatalogValue)");
     assertSourceDoesNotContain("src/Application.cc",
         "cthugha_install_logging_runtime(loggingRuntimeValue);\n"
@@ -2780,6 +2784,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "scene_translation_catalog_test");
     assertSourceContains("tests/CMakeLists.txt",
         "scene_wave_object_catalog_test");
+    assertSourceContains("tests/CMakeLists.txt",
+        "scene_image_catalog_test");
     assertSourceContains("src/SceneTranslationCatalog.h",
         "class SceneTranslationCatalog");
     assertSourceDoesNotContain("src/SceneTranslationCatalog.h",
@@ -2823,6 +2829,40 @@ static void testEffectControlUsesInjectedRandomSource() {
         "waveObjectEntryObject");
     assertSourceContains("tests/unit/SceneWaveObjectCatalogTest.cc",
         "testCatalogOwnsCopiedWaveObjects");
+    assertSourceContains("src/SceneImageCatalog.h",
+        "class SceneImageCatalog");
+    assertSourceDoesNotContain("src/SceneImageCatalog.h",
+        "EffectControl");
+    assertSourceDoesNotContain("src/SceneImageCatalog.cc",
+        "EffectControl");
+    assertSourceDoesNotContain("src/SceneImageCatalog.h",
+        "EffectChoice");
+    assertSourceDoesNotContain("src/SceneImageCatalog.cc",
+        "EffectChoice");
+    assertSourceDoesNotContain("src/SceneImageCatalog.h",
+        "ImageEntry");
+    assertSourceDoesNotContain("src/SceneImageCatalog.cc",
+        "ImageEntry");
+    assertSourceContains("src/LegacySceneImageCatalogAdapter.cc",
+        "loadSceneImageCatalogFromLegacy(");
+    assertSourceContains("src/LegacySceneImageCatalogAdapter.cc",
+        "dynamic_cast<ImageEntry*>(imageOption[i])");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<SceneImageCatalog> sceneImageCatalogValue");
+    assertSourceContains("src/Application.cc",
+        "loadSceneImageCatalogFromLegacy(\n"
+        "        frameGeneratorValue.imageOption(), *sceneImageCatalogValue)");
+    assertSourceContains("src/CMakeLists.txt", "SceneImageCatalog.cc");
+    assertSourceContains("src/CMakeLists.txt",
+        "LegacySceneImageCatalogAdapter.cc");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "ImageEntry");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "entry->image()");
+    assertSourceContains("tests/unit/SceneImageCatalogTest.cc",
+        "testCatalogOwnsCopiedIndexedImages");
     assertSourceContains("tests/CMakeLists.txt",
         "scene_general_flame_selection_value_test");
     assertSourceDoesNotExist("src/SceneEffectChoiceCatalog.h");
@@ -2973,7 +3013,7 @@ static void testEffectControlUsesInjectedRandomSource() {
         "createOwnedSceneChoiceCatalog");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneImageChoiceSelection(\n"
-        "                createSceneImageChoiceCatalog(images)");
+        "                createSceneImageChoiceCatalog(images, imageCatalog)");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "flameValue(new SceneEffectChoiceCatalog");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

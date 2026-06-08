@@ -27,6 +27,7 @@
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
+#include "LegacySceneImageCatalogAdapter.h"
 #include "LegacySceneWaveObjectCatalogAdapter.h"
 #include "LegacySceneVisualCatalogs.h"
 #include "Mixer.h"
@@ -43,6 +44,7 @@
 #include "RuntimeShutdown.h"
 #include "Scene.h"
 #include "SceneChangeScheduler.h"
+#include "SceneImageCatalog.h"
 #include "SceneRuntime.h"
 #include "SceneTranslationCatalog.h"
 #include "SceneWaveObjectCatalog.h"
@@ -232,11 +234,17 @@ void Application::initSceneRuntime() {
         sceneWaveObjectCatalogValue.reset(new SceneWaveObjectCatalog());
         loadSceneWaveObjectCatalogFromLegacy(object, *sceneWaveObjectCatalogValue);
     }
+    if (sceneImageCatalogValue.get() == NULL) {
+        sceneImageCatalogValue.reset(new SceneImageCatalog());
+        loadSceneImageCatalogFromLegacy(
+            frameGeneratorValue.imageOption(), *sceneImageCatalogValue);
+    }
     if (sceneVisualCatalogFactoryValue.get() == NULL)
         sceneVisualCatalogFactoryValue
             = createLegacySceneVisualCatalogFactory(
                 frameGeneratorValue.imageOption(),
                 *sceneWaveObjectCatalogValue,
+                *sceneImageCatalogValue,
                 *sceneTranslationCatalogValue);
     if (sceneRuntimeValue.get() == NULL)
         sceneRuntimeValue.reset(new SceneRuntime(frameGeneratorValue.sceneGeometry(),
@@ -303,6 +311,7 @@ void Application::shutdownSceneRuntime() {
     runtimeConfigRegistryValue.reset();
     sceneRuntimeValue.reset();
     sceneVisualCatalogFactoryValue.reset();
+    sceneImageCatalogValue.reset();
     sceneWaveObjectCatalogValue.reset();
     sceneTranslationCatalogValue.reset();
     autoChangeControlsValue.reset();
@@ -532,6 +541,9 @@ int Application::initialize() {
         exitStatusValue = 0;
         return 0;
     }
+    sceneImageCatalogValue.reset(new SceneImageCatalog());
+    loadSceneImageCatalogFromLegacy(
+        frameGeneratorValue.imageOption(), *sceneImageCatalogValue);
     init_border();
     init_flashlight();
 

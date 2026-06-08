@@ -3,11 +3,12 @@
 #include "LegacySceneSelectionAdapters.h"
 
 #include "EffectControl.h"
-#include "Image.h"
 #include "LegacySceneChoiceLock.h"
+#include "PaletteEntry.h"
 #include "SceneBuiltInChoiceCatalogs.h"
 #include "SceneChoiceSelection.h"
 #include "SceneGeneralFlameSelectionValue.h"
+#include "SceneImageCatalog.h"
 #include "SceneTranslationCatalog.h"
 #include "SceneTypedVisualCatalogs.h"
 #include "SceneVisualSelectionSet.h"
@@ -85,16 +86,14 @@ static SceneChoiceCatalog* createScenePaletteChoiceCatalog(
     return catalog;
 }
 
-static SceneChoiceCatalog* createSceneImageChoiceCatalog(EffectControl& option) {
+static SceneChoiceCatalog* createSceneImageChoiceCatalog(
+    EffectControl& option, const SceneImageCatalog& images) {
     SceneImageChoiceCatalog* catalog = new SceneImageChoiceCatalog(
         option.name(), new LegacySceneChoiceLock(option.lock));
 
-    for (int i = 0; i < option.getNEntries(); i++) {
-        ImageEntry* entry = dynamic_cast<ImageEntry*>(option[i]);
-        if (entry != 0)
-            catalog->addChoice(entry->Name(), entry->image(),
-                entry->inUse());
-    }
+    for (int i = 0; i < images.entryCount(); i++)
+        catalog->addChoice(images.nameAt(i), images.imageAt(i),
+            images.inUseAt(i));
 
     return catalog;
 }
@@ -108,6 +107,7 @@ createLegacySceneSelectionAdapters(
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
     const SceneWaveObjectCatalog& waveObjects,
+    const SceneImageCatalog& imageCatalog,
     const SceneTranslationCatalog& translations) {
     return createLegacySceneSelectionAdapters(flame, generalFlame, wave,
         waveScale, table, object, translation, palette, border, flashlight,
@@ -145,5 +145,6 @@ createLegacySceneSelectionAdapters(
                     new LegacySceneChoiceLock(flashlight.lock)),
                 int(flashlight)),
             new SceneImageChoiceSelection(
-                createSceneImageChoiceCatalog(images), int(images)))));
+                createSceneImageChoiceCatalog(images, imageCatalog),
+                int(images)))));
 }

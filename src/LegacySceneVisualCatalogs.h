@@ -12,6 +12,7 @@
 
 class ImageOption;
 class LegacySceneControlMirror;
+class SceneImageCatalog;
 class SceneTranslationCatalog;
 class SceneWaveObjectCatalog;
 
@@ -72,11 +73,13 @@ public:
  *
  * @param images Image option owned by FrameGeneratorRuntime scene binding.
  * @param waveObjects Native Scene-owned wave-object catalog.
+ * @param imageCatalog Native Scene-owned image catalog.
  * @param translations Native Scene-owned translation catalog.
  * @return Scene visual catalog factory for the current legacy catalogs.
  */
 std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory(
     ImageOption& images, const SceneWaveObjectCatalog& waveObjects,
+    const SceneImageCatalog& imageCatalog,
     const SceneTranslationCatalog& translations);
 
 #endif
