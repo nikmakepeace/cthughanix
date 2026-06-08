@@ -9,8 +9,8 @@
 #include "CthughaDisplay.h"
 #include "Option.h"
 #include "Screen.h"
-#include "TranslationOptions.h"
-#include "waves.h"
+#include "TranslationOption.h"
+#include "WaveOptions.h"
 
 #include <cstring>
 

@@ -1830,6 +1830,14 @@ static void testIniPersistenceUsesRuntimePersistenceAdapter() {
         "sceneCommands");
     assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
         "ImageOption");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "#include \"TranslationOptions.h\"");
+    assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
+        "#include \"waves.h\"");
+    assertSourceContains("src/LegacyRuntimeConfigContributor.cc",
+        "#include \"TranslationOption.h\"");
+    assertSourceContains("src/LegacyRuntimeConfigContributor.cc",
+        "#include \"WaveOptions.h\"");
     assertSourceContains("src/LegacyRuntimeConfigContributor.cc",
         "audioProcessingState.text()");
     assertSourceDoesNotContain("src/LegacyRuntimeConfigContributor.cc",
