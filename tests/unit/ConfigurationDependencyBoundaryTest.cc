@@ -2083,9 +2083,39 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Interface.cc",
         "runtime.runSceneSelectionKey(sceneTarget");
     assertSourceContains("src/Interface.cc",
+        "elements[0] = new InterfaceElementRuntimeConfigEffectControl(\n"
+        "                \"Display");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "InterfaceElementRuntimeConfigEffectControl(\n"
+        "                \"Flame");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "InterfaceElementRuntimeConfigEffectControl(\n"
+        "                \"Wave");
+    assertSourceContains("src/Interface.cc",
         "RuntimeConfigSelectionFlame, RuntimeSceneFlame");
     assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionGeneralFlame,\n"
+        "                    RuntimeSceneGeneralFlame");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionBorder, RuntimeSceneBorder");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionTranslation,\n"
+        "                    RuntimeSceneTranslation");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionWave, RuntimeSceneWave");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionTable, RuntimeSceneTable");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionWaveScale, RuntimeSceneWaveScale");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionPalette, RuntimeScenePalette");
+    assertSourceContains("src/Interface.cc",
         "RuntimeConfigSelectionImage, RuntimeSceneImage");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionObject, RuntimeSceneObject");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionFlashlight,\n"
+        "                    RuntimeSceneFlashlight");
     assertSourceContains("src/InterfaceList.cc",
         "runtime.runSceneChoiceKey(sceneTarget");
     assertSourceContains("src/InterfaceList.cc",
@@ -2238,6 +2268,12 @@ static void testX11PanelInputsUseRuntimeCommands() {
         "sceneNameOrEmpty(sceneSelection(RuntimeSceneImage))");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
         "currentNameOrEmpty(images)");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(palette)");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(table)");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(object)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "add_scene_menu(\"Image\", RuntimeSceneImage");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
@@ -2259,6 +2295,10 @@ static void testSelectionDisplaysUseRuntimeConfigRegistry() {
         "runtimeConfigRegistry.currentConfig()");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "updatePanelSelectionLabels()");
+    assertSourceDoesNotContain("src/RuntimeConfigSelection.cc",
+        "EffectControl");
+    assertSourceDoesNotContain("src/RuntimeConfigSelection.cc",
+        "currentName()");
     assertSourceContains("src/Application.cc",
         "interfaceRuntimeValue->setRuntimeConfigRegistry(runtimeConfigRegistryValue.get())");
     assertSourceContains("src/Application.cc",
