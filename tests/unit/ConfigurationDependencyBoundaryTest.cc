@@ -2392,13 +2392,19 @@ static void testTranslationGenerationUsesApplicationRandomSource() {
         "TranslateOption");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "translationTable(i)");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+    assertSourceContains("src/SceneTypedVisualCatalogs.h",
+        "createSceneTranslationChoiceCatalog");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
         "createSceneTranslationChoiceCatalog(\n"
-        "    EffectControl& option, const SceneTranslationCatalog& translations)");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
-        "SceneTranslationChoiceCatalog* catalog = new SceneTranslationChoiceCatalog(");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "    const char* catalogName, SceneChoiceLock* lock,\n"
+        "    const SceneTranslationCatalog& translations)");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
+        "SceneTranslationChoiceCatalog* catalog\n"
+        "        = new SceneTranslationChoiceCatalog(catalogName, lock)");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
         "catalog->addChoice(translations.tableAt(i), translations.inUseAt(i))");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "translations.tableAt(i)");
     assertSourceDoesNotContain("src/TranslateGenerator.cc",
         "high_resolution_clock");
     assertSourceDoesNotContain("src/TranslateGenerator.cc", "#include <chrono>");
@@ -2830,7 +2836,13 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"WaveObject.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"SceneWaveObjectCatalog.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "waveObjectEntryObject");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "waveObjects.entryCount()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "waveObjects.objectAt(i)");
     assertSourceContains("tests/unit/SceneWaveObjectCatalogTest.cc",
         "testCatalogOwnsCopiedWaveObjects");
     assertSourceContains("src/SceneImageCatalog.h",
@@ -2862,9 +2874,15 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"Image.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"SceneImageCatalog.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "ImageEntry");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "entry->image()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "images.entryCount()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "images.imageAt(i)");
     assertSourceContains("tests/unit/SceneImageCatalogTest.cc",
         "testCatalogOwnsCopiedIndexedImages");
     assertSourceContains("src/ScenePaletteCatalog.h",
@@ -2891,7 +2909,15 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "dynamic_cast<PaletteEntry*>(option[i])");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"PaletteEntry.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "#include \"ScenePaletteCatalog.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "entry->inUse()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "palettes.entryCount()");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "palettes.paletteAt(i)");
     assertSourceContains("tests/unit/ScenePaletteCatalogTest.cc",
         "testCatalogOwnsCopiedPaletteEntries");
     assertSourceContains("tests/CMakeLists.txt",
@@ -3027,6 +3053,28 @@ static void testEffectControlUsesInjectedRandomSource() {
         "class SceneImageChoiceCatalog : public SceneChoiceCatalog");
     assertSourceContains("src/SceneTypedVisualCatalogs.h",
         "class SceneImageChoiceSelection : public SceneChoiceSelection");
+    assertSourceContains("src/SceneTypedVisualCatalogs.h",
+        "createSceneWaveObjectChoiceCatalog");
+    assertSourceContains("src/SceneTypedVisualCatalogs.h",
+        "createScenePaletteChoiceCatalog");
+    assertSourceContains("src/SceneTypedVisualCatalogs.h",
+        "createSceneImageChoiceCatalog");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
+        "#include \"SceneWaveObjectCatalog.h\"");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
+        "#include \"SceneTranslationCatalog.h\"");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
+        "#include \"ScenePaletteCatalog.h\"");
+    assertSourceContains("src/SceneTypedVisualCatalogs.cc",
+        "#include \"SceneImageCatalog.h\"");
+    assertSourceContains("tests/unit/SceneTypedVisualCatalogsTest.cc",
+        "testWaveObjectChoiceCatalogBuildsFromNativeCatalog");
+    assertSourceContains("tests/unit/SceneTypedVisualCatalogsTest.cc",
+        "testTranslationChoiceCatalogBuildsFromNativeCatalog");
+    assertSourceContains("tests/unit/SceneTypedVisualCatalogsTest.cc",
+        "testPaletteChoiceCatalogBuildsFromNativeCatalog");
+    assertSourceContains("tests/unit/SceneTypedVisualCatalogsTest.cc",
+        "testImageChoiceCatalogBuildsFromNativeCatalog");
     assertSourceDoesNotContain("src/SceneTypedVisualCatalogs.h",
         "EffectControl");
     assertSourceDoesNotContain("src/SceneTypedVisualCatalogs.cc",
@@ -3060,13 +3108,13 @@ static void testEffectControlUsesInjectedRandomSource() {
         "createSceneTableChoiceCatalog(table.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneWaveObjectChoiceSelection(\n"
-        "                createSceneWaveObjectChoiceCatalog(object, waveObjects)");
+        "                createSceneWaveObjectChoiceCatalog(object.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneTranslationChoiceSelection(\n"
-        "                createSceneTranslationChoiceCatalog(translation, translations)");
+        "                createSceneTranslationChoiceCatalog(translation.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new ScenePaletteChoiceSelection(\n"
-        "                createScenePaletteChoiceCatalog(palette, paletteCatalog)");
+        "                createScenePaletteChoiceCatalog(palette.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "createSceneBorderChoiceCatalog(border.name()");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
@@ -3076,7 +3124,7 @@ static void testEffectControlUsesInjectedRandomSource() {
         "createOwnedSceneChoiceCatalog");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneImageChoiceSelection(\n"
-        "                createSceneImageChoiceCatalog(images, imageCatalog)");
+        "                createSceneImageChoiceCatalog(images.name()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "flameValue(new SceneEffectChoiceCatalog");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

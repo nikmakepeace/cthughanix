@@ -4,6 +4,10 @@
 #include "Image.h"
 #include "PaletteEntry.h"
 #include "ProcessServices.h"
+#include "SceneImageCatalog.h"
+#include "ScenePaletteCatalog.h"
+#include "SceneTranslationCatalog.h"
+#include "SceneWaveObjectCatalog.h"
 #include "pcx.h"
 #include "png.h"
 
@@ -348,6 +352,99 @@ static void testImageSelectionReturnsOwnedImage() {
     assert(selected->pixels()[0] == 6);
 }
 
+static void testWaveObjectChoiceCatalogBuildsFromNativeCatalog() {
+    WObject source[] = {
+        { { 10, 11, 12 }, { 13, 14, 15 } },
+        { { -1, -1, -1 }, { -1, -1, -1 } }
+    };
+    SceneWaveObjectCatalog waveObjects;
+    waveObjects.addChoice("ship", source, 0);
+    SceneChoiceCatalog* catalog = createSceneWaveObjectChoiceCatalog(
+        "object", new RecordingLock(), waveObjects);
+
+    source[0][0][0] = 99;
+
+    assert(std::strcmp(catalog->optionName(), "object") == 0);
+    assert(catalog->entryCount() == 1);
+    assert(catalog->choiceAt(0)->sameName("SHIP trailing") != 0);
+    assert(catalog->choiceAt(0)->inUse() == 0);
+
+    SceneWaveObjectChoice* choice
+        = dynamic_cast<SceneWaveObjectChoice*>(catalog->choiceAt(0));
+    assert(choice != 0);
+    assert(choice->object()[0][0][0] == 10);
+    assert(choice->object()[0][1][2] == 15);
+
+    delete catalog;
+}
+
+static void testTranslationChoiceCatalogBuildsFromNativeCatalog() {
+    SceneTranslationCatalog translations;
+    SceneChoiceCatalog* catalog = createSceneTranslationChoiceCatalog(
+        "translate", new RecordingLock(), translations);
+
+    assert(std::strcmp(catalog->optionName(), "translate") == 0);
+    assert(catalog->entryCount() == translations.entryCount());
+    assert(catalog->choiceAt(0)->sameName("none") != 0);
+    assert(catalog->choiceAt(0)->inUse() == translations.inUseAt(0));
+
+    SceneTranslationChoice* choice
+        = dynamic_cast<SceneTranslationChoice*>(catalog->choiceAt(0));
+    assert(choice != 0);
+    assert(std::strcmp(choice->table().name(), "none") == 0);
+
+    delete catalog;
+}
+
+static void testPaletteChoiceCatalogBuildsFromNativeCatalog() {
+    PaletteEntry source("warm", "Warm Palette");
+    source.colors().setColor(8, 21, 22, 23);
+    ScenePaletteCatalog palettes;
+    palettes.addChoice(source, 0);
+    SceneChoiceCatalog* catalog = createScenePaletteChoiceCatalog(
+        "palette", new RecordingLock(), palettes);
+
+    source.colors().setColor(8, 90, 90, 90);
+
+    assert(std::strcmp(catalog->optionName(), "palette") == 0);
+    assert(catalog->entryCount() == palettes.entryCount());
+    assert(catalog->choiceAt(0)->sameName("warm") != 0);
+    assert(catalog->choiceAt(0)->inUse() == 0);
+
+    ScenePaletteChoice* choice
+        = dynamic_cast<ScenePaletteChoice*>(catalog->choiceAt(0));
+    assert(choice != 0);
+    assert(choice->paletteEntry()->colors().component(8, 0) == 21);
+    assert(choice->paletteEntry()->colors().component(8, 1) == 22);
+    assert(choice->paletteEntry()->colors().component(8, 2) == 23);
+
+    delete catalog;
+}
+
+static void testImageChoiceCatalogBuildsFromNativeCatalog() {
+    IndexedImage image("logo", 1, 1);
+    image.mutablePixels()[0] = 42;
+    SceneImageCatalog images;
+    images.addChoice("logo", &image, 0);
+    SceneChoiceCatalog* catalog = createSceneImageChoiceCatalog(
+        "image", new RecordingLock(), images);
+
+    image.mutablePixels()[0] = 7;
+
+    assert(std::strcmp(catalog->optionName(), "image") == 0);
+    assert(catalog->entryCount() == images.entryCount());
+    assert(catalog->choiceAt(0)->sameName("LOGO trailing") != 0);
+    assert(catalog->choiceAt(0)->inUse() == 0);
+
+    SceneImageChoice* choice
+        = dynamic_cast<SceneImageChoice*>(catalog->choiceAt(0));
+    assert(choice != 0);
+    assert(choice->image() != &image);
+    assert(choice->image()->pixels()[0] == 42);
+
+    delete catalog;
+}
+
 int main() {
     testFlameCatalogOwnsTypedChoices();
     testFlameSelectionReturnsTypedFlame();
@@ -362,5 +459,9 @@ int main() {
     testPaletteSelectionCanReplaceAndAppendEntries();
     testImageCatalogCopiesImageAndPalette();
     testImageSelectionReturnsOwnedImage();
+    testWaveObjectChoiceCatalogBuildsFromNativeCatalog();
+    testTranslationChoiceCatalogBuildsFromNativeCatalog();
+    testPaletteChoiceCatalogBuildsFromNativeCatalog();
+    testImageChoiceCatalogBuildsFromNativeCatalog();
     return 0;
 }

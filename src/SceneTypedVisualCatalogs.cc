@@ -4,6 +4,10 @@
 
 #include "Image.h"
 #include "PaletteEntry.h"
+#include "SceneImageCatalog.h"
+#include "ScenePaletteCatalog.h"
+#include "SceneTranslationCatalog.h"
+#include "SceneWaveObjectCatalog.h"
 
 #include <cctype>
 #include <cstring>
@@ -597,4 +601,57 @@ const IndexedImage* SceneImageChoiceSelection::currentImage() {
     SceneImageChoice* choice
         = dynamic_cast<SceneImageChoice*>(currentChoice());
     return (choice != 0) ? choice->image() : 0;
+}
+
+SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneWaveObjectCatalog& waveObjects) {
+    SceneWaveObjectChoiceCatalog* catalog = new SceneWaveObjectChoiceCatalog(
+        catalogName, lock);
+
+    for (int i = 0; i < waveObjects.entryCount(); i++)
+        catalog->addChoice(waveObjects.nameAt(i), waveObjects.objectAt(i),
+            waveObjects.inUseAt(i));
+
+    return catalog;
+}
+
+SceneChoiceCatalog* createSceneTranslationChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneTranslationCatalog& translations) {
+    SceneTranslationChoiceCatalog* catalog
+        = new SceneTranslationChoiceCatalog(catalogName, lock);
+
+    for (int i = 0; i < translations.entryCount(); i++)
+        catalog->addChoice(translations.tableAt(i), translations.inUseAt(i));
+
+    return catalog;
+}
+
+SceneChoiceCatalog* createScenePaletteChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const ScenePaletteCatalog& palettes) {
+    ScenePaletteChoiceCatalog* catalog = new ScenePaletteChoiceCatalog(
+        catalogName, lock);
+
+    for (int i = 0; i < palettes.entryCount(); i++) {
+        const PaletteEntry* entry = palettes.paletteAt(i);
+        if (entry != 0)
+            catalog->addChoice(*entry, palettes.inUseAt(i));
+    }
+
+    return catalog;
+}
+
+SceneChoiceCatalog* createSceneImageChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneImageCatalog& images) {
+    SceneImageChoiceCatalog* catalog = new SceneImageChoiceCatalog(
+        catalogName, lock);
+
+    for (int i = 0; i < images.entryCount(); i++)
+        catalog->addChoice(images.nameAt(i), images.imageAt(i),
+            images.inUseAt(i));
+
+    return catalog;
 }

@@ -9,6 +9,11 @@
 #include <string>
 #include <vector>
 
+class SceneImageCatalog;
+class ScenePaletteCatalog;
+class SceneTranslationCatalog;
+class SceneWaveObjectCatalog;
+
 /**
  * Owned SceneChoice entry that points directly at a Flame catalog item.
  */
@@ -627,5 +632,55 @@ public:
     /** @return Selected owned image, or NULL. */
     virtual const IndexedImage* currentImage();
 };
+
+/**
+ * Creates a wave-object choice catalog from native Scene wave-object entries.
+ *
+ * The returned catalog owns its choices and the supplied lock.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @param waveObjects Native wave-object catalog to expose.
+ * @return Owned catalog with copied wave-object choices.
+ */
+SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneWaveObjectCatalog& waveObjects);
+
+/**
+ * Creates a translation choice catalog from native Scene translation entries.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @param translations Native translation catalog to expose.
+ * @return Owned catalog with copied translation choices.
+ */
+SceneChoiceCatalog* createSceneTranslationChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneTranslationCatalog& translations);
+
+/**
+ * Creates a palette choice catalog from native Scene palette entries.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @param palettes Native palette catalog to expose.
+ * @return Owned catalog with copied palette choices.
+ */
+SceneChoiceCatalog* createScenePaletteChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const ScenePaletteCatalog& palettes);
+
+/**
+ * Creates an image choice catalog from native Scene image entries.
+ *
+ * @param catalogName Stable Scene catalog name.
+ * @param lock Owned lock state for this selection.
+ * @param images Native image catalog to expose.
+ * @return Owned catalog with copied image choices.
+ */
+SceneChoiceCatalog* createSceneImageChoiceCatalog(
+    const char* catalogName, SceneChoiceLock* lock,
+    const SceneImageCatalog& images);
 
 #endif

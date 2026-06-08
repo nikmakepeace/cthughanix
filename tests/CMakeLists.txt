@@ -966,9 +966,14 @@ add_executable(scene_built_in_choice_catalogs_test
     unit/SceneBuiltInChoiceCatalogsTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneBuiltInChoiceCatalogs.cc
     ${CMAKE_SOURCE_DIR}/src/SceneTypedVisualCatalogs.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneTranslationCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/ScenePaletteCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceListCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
     ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
     ${CMAKE_SOURCE_DIR}/src/Image.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
@@ -1104,8 +1109,13 @@ add_test(NAME legacy_scene_choice_lock_test
 add_executable(scene_typed_visual_catalogs_test
     unit/SceneTypedVisualCatalogsTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneTypedVisualCatalogs.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneTranslationCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/ScenePaletteCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
     ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
     ${CMAKE_SOURCE_DIR}/src/Image.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc

@@ -979,6 +979,10 @@ from this plan.
      `SceneBuiltInChoiceCatalogs`; the temporary legacy selection factory only
      supplies option names, lock state, and current-value mirrors for those
      selections.
+   - File-backed object, translation, palette, and image choice-catalog
+     construction lives in `SceneTypedVisualCatalogs`; the temporary legacy
+     selection factory only supplies option names, lock state, and
+     current-value mirrors for those selections.
    - Translation entries are generated into native `SceneTranslationCatalog`
      ownership, mirrored into the temporary legacy translation option, and used
      directly by Scene translation selections.
