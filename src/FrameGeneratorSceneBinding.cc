@@ -2,6 +2,7 @@
 
 #include "FrameGeneratorSceneBinding.h"
 
+#include "Image.h"
 #include "PaletteTransition.h"
 #include "PaletteEntry.h"
 #include "FrameFilters.h"
@@ -22,7 +23,6 @@ FrameGeneratorSceneBinding::FrameGeneratorSceneBinding(
     LogSink& log)
     : geometryValue(geometry)
     , transitionController(transitionController_)
-    , images(0, "image")
     , imagePlacementStrategy()
     , randomSourceValue(randomSource)
     , logValue(log)
@@ -44,10 +44,6 @@ FrameGeneratorSceneBinding::FrameGeneratorSceneBinding(
 
 FrameGeneratorSceneBinding::~FrameGeneratorSceneBinding() {
     unbindScene();
-}
-
-ImageOption& FrameGeneratorSceneBinding::imageOption() {
-    return images;
 }
 
 SilenceMessage& FrameGeneratorSceneBinding::silenceMessages() {

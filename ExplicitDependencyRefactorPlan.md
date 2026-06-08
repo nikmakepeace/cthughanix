@@ -992,6 +992,9 @@ from this plan.
    - Image entries are copied into native `SceneImageCatalog` ownership after
      the explicit Frame Generator image option loads, and Scene image
      selections use that native catalog.
+   - The temporary legacy `ImageOption` is owned by `Application` for loading,
+     Display/interface compatibility, and legacy adapter wiring; public Frame
+     Generator APIs no longer expose `ImageOption` or include `Image.h`.
    - Palette entries are copied into native `ScenePaletteCatalog` ownership
      after the legacy palette loader runs, and initial Scene palette selections
      use that native catalog. Random/add-random palette mutation still uses the

@@ -188,6 +188,14 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
         "#include \"FlashlightRenderer.h\"");
     assertSourceDoesNotContain("src/BorderRenderer.h", "EffectControl");
     assertSourceDoesNotContain("src/FlashlightRenderer.h", "EffectControl");
+    assertSourceContains("src/FrameGeneratorSceneBinding.h",
+        "#include \"ImagePlacement.h\"");
+    assertSourceContains("src/FrameFilters.h", "#include \"ImagePlacement.h\"");
+    assertSourceDoesNotContain("src/FrameGeneratorRuntime.h", "ImageOption");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h", "ImageOption");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h",
+        "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/FrameFilters.h", "#include \"Image.h\"");
 }
 
 static void testGeneratorDiagnosticsAndMathTablesAreOwned() {

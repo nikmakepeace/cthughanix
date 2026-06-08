@@ -31,6 +31,7 @@ class CthughaDisplay;
 class DisplayRuntimeOwnership;
 class ErrorMessages;
 class IndexedFrame;
+class ImageOption;
 class InterfaceRuntime;
 class LegacyRuntimeConfigContributor;
 class MixerControls;
@@ -83,6 +84,7 @@ class Application {
     Config startupConfigValue;
     std::vector<ConfigDiagnostic> startupConfigDiagnostics;
     FrameGeneratorRuntime frameGeneratorValue;
+    std::unique_ptr<ImageOption> imageOptionValue;
     LegacyDisplayFrontendInitializer displayFrontendInitializerValue;
     DisplayFrontendInitializer* displayFrontendInitializer;
     AcousticContext acousticContextValue;

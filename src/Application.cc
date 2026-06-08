@@ -24,6 +24,7 @@
 #include "FrameGeneratorContext.h"
 #include "FrameGeometry.h"
 #include "FrameRenderContext.h"
+#include "Image.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
@@ -169,10 +170,11 @@ Application::Application(int argc, char* argv[])
     , startupInitialized(0)
     , shutdownComplete(0) {
     cthugha_install_logging_runtime(loggingRuntimeValue);
+    imageOptionValue.reset(new ImageOption(0, "image"));
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        frameGeneratorValue.imageOption(),
+        *imageOptionValue,
         frameGeneratorValue.quietMessageOption());
 }
 
@@ -193,10 +195,11 @@ Application::Application(int argc, char* argv[],
     , startupInitialized(0)
     , shutdownComplete(0) {
     cthugha_install_logging_runtime(loggingRuntimeValue);
+    imageOptionValue.reset(new ImageOption(0, "image"));
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        frameGeneratorValue.imageOption(),
+        *imageOptionValue,
         frameGeneratorValue.quietMessageOption());
 }
 
@@ -240,7 +243,7 @@ void Application::initSceneRuntime() {
     if (sceneImageCatalogValue.get() == NULL) {
         sceneImageCatalogValue.reset(new SceneImageCatalog());
         loadSceneImageCatalogFromLegacy(
-            frameGeneratorValue.imageOption(), *sceneImageCatalogValue);
+            *imageOptionValue, *sceneImageCatalogValue);
     }
     if (scenePaletteCatalogValue.get() == NULL) {
         scenePaletteCatalogValue.reset(new ScenePaletteCatalog());
@@ -249,7 +252,7 @@ void Application::initSceneRuntime() {
     if (sceneVisualCatalogFactoryValue.get() == NULL)
         sceneVisualCatalogFactoryValue
             = createLegacySceneVisualCatalogFactory(
-                frameGeneratorValue.imageOption(),
+                *imageOptionValue,
                 *sceneWaveObjectCatalogValue,
                 *sceneImageCatalogValue,
                 *scenePaletteCatalogValue,
@@ -547,13 +550,13 @@ int Application::initialize() {
         return 0;
     if (loadEffectPolicyImages(startupConfigValue.effectPolicy,
             startupConfigValue.paths, frameGeneratorValue.geometry(),
-            frameGeneratorValue.imageOption(), logSinkValue)) {
+            *imageOptionValue, logSinkValue)) {
         exitStatusValue = 0;
         return 0;
     }
     sceneImageCatalogValue.reset(new SceneImageCatalog());
     loadSceneImageCatalogFromLegacy(
-        frameGeneratorValue.imageOption(), *sceneImageCatalogValue);
+        *imageOptionValue, *sceneImageCatalogValue);
     init_border();
     init_flashlight();
 
@@ -584,7 +587,7 @@ int Application::initialize() {
             &displayArgc, displayArgv.data()))
         return 0;
     displayRuntimeOwnership = newDisplayDevice(scene(),
-        frameGeneratorValue.imageOption(), *runtimeChangeMediatorValue,
+        *imageOptionValue, *runtimeChangeMediatorValue,
         *runtimeCommandRouterValue, *runtimeConfigRegistryValue,
         startupConfigValue.display, secondsClockValue);
     if (displayRuntimeOwnership.get() == NULL)

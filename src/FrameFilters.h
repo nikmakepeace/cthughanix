@@ -3,7 +3,7 @@
 
 #include "Flame.h"
 #include "FramePalette.h"
-#include "Image.h"
+#include "ImagePlacement.h"
 #include "PaletteTransition.h"
 #include "Translate.h"
 #include "FrameFilterchain.h"
@@ -13,6 +13,7 @@
 #include <string>
 
 class BitmapFont;
+class IndexedImage;
 class PaletteEntry;
 class RandomSource;
 

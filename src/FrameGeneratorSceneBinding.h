@@ -6,7 +6,7 @@
 #include "FrameGeneratorContext.h"
 #include "FrameGeometry.h"
 #include "FrameTransitionController.h"
-#include "Image.h"
+#include "ImagePlacement.h"
 #include "Scene.h"
 #include "SilenceMessage.h"
 #include "FrameFilterchainSequence.h"
@@ -27,7 +27,6 @@ class LogSink;
 class FrameGeneratorSceneBinding : public SceneObserver {
     const FrameGeometry& geometryValue;
     FrameTransitionController& transitionController;
-    ImageOption images;
     RandomLegalImagePlacementStrategy imagePlacementStrategy;
     RandomSource& randomSourceValue;
     LogSink& logValue;
@@ -68,9 +67,6 @@ public:
 
     /** Stops observing any bound scene. */
     ~FrameGeneratorSceneBinding();
-
-    /** @return Image option collection used by scene commands and image loading. */
-    ImageOption& imageOption();
 
     /** @return Quiet-message provider used for silence text cues. */
     SilenceMessage& silenceMessages();

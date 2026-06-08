@@ -44,10 +44,6 @@ FrameStore& FrameGeneratorRuntime::frameStore() {
     return frameStoreValue;
 }
 
-ImageOption& FrameGeneratorRuntime::imageOption() {
-    return sceneBindingValue.imageOption();
-}
-
 Option& FrameGeneratorRuntime::quietMessageOption() {
     return transitionControllerValue.quietMessageOption();
 }

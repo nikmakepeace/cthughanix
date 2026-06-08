@@ -1273,6 +1273,20 @@ static void testSceneStartupUsesSceneConfig() {
         "SceneGeometry& sceneGeometry()");
     assertSourceContains("src/Application.h",
         "FrameGeneratorRuntime frameGeneratorValue");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<ImageOption> imageOptionValue");
+    assertSourceDoesNotContain("src/FrameGeneratorRuntime.h",
+        "ImageOption");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h",
+        "ImageOption");
+    assertSourceDoesNotContain("src/FrameGeneratorRuntime.h",
+        "imageOption()");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h",
+        "imageOption()");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h",
+        "#include \"Image.h\"");
+    assertSourceContains("src/FrameGeneratorSceneBinding.h",
+        "#include \"ImagePlacement.h\"");
     assertSourceDoesNotContain("src/Application.h",
         "std::unique_ptr<SceneGeometry> sceneGeometryValue");
     assertSourceDoesNotContain("src/Application.h",
@@ -1292,7 +1306,7 @@ static void testSceneStartupUsesSceneConfig() {
         "sceneGeometryValue");
     assertSourceContains("src/Application.cc",
         "createLegacySceneVisualCatalogFactory(\n"
-        "                frameGeneratorValue.imageOption(),\n"
+        "                *imageOptionValue,\n"
         "                *sceneWaveObjectCatalogValue,\n"
         "                *sceneImageCatalogValue,\n"
         "                *scenePaletteCatalogValue,\n"
@@ -2106,7 +2120,7 @@ static void testX11PanelInputsUseRuntimeCommands() {
     assertSourceDoesNotContain("src/Application.h",
         "SceneCommands& sceneCommands");
     assertSourceContains("src/Application.cc",
-        "frameGeneratorValue.imageOption(), *runtimeChangeMediatorValue");
+        "*imageOptionValue, *runtimeChangeMediatorValue");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "currentNameOrEmpty(images)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
@@ -2191,7 +2205,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
         "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
         "registerDefaultInterfaces(*interfaceRuntimeValue,\n"
-        "        frameGeneratorValue.imageOption(),\n"
+        "        *imageOptionValue,\n"
         "        frameGeneratorValue.quietMessageOption())");
     assertSourceDoesNotContain("src/keymap.h", "setInterfaceRuntime");
     assertSourceDoesNotContain("src/keymap.h", "interfaceRuntime");
@@ -2499,7 +2513,7 @@ static void testImagePlacementUsesInjectedRandomSource() {
         "          logSinkValue)");
     assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
         "CthughaBuffer::buffer");
-    assertSourceContains("src/Image.h",
+    assertSourceContains("src/ImagePlacement.h",
         "int bufferHeight, RandomSource& randomSource) const");
     assertSourceContains("src/Image.cc",
         "randomSource.uniformInt(imageSize - bufferSize + 1)");
@@ -2519,9 +2533,11 @@ static void testGeneralFlameUsesInjectedRandomSource() {
         "            paletteCatalog, translations)");
     assertSourceDoesNotContain("src/Application.cc",
         "flashlight, frameGeneratorValue.imageOption());");
+    assertSourceDoesNotContain("src/Application.cc",
+        "frameGeneratorValue.imageOption()");
     assertSourceContains("src/Application.cc",
         "createLegacySceneVisualCatalogFactory(\n"
-        "                frameGeneratorValue.imageOption(),\n"
+        "                *imageOptionValue,\n"
         "                *sceneWaveObjectCatalogValue,\n"
         "                *sceneImageCatalogValue,\n"
         "                *scenePaletteCatalogValue,\n"
@@ -2867,7 +2883,7 @@ static void testEffectControlUsesInjectedRandomSource() {
         "std::unique_ptr<SceneImageCatalog> sceneImageCatalogValue");
     assertSourceContains("src/Application.cc",
         "loadSceneImageCatalogFromLegacy(\n"
-        "        frameGeneratorValue.imageOption(), *sceneImageCatalogValue)");
+        "        *imageOptionValue, *sceneImageCatalogValue)");
     assertSourceContains("src/CMakeLists.txt", "SceneImageCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
         "LegacySceneImageCatalogAdapter.cc");

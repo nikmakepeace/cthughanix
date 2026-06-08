@@ -71,9 +71,6 @@ public:
     /** @return Owned frame store. */
     FrameStore& frameStore();
 
-    /** @return Image option collection used by Scene and image loading. */
-    ImageOption& imageOption();
-
     /** @return Runtime quiet-message threshold option. */
     Option& quietMessageOption();
 
