@@ -11,7 +11,7 @@
 #include "SceneTranslationCatalog.h"
 #include "SceneTypedVisualCatalogs.h"
 #include "SceneVisualSelectionSet.h"
-#include "WaveObject.h"
+#include "SceneWaveObjectCatalog.h"
 #include "display.h"
 #include "flames.h"
 #include "waves.h"
@@ -49,16 +49,13 @@ static SceneChoiceCatalog* createSceneWaveChoiceCatalog(
 }
 
 static SceneChoiceCatalog* createSceneWaveObjectChoiceCatalog(
-    EffectControl& option) {
+    EffectControl& option, const SceneWaveObjectCatalog& waveObjects) {
     SceneWaveObjectChoiceCatalog* catalog = new SceneWaveObjectChoiceCatalog(
         option.name(), new LegacySceneChoiceLock(option.lock));
 
-    for (int i = 0; i < option.getNEntries(); i++) {
-        EffectChoice* choice = option[i];
-        if (choice != 0)
-            catalog->addChoice(choice->Name(), waveObjectEntryObject(choice),
-                choice->inUse());
-    }
+    for (int i = 0; i < waveObjects.entryCount(); i++)
+        catalog->addChoice(waveObjects.nameAt(i), waveObjects.objectAt(i),
+            waveObjects.inUseAt(i));
 
     return catalog;
 }
@@ -110,6 +107,7 @@ createLegacySceneSelectionAdapters(
     EffectControl& waveScale, EffectControl& table, EffectControl& object,
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
+    const SceneWaveObjectCatalog& waveObjects,
     const SceneTranslationCatalog& translations) {
     return createLegacySceneSelectionAdapters(flame, generalFlame, wave,
         waveScale, table, object, translation, palette, border, flashlight,
@@ -131,7 +129,8 @@ createLegacySceneSelectionAdapters(
                     new LegacySceneChoiceLock(table.lock)),
                 int(table)),
             new SceneWaveObjectChoiceSelection(
-                createSceneWaveObjectChoiceCatalog(object), int(object)),
+                createSceneWaveObjectChoiceCatalog(object, waveObjects),
+                int(object)),
             new SceneTranslationChoiceSelection(
                 createSceneTranslationChoiceCatalog(translation, translations),
                 int(translation)),

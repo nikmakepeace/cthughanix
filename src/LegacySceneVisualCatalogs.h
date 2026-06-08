@@ -13,6 +13,7 @@
 class ImageOption;
 class LegacySceneControlMirror;
 class SceneTranslationCatalog;
+class SceneWaveObjectCatalog;
 
 /**
  * Compatibility visual catalog adapter over legacy global EffectControls.
@@ -70,10 +71,12 @@ public:
  * replace them.
  *
  * @param images Image option owned by FrameGeneratorRuntime scene binding.
+ * @param waveObjects Native Scene-owned wave-object catalog.
  * @param translations Native Scene-owned translation catalog.
  * @return Scene visual catalog factory for the current legacy catalogs.
  */
 std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory(
-    ImageOption& images, const SceneTranslationCatalog& translations);
+    ImageOption& images, const SceneWaveObjectCatalog& waveObjects,
+    const SceneTranslationCatalog& translations);
 
 #endif

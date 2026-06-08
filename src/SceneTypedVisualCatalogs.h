@@ -216,7 +216,8 @@ public:
      * @param object_ Optional terminated line list copied into the choice.
      * @param inUse_ Nonzero when selectable by default.
      */
-    SceneWaveObjectChoice(const char* name_, WObject* object_, int inUse_);
+    SceneWaveObjectChoice(const char* name_, const WObject* object_,
+        int inUse_);
 
     /** @return Mutable owned terminated line list, or NULL. */
     WObject* object() const;
@@ -261,7 +262,7 @@ public:
      * @return Mutable choice entry.
      */
     SceneWaveObjectChoice& addChoice(
-        const char* name, WObject* object, int inUse);
+        const char* name, const WObject* object, int inUse);
 
     /** @return Number of owned choices. */
     virtual int entryCount() const;

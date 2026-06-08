@@ -27,6 +27,7 @@
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
+#include "LegacySceneWaveObjectCatalogAdapter.h"
 #include "LegacySceneVisualCatalogs.h"
 #include "Mixer.h"
 #include "IniFiles.h"
@@ -44,6 +45,7 @@
 #include "SceneChangeScheduler.h"
 #include "SceneRuntime.h"
 #include "SceneTranslationCatalog.h"
+#include "SceneWaveObjectCatalog.h"
 #include "Screen.h"
 #include "TranslationOptions.h"
 #include "FrameGeneratorFrameBudget.h"
@@ -60,8 +62,8 @@
 
 static int initializeVisualCatalogs(const FrameGeometry& geometry,
     const PathConfig& pathConfig, const EffectPolicy& effectPolicy,
-    SceneTranslationCatalog& translations, RandomSource& randomSource,
-    LogSink& log);
+    SceneWaveObjectCatalog& waveObjects, SceneTranslationCatalog& translations,
+    RandomSource& randomSource, LogSink& log);
 static int loadEffectPolicyImages(const EffectPolicy& effectPolicy,
     const PathConfig& pathConfig, const FrameGeometry& geometry,
     ImageOption& images, LogSink& log);
@@ -226,10 +228,15 @@ void Application::initSceneRuntime() {
 
     if (sceneTranslationCatalogValue.get() == NULL)
         sceneTranslationCatalogValue.reset(new SceneTranslationCatalog());
+    if (sceneWaveObjectCatalogValue.get() == NULL) {
+        sceneWaveObjectCatalogValue.reset(new SceneWaveObjectCatalog());
+        loadSceneWaveObjectCatalogFromLegacy(object, *sceneWaveObjectCatalogValue);
+    }
     if (sceneVisualCatalogFactoryValue.get() == NULL)
         sceneVisualCatalogFactoryValue
             = createLegacySceneVisualCatalogFactory(
                 frameGeneratorValue.imageOption(),
+                *sceneWaveObjectCatalogValue,
                 *sceneTranslationCatalogValue);
     if (sceneRuntimeValue.get() == NULL)
         sceneRuntimeValue.reset(new SceneRuntime(frameGeneratorValue.sceneGeometry(),
@@ -296,6 +303,7 @@ void Application::shutdownSceneRuntime() {
     runtimeConfigRegistryValue.reset();
     sceneRuntimeValue.reset();
     sceneVisualCatalogFactoryValue.reset();
+    sceneWaveObjectCatalogValue.reset();
     sceneTranslationCatalogValue.reset();
     autoChangeControlsValue.reset();
     autoChangeSettingsValue.reset();
@@ -511,10 +519,12 @@ int Application::initialize() {
     // Visual catalogs depend on final buffer dimensions and must be available
     // before startup scene config can be matched to concrete catalog entries.
     logSinkValue.info("Initializing Frame Generator storage...\n");
+    sceneWaveObjectCatalogValue.reset(new SceneWaveObjectCatalog());
     sceneTranslationCatalogValue.reset(new SceneTranslationCatalog());
     if (initializeVisualCatalogs(frameGeneratorValue.geometry(),
             startupConfigValue.paths, startupConfigValue.effectPolicy,
-            *sceneTranslationCatalogValue, randomSourceValue, logSinkValue))
+            *sceneWaveObjectCatalogValue, *sceneTranslationCatalogValue,
+            randomSourceValue, logSinkValue))
         return 0;
     if (loadEffectPolicyImages(startupConfigValue.effectPolicy,
             startupConfigValue.paths, frameGeneratorValue.geometry(),
@@ -732,8 +742,8 @@ void Application::runFrame(int doDisplay) {
 
 static int initializeVisualCatalogs(const FrameGeometry& geometry,
     const PathConfig& pathConfig, const EffectPolicy& effectPolicy,
-    SceneTranslationCatalog& translations, RandomSource& randomSource,
-    LogSink& log) {
+    SceneWaveObjectCatalog& waveObjects, SceneTranslationCatalog& translations,
+    RandomSource& randomSource, LogSink& log) {
     // Built-in visual choices and file-backed catalogs are application startup
     // state, not pixel-buffer state. They live here because option parsing can
     // change buffer dimensions and stage initial option names before startup.
@@ -749,6 +759,7 @@ static int initializeVisualCatalogs(const FrameGeometry& geometry,
 
     if (init_wave(pathConfig, log))
         return 1;
+    loadSceneWaveObjectCatalogFromLegacy(object, waveObjects);
 
     if (load_palettes(pathConfig))
         return 1;

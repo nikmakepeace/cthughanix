@@ -10,6 +10,7 @@
 
 class EffectControl;
 class SceneTranslationCatalog;
+class SceneWaveObjectCatalog;
 
 /**
  * Owned legacy selection adapter plus its explicit control mirror.
@@ -41,6 +42,7 @@ createLegacySceneSelectionAdapters(
     EffectControl& waveScale, EffectControl& table, EffectControl& object,
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
+    const SceneWaveObjectCatalog& waveObjects,
     const SceneTranslationCatalog& translations);
 
 /**

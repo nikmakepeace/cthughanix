@@ -105,7 +105,7 @@ static int waveObjectLineIsTerminator(const WObject& line) {
     return 1;
 }
 
-static WObject* copyWaveObject(WObject* object) {
+static WObject* copyWaveObject(const WObject* object) {
     if (object == 0)
         return 0;
 
@@ -263,7 +263,7 @@ Wave* SceneWaveChoiceSelection::currentWave() {
 }
 
 SceneWaveObjectChoice::SceneWaveObjectChoice(
-    const char* name_, WObject* object_, int inUse_)
+    const char* name_, const WObject* object_, int inUse_)
     : objectValue(copyWaveObject(object_))
     , nameValue((name_ != 0) ? name_ : "")
     , inUseValue(inUse_) { }
@@ -295,7 +295,7 @@ SceneWaveObjectChoiceCatalog::SceneWaveObjectChoiceCatalog(
     , choices() { }
 
 SceneWaveObjectChoice& SceneWaveObjectChoiceCatalog::addChoice(
-    const char* name, WObject* object, int inUse) {
+    const char* name, const WObject* object, int inUse) {
     choices.push_back(std::unique_ptr<SceneWaveObjectChoice>(
         new SceneWaveObjectChoice(name, object, inUse)));
     return *choices.back();

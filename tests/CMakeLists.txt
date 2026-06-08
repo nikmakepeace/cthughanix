@@ -998,6 +998,22 @@ target_link_libraries(scene_translation_catalog_test PRIVATE m)
 add_test(NAME scene_translation_catalog_test
     COMMAND scene_translation_catalog_test)
 
+add_executable(scene_wave_object_catalog_test
+    unit/SceneWaveObjectCatalogTest.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalog.cc
+)
+
+target_include_directories(scene_wave_object_catalog_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(scene_wave_object_catalog_test PRIVATE m)
+
+add_test(NAME scene_wave_object_catalog_test
+    COMMAND scene_wave_object_catalog_test)
+
 add_executable(legacy_scene_choice_lock_test
     unit/LegacySceneChoiceLockTest.cc
     ${CMAKE_SOURCE_DIR}/src/LegacySceneChoiceLock.cc

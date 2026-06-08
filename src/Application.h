@@ -50,6 +50,7 @@ class SceneChangeScheduler;
 class SceneRuntime;
 class SceneSnapshot;
 class SceneTranslationCatalog;
+class SceneWaveObjectCatalog;
 class SceneVisualCatalogFactory;
 
 /**
@@ -93,6 +94,7 @@ class Application {
     std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
     std::unique_ptr<SceneChangeScheduler> sceneChangeSchedulerValue;
     std::unique_ptr<SceneTranslationCatalog> sceneTranslationCatalogValue;
+    std::unique_ptr<SceneWaveObjectCatalog> sceneWaveObjectCatalogValue;
     std::unique_ptr<SceneVisualCatalogFactory> sceneVisualCatalogFactoryValue;
     std::unique_ptr<SceneRuntime> sceneRuntimeValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;

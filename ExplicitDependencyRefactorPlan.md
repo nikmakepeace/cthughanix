@@ -981,8 +981,11 @@ it, and what must be true before the item can be erased from this plan.
    - Translation entries are generated into native `SceneTranslationCatalog`
      ownership, mirrored into the temporary legacy translation option, and used
      directly by Scene translation selections.
-   - Object, palette, and image selections copy typed payloads into owned Scene
-     catalog entries after legacy loaders populate their temporary entries.
+   - Wave-object entries are copied into native `SceneWaveObjectCatalog`
+     ownership after the legacy object loader runs, and Scene object selections
+     use that native catalog.
+   - Palette and image selections copy typed payloads into owned Scene catalog
+     entries after legacy loaders populate their temporary entries.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - `Application` creates the temporary visual factory and `SceneRuntime`
