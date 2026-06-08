@@ -1026,26 +1026,19 @@ from this plan.
      selections only. Panel display menus still use display-owned
      `EffectControl` state, while Scene menu choices and activation route
      through native Scene selections and runtime Scene commands.
-
-6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
-   Native object, image, and palette Scene catalog loaders are in place.
-   `LegacySceneSelectionAdapters`, `LegacySceneSelectionFactory`,
-   `LegacyScenePaletteRandomizer`, `LegacySceneVisualCatalogFactory`, and
-   `LegacyGlobalSceneSelectionFactory` are deleted; native selections are no
-   longer mirrored back into visual `EffectControl` globals.
-
-   What remains:
-   - Retire any remaining non-Scene UI fallback that still displays Scene
-     visual choices through legacy `EffectControl` lists. F2/list interfaces
-     now consume native Scene selections without visual option fallbacks. This
-     is complete when keymap actions and runtime config display code all
-     consume native Scene selections after construction, with any remaining
-     display-only legacy control path scoped to non-Scene display options.
-   - Delete the remaining bridge sources and test allowances. This is complete
-     when no production command, config, startup, save/restore, preset,
-     serialization, UI, or Frame Generator path names `LegacyScene*` for visual
-     Scene state; CMake no longer builds those files; and boundary tests assert
-     their absence.
+   - Keymap actions for Scene visual choices emit typed `RuntimeCommand`
+     Scene changes, and list/config UI elements pass `RuntimeSceneTarget`
+     values through `CommandContext` instead of routing visual choices through
+     generic `EffectControl` commands.
+   - Runtime config display text reads Scene visual names from
+     `RuntimeConfigRegistry` snapshots populated by `SceneSerializer`. UI
+     fallbacks for Scene rows come from native `SceneVisualSelections`; the
+     display-only `EffectControl` fallback remains scoped to display options.
+   - `LegacySceneSelectionAdapters`, `LegacySceneSelectionFactory`,
+     `LegacyScenePaletteRandomizer`, `LegacySceneVisualCatalogFactory`,
+     `LegacyGlobalSceneSelectionFactory`, and the other `LegacyScene*` bridge
+     sources are deleted from production and CMake. Boundary tests assert their
+     absence instead of allowing temporary bridge names.
 
 7. **Finish the separate Display cleanup outside Frame Generator. Status:
    related remaining.**
