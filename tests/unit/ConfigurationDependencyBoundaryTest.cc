@@ -2530,10 +2530,13 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "EffectControl");
     assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "EffectChoice");
     assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "OptionOnOff");
+    assertSourceContains("src/CMakeLists.txt", "SceneChoiceListCatalog.cc");
     assertSourceContains("src/CMakeLists.txt", "SceneChoiceSelection.cc");
     assertSourceContains("src/CMakeLists.txt", "SceneEffectChoiceCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
         "SceneGeneralFlameSelectionValue.cc");
+    assertSourceContains("tests/CMakeLists.txt",
+        "scene_choice_list_catalog_test");
     assertSourceContains("tests/CMakeLists.txt",
         "scene_effect_choice_catalog_test");
     assertSourceContains("tests/CMakeLists.txt",
@@ -2544,6 +2547,14 @@ static void testEffectControlUsesInjectedRandomSource() {
         "class SceneEffectChoiceLock : public SceneChoiceLock");
     assertSourceContains("src/SceneEffectChoiceCatalog.h",
         "class SceneEffectChoiceCatalog : public SceneChoiceCatalog");
+    assertSourceContains("src/SceneChoiceListCatalog.h",
+        "class SceneChoiceListCatalog : public SceneChoiceCatalog");
+    assertSourceDoesNotContain("src/SceneChoiceListCatalog.h",
+        "EffectControl");
+    assertSourceDoesNotContain("src/SceneChoiceListCatalog.cc",
+        "EffectControl");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "#include \"SceneChoiceListCatalog.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "#include \"SceneEffectChoiceCatalog.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
@@ -2584,6 +2595,14 @@ static void testEffectControlUsesInjectedRandomSource() {
         "SceneChoiceSelection borderValue;");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "SceneChoiceSelection flashlightValue;");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "borderValue(createOwnedSceneChoiceCatalog(border_)");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "flashlightValue(createOwnedSceneChoiceCatalog(flashlight_)");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "borderValue(new SceneEffectChoiceCatalog");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "flashlightValue(new SceneEffectChoiceCatalog");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "LegacySceneControlBackedSelection waveScaleValue;");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

@@ -5,6 +5,7 @@
 #include "EffectControl.h"
 #include "Image.h"
 #include "LegacySceneEffectControlBindings.h"
+#include "SceneChoiceListCatalog.h"
 #include "SceneChoiceSelection.h"
 #include "SceneEffectChoiceCatalog.h"
 #include "SceneGeneralFlameSelectionValue.h"
@@ -120,6 +121,36 @@ public:
     virtual void syncControlsFromSelections();
 };
 
+static void addLegacyChoiceAliases(
+    SceneChoiceListEntry& entry, EffectChoice& choice) {
+    if (choice.sameName("yes"))
+        entry.addAlias("yes");
+    if (choice.sameName("no"))
+        entry.addAlias("no");
+    if (choice.sameName("1"))
+        entry.addAlias("1");
+    if (choice.sameName("0"))
+        entry.addAlias("0");
+}
+
+static SceneChoiceCatalog* createOwnedSceneChoiceCatalog(
+    EffectControl& option) {
+    SceneChoiceListCatalog* catalog = new SceneChoiceListCatalog(
+        option.name(), new SceneEffectChoiceLock(option.lock));
+
+    int nEntries = option.getNEntries();
+    for (int i = 0; i < nEntries; i++) {
+        EffectChoice* choice = option[i];
+        if (choice != 0) {
+            SceneChoiceListEntry& entry
+                = catalog->addChoice(choice->Name(), choice->inUse());
+            addLegacyChoiceAliases(entry, *choice);
+        }
+    }
+
+    return catalog;
+}
+
 LegacySceneEffectChoiceSelection::LegacySceneEffectChoiceSelection(
     SceneChoiceCatalog* catalog, int selectedValue)
     : SceneChoiceSelection(catalog, selectedValue) { }
@@ -213,10 +244,9 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
           translation_.choiceList(), translation_.lock), int(translation_))
     , paletteValue(new SceneEffectChoiceCatalog(palette_.name(),
           palette_.choiceList(), palette_.lock), int(palette_))
-    , borderValue(new SceneEffectChoiceCatalog(border_.name(),
-          border_.choiceList(), border_.lock), int(border_))
-    , flashlightValue(new SceneEffectChoiceCatalog(flashlight_.name(),
-          flashlight_.choiceList(), flashlight_.lock), int(flashlight_))
+    , borderValue(createOwnedSceneChoiceCatalog(border_), int(border_))
+    , flashlightValue(createOwnedSceneChoiceCatalog(flashlight_),
+          int(flashlight_))
     , imagesValue(new SceneEffectChoiceCatalog(images_.name(),
           images_.choiceList(), images_.lock), int(images_)) { }
 

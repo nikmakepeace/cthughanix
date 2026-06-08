@@ -28,6 +28,7 @@ set(CTHUGHA_COMMON_SOURCES
     SceneGeometry.cc
     SceneDependencies.cc
     SceneRuntimeDependencies.cc
+    SceneChoiceListCatalog.cc
     SceneChoiceSelection.cc
     SceneEffectChoiceCatalog.cc
     SceneGeneralFlameSelectionValue.cc

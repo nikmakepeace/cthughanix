@@ -895,12 +895,14 @@ changes needed before the surface can disappear.
 
    Current progress: the encoded general-flame selection is now a native
    `SceneGeneralFlameSelectionValue` with explicit lock and diagnostics ports.
-   The legacy adapter still syncs that value to the old general-flame control
-   until the native visual owner replaces the remaining legacy factory.
+   Border and flashlight selections now use owned `SceneChoiceListCatalog`
+   choice entries instead of borrowing legacy `EffectChoiceList` entries. The
+   legacy adapter still syncs those values to the old controls until the native
+   visual owner replaces the remaining legacy factory.
 
    Concrete changes required:
    - Create owned catalog and selection objects for flame, wave/wave-scale,
-     table/object, translation, palette, image, border, and flashlight.
+     table/object, translation, palette, and image.
    - Move catalog loading, generated entries, allowed-choice metadata, and
      current-entry lookup into those owners.
    - Give those owners the small typed APIs needed by `SceneVisualCatalogs`,
