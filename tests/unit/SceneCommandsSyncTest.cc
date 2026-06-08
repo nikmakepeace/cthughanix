@@ -147,7 +147,11 @@ class RecordingVisualCatalogs : public SceneVisualCatalogs {
 public:
     int stateValue;
     int currentSettingsCalls;
+    int currentSettingsOrder;
     int currentImageCalls;
+    int changeCalls;
+    int randomPaletteCalls;
+    int addRandomPaletteCalls;
     int activateCalls;
     SceneSelectionTarget activatedTarget;
     int activatedIndex;
@@ -162,7 +166,11 @@ public:
         : settingsValue()
         , stateValue(0)
         , currentSettingsCalls(0)
+        , currentSettingsOrder(0)
         , currentImageCalls(0)
+        , changeCalls(0)
+        , randomPaletteCalls(0)
+        , addRandomPaletteCalls(0)
         , activateCalls(0)
         , activatedTarget(SceneSelectionFlame)
         , activatedIndex(-1)
@@ -175,6 +183,7 @@ public:
 
     virtual const SceneSettings& currentSettings(SceneGeometry&) {
         currentSettingsCalls++;
+        currentSettingsOrder = ++eventSequence;
         settingsValue.borderMode = stateValue;
         return settingsValue;
     }
@@ -189,6 +198,7 @@ public:
 
     virtual unsigned int change(
         SceneSelectionTarget, int, RandomSource&) {
+        changeCalls++;
         return SceneNoChange;
     }
 
@@ -216,10 +226,12 @@ public:
     }
 
     virtual unsigned int randomPalette(RandomSource&) {
+        randomPaletteCalls++;
         return SceneNoChange;
     }
 
     virtual unsigned int addRandomPalette(RandomSource&) {
+        addRandomPaletteCalls++;
         return SceneNoChange;
     }
 };
@@ -229,16 +241,19 @@ class SyncingSceneSelectionSynchronizer : public SceneRuntimeControlBridge {
 
 public:
     int syncControlsCalls;
+    int syncControlsOrder;
     unsigned int syncControlsResponse;
 
     explicit SyncingSceneSelectionSynchronizer(
         RecordingVisualCatalogs& visualCatalogs_)
         : visualCatalogs(visualCatalogs_)
         , syncControlsCalls(0)
+        , syncControlsOrder(0)
         , syncControlsResponse(SceneNoChange) { }
 
     virtual unsigned int syncControlsFromSelections() {
         syncControlsCalls++;
+        syncControlsOrder = ++eventSequence;
         visualCatalogs.stateValue = 9;
         return syncControlsResponse;
     }
@@ -277,7 +292,7 @@ public:
     virtual void save(int) { saveCalls++; }
 };
 
-static void testRestorePushesSceneSelectionsBeforeReadingSceneSettings() {
+static void testRestoreReadsNativeSettingsThenSyncsLegacyBridge() {
     Scene scene;
     DummySceneGeometry geometry;
     RecordingVisualCatalogs visualCatalogs;
@@ -289,13 +304,16 @@ static void testRestorePushesSceneSelectionsBeforeReadingSceneSettings() {
     SceneCommandDependencies dependencies(
         visualCatalogs, effectControls, effectRegistry, presets);
     SceneCommands commands(scene, geometry, dependencies, randomSource);
+    visualCatalogs.stateValue = 5;
 
     commands.restore();
 
     assert(effectRegistry.restoreCalls == 1);
     assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.currentSettingsCalls == 1);
-    assert(scene.settings().borderMode == 9);
+    assert(visualCatalogs.currentSettingsOrder
+        < effectControls.syncControlsOrder);
+    assert(scene.settings().borderMode == 5);
 }
 
 static void testChangeOneUsesSyncReturnedImageChangeForCue() {
@@ -334,6 +352,7 @@ static void testSceneCommandsExposeNativeSelectionActions() {
     commands.activate(SceneSelectionImage, 4);
 
     assert(visualCatalogs.activateCalls == 1);
+    assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.activatedTarget == SceneSelectionImage);
     assert(visualCatalogs.activatedIndex == 4);
     assert(visualCatalogs.currentImageCalls == 1);
@@ -346,6 +365,33 @@ static void testSceneCommandsExposeNativeSelectionActions() {
     assert(visualCatalogs.toggleChoiceUseCalls == 1);
     assert(visualCatalogs.choiceUseTarget == SceneSelectionWave);
     assert(visualCatalogs.choiceUseIndex == 3);
+    assert(effectControls.syncControlsCalls == 3);
+}
+
+static void testSceneCommandsSyncBridgeAfterNativeSelectionMutations() {
+    Scene scene;
+    DummySceneGeometry geometry;
+    RecordingVisualCatalogs visualCatalogs;
+    SyncingSceneSelectionSynchronizer effectControls(visualCatalogs);
+    RecordingEffectRegistry effectRegistry;
+    RecordingPresetCatalog presets;
+    DummyRandomSource randomSource;
+
+    SceneCommandDependencies dependencies(
+        visualCatalogs, effectControls, effectRegistry, presets);
+    SceneCommands commands(scene, geometry, dependencies, randomSource);
+
+    commands.change(SceneSelectionWave, 1);
+    assert(visualCatalogs.changeCalls == 1);
+    assert(effectControls.syncControlsCalls == 1);
+
+    commands.randomPalette();
+    assert(visualCatalogs.randomPaletteCalls == 1);
+    assert(effectControls.syncControlsCalls == 2);
+
+    commands.addRandomPalette();
+    assert(visualCatalogs.addRandomPaletteCalls == 1);
+    assert(effectControls.syncControlsCalls == 3);
 }
 
 static void testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges() {
@@ -455,9 +501,10 @@ static void testSceneSelectionPolicyApplierUsesSceneSelections() {
 }
 
 int main() {
-    testRestorePushesSceneSelectionsBeforeReadingSceneSettings();
+    testRestoreReadsNativeSettingsThenSyncsLegacyBridge();
     testChangeOneUsesSyncReturnedImageChangeForCue();
     testSceneCommandsExposeNativeSelectionActions();
+    testSceneCommandsSyncBridgeAfterNativeSelectionMutations();
     testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges();
     testSceneSelectionPresetCatalogOwnsSelectionSnapshots();
     testSceneSelectionPolicyApplierUsesSceneSelections();

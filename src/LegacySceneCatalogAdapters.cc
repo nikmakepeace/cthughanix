@@ -27,8 +27,6 @@ public:
 
 }
 
-ScenePaletteRandomizer::~ScenePaletteRandomizer() { }
-
 std::unique_ptr<ScenePaletteRandomizer> createLegacyScenePaletteRandomizer() {
     return std::unique_ptr<ScenePaletteRandomizer>(
         new LegacyScenePaletteRandomizer());

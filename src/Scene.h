@@ -213,7 +213,7 @@ class SceneCommands {
     RandomSource& randomSource;
 
     SceneSettings settingsFromOptions();
-    void syncFromOptions(unsigned int forcedChanges);
+    unsigned int syncFromOptions(unsigned int forcedChanges);
     void emitImageCue();
     void syncFromOptionsAndMaybeCueImage(unsigned int forcedChanges);
 

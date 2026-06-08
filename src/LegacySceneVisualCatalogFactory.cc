@@ -11,6 +11,7 @@
 #include "SceneImageCatalog.h"
 #include "ScenePaletteCatalog.h"
 #include "SceneTranslationCatalog.h"
+#include "SceneVisualCatalogService.h"
 #include "SceneWaveObjectCatalog.h"
 #include "TranslationOptions.h"
 #include "display.h"
@@ -29,8 +30,8 @@ LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
 SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
     SceneSelectionState& selectionState) {
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs(
-        new LegacySceneVisualCatalogs(
-            selectionState, selections, controlMirror, *paletteRandomizer));
+        new SceneVisualCatalogService(
+            selectionState, selections, *paletteRandomizer));
     std::unique_ptr<SceneRuntimeControlBridge> controlBridge
         = createLegacySceneSelectionSynchronizer(selections, controlMirror);
     return SceneVisualCatalogFactoryResult(std::move(visualCatalogs),

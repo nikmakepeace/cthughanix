@@ -48,7 +48,7 @@ set(CTHUGHA_COMMON_SOURCES
     LegacySceneSelectionAdapters.cc
     LegacySceneSelectionFactory.cc
     LegacySceneVisualCatalogFactory.cc
-    LegacySceneVisualCatalogs.cc
+    SceneVisualCatalogService.cc
     SceneRuntime.cc
     SceneSerializer.cc
     RuntimeCommand.cc

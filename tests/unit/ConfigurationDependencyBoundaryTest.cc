@@ -15,6 +15,8 @@
 static std::string readSourceFile(const char* relativePath) {
     std::string path = std::string(CTHUGHA_SOURCE_DIR) + "/" + relativePath;
     std::ifstream file(path.c_str());
+    if (!file.good())
+        fprintf(stderr, "%s does not exist\n", relativePath);
     assert(file.good());
 
     std::ostringstream contents;
@@ -1408,7 +1410,10 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"SceneVisualSelectionSet.h\"");
     assertSourceDoesNotContain("src/SceneVisualSelectionSet.h",
         "EffectControl");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotExist("src/LegacySceneVisualCatalogs.cc");
+    assertSourceContains("src/SceneVisualCatalogService.h",
+        "class SceneVisualCatalogService : public SceneVisualCatalogs");
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"LegacySceneControlMirror.h\"");
     assertSourceContains("src/SceneDependencies.h", "class SceneSelectionSynchronizer");
     assertSourceContains("src/SceneRuntimeDependencies.h",
@@ -1444,12 +1449,12 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Scene.h", "class SceneSelectionState");
     assertSourceContains("src/SceneRuntimeDependencies.h",
         "SceneSelectionState& selectionState");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "selectionState.update(settings)");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "return selectionState.settings()");
-    assertSourceContains("src/LegacySceneVisualCatalogs.h",
-        "class LegacySceneVisualCatalogs : public SceneVisualCatalogs");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
+        "class LegacySceneVisualCatalogs");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
         "public SceneEffectControlCatalog");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
@@ -1488,11 +1493,11 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"Flashlight.h\"");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
         "#include \"TranslationOptions.h\"");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"display.h\"");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"flames.h\"");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"waves.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"display.h\"");
@@ -1526,24 +1531,26 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/LegacySceneCatalogAdapters.h",
         "class SceneWaveObjectSource");
     assertSourceContains("src/LegacySceneCatalogAdapters.h",
+        "#include \"ScenePaletteRandomizer.h\"");
+    assertSourceContains("src/ScenePaletteRandomizer.h",
         "class ScenePaletteRandomizer");
-    assertSourceContains("src/LegacySceneCatalogAdapters.h",
+    assertSourceContains("src/ScenePaletteRandomizer.h",
         "virtual PaletteEntry* paletteEntry(int index) = 0");
     assertSourceDoesNotContain("src/LegacySceneCatalogAdapters.h",
         "createLegacySceneWaveObjectSource");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
         "std::unique_ptr<SceneWaveObjectSource> waveObjects");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "createLegacySceneWaveObjectSource");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "currentWaveObject()");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "currentSceneWaveObject(selections.object())");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "refreshOwnedPaletteEntry(selections, paletteRandomizer, index)");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "paletteSelection->replacePaletteEntry(index, *paletteEntry");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "paletteSelection->appendPaletteEntry(*paletteEntry");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h",
         "class LegacySceneWaveObjectSource");
@@ -1555,7 +1562,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionAdapters.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionFactory.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneVisualCatalogFactory.cc");
-    assertSourceContains("src/CMakeLists.txt", "LegacySceneVisualCatalogs.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "LegacySceneVisualCatalogs.cc");
+    assertSourceContains("src/CMakeLists.txt", "SceneVisualCatalogService.cc");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "FlameOption&");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "GeneralFlameOption&");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "WaveOption&");
@@ -1587,10 +1595,11 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Scene.cc",
         "void SceneCommands::refreshFromOptionsAndMaybeCueImage");
     assertSourceContains("src/Scene.cc",
-        "syncFromOptionsAndMaybeCueImage(\n"
-        "        dependencies.selectionSync.syncControlsFromSelections())");
+        "unsigned int appliedChanges = syncFromOptions(forcedChanges)");
     assertSourceContains("src/Scene.cc",
-        "(forcedChanges & SceneImageChanged) != 0");
+        "forcedChanges |= dependencies.selectionSync.syncControlsFromSelections()");
+    assertSourceContains("src/Scene.cc",
+        "(appliedChanges & SceneImageChanged) != 0");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.effectControls.isImageOption");
     assertSourceDoesNotContain("src/SceneDependencies.h",
@@ -1608,9 +1617,9 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/Scene.cc", "applyStartupChoice(screen");
     assertSourceDoesNotContain("src/Scene.cc", "#include \"CthughaBuffer.h\"");
     assertSourceDoesNotContain("src/Scene.cc", "#include \"FrameRenderTarget.h\"");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.flame");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.wave");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc", "config.palette");
+    assertSourceContains("src/SceneVisualCatalogService.cc", "config.flame");
+    assertSourceContains("src/SceneVisualCatalogService.cc", "config.wave");
+    assertSourceContains("src/SceneVisualCatalogService.cc", "config.palette");
     assertSourceDoesNotContain("src/Scene.h", "FlameOption& flame");
     assertSourceDoesNotContain("src/Scene.h", "WaveOption& wave");
     assertSourceDoesNotContain("src/Scene.h", "PaletteOption& palette");
@@ -2480,9 +2489,9 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
         "PaletteEntry::randomizeLast(randomSource)");
     assertSourceContains("src/LegacySceneCatalogAdapters.cc",
         "PaletteEntry::addRandom(randomSource)");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "PaletteEntry::randomizeLast(randomSource)");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "PaletteEntry::addRandom(randomSource)");
     assertSourceContains("src/Scene.cc",
         "dependencies.visualCatalogs.randomPalette(randomSource)");
@@ -2563,16 +2572,16 @@ static void testGeneralFlameUsesInjectedRandomSource() {
         "*sceneVisualCatalogFactoryValue, randomSourceValue)");
     assertSourceContains("src/SceneRuntime.cc",
         "RandomSource& randomSource)");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "case SceneSelectionGeneralFlame");
     assertSourceDoesNotContain("src/Scene.h", "changeGeneralFlame");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "selections.generalFlame().changeRandom(randomSource)");
     assertSourceContains("src/SceneGeneralFlameSelectionValue.cc",
         "setValue(randomSource.uniformInt(generalFlameStates))");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "generalFlameOption.changeRandom(randomSource, 0)");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
         "selections.generalFlame(), config.generalFlame");
     assertSourceContains("src/flames.h",
         "void changeRandom(RandomSource& randomSource, int doSave = 1)");
@@ -2606,7 +2615,7 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
         "selection.change(");
     assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.cc");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "option.change(to, randomSource, doSave)");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.effectRegistry.saveAll()");
@@ -2734,32 +2743,28 @@ static void testEffectControlUsesInjectedRandomSource() {
         "syncFromControls");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
         "mirror.syncControlsFromSelections()");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "syncLegacyControlsFromSelections(controlMirror)");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "syncLegacyControlsAndReturn(controlMirror, result)");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "settings.wave = selectRunnableWave(settings.waveConfig);\n"
         "    syncLegacyControlsFromSelections(controlMirror);");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "int waveSelectionChanged = 0;\n"
-        "    settings.wave = selectRunnableWave(\n"
-        "        settings.waveConfig, waveSelectionChanged);");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "if (waveSelectionChanged)\n"
-        "        syncLegacyControlsFromSelections(controlMirror);");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "void LegacySceneVisualCatalogs::toggleLock(SceneSelectionTarget target) {\n"
-        "    sceneSelectionForTarget(selections, target).toggleLock();\n"
-        "    syncLegacyControlsFromSelections(controlMirror);");
-    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "void LegacySceneVisualCatalogs::toggleChoiceUse(\n"
-        "    SceneSelectionTarget target, int index) {\n"
-        "    sceneSelectionForTarget(selections, target).toggleChoiceUse(index);\n"
-        "    syncLegacyControlsFromSelections(controlMirror);");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceContains("src/SceneVisualCatalogService.cc",
+        "settings.wave = selectRunnableWave(settings.waveConfig);");
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
+        "waveSelectionChanged");
+    assertSourceContains("src/Scene.cc",
+        "void SceneCommands::toggleLock(SceneSelectionTarget target) {\n"
+        "    dependencies.visualCatalogs.toggleLock(target);\n"
+        "    dependencies.selectionSync.syncControlsFromSelections();");
+    assertSourceContains("src/Scene.cc",
+        "void SceneCommands::toggleChoiceUse(SceneSelectionTarget target, int index) {\n"
+        "    dependencies.visualCatalogs.toggleChoiceUse(target, index);\n"
+        "    dependencies.selectionSync.syncControlsFromSelections();");
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "registerSelection(registry");
-    assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
+    assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "registerControl(registry)");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "registry.registerControl(option)");

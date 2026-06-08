@@ -999,6 +999,12 @@ from this plan.
      after the legacy palette loader runs, and initial Scene palette selections
      use that native catalog. Random/add-random palette mutation still uses the
      temporary legacy palette randomizer bridge.
+   - Scene visual settings construction, startup choice application, typed
+     selection mutation, and random-palette catalog refresh now live in
+     `SceneVisualCatalogService` instead of a `LegacySceneVisualCatalogs`
+     implementation. The random-palette dependency is a native
+     `ScenePaletteRandomizer` port, with the old global palette implementation
+     quarantined in `LegacySceneCatalogAdapters`.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - `Application` creates the temporary visual factory and `SceneRuntime`
@@ -1011,8 +1017,8 @@ from this plan.
 6. **Delete legacy visual command, binding, and config bridges. Status:
    remaining.**
    Compatibility surface: `LegacySceneControlMirror`,
-   `LegacySceneSelectionSynchronizer`, `LegacySceneSelectionAdapters`, and
-   `LegacySceneVisualCatalogs`.
+   `LegacySceneSelectionSynchronizer`, `LegacySceneSelectionAdapters`,
+   `LegacySceneVisualCatalogFactory`, and `LegacySceneCatalogAdapters`.
 
    Purpose: keep native Scene selections synchronized with old controls while
    runtime commands, startup sync, save/restore, presets, and ini persistence
@@ -1051,9 +1057,14 @@ from this plan.
    - The remaining bridge is one-way: it pushes native selection values back to
      temporary legacy controls and is passed explicitly instead of discovered
      through RTTI or selection-side identity lookup.
+   - Legacy control synchronization is now performed at the `SceneCommands`
+     boundary through `SceneSelectionSynchronizer`; the native
+     `SceneVisualCatalogService` does not know about `LegacySceneControlMirror`
+     or call legacy sync helpers.
    - Scene settings reads no longer unconditionally sync temporary legacy
-     controls; lock/use mutations sync at the command edge, and settings reads
-     only sync when they auto-advance a wave selection to a runnable wave.
+     controls from inside the visual catalog service; selection mutations,
+     lock/use changes, restore/preset operations, and automatic changes sync at
+     the command edge.
 
 7. **Finish the separate Display cleanup outside Frame Generator. Status:
    related remaining.**

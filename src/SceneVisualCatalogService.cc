@@ -1,16 +1,13 @@
-// Legacy visual catalog adapter over explicit Scene selection ports.
+// Native Scene visual catalog and selection service.
 
-#include "LegacySceneVisualCatalogs.h"
+#include "SceneVisualCatalogService.h"
 
 #include "Configuration.h"
 #include "Flame.h"
-#include "LegacySceneCatalogAdapters.h"
-#include "LegacySceneControlMirror.h"
 #include "PaletteEntry.h"
+#include "ScenePaletteRandomizer.h"
 #include "SceneTypedVisualCatalogs.h"
-
-static void syncLegacyControlsFromSelections(
-    LegacySceneControlMirror& mirror);
+#include "SceneVisualSelections.h"
 
 static WObject* currentSceneWaveObject(SceneOptionSelection& selection) {
     SceneWaveObjectSelection* objectSelection
@@ -78,17 +75,20 @@ static void refreshOwnedPaletteEntry(SceneVisualSelections& selections,
             paletteEntry->inUse());
 }
 
-LegacySceneVisualCatalogs::LegacySceneVisualCatalogs(
+static void applyStartupChoice(SceneOptionSelection& selection,
+    const std::string& choice, RandomSource& randomSource) {
+    selection.change(choice.c_str(), randomSource);
+}
+
+SceneVisualCatalogService::SceneVisualCatalogService(
     SceneSelectionState& selectionState_, SceneVisualSelections& selections_,
-    LegacySceneControlMirror& controlMirror_,
     ScenePaletteRandomizer& paletteRandomizer_)
     : selectionState(selectionState_)
     , selections(selections_)
-    , controlMirror(controlMirror_)
     , paletteRandomizer(paletteRandomizer_) { }
 
-Wave* LegacySceneVisualCatalogs::selectRunnableWave(
-    const WaveConfig& config, int& selectionChanged) {
+Wave* SceneVisualCatalogService::selectRunnableWave(
+    const WaveConfig& config) {
     int nEntries = selections.wave().entryCount();
 
     for (int i = 0; i < nEntries; i++) {
@@ -97,13 +97,12 @@ Wave* LegacySceneVisualCatalogs::selectRunnableWave(
             return selectedWave;
 
         selections.wave().change(+1);
-        selectionChanged = 1;
     }
 
     return 0;
 }
 
-const SceneSettings& LegacySceneVisualCatalogs::currentSettings(
+const SceneSettings& SceneVisualCatalogService::currentSettings(
     SceneGeometry& geometry) {
     SceneSettings settings;
 
@@ -116,11 +115,7 @@ const SceneSettings& LegacySceneVisualCatalogs::currentSettings(
         selections.table().currentValue(),
         currentSceneWaveObject(selections.object()),
         geometry.width(), geometry.height());
-    int waveSelectionChanged = 0;
-    settings.wave = selectRunnableWave(
-        settings.waveConfig, waveSelectionChanged);
-    if (waveSelectionChanged)
-        syncLegacyControlsFromSelections(controlMirror);
+    settings.wave = selectRunnableWave(settings.waveConfig);
     settings.waveName = (settings.wave != 0) ? settings.wave->name() : "unknown";
     settings.waveScaleName = selections.waveScale().currentName();
     settings.tableName = selections.table().currentName();
@@ -144,28 +139,11 @@ const SceneSettings& LegacySceneVisualCatalogs::currentSettings(
     return selectionState.settings();
 }
 
-const IndexedImage* LegacySceneVisualCatalogs::currentImage() {
+const IndexedImage* SceneVisualCatalogService::currentImage() {
     return selections.images().currentImage();
 }
 
-static void applyStartupChoice(SceneOptionSelection& selection,
-    const std::string& choice,
-    RandomSource& randomSource) {
-    selection.change(choice.c_str(), randomSource);
-}
-
-static void syncLegacyControlsFromSelections(
-    LegacySceneControlMirror& mirror) {
-    mirror.syncControlsFromSelections();
-}
-
-static unsigned int syncLegacyControlsAndReturn(
-    LegacySceneControlMirror& mirror, unsigned int result) {
-    syncLegacyControlsFromSelections(mirror);
-    return result;
-}
-
-void LegacySceneVisualCatalogs::applyStartupConfig(
+void SceneVisualCatalogService::applyStartupConfig(
     const SceneConfig& config, RandomSource& randomSource) {
     applyStartupChoice(selections.waveScale(), config.waveScale, randomSource);
     applyStartupChoice(selections.table(), config.table, randomSource);
@@ -179,21 +157,17 @@ void LegacySceneVisualCatalogs::applyStartupConfig(
     applyStartupChoice(selections.border(), config.border, randomSource);
     applyStartupChoice(selections.flashlight(), config.flashlight, randomSource);
     applyStartupChoice(selections.images(), config.image, randomSource);
-    syncLegacyControlsFromSelections(controlMirror);
 }
 
-unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target, int by,
-    RandomSource& randomSource) {
-    unsigned int result = SceneNoChange;
-
+unsigned int SceneVisualCatalogService::change(SceneSelectionTarget target,
+    int by, RandomSource& randomSource) {
     switch (target) {
     case SceneSelectionFlame:
         selections.flame().change(by);
         break;
     case SceneSelectionGeneralFlame:
         selections.generalFlame().changeRandom(randomSource);
-        result = SceneFlameChanged;
-        break;
+        return SceneFlameChanged;
     case SceneSelectionWave:
         selections.wave().change(by);
         break;
@@ -223,21 +197,18 @@ unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target, int 
         break;
     }
 
-    return syncLegacyControlsAndReturn(controlMirror, result);
+    return SceneNoChange;
 }
 
-unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target,
+unsigned int SceneVisualCatalogService::change(SceneSelectionTarget target,
     const char* to, RandomSource& randomSource) {
-    unsigned int result = SceneNoChange;
-
     switch (target) {
     case SceneSelectionFlame:
         selections.flame().change(to, randomSource);
         break;
     case SceneSelectionGeneralFlame:
         selections.generalFlame().change(to, randomSource);
-        result = SceneFlameChanged;
-        break;
+        return SceneFlameChanged;
     case SceneSelectionWave:
         selections.wave().change(to, randomSource);
         break;
@@ -267,37 +238,36 @@ unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target,
         break;
     }
 
-    return syncLegacyControlsAndReturn(controlMirror, result);
+    return SceneNoChange;
 }
 
-unsigned int LegacySceneVisualCatalogs::activate(
+unsigned int SceneVisualCatalogService::activate(
     SceneSelectionTarget target, int index) {
     sceneSelectionForTarget(selections, target).activate(index);
-    return syncLegacyControlsAndReturn(controlMirror,
-        forcedChangeForSelection(target));
+    return forcedChangeForSelection(target);
 }
 
-void LegacySceneVisualCatalogs::toggleLock(SceneSelectionTarget target) {
+void SceneVisualCatalogService::toggleLock(SceneSelectionTarget target) {
     sceneSelectionForTarget(selections, target).toggleLock();
-    syncLegacyControlsFromSelections(controlMirror);
 }
 
-void LegacySceneVisualCatalogs::toggleChoiceUse(
+void SceneVisualCatalogService::toggleChoiceUse(
     SceneSelectionTarget target, int index) {
     sceneSelectionForTarget(selections, target).toggleChoiceUse(index);
-    syncLegacyControlsFromSelections(controlMirror);
 }
 
-unsigned int LegacySceneVisualCatalogs::randomPalette(RandomSource& randomSource) {
+unsigned int SceneVisualCatalogService::randomPalette(
+    RandomSource& randomSource) {
     int index = paletteRandomizer.randomizeLast(randomSource);
     refreshOwnedPaletteEntry(selections, paletteRandomizer, index);
     selections.palette().setValue(index);
-    return syncLegacyControlsAndReturn(controlMirror, ScenePaletteChanged);
+    return ScenePaletteChanged;
 }
 
-unsigned int LegacySceneVisualCatalogs::addRandomPalette(RandomSource& randomSource) {
+unsigned int SceneVisualCatalogService::addRandomPalette(
+    RandomSource& randomSource) {
     int index = paletteRandomizer.addRandom(randomSource);
     refreshOwnedPaletteEntry(selections, paletteRandomizer, index);
     selections.palette().setValue(index);
-    return syncLegacyControlsAndReturn(controlMirror, ScenePaletteChanged);
+    return ScenePaletteChanged;
 }

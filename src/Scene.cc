@@ -204,8 +204,11 @@ SceneSettings SceneCommands::settingsFromOptions() {
     return dependencies.visualCatalogs.currentSettings(geometry);
 }
 
-void SceneCommands::syncFromOptions(unsigned int forcedChanges) {
-    scene.setSettings(settingsFromOptions(), forcedChanges);
+unsigned int SceneCommands::syncFromOptions(unsigned int forcedChanges) {
+    SceneSettings settings = settingsFromOptions();
+    forcedChanges |= dependencies.selectionSync.syncControlsFromSelections();
+    scene.setSettings(settings, forcedChanges);
+    return forcedChanges;
 }
 
 void SceneCommands::emitImageCue() {
@@ -214,8 +217,8 @@ void SceneCommands::emitImageCue() {
 
 void SceneCommands::syncFromOptionsAndMaybeCueImage(
     unsigned int forcedChanges) {
-    syncFromOptions(forcedChanges);
-    if ((forcedChanges & SceneImageChanged) != 0)
+    unsigned int appliedChanges = syncFromOptions(forcedChanges);
+    if ((appliedChanges & SceneImageChanged) != 0)
         emitImageCue();
 }
 
@@ -264,45 +267,44 @@ void SceneCommands::activate(SceneSelectionTarget target, int index) {
 
 void SceneCommands::toggleLock(SceneSelectionTarget target) {
     dependencies.visualCatalogs.toggleLock(target);
+    dependencies.selectionSync.syncControlsFromSelections();
 }
 
 void SceneCommands::toggleChoiceUse(SceneSelectionTarget target, int index) {
     dependencies.visualCatalogs.toggleChoiceUse(target, index);
+    dependencies.selectionSync.syncControlsFromSelections();
 }
 
 void SceneCommands::randomPalette() {
-    syncFromOptions(dependencies.visualCatalogs.randomPalette(randomSource));
+    unsigned int forcedChanges
+        = dependencies.visualCatalogs.randomPalette(randomSource);
+    syncFromOptions(forcedChanges);
 }
 
 void SceneCommands::addRandomPalette() {
-    syncFromOptions(dependencies.visualCatalogs.addRandomPalette(randomSource));
+    unsigned int forcedChanges
+        = dependencies.visualCatalogs.addRandomPalette(randomSource);
+    syncFromOptions(forcedChanges);
 }
 
 void SceneCommands::changeAll() {
     dependencies.effectRegistry.changeAll(randomSource);
-    dependencies.selectionSync.syncControlsFromSelections();
-    syncFromOptions(SceneAllChanged);
-    emitImageCue();
+    syncFromOptionsAndMaybeCueImage(SceneAllChanged);
 }
 
 void SceneCommands::changeOne() {
     dependencies.effectRegistry.changeOne(randomSource);
-    syncFromOptionsAndMaybeCueImage(
-        dependencies.selectionSync.syncControlsFromSelections());
+    syncFromOptionsAndMaybeCueImage(SceneNoChange);
 }
 
 void SceneCommands::restore() {
     dependencies.effectRegistry.restoreAll();
-    dependencies.selectionSync.syncControlsFromSelections();
-    syncFromOptions(SceneAllChanged);
-    emitImageCue();
+    syncFromOptionsAndMaybeCueImage(SceneAllChanged);
 }
 
 void SceneCommands::restorePreset(int slot) {
     dependencies.presets.restore(slot);
-    dependencies.selectionSync.syncControlsFromSelections();
-    syncFromOptions(SceneAllChanged);
-    emitImageCue();
+    syncFromOptionsAndMaybeCueImage(SceneAllChanged);
 }
 
 void SceneCommands::savePreset(int slot) {
