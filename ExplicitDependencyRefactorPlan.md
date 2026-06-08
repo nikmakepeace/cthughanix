@@ -1074,6 +1074,10 @@ from this plan.
      `SceneChoice` names/use flags for display and dispatch typed Scene choice
      commands, leaving legacy `EffectControl` list reads only as fallback and
      non-Scene compatibility.
+   - X11 Scene menu item labels/counts and selected-value fallbacks now read
+     native `SceneVisualSelections`; the panel still keeps legacy
+     `EffectControl*` only for display-menu compatibility, pre-startup
+     fallback, and palette metadata migration work.
    - `RuntimeEffectControlOwner`, `LegacySceneEffectControlTarget`,
      `LegacySceneEffectControlBindings`, and
      `LegacySceneEffectControlCatalog` are deleted.

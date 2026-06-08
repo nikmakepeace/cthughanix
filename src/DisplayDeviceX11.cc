@@ -433,6 +433,7 @@ void DisplayDeviceX11::freeFont() {
 }
 
 DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, ImageOption& images_,
+    SceneVisualSelections* sceneVisualSelections_,
     RuntimeCommandSink& runtimeCommands_,
     RuntimeCommandTargetRouter& runtimeCommandRouter_,
     RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config,
@@ -440,6 +441,7 @@ DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, ImageOption& images_,
     : DisplayDevice()
     , scene(scene_)
     , images(images_)
+    , sceneVisualSelections(sceneVisualSelections_)
     , runtimeCommands(runtimeCommands_)
     , runtimeCommandRouter(runtimeCommandRouter_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
@@ -1610,12 +1612,12 @@ void DisplayDeviceX11::setPalette(const Palette pal) {
 }
 
 std::unique_ptr<DisplayRuntimeOwnership> newDisplayDevice(
-    Scene& scene, ImageOption& images, RuntimeCommandSink& runtimeCommands,
-    RuntimeCommandTargetRouter& runtimeCommandRouter,
+    Scene& scene, ImageOption& images, SceneVisualSelections* sceneVisualSelections,
+    RuntimeCommandSink& runtimeCommands, RuntimeCommandTargetRouter& runtimeCommandRouter,
     RuntimeConfigRegistry& runtimeConfigRegistry, const DisplayConfig& config,
     SecondsClock& clock) {
     std::unique_ptr<DisplayDeviceX11> device(
-        new DisplayDeviceX11(scene, images, runtimeCommands,
+        new DisplayDeviceX11(scene, images, sceneVisualSelections, runtimeCommands,
             runtimeCommandRouter,
             runtimeConfigRegistry, config, clock));
     if (!device->isInitialized()) {

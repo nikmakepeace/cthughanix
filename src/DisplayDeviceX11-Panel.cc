@@ -14,6 +14,8 @@
 #include "RuntimeConfigSelection.h"
 #include "RuntimeCommandSink.h"
 #include "RuntimeCommandTargets.h"
+#include "SceneChoiceSelection.h"
+#include "SceneVisualSelections.h"
 #include "cth_buffer.h"
 #include "Scene.h"
 #include "TranslationOption.h"
@@ -551,6 +553,69 @@ static const char* currentNameOrEmpty(EffectControl& control) {
     return (name != NULL && strcmp(name, "unknown") != 0) ? name : "";
 }
 
+static const char* sceneNameOrEmpty(SceneOptionSelection* selection) {
+    const char* name = (selection != NULL) ? selection->currentName() : NULL;
+    return (name != NULL && strcmp(name, "unknown") != 0) ? name : "";
+}
+
+static int panelChoiceCount(
+    SceneOptionSelection* selection, EffectControl* control) {
+    return (selection != NULL) ? selection->entryCount()
+                               : control->getNEntries();
+}
+
+static const char* panelChoiceName(
+    SceneOptionSelection* selection, EffectControl* control, int index) {
+    if (selection != NULL) {
+        const SceneChoice* choice = selection->choiceAt(index);
+        return (choice != NULL) ? choice->name() : "unknown";
+    }
+
+    return (*control)[index]->Name();
+}
+
+static const char* panelChoiceLabel(
+    SceneOptionSelection* selection, EffectControl* control, int index) {
+    if (selection != NULL)
+        return panelChoiceName(selection, control, index);
+
+    return (*control)[index]->Desc()[0] ? (*control)[index]->Desc()
+                                        : (*control)[index]->Name();
+}
+
+SceneOptionSelection* DisplayDeviceX11::sceneSelection(
+    RuntimeSceneTarget target) const {
+    if (sceneVisualSelections == NULL)
+        return NULL;
+
+    switch (target) {
+    case RuntimeSceneFlame:
+        return &sceneVisualSelections->flame();
+    case RuntimeSceneGeneralFlame:
+        return &sceneVisualSelections->generalFlame();
+    case RuntimeSceneWave:
+        return &sceneVisualSelections->wave();
+    case RuntimeSceneWaveScale:
+        return &sceneVisualSelections->waveScale();
+    case RuntimeSceneObject:
+        return &sceneVisualSelections->object();
+    case RuntimeSceneTranslation:
+        return &sceneVisualSelections->translation();
+    case RuntimeSceneBorder:
+        return &sceneVisualSelections->border();
+    case RuntimeSceneFlashlight:
+        return &sceneVisualSelections->flashlight();
+    case RuntimeScenePalette:
+        return &sceneVisualSelections->palette();
+    case RuntimeSceneTable:
+        return &sceneVisualSelections->table();
+    case RuntimeSceneImage:
+        return &sceneVisualSelections->images();
+    }
+
+    return NULL;
+}
+
 void DisplayDeviceX11::updatePanelSelectionLabels() {
     if (panelMenuButtons[0] == NULL)
         return;
@@ -563,26 +628,33 @@ void DisplayDeviceX11::updatePanelSelectionLabels() {
 
     PanelSelection selections[8] = {
         { "Display", RuntimeConfigSelectionDisplay, currentNameOrEmpty(::screen) },
-        { "Wave", RuntimeConfigSelectionWave, currentNameOrEmpty(wave) },
-        { "Flame", RuntimeConfigSelectionFlame, currentNameOrEmpty(flame) },
+        { "Wave", RuntimeConfigSelectionWave,
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneWave)) },
+        { "Flame", RuntimeConfigSelectionFlame,
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneFlame)) },
         { "Translation", RuntimeConfigSelectionTranslation,
-            currentNameOrEmpty(translation) },
-        { "Palette", RuntimeConfigSelectionPalette, currentNameOrEmpty(palette) },
-        { "Table", RuntimeConfigSelectionTable, currentNameOrEmpty(table) },
-        { "Image", RuntimeConfigSelectionImage, currentNameOrEmpty(images) },
-        { "Objects", RuntimeConfigSelectionObject, currentNameOrEmpty(object) },
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneTranslation)) },
+        { "Palette", RuntimeConfigSelectionPalette,
+            sceneNameOrEmpty(sceneSelection(RuntimeScenePalette)) },
+        { "Table", RuntimeConfigSelectionTable,
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneTable)) },
+        { "Image", RuntimeConfigSelectionImage,
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneImage)) },
+        { "Objects", RuntimeConfigSelectionObject,
+            sceneNameOrEmpty(sceneSelection(RuntimeSceneObject)) },
     };
 
+    Config config = runtimeConfigRegistry.currentConfig();
     std::string signature;
     for (int i = 0; i < 8; i++) {
-        signature += selections[i].fallback ? selections[i].fallback : "";
+        signature += runtimeConfigSelectionTextOrFallback(config,
+            selections[i].field, selections[i].fallback);
         signature.push_back('\n');
     }
     if (signature == panelSelectionSignature)
         return;
     panelSelectionSignature = signature;
 
-    Config config = runtimeConfigRegistry.currentConfig();
     Arg wargs[1];
     for (int i = 0; i < 8; i++) {
         if (panelMenuButtons[i] == NULL)
@@ -622,6 +694,9 @@ Widget DisplayDeviceX11::add_menu_target(const char* name, EffectControl* what,
     int n;
     Widget button, menu, item;
     int i;
+    SceneOptionSelection* selection
+        = hasSceneTarget ? sceneSelection(sceneTarget) : NULL;
+    int choiceCount = panelChoiceCount(selection, what);
 
     if (parent == NULL)
         return NULL;
@@ -649,15 +724,16 @@ Widget DisplayDeviceX11::add_menu_target(const char* name, EffectControl* what,
         return NULL;
     }
 
-    if (what->getNEntries() <= 0) {
+    if (choiceCount <= 0) {
         xawSetArg(wargs[0], XtNlabel, "none");
         XtCreateManagedWidget("none", smeBSBObjectClass, menu, wargs, 1);
     }
 
     /* create menu items */
-    for (i = 0; i < what->getNEntries(); i++) {
+    for (i = 0; i < choiceCount; i++) {
         menu_data_t* md = new menu_data_t;
-        const char* label = (*what)[i]->Desc()[0] ? (*what)[i]->Desc() : (*what)[i]->Name();
+        const char* name = panelChoiceName(selection, what, i);
+        const char* label = panelChoiceLabel(selection, what, i);
 
         md->runtimeCommands = &runtimeCommands;
         md->runtimeCommandRouter = &runtimeCommandRouter;
@@ -667,7 +743,7 @@ Widget DisplayDeviceX11::add_menu_target(const char* name, EffectControl* what,
         md->pos = i;
 
         xawSetArg(wargs[0], XtNlabel, label);
-        item = XtCreateManagedWidget((*what)[i]->Name(), smeBSBObjectClass, menu, wargs, 1);
+        item = XtCreateManagedWidget(name, smeBSBObjectClass, menu, wargs, 1);
         XtAddCallback(item, XtNcallback, menuCB, md);
     }
     return button;

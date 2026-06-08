@@ -35,10 +35,13 @@ class RuntimeConfigRegistry;
 class RuntimeCommandTargetRouter;
 class SecondsClock;
 class InputEventSink;
+class SceneOptionSelection;
+class SceneVisualSelections;
 
 class DisplayDeviceX11 : public DisplayDevice, public RuntimePaletteMetadataTarget {
     Scene& scene;
     ImageOption& images;
+    SceneVisualSelections* sceneVisualSelections;
     RuntimeCommandSink& runtimeCommands;
     RuntimeCommandTargetRouter& runtimeCommandRouter;
     RuntimeConfigRegistry& runtimeConfigRegistry;
@@ -196,6 +199,7 @@ protected:
     Widget add_menu_target(const char* name, EffectControl* what,
         RuntimeSceneTarget sceneTarget, int hasSceneTarget, Widget parent,
         Widget under, Widget right);
+    SceneOptionSelection* sceneSelection(RuntimeSceneTarget target) const;
     void updatePanelSelectionLabels();
     void markPanelTextCopyRect(int x, int y, int width, int height, int copyCount);
     unsigned long palettePreviewPixel(unsigned char r, unsigned char g, unsigned char b);
@@ -211,6 +215,7 @@ protected:
 
 public:
     DisplayDeviceX11(Scene& scene_, ImageOption& images_,
+        SceneVisualSelections* sceneVisualSelections_,
         RuntimeCommandSink& runtimeCommands_,
         RuntimeCommandTargetRouter& runtimeCommandRouter_,
         RuntimeConfigRegistry& runtimeConfigRegistry_, const DisplayConfig& config,

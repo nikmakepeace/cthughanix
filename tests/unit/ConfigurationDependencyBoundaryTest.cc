@@ -2048,6 +2048,26 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "#include \"WaveOptions.h\"");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "#include \"TranslationOption.h\"");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "#include \"SceneChoiceSelection.h\"");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "#include \"SceneVisualSelections.h\"");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "SceneOptionSelection* DisplayDeviceX11::sceneSelection");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "const SceneChoice* choice = selection->choiceAt(index)");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "sceneNameOrEmpty(sceneSelection(RuntimeSceneWave))");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(wave)");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(flame)");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "currentNameOrEmpty(translation)");
+    assertSourceContains("src/DisplayDevice.h",
+        "SceneVisualSelections* sceneVisualSelections");
+    assertSourceContains("src/xcthugha.h",
+        "SceneVisualSelections* sceneVisualSelections");
     assertSourceContains("src/keymap.cc",
         "RuntimeCommand::changeSceneBy(RuntimeSceneFlame");
     assertSourceContains("src/keymap.cc",
@@ -2199,6 +2219,9 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "RuntimeCommand::activateScene(RuntimeScenePalette, candidate)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "SceneOptionSelection* selection\n"
+        "        = hasSceneTarget ? sceneSelection(sceneTarget) : NULL");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "add_scene_menu(\"Wave\", &wave, RuntimeSceneWave");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "add_scene_menu(\"Palette\", &palette");
@@ -2289,8 +2312,10 @@ static void testX11PanelInputsUseRuntimeCommands() {
     assertSourceDoesNotContain("src/Application.h",
         "SceneCommands& sceneCommands");
     assertSourceContains("src/Application.cc",
-        "*imageOptionValue, *runtimeChangeMediatorValue");
+        "*imageOptionValue, sceneRuntimeValue->visualSelections(),");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "sceneNameOrEmpty(sceneSelection(RuntimeSceneImage))");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
         "currentNameOrEmpty(images)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "add_scene_menu(\"Image\", &images, RuntimeSceneImage");
@@ -2732,6 +2757,9 @@ static void testGeneralFlameUsesInjectedRandomSource() {
         "    sceneVisualCatalogFactoryValue");
     assertSourceContains("src/Application.cc",
         "*sceneVisualCatalogFactoryValue, randomSourceValue)");
+    assertSourceContains("src/Application.cc",
+        "newDisplayDevice(scene(),\n"
+        "        *imageOptionValue, sceneRuntimeValue->visualSelections()");
     assertSourceContains("src/SceneRuntime.cc",
         "RandomSource& randomSource)");
     assertSourceContains("src/SceneVisualCatalogService.cc",
