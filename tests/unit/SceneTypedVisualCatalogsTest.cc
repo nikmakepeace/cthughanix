@@ -1,7 +1,11 @@
 #include "SceneTypedVisualCatalogs.h"
 
+#include "EffectChoiceLoader.h"
+#include "Image.h"
 #include "PaletteEntry.h"
 #include "ProcessServices.h"
+#include "pcx.h"
+#include "png.h"
 
 #include <cassert>
 #include <cstring>
@@ -10,6 +14,21 @@
 int cth_log_enabled(int) { return 0; }
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
+
+EffectChoice* read_pcx_image(FILE*, const char*, const char*, const char*,
+    const ImageLoadTarget&) {
+    return 0;
+}
+
+EffectChoice* read_png_image(FILE*, const char*, const char*, const char*,
+    const ImageLoadTarget&) {
+    return 0;
+}
+
+int loadEffectChoices(EffectControl&, const PathConfig&, const char*[],
+    const char*, const char*, EffectChoiceContextLoader, void*) {
+    return 0;
+}
 
 class RecordingLock : public SceneChoiceLock {
 public:
@@ -204,6 +223,58 @@ static void testPaletteSelectionReturnsOwnedEntry() {
     assert(selected->colors().component(1, 2) == 6);
 }
 
+static void testImageCatalogCopiesImageAndPalette() {
+    ColorPalette* palette = new ColorPalette();
+    palette->setColor(3, 11, 22, 33);
+    IndexedImage source("logo", 2, 2, palette);
+    source.mutablePixels()[0] = 7;
+    source.mutablePixels()[1] = 8;
+    source.mutablePixels()[2] = 9;
+    source.mutablePixels()[3] = 10;
+
+    SceneImageChoiceCatalog catalog("image", new RecordingLock());
+    SceneImageChoice& choice = catalog.addChoice("logo", &source, 1);
+    source.mutablePixels()[1] = 99;
+
+    assert(std::strcmp(catalog.optionName(), "image") == 0);
+    assert(catalog.entryCount() == 1);
+    assert(catalog.choiceAt(0)->sameName("LOGO trailing") != 0);
+
+    const IndexedImage* copied = choice.image();
+    assert(copied != &source);
+    assert(std::strcmp(copied->name(), "logo") == 0);
+    assert(copied->width() == 2);
+    assert(copied->height() == 2);
+    assert(copied->pixels() != source.pixels());
+    assert(copied->pixels()[1] == 8);
+    assert(copied->palette() != source.palette());
+    assert(copied->palette()->component(3, 0) == 11);
+    assert(copied->palette()->component(3, 1) == 22);
+    assert(copied->palette()->component(3, 2) == 33);
+}
+
+static void testImageSelectionReturnsOwnedImage() {
+    IndexedImage first("logo", 1, 1);
+    first.mutablePixels()[0] = 5;
+    IndexedImage second("badge", 1, 1);
+    second.mutablePixels()[0] = 6;
+    SceneImageChoiceCatalog* catalog
+        = new SceneImageChoiceCatalog("image", new RecordingLock());
+    catalog->addChoice("none", 0, 0);
+    catalog->addChoice("logo", &first, 1);
+    catalog->addChoice("badge", &second, 1);
+    SceneImageChoiceSelection selection(catalog, 0);
+    FixedRandomSource randomSource;
+
+    assert(selection.currentImage() == 0);
+    selection.change("badge", randomSource);
+    const IndexedImage* selected = selection.currentImage();
+    assert(selection.currentValue() == 2);
+    assert(selected != &second);
+    assert(std::strcmp(selected->name(), "badge") == 0);
+    assert(selected->pixels()[0] == 6);
+}
+
 int main() {
     testFlameCatalogOwnsTypedChoices();
     testFlameSelectionReturnsTypedFlame();
@@ -213,5 +284,7 @@ int main() {
     testTranslationSelectionReturnsOwnedTable();
     testPaletteCatalogCopiesEntry();
     testPaletteSelectionReturnsOwnedEntry();
+    testImageCatalogCopiesImageAndPalette();
+    testImageSelectionReturnsOwnedImage();
     return 0;
 }

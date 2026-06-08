@@ -988,9 +988,19 @@ add_executable(scene_typed_visual_catalogs_test
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
     ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(scene_typed_visual_catalogs_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
 )
 
 target_include_directories(scene_typed_visual_catalogs_test PRIVATE

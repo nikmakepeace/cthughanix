@@ -2,6 +2,7 @@
 
 #include "SceneTypedVisualCatalogs.h"
 
+#include "Image.h"
 #include "PaletteEntry.h"
 
 #include <cctype>
@@ -71,6 +72,26 @@ static void copyPaletteMetadata(
                 ? source.metadataEnergies[i]
                 : "");
     }
+}
+
+static IndexedImage* copyIndexedImage(const IndexedImage* image) {
+    if (image == 0)
+        return 0;
+
+    ColorPalette* palette = 0;
+    if (image->palette() != 0) {
+        palette = new ColorPalette();
+        palette->copyFrom(*image->palette());
+    }
+
+    IndexedImage* copy = new IndexedImage(
+        image->name(), image->width(), image->height(), palette);
+    if (image->pixels() != 0 && copy->mutablePixels() != 0
+        && image->size() > 0) {
+        std::memcpy(copy->mutablePixels(), image->pixels(), image->size());
+    }
+
+    return copy;
 }
 
 }
@@ -369,4 +390,77 @@ PaletteEntry* ScenePaletteChoiceSelection::currentPaletteEntry() {
     ScenePaletteChoice* choice
         = dynamic_cast<ScenePaletteChoice*>(currentChoice());
     return (choice != 0) ? choice->paletteEntry() : 0;
+}
+
+SceneImageChoice::SceneImageChoice(const char* name_,
+    const IndexedImage* image_, int inUse_)
+    : imageValue(copyIndexedImage(image_))
+    , nameValue((name_ != 0) ? name_ : "")
+    , inUseValue(inUse_) { }
+
+SceneImageChoice::~SceneImageChoice() { }
+
+const IndexedImage* SceneImageChoice::image() const {
+    return imageValue.get();
+}
+
+const char* SceneImageChoice::name() const {
+    return nameValue.c_str();
+}
+
+int SceneImageChoice::sameName(const char* other) const {
+    return sameChoiceName(nameValue, other);
+}
+
+int SceneImageChoice::inUse() const {
+    return inUseValue;
+}
+
+void SceneImageChoice::setUse(int inUse_) {
+    inUseValue = inUse_;
+}
+
+SceneImageChoiceCatalog::SceneImageChoiceCatalog(
+    const char* optionName_, SceneChoiceLock* lock_)
+    : optionNameValue((optionName_ != 0) ? optionName_ : "")
+    , lockValue(lock_)
+    , choices() { }
+
+SceneImageChoice& SceneImageChoiceCatalog::addChoice(
+    const char* name, const IndexedImage* image, int inUse) {
+    choices.push_back(std::unique_ptr<SceneImageChoice>(
+        new SceneImageChoice(name, image, inUse)));
+    return *choices.back();
+}
+
+int SceneImageChoiceCatalog::entryCount() const {
+    return int(choices.size());
+}
+
+SceneChoice* SceneImageChoiceCatalog::choiceAt(int index) const {
+    if ((index < 0) || (index >= int(choices.size())))
+        return 0;
+    return choices[index].get();
+}
+
+SceneChoiceLock& SceneImageChoiceCatalog::lock() {
+    return *lockValue;
+}
+
+const SceneChoiceLock& SceneImageChoiceCatalog::lock() const {
+    return *lockValue;
+}
+
+const char* SceneImageChoiceCatalog::optionName() const {
+    return optionNameValue.c_str();
+}
+
+SceneImageChoiceSelection::SceneImageChoiceSelection(
+    SceneChoiceCatalog* catalog, int selectedValue)
+    : SceneChoiceSelection(catalog, selectedValue) { }
+
+const IndexedImage* SceneImageChoiceSelection::currentImage() {
+    SceneImageChoice* choice
+        = dynamic_cast<SceneImageChoice*>(currentChoice());
+    return (choice != 0) ? choice->image() : 0;
 }

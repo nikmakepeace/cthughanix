@@ -391,4 +391,102 @@ public:
     virtual PaletteEntry* currentPaletteEntry();
 };
 
+/**
+ * Owned SceneChoice entry that stores a copied IndexedImage payload.
+ */
+class SceneImageChoice : public SceneChoice {
+    std::unique_ptr<IndexedImage> imageValue;
+    std::string nameValue;
+    int inUseValue;
+
+public:
+    /**
+     * Creates one image choice.
+     *
+     * @param name_ Stable choice name.
+     * @param image_ Optional image copied into the Scene choice.
+     * @param inUse_ Nonzero when selectable by default.
+     */
+    SceneImageChoice(const char* name_, const IndexedImage* image_,
+        int inUse_);
+    ~SceneImageChoice();
+
+    /** @return Immutable owned image, or NULL. */
+    const IndexedImage* image() const;
+
+    /** @return Stable choice name. */
+    virtual const char* name() const;
+
+    /** Returns nonzero when text names this choice. */
+    virtual int sameName(const char* other) const;
+
+    /** @return Nonzero when this choice may be selected randomly/cyclically. */
+    virtual int inUse() const;
+
+    /** Sets whether this choice may be selected randomly/cyclically. */
+    virtual void setUse(int inUse);
+};
+
+/**
+ * Owned SceneChoiceCatalog for image choices.
+ */
+class SceneImageChoiceCatalog : public SceneChoiceCatalog {
+    std::string optionNameValue;
+    std::unique_ptr<SceneChoiceLock> lockValue;
+    std::vector<std::unique_ptr<SceneImageChoice> > choices;
+
+public:
+    /**
+     * Creates an empty image choice catalog.
+     *
+     * @param optionName_ Stable catalog/option name.
+     * @param lock_ Owned lock state for this selection.
+     */
+    SceneImageChoiceCatalog(const char* optionName_, SceneChoiceLock* lock_);
+
+    /**
+     * Adds one copied image choice.
+     *
+     * @param name Stable choice name.
+     * @param image Optional image copied into this catalog.
+     * @param inUse Nonzero when selectable by default.
+     * @return Mutable choice entry.
+     */
+    SceneImageChoice& addChoice(
+        const char* name, const IndexedImage* image, int inUse);
+
+    /** @return Number of owned choices. */
+    virtual int entryCount() const;
+
+    /** @return Choice at index, or NULL when out of range. */
+    virtual SceneChoice* choiceAt(int index) const;
+
+    /** @return Mutable lock for the selection using this catalog. */
+    virtual SceneChoiceLock& lock();
+
+    /** @return Immutable lock for the selection using this catalog. */
+    virtual const SceneChoiceLock& lock() const;
+
+    /** @return Stable catalog/option name. */
+    virtual const char* optionName() const;
+};
+
+/**
+ * Catalog-backed image selection that returns an owned IndexedImage.
+ */
+class SceneImageChoiceSelection : public SceneChoiceSelection,
+    public SceneImageSelection {
+public:
+    /**
+     * Creates an image selection over an owned catalog.
+     *
+     * @param catalog Owned image catalog.
+     * @param selectedValue Initial selected index.
+     */
+    SceneImageChoiceSelection(SceneChoiceCatalog* catalog, int selectedValue);
+
+    /** @return Selected owned image, or NULL. */
+    virtual const IndexedImage* currentImage();
+};
+
 #endif
