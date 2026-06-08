@@ -16,7 +16,6 @@ class RandomSource;
 class SceneEffectRegistry;
 class SceneGeometry;
 class ScenePresetCatalog;
-class SceneSelectionSynchronizer;
 class SceneVisualCatalogs;
 struct SceneConfig;
 class Wave;
@@ -125,12 +124,10 @@ class Scene;
 class SceneCommandDependencies {
 public:
     SceneVisualCatalogs& visualCatalogs;
-    SceneSelectionSynchronizer& selectionSync;
     SceneEffectRegistry& effectRegistry;
     ScenePresetCatalog& presets;
 
     SceneCommandDependencies(SceneVisualCatalogs& visualCatalogs_,
-        SceneSelectionSynchronizer& selectionSync_,
         SceneEffectRegistry& effectRegistry_, ScenePresetCatalog& presets_);
 };
 

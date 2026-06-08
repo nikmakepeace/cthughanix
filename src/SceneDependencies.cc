@@ -6,6 +6,4 @@ SceneEffectRegistry::~SceneEffectRegistry() { }
 
 ScenePresetCatalog::~ScenePresetCatalog() { }
 
-SceneSelectionSynchronizer::~SceneSelectionSynchronizer() { }
-
 SceneVisualCatalogs::~SceneVisualCatalogs() { }

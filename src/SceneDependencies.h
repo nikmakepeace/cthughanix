@@ -35,24 +35,6 @@ public:
     virtual void save(int slot) = 0;
 };
 
-/** Optional compatibility hook after Scene-owned selection mutations. */
-class SceneSelectionSynchronizer {
-public:
-    virtual ~SceneSelectionSynchronizer();
-
-    /**
-     * Runs any remaining post-selection compatibility synchronization.
-     *
-     * Native Scene registry and preset operations mutate selections directly.
-     * Migrating callers may use this hook to bridge temporary legacy readers or
-     * report forced change flags; fully native callers should return
-     * SceneNoChange.
-     *
-     * @return SceneChange flags forced by the synchronization.
-     */
-    virtual unsigned int syncControlsFromSelections() = 0;
-};
-
 /**
  * Scene-facing visual catalog and selection port.
  *

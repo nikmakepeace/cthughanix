@@ -16,13 +16,11 @@ class SceneVisualSelections;
 class SceneVisualCatalogFactoryResult {
 public:
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs;
-    std::unique_ptr<SceneSelectionSynchronizer> selectionSync;
     SceneVisualSelections* selections;
 
     SceneVisualCatalogFactoryResult();
     SceneVisualCatalogFactoryResult(
         std::unique_ptr<SceneVisualCatalogs> visualCatalogs_,
-        std::unique_ptr<SceneSelectionSynchronizer> selectionSync_,
         SceneVisualSelections& selections_);
 };
 
