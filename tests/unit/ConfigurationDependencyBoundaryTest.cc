@@ -1966,6 +1966,14 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "#include \"AudioAnalyzer.h\"");
     assertSourceDoesNotContain("src/keymap.cc",
         "#include \"AudioFrame.h\"");
+    assertSourceDoesNotContain("src/keymap.cc",
+        "#include \"flames.h\"");
+    assertSourceDoesNotContain("src/keymap.cc",
+        "#include \"waves.h\"");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::changeSceneBy(RuntimeSceneFlame");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::changeSceneBy(RuntimeSceneWave");
     assertSourceContains("src/RuntimeChangeMediator.cc",
         "autoChangeControls.toggleLock()");
     assertSourceContains("src/RuntimeChangeMediator.cc",
