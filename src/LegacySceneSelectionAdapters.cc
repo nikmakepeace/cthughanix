@@ -106,6 +106,8 @@ public:
 
 class LegacySceneSelectionAdapters : public SceneVisualSelections,
     public LegacySceneEffectControlBindings {
+    EffectControl& borderControl;
+    EffectControl& flashlightControl;
     LegacySceneFlameSelection flameValue;
     LegacySceneGeneralFlameSelection generalFlameValue;
     LegacySceneWaveSelection waveValue;
@@ -114,8 +116,8 @@ class LegacySceneSelectionAdapters : public SceneVisualSelections,
     LegacySceneControlBackedSelection objectValue;
     LegacySceneTranslationSelection translationValue;
     LegacyScenePaletteSelection paletteValue;
-    LegacySceneControlBackedSelection borderValue;
-    LegacySceneControlBackedSelection flashlightValue;
+    SceneChoiceSelection borderValue;
+    SceneChoiceSelection flashlightValue;
     LegacySceneImageSelection imagesValue;
 
 public:
@@ -308,7 +310,9 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     EffectControl& waveScale_, EffectControl& table_, EffectControl& object_,
     EffectControl& translation_, EffectControl& palette_,
     EffectControl& border_, EffectControl& flashlight_, EffectControl& images_)
-    : flameValue(flame_)
+    : borderControl(border_)
+    , flashlightControl(flashlight_)
+    , flameValue(flame_)
     , generalFlameValue(generalFlame_)
     , waveValue(wave_)
     , waveScaleValue(waveScale_)
@@ -316,8 +320,10 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     , objectValue(object_)
     , translationValue(translation_)
     , paletteValue(palette_)
-    , borderValue(border_)
-    , flashlightValue(flashlight_)
+    , borderValue(new SceneEffectChoiceCatalog(border_.name(),
+          border_.choiceList(), border_.lock), int(border_))
+    , flashlightValue(new SceneEffectChoiceCatalog(flashlight_.name(),
+          flashlight_.choiceList(), flashlight_.lock), int(flashlight_))
     , imagesValue(images_) { }
 
 SceneFlameSelection& LegacySceneSelectionAdapters::flame() {
@@ -385,9 +391,9 @@ const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
         return &objectValue;
     if (translationValue.isOption(option))
         return &translationValue;
-    if (borderValue.isOption(option))
+    if (&option == &borderControl)
         return &borderValue;
-    if (flashlightValue.isOption(option))
+    if (&option == &flashlightControl)
         return &flashlightValue;
     if (paletteValue.isOption(option))
         return &paletteValue;
@@ -408,8 +414,8 @@ void LegacySceneSelectionAdapters::syncFromControls() {
     objectValue.syncFromControl();
     translationValue.syncFromControl();
     paletteValue.syncFromControl();
-    borderValue.syncFromControl();
-    flashlightValue.syncFromControl();
+    borderValue.setValue(int(borderControl));
+    flashlightValue.setValue(int(flashlightControl));
     imagesValue.syncFromControl();
 }
 
@@ -422,8 +428,8 @@ void LegacySceneSelectionAdapters::syncControlsFromSelections() {
     objectValue.syncControlFromSelection();
     translationValue.syncControlFromSelection();
     paletteValue.syncControlFromSelection();
-    borderValue.syncControlFromSelection();
-    flashlightValue.syncControlFromSelection();
+    borderControl.setValue(borderValue.currentValue());
+    flashlightControl.setValue(flashlightValue.currentValue());
     imagesValue.syncControlFromSelection();
 }
 
