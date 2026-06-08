@@ -5,25 +5,17 @@
 #include "EffectControl.h"
 #include "Image.h"
 #include "LegacySceneEffectControlBindings.h"
-#include "ProcessServices.h"
 #include "SceneChoiceSelection.h"
 #include "SceneEffectChoiceCatalog.h"
+#include "SceneGeneralFlameSelectionValue.h"
 #include "TranslationOptions.h"
 #include "display.h"
 #include "flames.h"
 #include "waves.h"
 
-#include <cstdlib>
 #include <memory>
 
 namespace {
-
-static const int generalFlameStates = 9 * 9 * 9 * 9 * 9;
-
-static int modInt(int value, int modulo) {
-    int result = value % modulo;
-    return result < 0 ? result + modulo : result;
-}
 
 class LegacySceneEffectChoiceSelection : public SceneChoiceSelection {
 protected:
@@ -35,49 +27,12 @@ public:
         SceneChoiceCatalog* catalog, int selectedValue);
 };
 
-class LegacySceneControlBackedSelection
-    : public LegacySceneEffectChoiceSelection {
-    EffectControl& option;
-
-protected:
-    virtual void selectionChanged();
-    virtual void syncSelectedValue(int value);
-
-public:
-    explicit LegacySceneControlBackedSelection(EffectControl& option_);
-
-    int isOption(const EffectControl& option_) const;
-    void syncFromControl();
-    void syncControlFromSelection();
-};
-
 class LegacySceneFlameSelection : public LegacySceneEffectChoiceSelection,
     public SceneFlameSelection {
 public:
     LegacySceneFlameSelection(SceneChoiceCatalog* catalog, int selectedValue);
 
     virtual const Flame* currentFlame();
-};
-
-class LegacySceneGeneralFlameSelection : public LegacySceneControlBackedSelection,
-    public SceneGeneralFlameSelection {
-protected:
-    virtual void syncSelectedValue(int value);
-
-public:
-    explicit LegacySceneGeneralFlameSelection(
-        EffectControl& generalFlameControl_);
-
-    virtual const char* currentName() const;
-    virtual int currentValue() const;
-    virtual int entryCount() const;
-    virtual void change(int by);
-    virtual void change(
-        const char* to, RandomSource& randomSource);
-    virtual void setValue(int index);
-    virtual int encodedValue() const;
-    virtual const char* selectionText() const;
-    virtual int changeRandom(RandomSource& randomSource);
 };
 
 class LegacySceneWaveSelection : public LegacySceneEffectChoiceSelection,
@@ -116,6 +71,7 @@ public:
 class LegacySceneSelectionAdapters : public SceneVisualSelections,
     public LegacySceneEffectControlBindings {
     EffectControl& flameControl;
+    EffectControl& generalFlameControl;
     EffectControl& waveControl;
     EffectControl& waveScaleControl;
     EffectControl& tableControl;
@@ -126,7 +82,7 @@ class LegacySceneSelectionAdapters : public SceneVisualSelections,
     EffectControl& flashlightControl;
     EffectControl& imagesControl;
     LegacySceneFlameSelection flameValue;
-    LegacySceneGeneralFlameSelection generalFlameValue;
+    SceneGeneralFlameSelectionValue generalFlameValue;
     LegacySceneWaveSelection waveValue;
     SceneChoiceSelection waveScaleValue;
     SceneChoiceSelection tableValue;
@@ -181,35 +137,6 @@ const EffectChoice* LegacySceneEffectChoiceSelection::currentEffectChoice()
     return (choice != 0) ? &choice->effectChoice() : 0;
 }
 
-LegacySceneControlBackedSelection::LegacySceneControlBackedSelection(
-    EffectControl& option_)
-    : LegacySceneEffectChoiceSelection(
-          new SceneEffectChoiceCatalog(option_.name(), option_.choiceList(),
-              option_.lock),
-          int(option_))
-    , option(option_) { }
-
-void LegacySceneControlBackedSelection::selectionChanged() {
-    option.setValue(currentValue());
-}
-
-void LegacySceneControlBackedSelection::syncSelectedValue(int value) {
-    setSelectedValue(value);
-}
-
-int LegacySceneControlBackedSelection::isOption(
-    const EffectControl& option_) const {
-    return &option_ == &option;
-}
-
-void LegacySceneControlBackedSelection::syncFromControl() {
-    syncSelectedValue(int(option));
-}
-
-void LegacySceneControlBackedSelection::syncControlFromSelection() {
-    option.setValue(currentValue());
-}
-
 LegacySceneFlameSelection::LegacySceneFlameSelection(
     SceneChoiceCatalog* catalog, int selectedValue)
     : LegacySceneEffectChoiceSelection(catalog, selectedValue) { }
@@ -217,80 +144,6 @@ LegacySceneFlameSelection::LegacySceneFlameSelection(
 const Flame* LegacySceneFlameSelection::currentFlame() {
     FlameEntry* entry = dynamic_cast<FlameEntry*>(currentEffectChoice());
     return (entry != 0) ? &entry->flame() : 0;
-}
-
-LegacySceneGeneralFlameSelection::LegacySceneGeneralFlameSelection(
-    EffectControl& generalFlameControl_)
-    : LegacySceneControlBackedSelection(generalFlameControl_) { }
-
-void LegacySceneGeneralFlameSelection::syncSelectedValue(int value) {
-    setSelectedValue(modInt(value, generalFlameStates));
-}
-
-const char* LegacySceneGeneralFlameSelection::currentName() const {
-    return selectionText();
-}
-
-int LegacySceneGeneralFlameSelection::currentValue() const {
-    return encodedValue();
-}
-
-int LegacySceneGeneralFlameSelection::entryCount() const {
-    return generalFlameStates;
-}
-
-void LegacySceneGeneralFlameSelection::change(int by) {
-    setValue(modInt(encodedValue() + by, generalFlameStates));
-}
-
-void LegacySceneGeneralFlameSelection::change(
-    const char* to, RandomSource& randomSource) {
-    char* pos;
-
-    if ((to == 0) || (to[0] == '\0'))
-        return;
-
-    to = applySelectionLockPrefix(to);
-
-    int newValue = std::strtol(to, &pos, 0);
-    if (pos == to) {
-        CTH_WARN("Unknown entry `%s' for option `%s'\n", to,
-            optionName());
-        changeRandom(randomSource);
-        return;
-    }
-
-    setValue(modInt(newValue, generalFlameStates));
-}
-
-void LegacySceneGeneralFlameSelection::setValue(int index) {
-    setSelectedValue(modInt(index, generalFlameStates));
-    selectionChanged();
-}
-
-int LegacySceneGeneralFlameSelection::encodedValue() const {
-    return SceneChoiceSelection::currentValue();
-}
-
-const char* LegacySceneGeneralFlameSelection::selectionText() const {
-    static char str[32];
-
-    if (selectionLock().enabled())
-        std::snprintf(str, sizeof(str), "locked:%d", encodedValue());
-    else
-        std::snprintf(str, sizeof(str), "%d", encodedValue());
-
-    return str;
-}
-
-int LegacySceneGeneralFlameSelection::changeRandom(
-    RandomSource& randomSource) {
-    if (selectionLock().enabled())
-        return 0;
-
-    int previousValue = encodedValue();
-    setValue(randomSource.uniformInt(generalFlameStates));
-    return encodedValue() != previousValue;
 }
 
 LegacySceneWaveSelection::LegacySceneWaveSelection(
@@ -334,6 +187,7 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     EffectControl& translation_, EffectControl& palette_,
     EffectControl& border_, EffectControl& flashlight_, EffectControl& images_)
     : flameControl(flame_)
+    , generalFlameControl(generalFlame_)
     , waveControl(wave_)
     , waveScaleControl(waveScale_)
     , tableControl(table_)
@@ -345,7 +199,8 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     , imagesControl(images_)
     , flameValue(new SceneEffectChoiceCatalog(flame_.name(),
           flame_.choiceList(), flame_.lock), int(flame_))
-    , generalFlameValue(generalFlame_)
+    , generalFlameValue(generalFlame_.name(),
+          new SceneEffectChoiceLock(generalFlame_.lock), int(generalFlame_))
     , waveValue(new SceneEffectChoiceCatalog(wave_.name(),
           wave_.choiceList(), wave_.lock), int(wave_))
     , waveScaleValue(new SceneEffectChoiceCatalog(waveScale_.name(),
@@ -420,7 +275,7 @@ const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
     const EffectControl& option) const {
     if (&option == &flameControl)
         return &flameValue;
-    if (generalFlameValue.isOption(option))
+    if (&option == &generalFlameControl)
         return &generalFlameValue;
     if (&option == &waveControl)
         return &waveValue;
@@ -446,7 +301,7 @@ const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
 
 void LegacySceneSelectionAdapters::syncFromControls() {
     flameValue.setValue(int(flameControl));
-    generalFlameValue.syncFromControl();
+    generalFlameValue.setValue(int(generalFlameControl));
     waveValue.setValue(int(waveControl));
     waveScaleValue.setValue(int(waveScaleControl));
     tableValue.setValue(int(tableControl));
@@ -460,7 +315,7 @@ void LegacySceneSelectionAdapters::syncFromControls() {
 
 void LegacySceneSelectionAdapters::syncControlsFromSelections() {
     flameControl.setValue(flameValue.currentValue());
-    generalFlameValue.syncControlFromSelection();
+    generalFlameControl.setValue(generalFlameValue.currentValue());
     waveControl.setValue(waveValue.currentValue());
     waveScaleControl.setValue(waveScaleValue.currentValue());
     tableControl.setValue(tableValue.currentValue());

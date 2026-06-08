@@ -2331,7 +2331,7 @@ static void testGeneralFlameUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/Scene.h", "changeGeneralFlame");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
         "selections.generalFlame().changeRandom(randomSource)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/SceneGeneralFlameSelectionValue.cc",
         "setValue(randomSource.uniformInt(generalFlameStates))");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "generalFlameOption.changeRandom(randomSource, 0)");
@@ -2532,8 +2532,12 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/SceneChoiceSelection.cc", "OptionOnOff");
     assertSourceContains("src/CMakeLists.txt", "SceneChoiceSelection.cc");
     assertSourceContains("src/CMakeLists.txt", "SceneEffectChoiceCatalog.cc");
+    assertSourceContains("src/CMakeLists.txt",
+        "SceneGeneralFlameSelectionValue.cc");
     assertSourceContains("tests/CMakeLists.txt",
         "scene_effect_choice_catalog_test");
+    assertSourceContains("tests/CMakeLists.txt",
+        "scene_general_flame_selection_value_test");
     assertSourceContains("src/SceneEffectChoiceCatalog.h",
         "class SceneEffectChoice : public SceneChoice");
     assertSourceContains("src/SceneEffectChoiceCatalog.h",
@@ -2547,8 +2551,15 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class EffectControlSceneChoiceCatalog");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "class LegacySceneControlBackedSelection\n"
-        "    : public LegacySceneEffectChoiceSelection");
+        "#include \"SceneGeneralFlameSelectionValue.h\"");
+    assertSourceContains("src/SceneGeneralFlameSelectionValue.h",
+        "class SceneGeneralFlameSelectionValue : public SceneGeneralFlameSelection");
+    assertSourceDoesNotContain("src/SceneGeneralFlameSelectionValue.h",
+        "EffectControl");
+    assertSourceDoesNotContain("src/SceneGeneralFlameSelectionValue.cc",
+        "EffectControl");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneControlBackedSelection");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneEffectChoiceSelection : public SceneChoiceSelection");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
@@ -2562,7 +2573,7 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneImageSelection : public LegacySceneEffectChoiceSelection");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "class LegacySceneGeneralFlameSelection : public LegacySceneControlBackedSelection");
+        "SceneGeneralFlameSelectionValue generalFlameValue;");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "SceneChoiceSelection waveScaleValue;");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
@@ -2583,6 +2594,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "LegacySceneControlBackedSelection borderValue;");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "LegacySceneControlBackedSelection flashlightValue;");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "LegacySceneControlBackedSelection generalFlameValue;");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "public SceneEffectControlSelection");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
@@ -2605,18 +2618,18 @@ static void testEffectControlUsesInjectedRandomSource() {
         "SceneChoice* choice = choiceAt(i)");
     assertSourceContains("src/SceneChoiceSelection.cc",
         "void SceneChoiceSelection::selectionChanged() { }");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void LegacySceneControlBackedSelection::selectionChanged()");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "option.setValue(currentValue())");
+        "generalFlameControl.setValue(generalFlameValue.currentValue())");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void SceneChoiceSelection::mirrorToControl()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "EffectControl& SceneChoiceSelection::control()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "choices.push_back(const_cast<EffectControl&>(option)[i])");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "return SceneChoiceSelection::currentValue()");
+    assertSourceContains("src/SceneGeneralFlameSelectionValue.cc",
+        "return selectedValue");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "dynamic_cast<FlameEntry*>(currentEffectChoice())");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",

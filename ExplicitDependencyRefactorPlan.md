@@ -893,10 +893,14 @@ changes needed before the surface can disappear.
    random/change behavior are owned by native Scene/Frame Generator objects
    instead of global `EffectControl` instances.
 
+   Current progress: the encoded general-flame selection is now a native
+   `SceneGeneralFlameSelectionValue` with explicit lock and diagnostics ports.
+   The legacy adapter still syncs that value to the old general-flame control
+   until the native visual owner replaces the remaining legacy factory.
+
    Concrete changes required:
-   - Create owned catalog and selection objects for flame/general flame,
-     wave/wave-scale/table/object, translation, palette, image, border, and
-     flashlight.
+   - Create owned catalog and selection objects for flame, wave/wave-scale,
+     table/object, translation, palette, image, border, and flashlight.
    - Move catalog loading, generated entries, allowed-choice metadata, and
      current-entry lookup into those owners.
    - Give those owners the small typed APIs needed by `SceneVisualCatalogs`,
