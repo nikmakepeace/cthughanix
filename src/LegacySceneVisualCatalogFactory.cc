@@ -28,10 +28,10 @@ SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs(
         new SceneVisualCatalogService(
             selectionState, selections, *paletteRandomizer));
-    std::unique_ptr<SceneRuntimeControlBridge> controlBridge
+    std::unique_ptr<SceneSelectionSynchronizer> selectionSync
         = createLegacySceneSelectionSynchronizer(selections, controlMirror);
     return SceneVisualCatalogFactoryResult(std::move(visualCatalogs),
-        std::move(controlBridge), selections);
+        std::move(selectionSync), selections);
 }
 
 std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory(

@@ -236,7 +236,7 @@ public:
     }
 };
 
-class SyncingSceneSelectionSynchronizer : public SceneRuntimeControlBridge {
+class SyncingSceneSelectionSynchronizer : public SceneSelectionSynchronizer {
     RecordingVisualCatalogs& visualCatalogs;
 
 public:

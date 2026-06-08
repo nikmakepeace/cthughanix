@@ -1201,6 +1201,8 @@ static void testSceneStartupUsesSceneConfig() {
         "std::unique_ptr<SceneVisualCatalogs> visualCatalogsValue");
     assertSourceDoesNotContain("src/SceneRuntime.h",
         "std::unique_ptr<SceneRuntimeControlBridge> controlBridgeValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "std::unique_ptr<SceneSelectionSynchronizer> selectionSyncValue");
     assertSourceContains("src/SceneRuntime.h", "SceneSelectionState selectionStateValue");
     assertSourceContains("src/SceneRuntime.h", "SceneCommands commandsValue");
     assertSourceDoesNotContain("src/SceneRuntime.h",
@@ -1234,7 +1236,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/SceneRuntime.cc",
         "visualCatalogFactory.create(selectionStateValue)");
     assertSourceContains("src/SceneRuntime.cc",
-        "*visualCatalogFactoryResultValue.controlBridge");
+        "*visualCatalogFactoryResultValue.selectionSync");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "registerControls(*effectRegistryValue)");
     assertSourceContains("src/SceneRuntime.cc",
@@ -1416,8 +1418,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"LegacySceneControlMirror.h\"");
     assertSourceContains("src/SceneDependencies.h", "class SceneSelectionSynchronizer");
-    assertSourceContains("src/SceneRuntimeDependencies.h",
-        "class SceneRuntimeControlBridge : public SceneSelectionSynchronizer");
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
+        "class SceneRuntimeControlBridge");
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "class SceneRuntimeControlBridge");
     assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneEffectControlCatalog");
@@ -1439,7 +1441,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/SceneRuntimeDependencies.h",
         "std::unique_ptr<SceneVisualCatalogs> visualCatalogs");
     assertSourceContains("src/SceneRuntimeDependencies.h",
-        "std::unique_ptr<SceneRuntimeControlBridge> controlBridge");
+        "std::unique_ptr<SceneSelectionSynchronizer> selectionSync");
     assertSourceContains("src/SceneRuntimeDependencies.h",
         "class SceneVisualCatalogFactory");
     assertSourceDoesNotContain("src/SceneDependencies.h",
@@ -1462,7 +1464,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.h",
         "#include \"LegacySceneSelectionAdapters.h\"");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
-        "class LegacySceneSelectionSynchronizer : public SceneRuntimeControlBridge");
+        "class LegacySceneSelectionSynchronizer : public SceneSelectionSynchronizer");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
         "class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",

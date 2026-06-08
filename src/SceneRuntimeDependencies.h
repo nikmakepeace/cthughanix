@@ -13,24 +13,16 @@ struct EffectPolicy;
 class SceneOptionSelection;
 class SceneVisualSelections;
 
-/**
- * Runtime bridge for external scene-control adapters.
- */
-class SceneRuntimeControlBridge : public SceneSelectionSynchronizer {
-public:
-    virtual ~SceneRuntimeControlBridge();
-};
-
 class SceneVisualCatalogFactoryResult {
 public:
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs;
-    std::unique_ptr<SceneRuntimeControlBridge> controlBridge;
+    std::unique_ptr<SceneSelectionSynchronizer> selectionSync;
     SceneVisualSelections* selections;
 
     SceneVisualCatalogFactoryResult();
     SceneVisualCatalogFactoryResult(
         std::unique_ptr<SceneVisualCatalogs> visualCatalogs_,
-        std::unique_ptr<SceneRuntimeControlBridge> controlBridge_,
+        std::unique_ptr<SceneSelectionSynchronizer> selectionSync_,
         SceneVisualSelections& selections_);
 };
 

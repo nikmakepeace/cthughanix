@@ -84,19 +84,17 @@ static void applyPresetPolicy(SceneOptionSelection& selection,
 
 }
 
-SceneRuntimeControlBridge::~SceneRuntimeControlBridge() { }
-
 SceneVisualCatalogFactoryResult::SceneVisualCatalogFactoryResult()
     : visualCatalogs()
-    , controlBridge()
+    , selectionSync()
     , selections(0) { }
 
 SceneVisualCatalogFactoryResult::SceneVisualCatalogFactoryResult(
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs_,
-    std::unique_ptr<SceneRuntimeControlBridge> controlBridge_,
+    std::unique_ptr<SceneSelectionSynchronizer> selectionSync_,
     SceneVisualSelections& selections_)
     : visualCatalogs(std::move(visualCatalogs_))
-    , controlBridge(std::move(controlBridge_))
+    , selectionSync(std::move(selectionSync_))
     , selections(&selections_) { }
 
 SceneVisualCatalogFactory::~SceneVisualCatalogFactory() { }

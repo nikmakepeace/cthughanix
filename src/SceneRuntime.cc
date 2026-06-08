@@ -16,7 +16,7 @@ SceneRuntime::SceneRuntime(SceneGeometry& geometry,
     , commandsValue(sceneValue, geometry,
           SceneCommandDependencies(
               *visualCatalogFactoryResultValue.visualCatalogs,
-              *visualCatalogFactoryResultValue.controlBridge,
+              *visualCatalogFactoryResultValue.selectionSync,
               sceneEffectRegistryValue, sceneSelectionPresetCatalogValue),
           randomSource)
     , commandTargetValue(commandsValue)

@@ -6,7 +6,7 @@
 
 namespace {
 
-class LegacySceneSelectionSynchronizer : public SceneRuntimeControlBridge {
+class LegacySceneSelectionSynchronizer : public SceneSelectionSynchronizer {
     SceneVisualSelections& selections;
     LegacySceneControlMirror& mirror;
     int syncedImageValue;
@@ -40,8 +40,8 @@ public:
 
 }
 
-std::unique_ptr<SceneRuntimeControlBridge> createLegacySceneSelectionSynchronizer(
+std::unique_ptr<SceneSelectionSynchronizer> createLegacySceneSelectionSynchronizer(
     SceneVisualSelections& selections, LegacySceneControlMirror& mirror) {
-    return std::unique_ptr<SceneRuntimeControlBridge>(
+    return std::unique_ptr<SceneSelectionSynchronizer>(
         new LegacySceneSelectionSynchronizer(selections, mirror));
 }
