@@ -33,6 +33,11 @@ class LegacySceneEffectControlCatalog : public SceneEffectControlCatalog {
             bindings->selectionFor(option));
     }
 
+    void syncControlsFromSelections() {
+        if (bindings != 0)
+            bindings->syncControlsFromSelections();
+    }
+
 public:
     explicit LegacySceneEffectControlCatalog(SceneVisualSelections& selections_)
         : selections(selections_)
@@ -56,8 +61,10 @@ public:
         (void)randomSource;
         int previousImageValue = selections.images().currentValue();
         SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0)
+        if (selection != 0) {
             selection->change(by);
+            syncControlsFromSelections();
+        }
         return changeForSelection(selection, previousImageValue);
     }
 
@@ -65,16 +72,20 @@ public:
         RandomSource& randomSource) {
         int previousImageValue = selections.images().currentValue();
         SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0)
+        if (selection != 0) {
             selection->change(to, randomSource);
+            syncControlsFromSelections();
+        }
         return changeForSelection(selection, previousImageValue);
     }
 
     virtual unsigned int activate(EffectControl& option, int index) {
         int previousImageValue = selections.images().currentValue();
         SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0)
+        if (selection != 0) {
             selection->activate(index);
+            syncControlsFromSelections();
+        }
         return changeForSelection(selection, previousImageValue);
     }
 

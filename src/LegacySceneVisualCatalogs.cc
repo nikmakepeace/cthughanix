@@ -8,6 +8,7 @@
 #include "Flashlight.h"
 #include "Image.h"
 #include "LegacySceneCatalogAdapters.h"
+#include "LegacySceneEffectControlBindings.h"
 #include "LegacySceneEffectControlCatalog.h"
 #include "LegacySceneSelectionAdapters.h"
 #include "TranslationOptions.h"
@@ -16,6 +17,9 @@
 #include "waves.h"
 
 #include <utility>
+
+static void syncLegacyControlsFromSelections(
+    SceneVisualSelections& selections);
 
 LegacySceneVisualCatalogs::LegacySceneVisualCatalogs(
     SceneSelectionState& selectionState_, SceneVisualSelections& selections_,
@@ -53,6 +57,7 @@ const SceneSettings& LegacySceneVisualCatalogs::currentSettings(
         selections.table().currentValue(), waveObjects.currentObject(),
         geometry.width(), geometry.height());
     settings.wave = selectRunnableWave(settings.waveConfig);
+    syncLegacyControlsFromSelections(selections);
     settings.waveName = (settings.wave != 0) ? settings.wave->name() : "unknown";
     settings.waveScaleName = selections.waveScale().currentName();
     settings.tableName = selections.table().currentName();
@@ -86,6 +91,20 @@ static void applyStartupChoice(SceneOptionSelection& selection,
     selection.change(choice.c_str(), randomSource);
 }
 
+static void syncLegacyControlsFromSelections(
+    SceneVisualSelections& selections) {
+    LegacySceneEffectControlBindings* bindings
+        = legacySceneEffectControlBindings(selections);
+    if (bindings != 0)
+        bindings->syncControlsFromSelections();
+}
+
+static unsigned int syncLegacyControlsAndReturn(
+    SceneVisualSelections& selections, unsigned int result) {
+    syncLegacyControlsFromSelections(selections);
+    return result;
+}
+
 void LegacySceneVisualCatalogs::applyStartupConfig(
     const SceneConfig& config, RandomSource& randomSource) {
     applyStartupChoice(selections.waveScale(), config.waveScale, randomSource);
@@ -100,98 +119,105 @@ void LegacySceneVisualCatalogs::applyStartupConfig(
     applyStartupChoice(selections.border(), config.border, randomSource);
     applyStartupChoice(selections.flashlight(), config.flashlight, randomSource);
     applyStartupChoice(selections.images(), config.image, randomSource);
+    syncLegacyControlsFromSelections(selections);
 }
 
 unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target, int by,
     RandomSource& randomSource) {
+    unsigned int result = SceneNoChange;
+
     switch (target) {
     case SceneSelectionFlame:
         selections.flame().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionGeneralFlame:
         selections.generalFlame().changeRandom(randomSource);
-        return SceneFlameChanged;
+        result = SceneFlameChanged;
+        break;
     case SceneSelectionWave:
         selections.wave().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionWaveScale:
         selections.waveScale().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionObject:
         selections.object().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionTranslation:
         selections.translation().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionBorder:
         selections.border().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionFlashlight:
         selections.flashlight().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionPalette:
         selections.palette().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionTable:
         selections.table().change(by);
-        return SceneNoChange;
+        break;
     case SceneSelectionImage:
         selections.images().change(by);
-        return SceneNoChange;
+        break;
     }
 
-    return SceneNoChange;
+    return syncLegacyControlsAndReturn(selections, result);
 }
 
 unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target,
     const char* to, RandomSource& randomSource) {
+    unsigned int result = SceneNoChange;
+
     switch (target) {
     case SceneSelectionFlame:
         selections.flame().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionGeneralFlame:
         selections.generalFlame().change(to, randomSource);
-        return SceneFlameChanged;
+        result = SceneFlameChanged;
+        break;
     case SceneSelectionWave:
         selections.wave().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionWaveScale:
         selections.waveScale().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionObject:
         selections.object().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionTranslation:
         selections.translation().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionBorder:
         selections.border().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionFlashlight:
         selections.flashlight().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionPalette:
         selections.palette().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionTable:
         selections.table().change(to, randomSource);
-        return SceneNoChange;
+        break;
     case SceneSelectionImage:
         selections.images().change(to, randomSource);
-        return SceneNoChange;
+        break;
     }
 
-    return SceneNoChange;
+    return syncLegacyControlsAndReturn(selections, result);
 }
 
 unsigned int LegacySceneVisualCatalogs::randomPalette(RandomSource& randomSource) {
     selections.palette().setValue(paletteRandomizer.randomizeLast(randomSource));
-    return ScenePaletteChanged;
+    return syncLegacyControlsAndReturn(selections, ScenePaletteChanged);
 }
 
 unsigned int LegacySceneVisualCatalogs::addRandomPalette(RandomSource& randomSource) {
     selections.palette().setValue(paletteRandomizer.addRandom(randomSource));
-    return ScenePaletteChanged;
+    return syncLegacyControlsAndReturn(selections, ScenePaletteChanged);
 }
 
 LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(

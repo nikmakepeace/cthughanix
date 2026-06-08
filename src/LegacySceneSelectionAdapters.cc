@@ -39,6 +39,7 @@ public:
 
     int isOption(const EffectControl& option_) const;
     void syncFromControl();
+    void syncControlFromSelection();
 };
 
 class LegacySceneFlameSelection : public LegacySceneControlBackedSelection,
@@ -141,6 +142,7 @@ public:
     virtual const SceneOptionSelection* selectionFor(
         const EffectControl& option) const;
     virtual void syncFromControls();
+    virtual void syncControlsFromSelections();
 };
 
 LegacySceneControlBackedSelection::LegacySceneControlBackedSelection(
@@ -179,6 +181,10 @@ int LegacySceneControlBackedSelection::isOption(
 
 void LegacySceneControlBackedSelection::syncFromControl() {
     syncSelectedValue(int(option));
+}
+
+void LegacySceneControlBackedSelection::syncControlFromSelection() {
+    option.setValue(currentValue());
 }
 
 LegacySceneFlameSelection::LegacySceneFlameSelection(
@@ -405,6 +411,20 @@ void LegacySceneSelectionAdapters::syncFromControls() {
     borderValue.syncFromControl();
     flashlightValue.syncFromControl();
     imagesValue.syncFromControl();
+}
+
+void LegacySceneSelectionAdapters::syncControlsFromSelections() {
+    flameValue.syncControlFromSelection();
+    generalFlameValue.syncControlFromSelection();
+    waveValue.syncControlFromSelection();
+    waveScaleValue.syncControlFromSelection();
+    tableValue.syncControlFromSelection();
+    objectValue.syncControlFromSelection();
+    translationValue.syncControlFromSelection();
+    paletteValue.syncControlFromSelection();
+    borderValue.syncControlFromSelection();
+    flashlightValue.syncControlFromSelection();
+    imagesValue.syncControlFromSelection();
 }
 
 }

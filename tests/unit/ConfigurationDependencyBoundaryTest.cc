@@ -1318,9 +1318,13 @@ static void testSceneStartupUsesSceneConfig() {
         "SceneOptionSelection* selectionFor(EffectControl& option)");
     assertSourceContains("src/LegacySceneEffectControlBindings.h",
         "virtual void syncFromControls() = 0;");
+    assertSourceContains("src/LegacySceneEffectControlBindings.h",
+        "virtual void syncControlsFromSelections() = 0;");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "#include \"LegacySceneEffectControlBindings.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "#include \"LegacySceneEffectControlBindings.h\"");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
         "#include \"LegacySceneEffectControlBindings.h\"");
     assertSourceContains("src/SceneDependencies.h", "class SceneSelectionSynchronizer");
     assertSourceContains("src/SceneRuntimeDependencies.h",
@@ -2486,6 +2490,12 @@ static void testEffectControlUsesInjectedRandomSource() {
         "legacySceneEffectControlBindings(selections_)");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "bindings->syncFromControls()");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+        "bindings->syncControlsFromSelections()");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "syncLegacyControlsFromSelections(selections)");
+    assertSourceContains("src/LegacySceneVisualCatalogs.cc",
+        "syncLegacyControlsAndReturn(selections, result)");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "registerSelection(registry");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",

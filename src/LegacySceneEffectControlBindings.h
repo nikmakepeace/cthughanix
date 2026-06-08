@@ -38,6 +38,9 @@ public:
 
     /** Synchronizes all bound selections from their legacy control values. */
     virtual void syncFromControls() = 0;
+
+    /** Synchronizes all legacy control values from their bound selections. */
+    virtual void syncControlsFromSelections() = 0;
 };
 
 LegacySceneEffectControlBindings* legacySceneEffectControlBindings(
