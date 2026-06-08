@@ -2,7 +2,7 @@
 #define __FLAME_H
 
 class FrameRenderTarget;
-class FrameRenderContext;
+class FrameGeneratorContext;
 
 /**
  * Precomputed byte math used by flame feedback kernels.
@@ -67,7 +67,7 @@ public:
      * @param runtime Flame lookup tables and general-flame setting.
      */
     typedef void (*Function)(FrameRenderTarget& buffer,
-        const FrameRenderContext& context, FlameRuntime& runtime);
+        const FrameGeneratorContext& context, FlameRuntime& runtime);
 
 private:
     Function functionValue;
@@ -98,7 +98,7 @@ public:
      * @param generalFlame Encoded general-flame option value.
      * @param lookupTables Precomputed flame math tables.
      */
-    void execute(FrameRenderTarget& buffer, const FrameRenderContext& context,
+    void execute(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
         int generalFlame, const FlameLookupTables& lookupTables) const;
 };
 

@@ -3,7 +3,7 @@
 #ifndef CTHUGHA_FRAME_FILTERCHAIN_H
 #define CTHUGHA_FRAME_FILTERCHAIN_H
 
-#include "FrameRenderContext.h"
+#include "FrameGeneratorContext.h"
 #include "IndexedFrame.h"
 
 #include <vector>
@@ -20,7 +20,7 @@ class LogSink;
  */
 class FrameFilterFrame {
     FrameRenderTarget* bufferValue;
-    const FrameRenderContext* contextValue;
+    const FrameGeneratorContext* contextValue;
     FramePalette* framePaletteValue;
     IndexedFrame* indexedFrameValue;
     LogSink* logValue;
@@ -35,14 +35,14 @@ public:
      * @param indexedFrame_ Destination for final display frame publication.
      * @param log_ Diagnostics sink for this filterchain run.
      */
-    FrameFilterFrame(FrameRenderTarget& buffer_, const FrameRenderContext& context_,
+    FrameFilterFrame(FrameRenderTarget& buffer_, const FrameGeneratorContext& context_,
         FramePalette* framePalette_, IndexedFrame* indexedFrame_, LogSink& log_);
 
     /** @return Active/passive indexed pixel buffer for this frame. */
     FrameRenderTarget& buffer();
 
     /** @return Borrowed audio/time context for this frame. */
-    const FrameRenderContext& context() const;
+    const FrameGeneratorContext& context() const;
 
     /** @return Mutable frame palette, or NULL when no palette stage is installed. */
     FramePalette* framePalette();
@@ -209,7 +209,7 @@ public:
      * @param buffer Active/passive indexed pixel buffer to mutate.
      * @param context Per-frame audio/time context; borrowed during the call.
      */
-    void run(FrameRenderTarget& buffer, const FrameRenderContext& context);
+    void run(FrameRenderTarget& buffer, const FrameGeneratorContext& context);
 
     /** @return Number of registered filter entries, not number of stages. */
     int size() const;

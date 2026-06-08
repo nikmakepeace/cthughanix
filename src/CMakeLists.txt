@@ -78,6 +78,7 @@ set(CTHUGHA_COMMON_SOURCES
     DisplayRuntimeOwnership.cc
     SceneChangeScheduler.cc
     AudioAnalyzer.cc
+    AudioAnalysisSnapshot.cc
     CthughaDisplay.cc
     Border.cc
     ColorPalette.cc

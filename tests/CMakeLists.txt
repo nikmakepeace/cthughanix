@@ -159,7 +159,9 @@ add_executable(flame_storage_layout_test
     ${CMAKE_SOURCE_DIR}/src/FrameStore.cc
     ${CMAKE_SOURCE_DIR}/src/FrameGeometry.cc
     ${CMAKE_SOURCE_DIR}/src/SceneGeometry.cc
-    ${CMAKE_SOURCE_DIR}/src/FrameRenderContext.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeneratorContext.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalysisSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
@@ -192,7 +194,9 @@ add_executable(translate_storage_layout_test
     ${CMAKE_SOURCE_DIR}/src/FrameStore.cc
     ${CMAKE_SOURCE_DIR}/src/FrameGeometry.cc
     ${CMAKE_SOURCE_DIR}/src/SceneGeometry.cc
-    ${CMAKE_SOURCE_DIR}/src/FrameRenderContext.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeneratorContext.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalysisSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
 )
 
 target_include_directories(translate_storage_layout_test PRIVATE
@@ -348,6 +352,24 @@ target_link_libraries(frame_generator_boundary_test PRIVATE m)
 
 add_test(NAME frame_generator_boundary_test
     COMMAND frame_generator_boundary_test)
+
+add_executable(frame_generator_context_test
+    unit/FrameGeneratorContextTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeneratorContext.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalysisSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+)
+
+target_include_directories(frame_generator_context_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(frame_generator_context_test PRIVATE m)
+
+add_test(NAME frame_generator_context_test
+    COMMAND frame_generator_context_test)
 
 add_executable(frame_filterchain_diagnostics_test
     unit/FrameFilterchainDiagnosticsTest.cc
@@ -868,6 +890,9 @@ add_executable(wave_runtime_random_test
     unit/WaveRuntimeRandomTest.cc
     ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/Wave.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeneratorContext.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalysisSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
 )
 

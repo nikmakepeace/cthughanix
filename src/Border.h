@@ -8,7 +8,7 @@
 #include "EffectControl.h"
 
 class FrameRenderTarget;
-class FrameRenderContext;
+class FrameGeneratorContext;
 
 extern EffectControl border;
 
@@ -22,6 +22,6 @@ void init_border();
  * @param context Current visual-frame audio and timing context.
  * @param borderMode Border mode selected by the border option.
  */
-void apply_border(FrameRenderTarget& buffer, const FrameRenderContext& context, int borderMode);
+void apply_border(FrameRenderTarget& buffer, const FrameGeneratorContext& context, int borderMode);
 
 #endif

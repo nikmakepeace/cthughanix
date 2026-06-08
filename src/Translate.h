@@ -6,7 +6,7 @@
 #include "TranslationTable.h"
 
 class FrameRenderTarget;
-class FrameRenderContext;
+class FrameGeneratorContext;
 
 /**
  * Runtime executor for one translation table.
@@ -41,7 +41,7 @@ public:
      *        the translation table.
      * @param context Current frame render context; currently unused by translate.
      */
-    void execute(FrameRenderTarget& buffer, const FrameRenderContext& context) const;
+    void execute(FrameRenderTarget& buffer, const FrameGeneratorContext& context) const;
 };
 
 #endif

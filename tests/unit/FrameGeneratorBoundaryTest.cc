@@ -135,10 +135,10 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
         "src/FrameGeneratorRuntime.cc",
         "src/FrameGeneratorSceneBinding.h",
         "src/FrameGeneratorSceneBinding.cc",
+        "src/AudioAnalysisSnapshot.h",
+        "src/AudioAnalysisSnapshot.cc",
         "src/FrameGeometry.h",
         "src/FrameGeometry.cc",
-        "src/FrameRenderContext.h",
-        "src/FrameRenderContext.cc",
         "src/FrameRenderTarget.h",
         "src/FrameRenderTarget.cc",
         "src/FrameStore.h",
@@ -230,6 +230,47 @@ static void testGeneratorDiagnosticsAndMathTablesAreOwned() {
     assertSourceDoesNotContain("src/imath.h", "isin(");
 }
 
+static void testFrameGeneratorUsesNativeAudioSnapshot() {
+    static const char* const files[] = {
+        "src/FrameGeneratorPipeline.h",
+        "src/FrameGeneratorPipeline.cc",
+        "src/FrameGeneratorContext.h",
+        "src/FrameGeneratorContext.cc",
+        "src/FrameGeneratorRuntime.h",
+        "src/FrameGeneratorRuntime.cc",
+        "src/FrameFilterchain.h",
+        "src/FrameFilterchain.cc",
+        "src/FrameFilters.h",
+        "src/FrameFilters.cc",
+        "src/AudioAnalysisSnapshot.h",
+        "src/AudioAnalysisSnapshot.cc",
+        "src/Border.h",
+        "src/Border.cc",
+        "src/Flashlight.h",
+        "src/Flashlight.cc",
+        "src/Flame.h",
+        "src/Flame.cc",
+        "src/flames.cc",
+        "src/Translate.h",
+        "src/Translate.cc",
+        "src/Wave.h",
+        "src/Wave.cc",
+        "src/waves.cc"
+    };
+    static const int fileCount = sizeof(files) / sizeof(files[0]);
+
+    assertSourceContains("src/FrameGeneratorContext.h",
+        "AudioAnalysisSnapshot audioAnalysisValue");
+    assertSourceContains("src/FrameGeneratorContext.h",
+        "const AudioAnalysisSnapshot& audioAnalysis() const");
+    assertSourceContains("src/Application.cc",
+        "AudioAnalysisSnapshot audioAnalysis(frame.metrics");
+
+    assertFilesDoNotContain(files, fileCount, "FrameRenderContext");
+    assertFilesDoNotContain(files, fileCount, "AcousticContext");
+    assertFilesDoNotContain(files, fileCount, "AudioAnalyzer.h");
+}
+
 int main() {
     testFrameGeneratorOwnsApplicationStorageAndPipeline();
     testLegacyCthughaBufferIsRetired();
@@ -239,5 +280,6 @@ int main() {
     testDisplayNeverReadsGeneratorCurrentStorage();
     testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands();
     testGeneratorDiagnosticsAndMathTablesAreOwned();
+    testFrameGeneratorUsesNativeAudioSnapshot();
     return 0;
 }

@@ -5,7 +5,7 @@
 
 class FrameRenderTarget;
 class RandomSource;
-class FrameRenderContext;
+class FrameGeneratorContext;
 class LogSink;
 
 /**
@@ -275,7 +275,7 @@ public:
      * @param runtime Wave config, state, lookup tables, and fire budget.
      */
     typedef void (*Function)(FrameRenderTarget& buffer,
-        const FrameRenderContext& context, WaveRuntime& runtime);
+        const FrameGeneratorContext& context, WaveRuntime& runtime);
 
     /**
      * Predicate that decides whether a wave can run with a config.
@@ -327,7 +327,7 @@ public:
      * @param randomSource Random source used by renderer effects.
      * @param log Diagnostics sink for this frame render.
      */
-    void execute(FrameRenderTarget& buffer, const FrameRenderContext& context,
+    void execute(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
         const WaveConfig& config, int needsConfiguration, WaveState& state,
         WaveLookupTables& lookupTables, RandomSource& randomSource,
         LogSink& log) const;

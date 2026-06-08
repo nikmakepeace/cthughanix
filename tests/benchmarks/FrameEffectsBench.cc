@@ -3,7 +3,7 @@
 #include "FrameStore.h"
 #include "Flame.h"
 #include "Translate.h"
-#include "FrameRenderContext.h"
+#include "FrameGeneratorContext.h"
 #include "imath.h"
 #include "TranslationOptions.h"
 #include "cth_buffer.h"
@@ -489,7 +489,7 @@ static void BM_Flame(benchmark::State& state, const Flame* flame,
     const BufferFixture* fixture) {
     initializeFrameEffectsBenchmarks();
 
-    FrameRenderContext context;
+    FrameGeneratorContext context;
     static FlameLookupTables lookupTables;
     FrameRenderTarget& buffer = benchmarkBuffer();
 
@@ -510,7 +510,7 @@ static void BM_TranslateEntry(benchmark::State& state, TranslateEntry* entry,
     const BufferFixture* fixture) {
     initializeFrameEffectsBenchmarks();
 
-    FrameRenderContext context;
+    FrameGeneratorContext context;
     Translate translate(entry->table());
     FrameRenderTarget& buffer = benchmarkBuffer();
 

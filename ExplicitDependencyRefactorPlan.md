@@ -690,17 +690,15 @@ module. Its responsibility is to turn an explicit scene snapshot, audio frame,
 analysis state, timing, and generator-owned renderer state into one completed
 `IndexedFrame`.
 
-The module already has useful per-frame handoffs. `FrameRenderContext` carries
-audio metrics, `AcousticContext`, frame timing, and a `SceneSnapshot` into frame
-filters. The filterchain can publish an `IndexedFrame` for
+The module already has useful per-frame handoffs. `FrameGeneratorContext`
+carries borrowed audio buffers, an immutable `AudioAnalysisSnapshot`, frame
+timing, frame budget, and a `SceneSnapshot` into frame filters. The filterchain
+can publish an `IndexedFrame` for
 `CthughaDisplay::present(...)`, and filter-local state such as
 `FlameLookupTables`, `WaveState`, and `WaveLookupTables` is already object-owned.
 
 The remaining compatibility surfaces are:
 
-- the `FrameRenderContext`/`AcousticContext` input bundle, which still carries
-  raw audio pointers, analysis state, scene snapshot, timing, and frame budget
-  as one legacy frame context;
 - `LegacyScene*` visual catalog adapters, which still bridge explicit Scene
   selections to global `EffectControl` catalog objects;
 - Display compatibility aliases and `display.cc` renderer statics, which are
@@ -721,8 +719,8 @@ The remaining compatibility surfaces are:
 - `FrameStore`: owned indexed active/passive storage, storage layout,
   active/passive selection, clear, resize, and swap operations.
 - `FrameGeneratorContext`: per-frame borrowed inputs: `SceneSnapshot`,
-  `AudioFrame`, future `AudioAnalysisSnapshot` or current `AcousticContext`
-  compatibility view, timing, and frame-rate budget values.
+  `AudioFrame`, raw/processed audio buffers, `AudioAnalysisSnapshot`, timing,
+  and frame-rate budget values.
 - `FrameGeneratorSceneBinding`: observes a `Scene` for changes and one-shot
   image/text cues. It queues generator work but does not own scene selection
   policy.
@@ -806,46 +804,17 @@ The old `VideoFilterchain`, `VideoFilters`, `VideoFrameContext`, and
 `VideoFrameBudget` naming compatibility item is complete and is not listed as
 remaining work. The generator-side logging compatibility item is also complete:
 `FrameGeneratorRuntime` supplies an explicit `LogSink&` to scene binding,
-pipeline, filterchain, filter execution, and wave runtime code.
+pipeline, filterchain, filter execution, and wave runtime code. The old
+`FrameRenderContext`/`AcousticContext` generator input bundle is complete:
+Frame Generator now consumes `FrameGeneratorContext` plus
+`AudioAnalysisSnapshot` and no generator source exposes Audio's rolling
+analysis object.
 
 The remaining Frame Generator work is compatibility cleanup and boundary
 hardening. Each item below names what the temporary surface is for, what must
 change so it can disappear, and the completion gate:
 
-1. **Replace the `FrameRenderContext`/`AcousticContext` compatibility input with
-   a typed audio analysis snapshot.**
-   This compatibility surface is for keeping old filters working while Audio
-   still exposes analysis through `AcousticContext` and the frame path still
-   passes one broad render-context bundle. `FrameRenderContext` carries raw
-   audio pointers, processed wave data, `AudioMetrics`, `AcousticContext`,
-   `SceneSnapshot`, timing, and frame-budget data together.
-
-   There is no need for the compatibility surface once Audio produces a typed,
-   immutable analysis product and Frame Generator receives only the fields it
-   consumes for one render call.
-
-   Concrete changes required:
-   - Define the immutable audio-analysis product that Frame Generator actually
-     needs, such as `AudioAnalysisSnapshot`, with the current fire/beat/quiet
-     and acoustic values consumed by filters and scene-change visuals.
-   - Have the Audio module produce that snapshot alongside the raw and
-     processed audio buffers for the frame.
-   - Replace `FrameRenderContext` inside `FrameGeneratorContext` with explicit
-     fields or narrow views for raw PCM, processed wave data, audio metrics or
-     analysis snapshot, scene snapshot, frame time, frame delta, and frame
-     budget.
-   - Port filters and wave renderers to read the new typed fields instead of
-     reaching through `context.audioMetrics`, `context.acousticContext`, or
-     legacy helper functions.
-   - Keep any borrow-only pointers visibly scoped to a single `render(...)`
-     call.
-
-   Completion gate: Frame Generator does not include `AudioAnalyzer.h` or
-   expose `AcousticContext`/`FrameRenderContext`; tests prove render-time audio
-   inputs are borrowed only for one frame and can be supplied by a small test
-   fixture.
-
-2. **Move visual catalogs and selections off global `EffectControl` objects.**
+1. **Move visual catalogs and selections off global `EffectControl` objects.**
    This compatibility surface is for making explicit Scene selections coexist
    with legacy visual catalogs. `LegacyScene*` adapters translate Scene choices
    to global `EffectControl` and `EffectChoiceList` objects for flames, waves,

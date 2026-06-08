@@ -91,6 +91,5 @@ const IndexedFrame& FrameGeneratorRuntime::render(
 
     logValue.trace("frame generator", "running filterchain=%p filters=%d\n",
         &pipelineValue.filterchain(), pipelineValue.filterchain().size());
-    return pipelineValue.render(frameStoreValue.renderTarget(),
-        context.frameRenderContext());
+    return pipelineValue.render(frameStoreValue.renderTarget(), context);
 }

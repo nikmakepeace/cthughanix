@@ -4,7 +4,7 @@
 
 FrameFilter::~FrameFilter() { }
 
-FrameFilterFrame::FrameFilterFrame(FrameRenderTarget& buffer_, const FrameRenderContext& context_,
+FrameFilterFrame::FrameFilterFrame(FrameRenderTarget& buffer_, const FrameGeneratorContext& context_,
     FramePalette* framePalette_, IndexedFrame* indexedFrame_, LogSink& log_)
     : bufferValue(&buffer_)
     , contextValue(&context_)
@@ -16,7 +16,7 @@ FrameRenderTarget& FrameFilterFrame::buffer() {
     return *bufferValue;
 }
 
-const FrameRenderContext& FrameFilterFrame::context() const {
+const FrameGeneratorContext& FrameFilterFrame::context() const {
     return *contextValue;
 }
 
@@ -171,7 +171,7 @@ void FrameFilterchain::refresh() {
         filters[i].filter->refresh();
 }
 
-void FrameFilterchain::run(FrameRenderTarget& buffer, const FrameRenderContext& context) {
+void FrameFilterchain::run(FrameRenderTarget& buffer, const FrameGeneratorContext& context) {
     indexedFrameValue = IndexedFrame();
     FrameFilterFrame frame(buffer, context, framePaletteValue, &indexedFrameValue,
         *logValue);

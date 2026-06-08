@@ -1,7 +1,7 @@
 #include "cthugha.h"
 #include "Border.h"
 #include "FrameRenderTarget.h"
-#include "FrameRenderContext.h"
+#include "FrameGeneratorContext.h"
 #include "cth_buffer.h"
 
 static EffectChoice* border_entries[]
@@ -15,17 +15,17 @@ void init_border() {
     border.add(border_entries, 4);
 }
 
-static int audioBorderBytesAvailable(const FrameRenderContext& context) {
-    if (context.audioFrame != 0)
-        return context.audioFrame->samples * int(sizeof(char2));
+static int audioBorderBytesAvailable(const FrameGeneratorContext& context) {
+    if (context.audioFrame() != 0)
+        return context.audioFrame()->samples * int(sizeof(char2));
 
-    return context.rawAudioData != 0 ? 1024 * int(sizeof(char2)) : 0;
+    return context.rawAudioData() != 0 ? 1024 * int(sizeof(char2)) : 0;
 }
 
 static void copyAudioBorderRow(unsigned char* destination, int width, int pitch,
-    const FrameRenderContext& context) {
+    const FrameGeneratorContext& context) {
     const unsigned char* rawBytes
-        = reinterpret_cast<const unsigned char*>(context.rawAudioData);
+        = reinterpret_cast<const unsigned char*>(context.rawAudioData());
     int available = audioBorderBytesAvailable(context);
     int copyBytes = available < width ? available : width;
 
@@ -37,7 +37,7 @@ static void copyAudioBorderRow(unsigned char* destination, int width, int pitch,
         memset(destination + width, 0, pitch - width);
 }
 
-void apply_border(FrameRenderTarget& buffer, const FrameRenderContext& context, int borderMode) {
+void apply_border(FrameRenderTarget& buffer, const FrameGeneratorContext& context, int borderMode) {
     unsigned char* active = buffer.activePixels();
     if (active == 0)
         return;
@@ -61,7 +61,7 @@ void apply_border(FrameRenderTarget& buffer, const FrameRenderContext& context, 
         }
         break;
     case 2: {
-        int amplitude = (context.audioMetrics != 0) ? context.audioMetrics->amplitude : 0;
+        int amplitude = context.audioAnalysis().amplitude();
         memset(bottom, amplitude, hiddenBytes);
         memset(top, amplitude, hiddenBytes);
         break;

@@ -10,7 +10,7 @@
 class FrameRenderTarget;
 class FramePalette;
 class IndexedFrame;
-class FrameRenderContext;
+class FrameGeneratorContext;
 class FrameFilterchain;
 class FrameFilterchainSequence;
 class LogSink;
@@ -58,7 +58,7 @@ public:
      * @return Published frame descriptor owned by the filterchain.
      */
     const IndexedFrame& render(FrameRenderTarget& target,
-        const FrameRenderContext& context);
+        const FrameGeneratorContext& context);
 };
 
 #endif

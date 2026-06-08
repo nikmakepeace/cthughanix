@@ -4,7 +4,7 @@
 
 #include "Flame.h"
 #include "FrameStore.h"
-#include "FrameRenderContext.h"
+#include "FrameGeneratorContext.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -16,11 +16,11 @@ int cth_log_context(int, const char*, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
 int cth_log_errno(int, const char*, ...) { return 0; }
 
-void flame_clear(FrameRenderTarget& buffer, const FrameRenderContext& context,
+void flame_clear(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     FlameRuntime& runtime);
-void flame_down(FrameRenderTarget& buffer, const FrameRenderContext& context,
+void flame_down(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     FlameRuntime& runtime);
-void flame_upslow(FrameRenderTarget& buffer, const FrameRenderContext& context,
+void flame_upslow(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     FlameRuntime& runtime);
 
 static unsigned char patternValue(int linearOffset, int salt) {
@@ -69,7 +69,7 @@ static void assertActivePaddingUntouched(const FrameRenderTarget& target) {
 }
 
 typedef void (*FlameKernel)(FrameRenderTarget& buffer,
-    const FrameRenderContext& context, FlameRuntime& runtime);
+    const FrameGeneratorContext& context, FlameRuntime& runtime);
 
 static void runKernelOnPackedAndPaddedStores(FlameKernel kernel) {
     FrameStore packedStore;
@@ -83,7 +83,7 @@ static void runKernelOnPackedAndPaddedStores(FlameKernel kernel) {
     fillVisibleStream(padded);
     poisonActivePadding(padded);
 
-    FrameRenderContext context;
+    FrameGeneratorContext context;
     FlameLookupTables tables;
     FlameRuntime runtime(0, tables);
 
@@ -100,7 +100,7 @@ static void testFlameClearSkipsPadding() {
     fillVisibleStream(target);
     poisonActivePadding(target);
 
-    FrameRenderContext context;
+    FrameGeneratorContext context;
     FlameLookupTables tables;
     FlameRuntime runtime(0, tables);
     flame_clear(target, context, runtime);

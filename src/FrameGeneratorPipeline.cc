@@ -41,7 +41,7 @@ FramePalette* FrameGeneratorPipeline::framePalette() const {
 }
 
 const IndexedFrame& FrameGeneratorPipeline::render(FrameRenderTarget& target,
-    const FrameRenderContext& context) {
+    const FrameGeneratorContext& context) {
     filterchainValue->run(target, context);
     return filterchainValue->indexedFrame();
 }

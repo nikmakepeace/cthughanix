@@ -23,6 +23,7 @@
 #include "Flashlight.h"
 #include "FrameGeneratorContext.h"
 #include "FrameGeometry.h"
+#include "FrameRenderContext.h"
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
@@ -413,10 +414,12 @@ const IndexedFrame* Application::runFrameGenerator(
     // The generator receives a snapshot-like context for this visual frame.
     // Audio frame data and frame-local metrics are owned by AudioIngest; filters
     // borrow them only during render().
-    FrameRenderContext frameContext = frameRenderContextFor(frame, acousticContextValue,
-        &sceneSnapshot, displayValue->currentFrameTimeSeconds(),
-        displayValue->currentFrameDeltaSeconds());
-    FrameGeneratorContext context(frameContext,
+    AudioAnalysisSnapshot audioAnalysis(frame.metrics,
+        acousticContextValue.intensity(), acousticContextValue.fire(),
+        acousticContextValue.cumulativeFireLevel());
+    FrameGeneratorContext context(&frame, frame.raw, frame.processedWaveData,
+        audioAnalysis, &sceneSnapshot, displayValue->currentFrameTimeSeconds(),
+        displayValue->currentFrameDeltaSeconds(),
         frameGenerationBudgetFramesPerSecond(int(maxFramesPerSecond),
             displayValue->rollingFps));
 
