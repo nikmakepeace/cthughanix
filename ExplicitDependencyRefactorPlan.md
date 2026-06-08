@@ -1046,8 +1046,7 @@ from this plan.
    - Replace `LegacySceneVisualCatalogFactory` with a native
      `SceneVisualCatalogFactory`. This is complete when `Application` constructs
      the Scene visual factory without a `LegacyScene*` helper, the factory owns
-     only native catalog/selection services, the temporary no-op
-     `SceneSelectionSynchronizer` is unnecessary, and boundary tests assert that
+     only native catalog/selection services, and boundary tests assert that
      Scene and Frame Generator construction has no legacy visual factory.
    - Replace `LegacyScenePaletteRandomizer` with a native palette randomizer
      and persistence service. This is complete when random palette generation
@@ -1055,12 +1054,6 @@ from this plan.
      palette file helpers; the Scene palette catalog owns generated entries and
      persistence metadata; and random-palette unit tests run without
      `PaletteOption`.
-   - Remove the remaining compatibility `SceneSelectionSynchronizer` dependency
-     from Scene runtime construction if no other bridge needs it. This is
-     complete when `SceneCommands` can refresh from native selections without a
-     synchronizer collaborator, tests no longer need a synchronizer stub to
-     model image-change flags, and `SceneRuntimeDependencies` no longer carries
-     `selectionSync`.
    - Retire any pre-startup or non-Scene UI fallback that still displays Scene
      visual choices through legacy `EffectControl` lists. This is complete when
      F2 lists, X11 menus, keymap actions, and runtime config display code all

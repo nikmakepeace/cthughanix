@@ -189,10 +189,8 @@ void Scene::removeObserver(SceneObserver& observer) {
 
 SceneCommandDependencies::SceneCommandDependencies(
     SceneVisualCatalogs& visualCatalogs_,
-    SceneSelectionSynchronizer& selectionSync_,
     SceneEffectRegistry& effectRegistry_, ScenePresetCatalog& presets_)
     : visualCatalogs(visualCatalogs_)
-    , selectionSync(selectionSync_)
     , effectRegistry(effectRegistry_)
     , presets(presets_) { }
 
@@ -209,7 +207,6 @@ SceneSettings SceneCommands::settingsFromOptions() {
 
 unsigned int SceneCommands::syncFromOptions(unsigned int forcedChanges) {
     SceneSettings settings = settingsFromOptions();
-    forcedChanges |= dependencies.selectionSync.syncControlsFromSelections();
     return scene.setSettings(settings, forcedChanges);
 }
 
@@ -269,12 +266,10 @@ void SceneCommands::activate(SceneSelectionTarget target, int index) {
 
 void SceneCommands::toggleLock(SceneSelectionTarget target) {
     dependencies.visualCatalogs.toggleLock(target);
-    dependencies.selectionSync.syncControlsFromSelections();
 }
 
 void SceneCommands::toggleChoiceUse(SceneSelectionTarget target, int index) {
     dependencies.visualCatalogs.toggleChoiceUse(target, index);
-    dependencies.selectionSync.syncControlsFromSelections();
 }
 
 void SceneCommands::randomPalette() {

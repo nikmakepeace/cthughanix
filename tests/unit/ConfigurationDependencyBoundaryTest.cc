@@ -1423,7 +1423,7 @@ static void testSceneStartupUsesSceneConfig() {
         "scenePresetCatalogValue(*effectPresetCatalogValue");
     assertSourceContains("src/SceneRuntime.cc",
         "visualCatalogFactory.create(selectionStateValue)");
-    assertSourceContains("src/SceneRuntime.cc",
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
         "*visualCatalogFactoryResultValue.selectionSync");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "registerControls(*effectRegistryValue)");
@@ -1595,7 +1595,8 @@ static void testSceneStartupUsesSceneConfig() {
         "class SceneVisualCatalogService : public SceneVisualCatalogs");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "#include \"LegacySceneControlMirror.h\"");
-    assertSourceContains("src/SceneDependencies.h", "class SceneSelectionSynchronizer");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "class SceneSelectionSynchronizer");
     assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
         "class SceneRuntimeControlBridge");
     assertSourceDoesNotContain("src/SceneDependencies.h",
@@ -1608,7 +1609,7 @@ static void testSceneStartupUsesSceneConfig() {
         "class SceneVisualCatalogFactoryResult");
     assertSourceContains("src/SceneRuntimeDependencies.h",
         "std::unique_ptr<SceneVisualCatalogs> visualCatalogs");
-    assertSourceContains("src/SceneRuntimeDependencies.h",
+    assertSourceDoesNotContain("src/SceneRuntimeDependencies.h",
         "std::unique_ptr<SceneSelectionSynchronizer> selectionSync");
     assertSourceContains("src/SceneRuntimeDependencies.h",
         "class SceneVisualCatalogFactory");
@@ -1660,10 +1661,10 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"LegacyScenePaletteRandomizer.h\"");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
         "#include \"LegacySceneCatalogAdapters.h\"");
-    assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
-        "class NoopSceneSelectionSynchronizer : public SceneSelectionSynchronizer");
-    assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
-        "return SceneNoChange;");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
+        "NoopSceneSelectionSynchronizer");
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
+        "SceneSelectionSynchronizer");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
         "#include \"LegacySceneSelectionAdapters.h\"");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
@@ -1819,8 +1820,10 @@ static void testSceneStartupUsesSceneConfig() {
         "void SceneCommands::refreshFromOptionsAndMaybeCueImage");
     assertSourceContains("src/Scene.cc",
         "unsigned int appliedChanges = syncFromOptions(forcedChanges)");
-    assertSourceContains("src/Scene.cc",
+    assertSourceDoesNotContain("src/Scene.cc",
         "forcedChanges |= dependencies.selectionSync.syncControlsFromSelections()");
+    assertSourceContains("src/Scene.cc",
+        "return scene.setSettings(settings, forcedChanges)");
     assertSourceContains("src/Scene.cc",
         "(appliedChanges & SceneImageChanged) != 0");
     assertSourceDoesNotContain("src/Scene.cc",
@@ -2965,16 +2968,14 @@ static void testEffectControlUsesInjectedRandomSource() {
         "dependencies.effectRegistry.changeAll(randomSource)");
     assertSourceContains("src/Scene.cc",
         "dependencies.effectRegistry.changeOne(randomSource)");
-    assertSourceContains("src/Scene.cc",
+    assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.selectionSync.syncControlsFromSelections()");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.selectionSync.syncFromControls()");
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "syncFromControls");
     assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
-        "effectControls.syncControlsResponse = SceneImageChanged");
-    assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
-        "testChangeOneUsesSyncReturnedImageChangeForCue");
+        "testChangeOneUsesNativeImageChangeForCue");
     assertSourceContains("src/EffectRegistry.cc",
         "void EffectRegistry::changeAll(RandomSource& randomSource)");
     assertSourceContains("src/EffectRegistry.cc",
@@ -3079,7 +3080,7 @@ static void testEffectControlUsesInjectedRandomSource() {
         "legacySceneControlMirror");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "syncFromControls");
-    assertSourceContains("src/LegacySceneVisualCatalogFactory.cc",
+    assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.cc",
         "NoopSceneSelectionSynchronizer");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "syncLegacyControlsFromSelections(controlMirror)");
@@ -3095,11 +3096,11 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/Scene.cc",
         "void SceneCommands::toggleLock(SceneSelectionTarget target) {\n"
         "    dependencies.visualCatalogs.toggleLock(target);\n"
-        "    dependencies.selectionSync.syncControlsFromSelections();");
+        "}");
     assertSourceContains("src/Scene.cc",
         "void SceneCommands::toggleChoiceUse(SceneSelectionTarget target, int index) {\n"
         "    dependencies.visualCatalogs.toggleChoiceUse(target, index);\n"
-        "    dependencies.selectionSync.syncControlsFromSelections();");
+        "}");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "registerSelection(registry");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
