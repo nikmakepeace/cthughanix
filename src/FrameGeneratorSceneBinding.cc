@@ -2,13 +2,8 @@
 
 #include "FrameGeneratorSceneBinding.h"
 
-#include "Border.h"
-#include "Configuration.h"
-#include "Flashlight.h"
-#include "FramePalette.h"
 #include "PaletteTransition.h"
 #include "PaletteEntry.h"
-#include "ProcessServices.h"
 #include "FrameFilters.h"
 
 template <class Filter>

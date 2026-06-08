@@ -732,6 +732,12 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/FrameGeneratorSceneBinding.cc",
         "silenceMessage.setRandomSource(randomSourceValue)");
     assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc", "rand()");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
+        "#include \"Border.h\"");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
+        "#include \"Flashlight.h\"");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
+        "#include \"Configuration.h\"");
     assertSourceContains("src/SilenceMessage.h", "RandomSource* randomSourceValue");
     assertSourceDoesNotContain("src/SilenceMessage.cc", "rand()");
     assertSourceDoesNotContain("src/DefaultMessagesProvider.cc", "rand()");
