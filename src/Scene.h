@@ -156,7 +156,15 @@ public:
     unsigned int version() const;
     SceneSnapshot snapshot() const;
 
-    void setSettings(const SceneSettings& settings, unsigned int forcedChanges = 0);
+    /**
+     * Applies a new settings snapshot and notifies observers when it changes.
+     *
+     * @param settings New current Scene settings.
+     * @param forcedChanges Additional SceneChange bits to report.
+     * @return SceneChange bits that were applied.
+     */
+    unsigned int setSettings(
+        const SceneSettings& settings, unsigned int forcedChanges = 0);
     void emitCue(SceneCue cue);
     void emitImageCue(const IndexedImage* image);
     void emitTextCue(const char* text, int frameCount, int inkColor);

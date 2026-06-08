@@ -136,10 +136,11 @@ unsigned int Scene::compareSettings(const SceneSettings& settings) const {
     return changes;
 }
 
-void Scene::setSettings(const SceneSettings& settings, unsigned int forcedChanges) {
+unsigned int Scene::setSettings(
+    const SceneSettings& settings, unsigned int forcedChanges) {
     unsigned int changes = compareSettings(settings) | forcedChanges;
     if (changes == SceneNoChange)
-        return;
+        return changes;
 
     settingsValue = settings;
     versionValue++;
@@ -147,6 +148,8 @@ void Scene::setSettings(const SceneSettings& settings, unsigned int forcedChange
     std::vector<SceneObserver*> snapshot = observers;
     for (unsigned int i = 0; i < snapshot.size(); i++)
         snapshot[i]->sceneChanged(*this, changes);
+
+    return changes;
 }
 
 void Scene::emitCue(SceneCue cue) {
@@ -207,8 +210,7 @@ SceneSettings SceneCommands::settingsFromOptions() {
 unsigned int SceneCommands::syncFromOptions(unsigned int forcedChanges) {
     SceneSettings settings = settingsFromOptions();
     forcedChanges |= dependencies.selectionSync.syncControlsFromSelections();
-    scene.setSettings(settings, forcedChanges);
-    return forcedChanges;
+    return scene.setSettings(settings, forcedChanges);
 }
 
 void SceneCommands::emitImageCue() {

@@ -43,7 +43,6 @@ set(CTHUGHA_COMMON_SOURCES
     LegacySceneImageCatalogAdapter.cc
     LegacyScenePaletteCatalogAdapter.cc
     LegacySceneWaveObjectCatalogAdapter.cc
-    LegacySceneSelectionAdapters.cc
     LegacySceneSelectionFactory.cc
     LegacyGlobalSceneSelectionFactory.cc
     LegacySceneVisualCatalogFactory.cc

@@ -1133,27 +1133,45 @@ target_link_libraries(scene_choice_lock_value_test PRIVATE m)
 add_test(NAME scene_choice_lock_value_test
     COMMAND scene_choice_lock_value_test)
 
-add_executable(legacy_scene_selection_adapters_test
-    unit/LegacySceneSelectionAdaptersTest.cc
-    ${CMAKE_SOURCE_DIR}/src/LegacySceneSelectionAdapters.cc
-    ${CMAKE_SOURCE_DIR}/src/SceneDependencies.cc
+add_executable(legacy_scene_selection_factory_test
+    unit/LegacySceneSelectionFactoryTest.cc
+    ${CMAKE_SOURCE_DIR}/src/LegacySceneSelectionFactory.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneBuiltInChoiceCatalogs.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneChoiceListCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneTypedVisualCatalogs.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneVisualSelectionSet.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneGeneralFlameSelectionValue.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/ScenePaletteCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneTranslationCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/TranslateGenerator.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
-target_include_directories(legacy_scene_selection_adapters_test PRIVATE
+target_include_directories(legacy_scene_selection_factory_test PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/src
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(legacy_scene_selection_adapters_test PRIVATE m)
+target_compile_definitions(legacy_scene_selection_factory_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+)
 
-add_test(NAME legacy_scene_selection_adapters_test
-    COMMAND legacy_scene_selection_adapters_test)
+target_link_libraries(legacy_scene_selection_factory_test PRIVATE m)
+
+add_test(NAME legacy_scene_selection_factory_test
+    COMMAND legacy_scene_selection_factory_test)
 
 add_executable(scene_typed_visual_catalogs_test
     unit/SceneTypedVisualCatalogsTest.cc

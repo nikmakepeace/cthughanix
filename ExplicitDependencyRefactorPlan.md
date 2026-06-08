@@ -501,12 +501,11 @@ adapters:
   implementation still reaches through global visual `EffectControl`/option
   objects such as `flame`, `wave`, `translation`, `palette`, `border`, and
   `flashlight`.
-- `LegacySceneSelectionAdapters` and `LegacySceneVisualCatalogFactory`
-  translate
-  those legacy controls into `SceneVisualSelections`, `SceneVisualCatalogs`, and
-  the temporary one-way mirror that older visual code still reads.
-- The adapter remains necessary until the visual catalog/filterchain side owns
-  flames, waves, palettes, images, translation tables, and frame geometry
+- `LegacySceneSelectionFactory`, `LegacyGlobalSceneSelectionFactory`, and
+  `LegacySceneVisualCatalogFactory` translate the remaining legacy startup
+  values into native `SceneVisualSelections` and `SceneVisualCatalogs`.
+- These factories remain temporary until the visual catalog/filterchain side
+  owns flames, waves, palettes, images, translation tables, and frame geometry
   without `CthughaBuffer::buffer` or process-wide option catalogs.
 
 #### Services Needed
@@ -1029,85 +1028,49 @@ from this plan.
      Frame Generator files use Scene ports plus narrow border/flashlight
      renderer ports instead of including global visual option headers.
 
-6. **Delete legacy visual command, binding, and config bridges. Status:
-   remaining.**
-   Compatibility surface: `LegacySceneSelectionAdapters`,
+6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
+   Remaining compatibility surfaces: `LegacySceneSelectionFactory`,
    `LegacyGlobalSceneSelectionFactory`, `LegacySceneVisualCatalogFactory`, and
-   `LegacyScenePaletteRandomizer`.
+   `LegacyScenePaletteRandomizer`. `LegacySceneSelectionAdapters` is deleted;
+   native selections are no longer mirrored back into visual `EffectControl`
+   globals.
 
-   Purpose: keep native Scene selections synchronized with old controls while
-   runtime commands, startup sync, save/restore, presets, and ini persistence
-   still identify visuals through generic `EffectControl` objects. Item 5 moves
-   catalog and payload ownership; this item moves the remaining command and
-   configuration pathways.
-
-   Completion work:
-   - route runtime commands by typed Scene selection ids or typed owner ports,
-     never by visual `EffectControl&`;
-   - initialize native visual owners directly from startup config and loaded
-     catalogs instead of initializing legacy controls first;
-   - make save/restore and preset operations read and write native selections
-     only;
-   - make runtime ini contribution come from `SceneSerializer` or native visual
-     serializers;
-   - move any remaining F2, X11 panel, or interface route that edits Scene
-     visuals through a generic effect-control target to typed Scene runtime
-     commands or to a private non-Scene adapter;
-   - delete the bridge classes and files once no production command/config/
-     serialization path calls them;
-   - remove bridge sources from CMake and remove test allowances for them.
-
-   Completion gate: no production command, config, startup-sync, save/restore,
-   preset, or serialization path uses `LegacyScene*` or visual
-   `EffectControl&`; CMake no longer builds the legacy Scene visual bridges;
-   and boundary tests assert that Scene and Frame Generator use native visual
-   owners and typed command/config ports.
-
-   Current progress toward that gate:
-   - Scene commands expose typed activation, lock, and choice-use operations.
-   - F2 visual rows and X11 panel visual menus dispatch typed Scene commands.
-   - Keymap visual actions, F2 visual rows, and X11 panel visual menus dispatch
-     typed Scene commands without including the broad flame, wave, or
-     translation umbrellas.
-   - `InterfaceRuntime` late-binds native `SceneVisualSelections` from
-     `SceneRuntime`; Scene-targeted visual list panels read native
-     `SceneChoice` names/use flags for display and dispatch typed Scene choice
-     commands, leaving legacy `EffectControl` list reads only as fallback and
-     non-Scene compatibility.
-   - X11 Scene menu item labels/counts and selected-value fallbacks now read
-     native `SceneVisualSelections`; the panel still keeps legacy
-     `EffectControl*` only for display-menu compatibility, pre-startup
-     fallback, and palette metadata migration work.
-   - The random-palette port receives the current native Scene palette index
-     explicitly, so the legacy randomizer quarantines the required global
-     `palette` current-value update instead of depending on a broad prior
-     selection mirror.
-   - `RuntimeEffectControlOwner`, `LegacySceneEffectControlTarget`,
-     `LegacySceneEffectControlBindings`, and
-     `LegacySceneEffectControlCatalog` are deleted.
-   - Scene selection lock state is now owned by native `SceneChoiceLockValue`
-     instances; `LegacySceneChoiceLock` is deleted.
-   - The remaining bridge is one-way: it pushes native selection values and
-     lock states back to temporary legacy controls and is passed explicitly
-     instead of discovered through RTTI or selection-side identity lookup.
-   - `SceneRuntimeControlBridge` is deleted; the factory result now carries the
-     generic `SceneSelectionSynchronizer` port directly.
-   - The temporary one-way scene-selection synchronizer is now private to
-     `LegacySceneSelectionAdapters`; the standalone
-     `LegacySceneSelectionSynchronizer` header/source are deleted.
-   - `LegacySceneControlMirror` is now private to
-     `LegacySceneSelectionAdapters`; the standalone header is deleted.
-   - The legacy mirror is now a separate `LegacySceneSelectionMirror` owned
-     alongside native `SceneVisualSelections`; native selections no longer
-     subclass or delegate through the legacy mirror adapter.
-   - Legacy control synchronization is now performed at the `SceneCommands`
-     boundary through `SceneSelectionSynchronizer`; the native
-     `SceneVisualCatalogService` does not know about `LegacySceneControlMirror`
-     or call legacy sync helpers.
-   - Scene settings reads no longer unconditionally sync temporary legacy
-     controls from inside the visual catalog service; selection mutations,
-     lock/use changes, restore/preset operations, and automatic changes sync at
-     the command edge.
+   What remains:
+   - Replace `LegacyGlobalSceneSelectionFactory` and
+     `LegacySceneSelectionFactory` with native visual selection construction.
+     This is complete when startup config and loaded native catalogs seed
+     `SceneVisualSelections` without reading flame, wave, translation, palette,
+     border, flashlight, or image `EffectControl` values; the two legacy
+     factory files are removed from CMake; and tests cover direct native
+     startup seeding.
+   - Replace `LegacySceneVisualCatalogFactory` with a native
+     `SceneVisualCatalogFactory`. This is complete when `Application` constructs
+     the Scene visual factory without a `LegacyScene*` helper, the factory owns
+     only native catalog/selection services, the temporary no-op
+     `SceneSelectionSynchronizer` is unnecessary, and boundary tests assert that
+     Scene and Frame Generator construction has no legacy visual factory.
+   - Replace `LegacyScenePaletteRandomizer` with a native palette randomizer
+     and persistence service. This is complete when random palette generation
+     and replacement no longer call the global `palette` option or legacy
+     palette file helpers; the Scene palette catalog owns generated entries and
+     persistence metadata; and random-palette unit tests run without
+     `PaletteOption`.
+   - Remove the remaining compatibility `SceneSelectionSynchronizer` dependency
+     from Scene runtime construction if no other bridge needs it. This is
+     complete when `SceneCommands` can refresh from native selections without a
+     synchronizer collaborator, tests no longer need a synchronizer stub to
+     model image-change flags, and `SceneRuntimeDependencies` no longer carries
+     `selectionSync`.
+   - Retire any pre-startup or non-Scene UI fallback that still displays Scene
+     visual choices through legacy `EffectControl` lists. This is complete when
+     F2 lists, X11 menus, keymap actions, and runtime config display code all
+     consume native Scene selections after construction, with any remaining
+     display-only legacy control path scoped to non-Scene display options.
+   - Delete the remaining bridge sources and test allowances. This is complete
+     when no production command, config, startup, save/restore, preset,
+     serialization, UI, or Frame Generator path names `LegacyScene*` for visual
+     Scene state; CMake no longer builds those files; and boundary tests assert
+     their absence.
 
 7. **Finish the separate Display cleanup outside Frame Generator. Status:
    related remaining.**

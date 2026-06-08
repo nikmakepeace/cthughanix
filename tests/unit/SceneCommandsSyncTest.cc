@@ -146,6 +146,7 @@ class RecordingVisualCatalogs : public SceneVisualCatalogs {
 
 public:
     int stateValue;
+    const char* imageNameValue;
     int currentSettingsCalls;
     int currentSettingsOrder;
     int currentImageCalls;
@@ -165,6 +166,7 @@ public:
     RecordingVisualCatalogs()
         : settingsValue()
         , stateValue(0)
+        , imageNameValue("recording-image")
         , currentSettingsCalls(0)
         , currentSettingsOrder(0)
         , currentImageCalls(0)
@@ -185,6 +187,7 @@ public:
         currentSettingsCalls++;
         currentSettingsOrder = ++eventSequence;
         settingsValue.borderMode = stateValue;
+        settingsValue.imageName = imageNameValue;
         return settingsValue;
     }
 
@@ -333,6 +336,29 @@ static void testChangeOneUsesSyncReturnedImageChangeForCue() {
     commands.changeOne();
 
     assert(effectControls.syncControlsCalls == 1);
+    assert(visualCatalogs.currentImageCalls == 1);
+}
+
+static void testChangeOneUsesNativeImageChangeForCue() {
+    Scene scene;
+    DummySceneGeometry geometry;
+    RecordingVisualCatalogs visualCatalogs;
+    SyncingSceneSelectionSynchronizer effectControls(visualCatalogs);
+    RecordingEffectRegistry effectRegistry;
+    RecordingPresetCatalog presets;
+    DummyRandomSource randomSource;
+
+    SceneCommandDependencies dependencies(
+        visualCatalogs, effectControls, effectRegistry, presets);
+    SceneCommands commands(scene, geometry, dependencies, randomSource);
+
+    visualCatalogs.imageNameValue = "before";
+    commands.refreshFromOptions(SceneNoChange);
+    visualCatalogs.imageNameValue = "after";
+
+    commands.changeOne();
+
+    assert(effectControls.syncControlsResponse == SceneNoChange);
     assert(visualCatalogs.currentImageCalls == 1);
 }
 
@@ -503,6 +529,7 @@ static void testSceneSelectionPolicyApplierUsesSceneSelections() {
 int main() {
     testRestoreReadsNativeSettingsThenSyncsLegacyBridge();
     testChangeOneUsesSyncReturnedImageChangeForCue();
+    testChangeOneUsesNativeImageChangeForCue();
     testSceneCommandsExposeNativeSelectionActions();
     testSceneCommandsSyncBridgeAfterNativeSelectionMutations();
     testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges();
