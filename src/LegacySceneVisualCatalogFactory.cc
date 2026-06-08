@@ -4,19 +4,35 @@
 
 #include "LegacyGlobalSceneSelectionFactory.h"
 #include "LegacyScenePaletteRandomizer.h"
-#include "LegacySceneSelectionAdapters.h"
+#include "SceneDependencies.h"
 #include "SceneImageCatalog.h"
 #include "ScenePaletteCatalog.h"
 #include "SceneTranslationCatalog.h"
 #include "SceneVisualCatalogService.h"
+#include "SceneVisualSelections.h"
 #include "SceneWaveObjectCatalog.h"
 
 #include <utility>
 
+namespace {
+
+/**
+ * Compatibility synchronizer used after Scene selections stop mirroring back.
+ */
+class NoopSceneSelectionSynchronizer : public SceneSelectionSynchronizer {
+public:
+    /** Returns no forced Scene changes and performs no legacy control writes. */
+    virtual unsigned int syncControlsFromSelections() {
+        return SceneNoChange;
+    }
+};
+
+}
+
 LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
-    std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_)
-    : ownedAdapters(std::move(ownedAdapters_))
-    , selections(ownedAdapters->selections())
+    std::unique_ptr<SceneVisualSelections> ownedSelections_)
+    : ownedSelections(std::move(ownedSelections_))
+    , selections(*ownedSelections)
     , paletteRandomizer(createLegacyScenePaletteRandomizer()) { }
 
 LegacySceneVisualCatalogFactory::~LegacySceneVisualCatalogFactory() { }
@@ -27,7 +43,9 @@ SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
         new SceneVisualCatalogService(
             selectionState, selections, *paletteRandomizer));
     return SceneVisualCatalogFactoryResult(std::move(visualCatalogs),
-        ownedAdapters->createSelectionSynchronizer(), selections);
+        std::unique_ptr<SceneSelectionSynchronizer>(
+            new NoopSceneSelectionSynchronizer()),
+        selections);
 }
 
 std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory(
@@ -37,6 +55,6 @@ std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory
     const SceneTranslationCatalog& translations) {
     return std::unique_ptr<SceneVisualCatalogFactory>(
         new LegacySceneVisualCatalogFactory(
-            createLegacyGlobalSceneSelectionAdapters(images, waveObjects,
+            createLegacyGlobalSceneVisualSelections(images, waveObjects,
                 imageCatalog, paletteCatalog, translations)));
 }

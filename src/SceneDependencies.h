@@ -35,17 +35,18 @@ public:
     virtual void save(int slot) = 0;
 };
 
-/** Synchronizes Scene-owned selection state to temporary legacy controls. */
+/** Optional compatibility hook after Scene-owned selection mutations. */
 class SceneSelectionSynchronizer {
 public:
     virtual ~SceneSelectionSynchronizer();
 
     /**
-     * Pushes Scene-owned selection state out to temporary legacy controls.
+     * Runs any remaining post-selection compatibility synchronization.
      *
-     * Native Scene registry and preset operations mutate selections directly;
-     * during migration, the legacy controls must be refreshed from those
-     * selections before visual settings are read.
+     * Native Scene registry and preset operations mutate selections directly.
+     * Migrating callers may use this hook to bridge temporary legacy readers or
+     * report forced change flags; fully native callers should return
+     * SceneNoChange.
      *
      * @return SceneChange flags forced by the synchronization.
      */

@@ -8,39 +8,39 @@
 #include <memory>
 
 class ImageOption;
-class LegacySceneSelectionAdapterSet;
 class SceneImageCatalog;
 class ScenePaletteCatalog;
 class ScenePaletteRandomizer;
 class SceneTranslationCatalog;
+class SceneVisualSelections;
 class SceneWaveObjectCatalog;
 
 /**
  * Temporary Scene visual factory backed by legacy global visual controls.
  *
- * This factory creates native Scene visual catalog services and pairs them with
- * the legacy selection synchronizer required while old controls still mirror
- * Scene selections.
+ * This factory creates native Scene visual catalog services from startup values
+ * read out of the legacy globals. Runtime visual changes stay in the native
+ * Scene selections owned here.
  */
 class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory {
-    std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters;
+    std::unique_ptr<SceneVisualSelections> ownedSelections;
     SceneVisualSelections& selections;
     std::unique_ptr<ScenePaletteRandomizer> paletteRandomizer;
 
 public:
     /**
-     * Creates a factory around prebuilt legacy-backed selections.
+     * Creates a factory around prebuilt Scene selections.
      *
-     * @param ownedAdapters_ Selection adapter set owned by the factory.
+     * @param ownedSelections_ Scene visual selections owned by the factory.
      */
     explicit LegacySceneVisualCatalogFactory(
-        std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_);
+        std::unique_ptr<SceneVisualSelections> ownedSelections_);
 
-    /** Destroys owned adapter and randomizer objects after SceneRuntime use. */
+    /** Destroys owned selections and randomizer objects after SceneRuntime use. */
     ~LegacySceneVisualCatalogFactory();
 
     /**
-     * Creates visual catalogs, control bridge, and selection registry input.
+     * Creates visual catalogs, no-op sync hook, and selection registry input.
      *
      * @param selectionState Storage for the current Scene settings snapshot.
      * @return Scene runtime visual catalog wiring.
@@ -54,8 +54,8 @@ public:
  *
  * The caller supplies only the non-global image option owned by Application.
  * The factory implementation quarantines the remaining global
- * EffectControl-backed visual catalogs until native Scene visual catalogs
- * replace them.
+ * EffectControl-backed startup reads until native Scene visual loaders replace
+ * them.
  *
  * @param images Image option owned by Application.
  * @param waveObjects Native Scene-owned wave-object catalog.
