@@ -1335,9 +1335,9 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/LegacySceneEffectControlCatalog.h",
         "class SceneEffectControlCatalog : public SceneRuntimeControlBridge");
     assertSourceContains("src/LegacySceneEffectControlCatalog.h",
-        "virtual int isSceneOption(const EffectControl& option) const = 0;");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
         "SceneOptionSelection* selectionFor(EffectControl& option)");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "isSceneOption");
     assertSourceContains("src/LegacySceneEffectControlCatalog.h",
         "SceneOptionSelection& selection, int by");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
@@ -1478,7 +1478,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Scene.cc",
         "dependencies.visualCatalogs.applyStartupConfig(config, randomSource)");
     assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "effectControls.isSceneOption(option)");
+        "effectControls.selectionFor(option) != 0");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.effectControls.isSceneOption(option)");
     assertSourceContains("src/Scene.cc",

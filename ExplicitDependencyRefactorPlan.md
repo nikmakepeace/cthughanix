@@ -979,7 +979,9 @@ concrete changes needed before the surface can disappear.
    instead of pulling stale global control values back over native selections.
    Legacy runtime effect-control commands now use `EffectControl&` only for the
    edge lookup; catalog change, activate, lock, and choice-use operations run on
-   the resolved native `SceneOptionSelection&`.
+   the resolved native `SceneOptionSelection&`. The duplicate
+   `isSceneOption(...)` catalog check has been removed, leaving
+   `selectionFor(...)` as the single legacy identity lookup.
 
    Concrete work still required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`

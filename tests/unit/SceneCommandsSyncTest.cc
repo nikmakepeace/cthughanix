@@ -228,9 +228,6 @@ public:
         return syncControlsResponse;
     }
 
-    virtual int isSceneOption(const EffectControl& option) const {
-        return &option == sceneOption;
-    }
     virtual SceneOptionSelection* selectionFor(EffectControl& option) {
         return const_cast<SceneOptionSelection*>(
             static_cast<const SyncingEffectControlCatalog*>(this)

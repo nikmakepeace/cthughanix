@@ -19,7 +19,6 @@ class SceneEffectControlCatalog : public SceneRuntimeControlBridge {
 public:
     virtual ~SceneEffectControlCatalog() { }
 
-    virtual int isSceneOption(const EffectControl& option) const = 0;
     virtual SceneOptionSelection* selectionFor(EffectControl& option) = 0;
     virtual const SceneOptionSelection* selectionFor(
         const EffectControl& option) const = 0;

@@ -55,10 +55,6 @@ public:
         return imageChangeFrom(previousImageValue);
     }
 
-    virtual int isSceneOption(const EffectControl& option) const {
-        return selectionFor(option) != 0;
-    }
-
     virtual SceneOptionSelection* selectionFor(EffectControl& option) {
         return const_cast<SceneOptionSelection*>(
             static_cast<const LegacySceneEffectControlCatalog*>(this)

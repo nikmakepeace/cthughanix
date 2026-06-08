@@ -23,7 +23,7 @@ SceneCommandsEffectControlOwner::SceneCommandsEffectControlOwner(
 
 int SceneCommandsEffectControlOwner::ownsEffectControl(
     const EffectControl& option) const {
-    return effectControls.isSceneOption(option);
+    return effectControls.selectionFor(option) != 0;
 }
 
 void SceneCommandsEffectControlOwner::changeEffectControlBy(
