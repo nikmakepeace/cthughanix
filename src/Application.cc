@@ -31,7 +31,7 @@
 #include "LegacySceneImageCatalogAdapter.h"
 #include "LegacyScenePaletteCatalogAdapter.h"
 #include "LegacySceneWaveObjectCatalogAdapter.h"
-#include "LegacySceneVisualCatalogs.h"
+#include "LegacySceneVisualCatalogFactory.h"
 #include "Mixer.h"
 #include "IniFiles.h"
 #include "Option.h"

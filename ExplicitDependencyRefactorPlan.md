@@ -497,11 +497,11 @@ The remaining Scene-facing debt is intentionally quarantined in `LegacyScene*`
 adapters:
 
 - `Application` still creates `createLegacySceneVisualCatalogFactory(...)`, but
-  now passes only the generator-owned image option. The legacy factory
+  now passes only the Application-owned image option. The legacy factory
   implementation still reaches through global visual `EffectControl`/option
   objects such as `flame`, `wave`, `translation`, `palette`, `border`, and
   `flashlight`.
-- `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogs`,
+- `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogFactory`,
   `LegacySceneControlMirror`, and `LegacySceneSelectionSynchronizer` translate
   those legacy controls into `SceneVisualSelections`, `SceneVisualCatalogs`, and
   the temporary one-way mirror that older visual code still reads.

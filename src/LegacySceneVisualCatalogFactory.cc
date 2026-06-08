@@ -1,6 +1,6 @@
 // Legacy visual catalog factory over global visual options.
 
-#include "LegacySceneVisualCatalogs.h"
+#include "LegacySceneVisualCatalogFactory.h"
 
 #include "Border.h"
 #include "Flashlight.h"
