@@ -993,8 +993,10 @@ concrete changes needed before the surface can disappear.
    list interfaces now install typed `RuntimeSceneTarget` command contexts, so
    change-by, change-to, activate, lock, and choice-use actions dispatch typed
    Scene runtime commands instead of identifying the visual target by
-   `EffectControl&`. Display rows and private legacy adapters still use the
-   generic effect-control route where they belong.
+   `EffectControl&`. The X11 panel visual menus and palette metadata "next
+   untagged" shortcut also dispatch typed Scene activation commands; the
+   display menu and private legacy adapters still use the generic
+   effect-control route where they belong.
 
    Concrete work still required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`

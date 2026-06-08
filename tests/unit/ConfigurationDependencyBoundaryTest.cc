@@ -1964,8 +1964,24 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "testSceneSelectionCommandContextUsesTypedRuntimeCommand");
     assertSourceContains("tests/unit/InterfaceRuntimeTest.cc",
         "testSceneChoiceCommandContextUsesTypedRuntimeCommand");
+    assertSourceContains("src/xcthugha.h",
+        "RuntimeCommandSink* runtimeCommands");
+    assertSourceContains("src/xcthugha.h",
+        "RuntimeSceneTarget sceneTarget");
+    assertSourceContains("src/xcthugha.h",
+        "int hasSceneTarget");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
-        "runtimeCommandRouter.activateEffectControl");
+        "d->runtimeCommandRouter->activateEffectControl");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "RuntimeCommand::activateScene(d->sceneTarget, d->pos)");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "RuntimeCommand::activateScene(RuntimeScenePalette, candidate)");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "add_scene_menu(\"Wave\", &wave, RuntimeSceneWave");
+    assertSourceContains("src/DisplayDeviceX11-Panel.cc",
+        "add_scene_menu(\"Palette\", &palette");
+    assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
+        "runtimeCommandRouter.activateEffectControl(palette");
     assertSourceDoesNotContain("src/InterfaceRuntime.cc",
         "legacyRuntimeCommand");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
@@ -2055,7 +2071,7 @@ static void testX11PanelInputsUseRuntimeCommands() {
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "currentNameOrEmpty(images)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
-        "add_menu(\"Image\", &images");
+        "add_scene_menu(\"Image\", &images, RuntimeSceneImage");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
         "d->opt->setValue");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",

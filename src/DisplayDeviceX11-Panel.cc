@@ -82,8 +82,12 @@ void DisplayDeviceX11::quit(Widget /*w*/, XtPointer data, XtPointer /*data2*/) {
 void DisplayDeviceX11::menuCB(Widget /*item*/, XtPointer data, XtPointer /*data2*/) {
     menu_data_t* d = (menu_data_t*)data;
 
-    if ((d->opt != 0) && (d->runtimeCommandRouter != 0))
+    if ((d->hasSceneTarget != 0) && (d->runtimeCommands != 0)) {
+        d->runtimeCommands->apply(
+            RuntimeCommand::activateScene(d->sceneTarget, d->pos));
+    } else if ((d->opt != 0) && (d->runtimeCommandRouter != 0)) {
         d->runtimeCommandRouter->activateEffectControl(*d->opt, d->pos);
+    }
 }
 
 static unsigned long scale_to_mask(unsigned char value, unsigned long mask) {
@@ -476,7 +480,8 @@ void DisplayDeviceX11::nextUntaggedPalette() {
         if ((paletteEntry != NULL)
             && ((paletteEntry->metadataName[0] == '\0') || (paletteEntry->metadataSetCount == 0)
                 || (paletteEntry->metadataEnergyCount == 0))) {
-            runtimeCommandRouter.activateEffectControl(palette, candidate);
+            runtimeCommands.apply(
+                RuntimeCommand::activateScene(RuntimeScenePalette, candidate));
             palettePreviewPalette = -1;
             updatePalettePreview();
             setPaletteMetadataStatus("next untagged");
@@ -600,6 +605,19 @@ void DisplayDeviceX11::updatePanelSelectionLabels() {
 
 Widget DisplayDeviceX11::add_menu(
     const char* name, EffectControl* what, Widget parent, Widget under, Widget right) {
+    return add_menu_target(name, what, RuntimeSceneFlame, 0, parent, under,
+        right);
+}
+
+Widget DisplayDeviceX11::add_scene_menu(const char* name, EffectControl* what,
+    RuntimeSceneTarget sceneTarget, Widget parent, Widget under,
+    Widget right) {
+    return add_menu_target(name, what, sceneTarget, 1, parent, under, right);
+}
+
+Widget DisplayDeviceX11::add_menu_target(const char* name, EffectControl* what,
+    RuntimeSceneTarget sceneTarget, int hasSceneTarget, Widget parent,
+    Widget under, Widget right) {
     Arg wargs[3];
     int n;
     Widget button, menu, item;
@@ -641,8 +659,11 @@ Widget DisplayDeviceX11::add_menu(
         menu_data_t* md = new menu_data_t;
         const char* label = (*what)[i]->Desc()[0] ? (*what)[i]->Desc() : (*what)[i]->Name();
 
+        md->runtimeCommands = &runtimeCommands;
         md->runtimeCommandRouter = &runtimeCommandRouter;
         md->opt = what;
+        md->sceneTarget = sceneTarget;
+        md->hasSceneTarget = hasSceneTarget;
         md->pos = i;
 
         xawSetArg(wargs[0], XtNlabel, label);
@@ -674,20 +695,20 @@ void DisplayDeviceX11::xcth_create_panel() {
 
     /* create the menus */
     panelMenuButtons[0] = add_menu("Display", &::screen, panel, quit_button, NULL);
-    panelMenuButtons[1] = add_menu("Wave", &wave, panel, quit_button,
-        panelMenuButtons[0]);
-    panelMenuButtons[2] = add_menu("Flame", &flame, panel, quit_button,
-        panelMenuButtons[1]);
-    panelMenuButtons[3] = add_menu("Translation", &translation, panel,
-        quit_button, panelMenuButtons[2]);
-    panelMenuButtons[4] = add_menu("Palette", &palette, panel, quit_button,
-        panelMenuButtons[3]);
-    panelMenuButtons[5] = add_menu("Table", &table, panel, quit_button,
-        panelMenuButtons[4]);
-    panelMenuButtons[6] = add_menu("Image", &images, panel,
-        quit_button, panelMenuButtons[5]);
-    panelMenuButtons[7] = add_menu("Objects", &object, panel, quit_button,
-        panelMenuButtons[6]);
+    panelMenuButtons[1] = add_scene_menu("Wave", &wave, RuntimeSceneWave,
+        panel, quit_button, panelMenuButtons[0]);
+    panelMenuButtons[2] = add_scene_menu("Flame", &flame, RuntimeSceneFlame,
+        panel, quit_button, panelMenuButtons[1]);
+    panelMenuButtons[3] = add_scene_menu("Translation", &translation,
+        RuntimeSceneTranslation, panel, quit_button, panelMenuButtons[2]);
+    panelMenuButtons[4] = add_scene_menu("Palette", &palette,
+        RuntimeScenePalette, panel, quit_button, panelMenuButtons[3]);
+    panelMenuButtons[5] = add_scene_menu("Table", &table, RuntimeSceneTable,
+        panel, quit_button, panelMenuButtons[4]);
+    panelMenuButtons[6] = add_scene_menu("Image", &images, RuntimeSceneImage,
+        panel, quit_button, panelMenuButtons[5]);
+    panelMenuButtons[7] = add_scene_menu("Objects", &object,
+        RuntimeSceneObject, panel, quit_button, panelMenuButtons[6]);
     updatePanelSelectionLabels();
 
     // create the panelText Widget

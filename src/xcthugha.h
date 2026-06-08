@@ -174,8 +174,11 @@ protected:
 
     // control panel stuff
     typedef struct {
+        RuntimeCommandSink* runtimeCommands;
         RuntimeCommandTargetRouter* runtimeCommandRouter;
         EffectControl* opt;
+        RuntimeSceneTarget sceneTarget;
+        int hasSceneTarget;
         int pos;
     } menu_data_t;
     static void key_button(Widget w, XtPointer data, XtPointer data2);
@@ -187,6 +190,12 @@ protected:
     static void palettePreviewExpose(Widget item, XtPointer data, XEvent* event, Boolean* cont);
     static void panelTextExpose(Widget item, XtPointer data, XEvent* event, Boolean* cont);
     Widget add_menu(const char* name, EffectControl* what, Widget parent, Widget under, Widget right);
+    Widget add_scene_menu(const char* name, EffectControl* what,
+        RuntimeSceneTarget sceneTarget, Widget parent, Widget under,
+        Widget right);
+    Widget add_menu_target(const char* name, EffectControl* what,
+        RuntimeSceneTarget sceneTarget, int hasSceneTarget, Widget parent,
+        Widget under, Widget right);
     void updatePanelSelectionLabels();
     void markPanelTextCopyRect(int x, int y, int width, int height, int copyCount);
     unsigned long palettePreviewPixel(unsigned char r, unsigned char g, unsigned char b);
