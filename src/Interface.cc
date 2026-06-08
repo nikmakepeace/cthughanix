@@ -13,7 +13,6 @@
 #include "RuntimeConfigSelection.h"
 #include "RuntimeCommandSink.h"
 #include "Scene.h"
-#include "Image.h"
 #include "keymap.h"
 
 #include <ctype.h>
@@ -416,7 +415,7 @@ ACTION(setExtraKeymap) { context.runtime().setExtraKeymap(invocation.param); }
 
 class InterfaceEffectControl : public Interface {
 public:
-    explicit InterfaceEffectControl(ImageOption&)
+    InterfaceEffectControl()
         : Interface("EffectControls", "Effect Controls", NULL)
     {
 
@@ -535,7 +534,7 @@ public:
     }
 };
 
-void registerListInterfaces(InterfaceRuntime& runtime, ImageOption& images);
+void registerListInterfaces(InterfaceRuntime& runtime);
 void registerHelpInterface(InterfaceRuntime& runtime);
 void registerCreditsInterface(InterfaceRuntime& runtime);
 void registerAudioInterfaces(InterfaceRuntime& runtime);
@@ -562,14 +561,14 @@ void registerInterfaceKeyActions(CommandRegistry& registry) {
     registerHelpKeyActions(registry);
 }
 
-void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images,
+void registerDefaultInterfaces(InterfaceRuntime& runtime,
     Option& quietMessageOption) {
     runtime.registerOwnedInterface(new InterfaceMain());
     runtime.registerOwnedInterface(new Interface("Mixer", "Mixer", NULL));
-    runtime.registerOwnedInterface(new InterfaceEffectControl(images));
+    runtime.registerOwnedInterface(new InterfaceEffectControl());
     runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption));
     registerAudioInterfaces(runtime);
-    registerListInterfaces(runtime, images);
+    registerListInterfaces(runtime);
     registerHelpInterface(runtime);
     registerCreditsInterface(runtime);
 }

@@ -1923,13 +1923,13 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceDoesNotContain("src/InterfaceList.cc",
         "#include \"TranslationOptions.h\"");
     assertSourceContains("src/InterfaceList.cc", "#include \"Screen.h\"");
-    assertSourceContains("src/InterfaceList.cc",
+    assertSourceDoesNotContain("src/InterfaceList.cc",
         "#include \"PaletteOption.h\"");
-    assertSourceContains("src/InterfaceList.cc",
+    assertSourceDoesNotContain("src/InterfaceList.cc",
         "#include \"FlameOptions.h\"");
-    assertSourceContains("src/InterfaceList.cc",
+    assertSourceDoesNotContain("src/InterfaceList.cc",
         "#include \"WaveOptions.h\"");
-    assertSourceContains("src/InterfaceList.cc",
+    assertSourceDoesNotContain("src/InterfaceList.cc",
         "#include \"TranslationOption.h\"");
     assertSourceDoesNotContain("src/DisplayDeviceX11-Panel.cc",
         "#include \"flames.h\"");
@@ -2093,8 +2093,23 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/InterfaceList.cc",
         "return (choice != NULL && choice->inUse()) ? \"yes\" : \"no\"");
     assertSourceContains("src/InterfaceList.cc",
-        "new InterfaceList(\"Flame\", \"Select Flame\", &flame,\n"
-        "            RuntimeSceneFlame)");
+        "new InterfaceList(\"Flame\", \"Select Flame\", RuntimeSceneFlame)");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"FlameOptions.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"WaveOptions.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"TranslationOption.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"PaletteOption.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"BorderOption.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "#include \"FlashlightOption.h\"");
+    assertSourceDoesNotContain("src/InterfaceList.cc",
+        "new InterfaceList(\"Image\", \"Select Image\", &");
     assertSourceContains("tests/unit/InterfaceRuntimeTest.cc",
         "testSceneSelectionCommandContextUsesTypedRuntimeCommand");
     assertSourceContains("tests/unit/InterfaceRuntimeTest.cc",
@@ -2294,7 +2309,6 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
         "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
         "registerDefaultInterfaces(*interfaceRuntimeValue,\n"
-        "        *imageOptionValue,\n"
         "        *quietMessageOptionValue)");
     assertSourceContains("src/Application.cc",
         "quietMessageOptionValue->setValue(startupConfigValue.messages.quietMessageMs)");
@@ -2320,9 +2334,14 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new Interface(\"Mixer\", \"Mixer\", NULL))");
     assertSourceContains("src/Interface.cc",
-        "runtime.registerOwnedInterface(new InterfaceEffectControl(images))");
+        "runtime.registerOwnedInterface(new InterfaceEffectControl())");
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption))");
+    assertSourceDoesNotContain("src/Interface.h", "ImageOption");
+    assertSourceDoesNotContain("src/Interface.cc", "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/Interface.cc", "ImageOption& images");
+    assertSourceDoesNotContain("src/Interface.cc",
+        "registerListInterfaces(runtime, images)");
     assertSourceContains("src/AudioSystem.cc",
         "runtime.registerOwnedInterface(");
     assertSourceContains("src/InterfaceList.cc",
