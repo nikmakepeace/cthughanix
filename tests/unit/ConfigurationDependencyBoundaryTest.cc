@@ -1340,6 +1340,12 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"LegacySceneControlMirror.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "#include \"LegacySceneControlMirror.h\"");
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "class LegacySceneSelectionAdapterSet");
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "LegacySceneControlMirror& controlMirror");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "dynamic_cast<LegacySceneControlMirror");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneVisualSelectionSet.h\"");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
@@ -1397,7 +1403,9 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/LegacySceneVisualCatalogs.h",
         "class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory");
     assertSourceContains("src/LegacySceneVisualCatalogs.h",
-        "std::unique_ptr<SceneVisualSelections> ownedSelections");
+        "std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters");
+    assertSourceContains("src/LegacySceneVisualCatalogs.h",
+        "LegacySceneControlMirror& controlMirror");
     assertSourceContains("src/LegacySceneVisualCatalogs.h",
         "std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory");
     assertSourceContains("src/LegacySceneVisualCatalogs.h",
@@ -1440,7 +1448,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"TranslationOptions.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
-        "std::unique_ptr<SceneVisualSelections> createLegacySceneSelectionAdapters");
+        "std::unique_ptr<LegacySceneSelectionAdapterSet>\n"
+        "createLegacySceneSelectionAdapters");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneSelectionAdapters : public SceneVisualSelections");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
@@ -2615,16 +2624,18 @@ static void testEffectControlUsesInjectedRandomSource() {
         "legacyEffectControls");
     assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
         "registerSelection(registry");
+    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+        "legacySceneControlMirror");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
-        "legacySceneControlMirror(selections_)");
+        "LegacySceneControlMirror& mirror_");
     assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
         "syncFromControls");
     assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
-        "mirror->syncControlsFromSelections()");
+        "mirror.syncControlsFromSelections()");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "syncLegacyControlsFromSelections(selections)");
+        "syncLegacyControlsFromSelections(controlMirror)");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
-        "syncLegacyControlsAndReturn(selections, result)");
+        "syncLegacyControlsAndReturn(controlMirror, result)");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "registerSelection(registry");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",

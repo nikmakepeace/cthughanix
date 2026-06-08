@@ -8,6 +8,8 @@
 
 #include <memory>
 
+class LegacySceneControlMirror;
+
 /**
  * Compatibility synchronizer for legacy visual control mirrors.
  *
@@ -16,6 +18,6 @@
  * code still reads while native visual owners are being introduced.
  */
 std::unique_ptr<SceneRuntimeControlBridge> createLegacySceneSelectionSynchronizer(
-    SceneVisualSelections& selections);
+    SceneVisualSelections& selections, LegacySceneControlMirror& mirror);
 
 #endif

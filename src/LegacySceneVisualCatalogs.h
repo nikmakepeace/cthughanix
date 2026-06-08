@@ -4,12 +4,14 @@
 #define CTHUGHA_LEGACY_SCENE_VISUAL_CATALOGS_H
 
 #include "LegacySceneCatalogAdapters.h"
+#include "LegacySceneSelectionAdapters.h"
 #include "SceneRuntimeDependencies.h"
 #include "SceneVisualSelections.h"
 
 #include <memory>
 
 class ImageOption;
+class LegacySceneControlMirror;
 
 /**
  * Compatibility visual catalog adapter over legacy global EffectControls.
@@ -17,6 +19,7 @@ class ImageOption;
 class LegacySceneVisualCatalogs : public SceneVisualCatalogs {
     SceneSelectionState& selectionState;
     SceneVisualSelections& selections;
+    LegacySceneControlMirror& controlMirror;
     ScenePaletteRandomizer& paletteRandomizer;
 
     Wave* selectRunnableWave(const WaveConfig& config);
@@ -24,6 +27,7 @@ class LegacySceneVisualCatalogs : public SceneVisualCatalogs {
 public:
     LegacySceneVisualCatalogs(SceneSelectionState& selectionState_,
         SceneVisualSelections& selections_,
+        LegacySceneControlMirror& controlMirror_,
         ScenePaletteRandomizer& paletteRandomizer_);
 
     virtual const SceneSettings& currentSettings(SceneGeometry& geometry);
@@ -43,14 +47,14 @@ public:
 };
 
 class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory {
-    std::unique_ptr<SceneVisualSelections> ownedSelections;
+    std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters;
     SceneVisualSelections& selections;
+    LegacySceneControlMirror& controlMirror;
     std::unique_ptr<ScenePaletteRandomizer> paletteRandomizer;
 
 public:
-    explicit LegacySceneVisualCatalogFactory(SceneVisualSelections& selections_);
     explicit LegacySceneVisualCatalogFactory(
-        std::unique_ptr<SceneVisualSelections> ownedSelections_);
+        std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_);
 
     virtual SceneVisualCatalogFactoryResult create(
         SceneSelectionState& selectionState);

@@ -1004,7 +1004,10 @@ concrete changes needed before the surface can disappear.
    or `syncFromControls()` APIs. `LegacySceneEffectControlBindings` and
    `LegacySceneEffectControlCatalog` have been removed; the remaining temporary
    surface is named around its actual job as `LegacySceneControlMirror` plus
-   `LegacySceneSelectionSynchronizer`.
+   `LegacySceneSelectionSynchronizer`. The mirror is now returned explicitly in
+   `LegacySceneSelectionAdapterSet` and passed into `LegacySceneVisualCatalogs`
+   and `LegacySceneSelectionSynchronizer`, so the bridge no longer discovers
+   legacy control sync with RTTI or selection-side identity lookup.
 
    Concrete work still required:
    - Move remaining random, save, restore, and startup synchronization behavior

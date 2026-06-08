@@ -3,8 +3,6 @@
 #ifndef CTHUGHA_LEGACY_SCENE_CONTROL_MIRROR_H
 #define CTHUGHA_LEGACY_SCENE_CONTROL_MIRROR_H
 
-class SceneVisualSelections;
-
 /**
  * Adapter-level mirror for legacy visual EffectControls.
  *
@@ -21,10 +19,5 @@ public:
     /** Synchronizes all legacy control values from their bound selections. */
     virtual void syncControlsFromSelections() = 0;
 };
-
-LegacySceneControlMirror* legacySceneControlMirror(
-    SceneVisualSelections& selections);
-const LegacySceneControlMirror* legacySceneControlMirror(
-    const SceneVisualSelections& selections);
 
 #endif

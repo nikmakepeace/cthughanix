@@ -10,7 +10,7 @@
 #include "SceneTypedVisualCatalogs.h"
 
 static void syncLegacyControlsFromSelections(
-    SceneVisualSelections& selections);
+    LegacySceneControlMirror& mirror);
 
 static WObject* currentSceneWaveObject(SceneOptionSelection& selection) {
     SceneWaveObjectSelection* objectSelection
@@ -80,9 +80,11 @@ static void refreshOwnedPaletteEntry(SceneVisualSelections& selections,
 
 LegacySceneVisualCatalogs::LegacySceneVisualCatalogs(
     SceneSelectionState& selectionState_, SceneVisualSelections& selections_,
+    LegacySceneControlMirror& controlMirror_,
     ScenePaletteRandomizer& paletteRandomizer_)
     : selectionState(selectionState_)
     , selections(selections_)
+    , controlMirror(controlMirror_)
     , paletteRandomizer(paletteRandomizer_) { }
 
 Wave* LegacySceneVisualCatalogs::selectRunnableWave(const WaveConfig& config) {
@@ -113,7 +115,7 @@ const SceneSettings& LegacySceneVisualCatalogs::currentSettings(
         currentSceneWaveObject(selections.object()),
         geometry.width(), geometry.height());
     settings.wave = selectRunnableWave(settings.waveConfig);
-    syncLegacyControlsFromSelections(selections);
+    syncLegacyControlsFromSelections(controlMirror);
     settings.waveName = (settings.wave != 0) ? settings.wave->name() : "unknown";
     settings.waveScaleName = selections.waveScale().currentName();
     settings.tableName = selections.table().currentName();
@@ -148,15 +150,13 @@ static void applyStartupChoice(SceneOptionSelection& selection,
 }
 
 static void syncLegacyControlsFromSelections(
-    SceneVisualSelections& selections) {
-    LegacySceneControlMirror* mirror = legacySceneControlMirror(selections);
-    if (mirror != 0)
-        mirror->syncControlsFromSelections();
+    LegacySceneControlMirror& mirror) {
+    mirror.syncControlsFromSelections();
 }
 
 static unsigned int syncLegacyControlsAndReturn(
-    SceneVisualSelections& selections, unsigned int result) {
-    syncLegacyControlsFromSelections(selections);
+    LegacySceneControlMirror& mirror, unsigned int result) {
+    syncLegacyControlsFromSelections(mirror);
     return result;
 }
 
@@ -174,7 +174,7 @@ void LegacySceneVisualCatalogs::applyStartupConfig(
     applyStartupChoice(selections.border(), config.border, randomSource);
     applyStartupChoice(selections.flashlight(), config.flashlight, randomSource);
     applyStartupChoice(selections.images(), config.image, randomSource);
-    syncLegacyControlsFromSelections(selections);
+    syncLegacyControlsFromSelections(controlMirror);
 }
 
 unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target, int by,
@@ -218,7 +218,7 @@ unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target, int 
         break;
     }
 
-    return syncLegacyControlsAndReturn(selections, result);
+    return syncLegacyControlsAndReturn(controlMirror, result);
 }
 
 unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target,
@@ -262,13 +262,13 @@ unsigned int LegacySceneVisualCatalogs::change(SceneSelectionTarget target,
         break;
     }
 
-    return syncLegacyControlsAndReturn(selections, result);
+    return syncLegacyControlsAndReturn(controlMirror, result);
 }
 
 unsigned int LegacySceneVisualCatalogs::activate(
     SceneSelectionTarget target, int index) {
     sceneSelectionForTarget(selections, target).activate(index);
-    return syncLegacyControlsAndReturn(selections,
+    return syncLegacyControlsAndReturn(controlMirror,
         forcedChangeForSelection(target));
 }
 
@@ -285,12 +285,12 @@ unsigned int LegacySceneVisualCatalogs::randomPalette(RandomSource& randomSource
     int index = paletteRandomizer.randomizeLast(randomSource);
     refreshOwnedPaletteEntry(selections, paletteRandomizer, index);
     selections.palette().setValue(index);
-    return syncLegacyControlsAndReturn(selections, ScenePaletteChanged);
+    return syncLegacyControlsAndReturn(controlMirror, ScenePaletteChanged);
 }
 
 unsigned int LegacySceneVisualCatalogs::addRandomPalette(RandomSource& randomSource) {
     int index = paletteRandomizer.addRandom(randomSource);
     refreshOwnedPaletteEntry(selections, paletteRandomizer, index);
     selections.palette().setValue(index);
-    return syncLegacyControlsAndReturn(selections, ScenePaletteChanged);
+    return syncLegacyControlsAndReturn(controlMirror, ScenePaletteChanged);
 }

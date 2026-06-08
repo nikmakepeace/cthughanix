@@ -16,24 +16,19 @@
 #include <utility>
 
 LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
-    SceneVisualSelections& selections_)
-    : ownedSelections()
-    , selections(selections_)
-    , paletteRandomizer(createLegacyScenePaletteRandomizer()) { }
-
-LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
-    std::unique_ptr<SceneVisualSelections> ownedSelections_)
-    : ownedSelections(std::move(ownedSelections_))
-    , selections(*ownedSelections)
+    std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_)
+    : ownedAdapters(std::move(ownedAdapters_))
+    , selections(*ownedAdapters->selections)
+    , controlMirror(ownedAdapters->controlMirror)
     , paletteRandomizer(createLegacyScenePaletteRandomizer()) { }
 
 SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
     SceneSelectionState& selectionState) {
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs(
         new LegacySceneVisualCatalogs(
-            selectionState, selections, *paletteRandomizer));
+            selectionState, selections, controlMirror, *paletteRandomizer));
     std::unique_ptr<SceneRuntimeControlBridge> controlBridge
-        = createLegacySceneSelectionSynchronizer(selections);
+        = createLegacySceneSelectionSynchronizer(selections, controlMirror);
     return SceneVisualCatalogFactoryResult(std::move(visualCatalogs),
         std::move(controlBridge), selections);
 }

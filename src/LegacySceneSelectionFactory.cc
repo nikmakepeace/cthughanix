@@ -174,7 +174,8 @@ static SceneChoiceCatalog* createSceneImageChoiceCatalog(EffectControl& option) 
 
 }
 
-std::unique_ptr<SceneVisualSelections> createLegacySceneSelectionAdapters(
+std::unique_ptr<LegacySceneSelectionAdapterSet>
+createLegacySceneSelectionAdapters(
     EffectControl& flame, EffectControl& generalFlame, EffectControl& wave,
     EffectControl& waveScale, EffectControl& table, EffectControl& object,
     EffectControl& translation, EffectControl& palette, EffectControl& border,

@@ -8,7 +8,7 @@ namespace {
 
 class LegacySceneSelectionSynchronizer : public SceneRuntimeControlBridge {
     SceneVisualSelections& selections;
-    LegacySceneControlMirror* mirror;
+    LegacySceneControlMirror& mirror;
     int syncedImageValue;
 
     unsigned int imageChangeFrom(int previousImageValue) {
@@ -18,15 +18,15 @@ class LegacySceneSelectionSynchronizer : public SceneRuntimeControlBridge {
     }
 
     void syncBoundControlsFromSelections() {
-        if (mirror != 0)
-            mirror->syncControlsFromSelections();
+        mirror.syncControlsFromSelections();
         syncedImageValue = selections.images().currentValue();
     }
 
 public:
-    explicit LegacySceneSelectionSynchronizer(SceneVisualSelections& selections_)
+    LegacySceneSelectionSynchronizer(SceneVisualSelections& selections_,
+        LegacySceneControlMirror& mirror_)
         : selections(selections_)
-        , mirror(legacySceneControlMirror(selections_))
+        , mirror(mirror_)
         , syncedImageValue(selections_.images().currentValue()) { }
 
     virtual unsigned int syncControlsFromSelections() {
@@ -41,7 +41,7 @@ public:
 }
 
 std::unique_ptr<SceneRuntimeControlBridge> createLegacySceneSelectionSynchronizer(
-    SceneVisualSelections& selections) {
+    SceneVisualSelections& selections, LegacySceneControlMirror& mirror) {
     return std::unique_ptr<SceneRuntimeControlBridge>(
-        new LegacySceneSelectionSynchronizer(selections));
+        new LegacySceneSelectionSynchronizer(selections, mirror));
 }
