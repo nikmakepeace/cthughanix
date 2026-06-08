@@ -930,7 +930,10 @@ concrete changes needed before the surface can disappear.
    random palette adapter mutates or appends the persisted palette entry.
    Global visual headers needed to construct the temporary factory are isolated
    in `LegacySceneVisualCatalogFactory.cc`; `LegacySceneVisualCatalogs.cc`
-   works through Scene selection ports.
+   works through Scene selection ports. `SceneVisualSelectionSet` now owns the
+   native visual selection ports without depending on legacy control identity;
+   `LegacySceneSelectionAdapters` delegates to that set while retaining only the
+   temporary legacy lookup and synchronization table.
 
    Concrete work still required:
    - Add native visual catalog owners that load or generate every choice used by

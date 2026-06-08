@@ -10,6 +10,7 @@
 #include "SceneChoiceSelection.h"
 #include "SceneGeneralFlameSelectionValue.h"
 #include "SceneTypedVisualCatalogs.h"
+#include "SceneVisualSelectionSet.h"
 #include "TranslationOptions.h"
 #include "WaveObject.h"
 #include "display.h"
@@ -33,17 +34,7 @@ class LegacySceneSelectionAdapters : public SceneVisualSelections,
     EffectControl& borderControl;
     EffectControl& flashlightControl;
     EffectControl& imagesControl;
-    SceneFlameChoiceSelection flameValue;
-    SceneGeneralFlameSelectionValue generalFlameValue;
-    SceneWaveChoiceSelection waveValue;
-    SceneChoiceSelection waveScaleValue;
-    SceneChoiceSelection tableValue;
-    SceneWaveObjectChoiceSelection objectValue;
-    SceneTranslationChoiceSelection translationValue;
-    ScenePaletteChoiceSelection paletteValue;
-    SceneChoiceSelection borderValue;
-    SceneChoiceSelection flashlightValue;
-    SceneImageChoiceSelection imagesValue;
+    std::unique_ptr<SceneVisualSelections> selections;
 
 public:
     LegacySceneSelectionAdapters(EffectControl& flame_,
@@ -240,63 +231,74 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     , borderControl(border_)
     , flashlightControl(flashlight_)
     , imagesControl(images_)
-    , flameValue(createSceneFlameChoiceCatalog(flame_), int(flame_))
-    , generalFlameValue(generalFlame_.name(),
-          new LegacySceneChoiceLock(generalFlame_.lock), int(generalFlame_))
-    , waveValue(createSceneWaveChoiceCatalog(wave_), int(wave_))
-    , waveScaleValue(createWaveScaleChoiceCatalog(waveScale_), int(waveScale_))
-    , tableValue(createTableChoiceCatalog(table_), int(table_))
-    , objectValue(createSceneWaveObjectChoiceCatalog(object_), int(object_))
-    , translationValue(createSceneTranslationChoiceCatalog(translation_),
-          int(translation_))
-    , paletteValue(createScenePaletteChoiceCatalog(palette_), int(palette_))
-    , borderValue(createBorderChoiceCatalog(border_), int(border_))
-    , flashlightValue(createFlashlightChoiceCatalog(flashlight_),
-          int(flashlight_))
-    , imagesValue(createSceneImageChoiceCatalog(images_), int(images_)) { }
+    , selections(new SceneVisualSelectionSet(
+          new SceneFlameChoiceSelection(
+              createSceneFlameChoiceCatalog(flame_), int(flame_)),
+          new SceneGeneralFlameSelectionValue(generalFlame_.name(),
+              new LegacySceneChoiceLock(generalFlame_.lock),
+              int(generalFlame_)),
+          new SceneWaveChoiceSelection(
+              createSceneWaveChoiceCatalog(wave_), int(wave_)),
+          new SceneChoiceSelection(
+              createWaveScaleChoiceCatalog(waveScale_), int(waveScale_)),
+          new SceneChoiceSelection(createTableChoiceCatalog(table_),
+              int(table_)),
+          new SceneWaveObjectChoiceSelection(
+              createSceneWaveObjectChoiceCatalog(object_), int(object_)),
+          new SceneTranslationChoiceSelection(
+              createSceneTranslationChoiceCatalog(translation_),
+              int(translation_)),
+          new ScenePaletteChoiceSelection(
+              createScenePaletteChoiceCatalog(palette_), int(palette_)),
+          new SceneChoiceSelection(
+              createBorderChoiceCatalog(border_), int(border_)),
+          new SceneChoiceSelection(
+              createFlashlightChoiceCatalog(flashlight_), int(flashlight_)),
+          new SceneImageChoiceSelection(
+              createSceneImageChoiceCatalog(images_), int(images_)))) { }
 
 SceneFlameSelection& LegacySceneSelectionAdapters::flame() {
-    return flameValue;
+    return selections->flame();
 }
 
 SceneGeneralFlameSelection& LegacySceneSelectionAdapters::generalFlame() {
-    return generalFlameValue;
+    return selections->generalFlame();
 }
 
 SceneWaveSelection& LegacySceneSelectionAdapters::wave() {
-    return waveValue;
+    return selections->wave();
 }
 
 SceneOptionSelection& LegacySceneSelectionAdapters::waveScale() {
-    return waveScaleValue;
+    return selections->waveScale();
 }
 
 SceneOptionSelection& LegacySceneSelectionAdapters::table() {
-    return tableValue;
+    return selections->table();
 }
 
 SceneOptionSelection& LegacySceneSelectionAdapters::object() {
-    return objectValue;
+    return selections->object();
 }
 
 SceneTranslationSelection& LegacySceneSelectionAdapters::translation() {
-    return translationValue;
+    return selections->translation();
 }
 
 ScenePaletteSelection& LegacySceneSelectionAdapters::palette() {
-    return paletteValue;
+    return selections->palette();
 }
 
 SceneOptionSelection& LegacySceneSelectionAdapters::border() {
-    return borderValue;
+    return selections->border();
 }
 
 SceneOptionSelection& LegacySceneSelectionAdapters::flashlight() {
-    return flashlightValue;
+    return selections->flashlight();
 }
 
 SceneImageSelection& LegacySceneSelectionAdapters::images() {
-    return imagesValue;
+    return selections->images();
 }
 
 SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
@@ -309,57 +311,57 @@ SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
 const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
     const EffectControl& option) const {
     if (&option == &flameControl)
-        return &flameValue;
+        return &selections->flame();
     if (&option == &generalFlameControl)
-        return &generalFlameValue;
+        return &selections->generalFlame();
     if (&option == &waveControl)
-        return &waveValue;
+        return &selections->wave();
     if (&option == &waveScaleControl)
-        return &waveScaleValue;
+        return &selections->waveScale();
     if (&option == &objectControl)
-        return &objectValue;
+        return &selections->object();
     if (&option == &translationControl)
-        return &translationValue;
+        return &selections->translation();
     if (&option == &borderControl)
-        return &borderValue;
+        return &selections->border();
     if (&option == &flashlightControl)
-        return &flashlightValue;
+        return &selections->flashlight();
     if (&option == &paletteControl)
-        return &paletteValue;
+        return &selections->palette();
     if (&option == &tableControl)
-        return &tableValue;
+        return &selections->table();
     if (&option == &imagesControl)
-        return &imagesValue;
+        return &selections->images();
 
     return 0;
 }
 
 void LegacySceneSelectionAdapters::syncFromControls() {
-    flameValue.setValue(int(flameControl));
-    generalFlameValue.setValue(int(generalFlameControl));
-    waveValue.setValue(int(waveControl));
-    waveScaleValue.setValue(int(waveScaleControl));
-    tableValue.setValue(int(tableControl));
-    objectValue.setValue(int(objectControl));
-    translationValue.setValue(int(translationControl));
-    paletteValue.setValue(int(paletteControl));
-    borderValue.setValue(int(borderControl));
-    flashlightValue.setValue(int(flashlightControl));
-    imagesValue.setValue(int(imagesControl));
+    selections->flame().setValue(int(flameControl));
+    selections->generalFlame().setValue(int(generalFlameControl));
+    selections->wave().setValue(int(waveControl));
+    selections->waveScale().setValue(int(waveScaleControl));
+    selections->table().setValue(int(tableControl));
+    selections->object().setValue(int(objectControl));
+    selections->translation().setValue(int(translationControl));
+    selections->palette().setValue(int(paletteControl));
+    selections->border().setValue(int(borderControl));
+    selections->flashlight().setValue(int(flashlightControl));
+    selections->images().setValue(int(imagesControl));
 }
 
 void LegacySceneSelectionAdapters::syncControlsFromSelections() {
-    flameControl.setValue(flameValue.currentValue());
-    generalFlameControl.setValue(generalFlameValue.currentValue());
-    waveControl.setValue(waveValue.currentValue());
-    waveScaleControl.setValue(waveScaleValue.currentValue());
-    tableControl.setValue(tableValue.currentValue());
-    objectControl.setValue(objectValue.currentValue());
-    translationControl.setValue(translationValue.currentValue());
-    paletteControl.setValue(paletteValue.currentValue());
-    borderControl.setValue(borderValue.currentValue());
-    flashlightControl.setValue(flashlightValue.currentValue());
-    imagesControl.setValue(imagesValue.currentValue());
+    flameControl.setValue(selections->flame().currentValue());
+    generalFlameControl.setValue(selections->generalFlame().currentValue());
+    waveControl.setValue(selections->wave().currentValue());
+    waveScaleControl.setValue(selections->waveScale().currentValue());
+    tableControl.setValue(selections->table().currentValue());
+    objectControl.setValue(selections->object().currentValue());
+    translationControl.setValue(selections->translation().currentValue());
+    paletteControl.setValue(selections->palette().currentValue());
+    borderControl.setValue(selections->border().currentValue());
+    flashlightControl.setValue(selections->flashlight().currentValue());
+    imagesControl.setValue(selections->images().currentValue());
 }
 
 }
