@@ -597,7 +597,8 @@ int Application::initialize() {
             &displayArgc, displayArgv.data()))
         return 0;
     displayRuntimeOwnership = newDisplayDevice(scene(),
-        *imageOptionValue, *runtimeChangeMediatorValue,
+        *imageOptionValue, sceneRuntimeValue->visualSelections(),
+        *runtimeChangeMediatorValue,
         *runtimeCommandRouterValue, *runtimeConfigRegistryValue,
         startupConfigValue.display, secondsClockValue);
     if (displayRuntimeOwnership.get() == NULL)
