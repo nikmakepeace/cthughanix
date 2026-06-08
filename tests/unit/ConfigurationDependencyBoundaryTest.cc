@@ -1478,7 +1478,8 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/Scene.cc",
         "void SceneCommands::refreshFromOptionsAndMaybeCueImage");
     assertSourceContains("src/Scene.cc",
-        "syncFromOptionsAndMaybeCueImage(dependencies.selectionSync.syncFromControls())");
+        "syncFromOptionsAndMaybeCueImage(\n"
+        "        dependencies.selectionSync.syncControlsFromSelections())");
     assertSourceContains("src/Scene.cc",
         "(forcedChanges & SceneImageChanged) != 0");
     assertSourceDoesNotContain("src/Scene.cc",
@@ -2406,6 +2407,8 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/Scene.cc",
         "dependencies.effectRegistry.changeOne(randomSource)");
     assertSourceContains("src/Scene.cc",
+        "dependencies.selectionSync.syncControlsFromSelections()");
+    assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.selectionSync.syncFromControls()");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "return imageChangeFrom(previousImageValue)");

@@ -41,7 +41,27 @@ public:
 class SceneSelectionSynchronizer {
 public:
     virtual ~SceneSelectionSynchronizer();
+
+    /**
+     * Pulls externally mutated legacy control state into Scene selections.
+     *
+     * This is only needed while legacy EffectControl command paths can still
+     * mutate visual state outside the Scene selection owners.
+     *
+     * @return SceneChange flags forced by the synchronization.
+     */
     virtual unsigned int syncFromControls() = 0;
+
+    /**
+     * Pushes Scene-owned selection state out to temporary legacy controls.
+     *
+     * Native Scene registry and preset operations mutate selections directly;
+     * during migration, the legacy controls must be refreshed from those
+     * selections before visual settings are read.
+     *
+     * @return SceneChange flags forced by the synchronization.
+     */
+    virtual unsigned int syncControlsFromSelections() = 0;
 };
 
 /**

@@ -195,26 +195,35 @@ class SyncingEffectControlCatalog : public SceneEffectControlCatalog {
 
 public:
     int syncCalls;
+    int syncControlsCalls;
     const EffectControl* sceneOption;
     int changeByCalls;
     int changeByOrder;
     unsigned int syncResponse;
+    unsigned int syncControlsResponse;
     unsigned int changeByResponse;
 
     explicit SyncingEffectControlCatalog(
         RecordingVisualCatalogs& visualCatalogs_)
         : visualCatalogs(visualCatalogs_)
         , syncCalls(0)
+        , syncControlsCalls(0)
         , sceneOption(0)
         , changeByCalls(0)
         , changeByOrder(0)
         , syncResponse(SceneNoChange)
+        , syncControlsResponse(SceneNoChange)
         , changeByResponse(SceneNoChange) { }
 
     virtual unsigned int syncFromControls() {
         syncCalls++;
         visualCatalogs.stateValue = 7;
         return syncResponse;
+    }
+    virtual unsigned int syncControlsFromSelections() {
+        syncControlsCalls++;
+        visualCatalogs.stateValue = 9;
+        return syncControlsResponse;
     }
 
     virtual int isSceneOption(const EffectControl& option) const {
@@ -268,7 +277,7 @@ public:
     virtual void save(int) { saveCalls++; }
 };
 
-static void testRestoreSyncsEffectControlsBeforeReadingSceneSettings() {
+static void testRestorePushesSceneSelectionsBeforeReadingSceneSettings() {
     Scene scene;
     DummySceneGeometry geometry;
     RecordingVisualCatalogs visualCatalogs;
@@ -284,9 +293,10 @@ static void testRestoreSyncsEffectControlsBeforeReadingSceneSettings() {
     commands.restore();
 
     assert(effectRegistry.restoreCalls == 1);
-    assert(effectControls.syncCalls == 1);
+    assert(effectControls.syncCalls == 0);
+    assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.currentSettingsCalls == 1);
-    assert(scene.settings().borderMode == 7);
+    assert(scene.settings().borderMode == 9);
 }
 
 static EffectControl& testSceneOption() {
@@ -333,7 +343,7 @@ static void testChangeOneUsesSyncReturnedImageChangeForCue() {
     RecordingEffectRegistry effectRegistry;
     RecordingPresetCatalog presets;
     DummyRandomSource randomSource;
-    effectControls.syncResponse = SceneImageChanged;
+    effectControls.syncControlsResponse = SceneImageChanged;
 
     SceneCommandDependencies dependencies(
         visualCatalogs, effectControls, effectRegistry, presets);
@@ -341,7 +351,8 @@ static void testChangeOneUsesSyncReturnedImageChangeForCue() {
 
     commands.changeOne();
 
-    assert(effectControls.syncCalls == 1);
+    assert(effectControls.syncCalls == 0);
+    assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.currentImageCalls == 1);
 }
 
@@ -452,7 +463,7 @@ static void testSceneSelectionPolicyApplierUsesSceneSelections() {
 }
 
 int main() {
-    testRestoreSyncsEffectControlsBeforeReadingSceneSettings();
+    testRestorePushesSceneSelectionsBeforeReadingSceneSettings();
     testEffectControlSaveUsesExplicitRegistryBeforeCatalogChange();
     testChangeOneUsesSyncReturnedImageChangeForCue();
     testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges();

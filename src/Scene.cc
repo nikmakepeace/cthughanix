@@ -264,26 +264,27 @@ void SceneCommands::addRandomPalette() {
 
 void SceneCommands::changeAll() {
     dependencies.effectRegistry.changeAll(randomSource);
-    dependencies.selectionSync.syncFromControls();
+    dependencies.selectionSync.syncControlsFromSelections();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::changeOne() {
     dependencies.effectRegistry.changeOne(randomSource);
-    syncFromOptionsAndMaybeCueImage(dependencies.selectionSync.syncFromControls());
+    syncFromOptionsAndMaybeCueImage(
+        dependencies.selectionSync.syncControlsFromSelections());
 }
 
 void SceneCommands::restore() {
     dependencies.effectRegistry.restoreAll();
-    dependencies.selectionSync.syncFromControls();
+    dependencies.selectionSync.syncControlsFromSelections();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }
 
 void SceneCommands::restorePreset(int slot) {
     dependencies.presets.restore(slot);
-    dependencies.selectionSync.syncFromControls();
+    dependencies.selectionSync.syncControlsFromSelections();
     syncFromOptions(SceneAllChanged);
     emitImageCue();
 }

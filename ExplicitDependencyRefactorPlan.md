@@ -973,7 +973,10 @@ concrete changes needed before the surface can disappear.
 
    Current progress: `SceneEffectChoiceCatalog` has been deleted. The remaining
    selection adapter uses `LegacySceneChoiceLock` only for legacy lock state;
-   visual choices themselves no longer borrow `EffectChoiceList` entries.
+   visual choices themselves no longer borrow `EffectChoiceList` entries. Scene
+   registry and preset operations now mutate native selections first and then
+   push those values out through the temporary legacy-control synchronizer
+   instead of pulling stale global control values back over native selections.
 
    Concrete work still required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`
