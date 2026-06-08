@@ -1142,9 +1142,9 @@ target_link_libraries(scene_choice_lock_value_test PRIVATE m)
 add_test(NAME scene_choice_lock_value_test
     COMMAND scene_choice_lock_value_test)
 
-add_executable(legacy_scene_selection_factory_test
-    unit/LegacySceneSelectionFactoryTest.cc
-    ${CMAKE_SOURCE_DIR}/src/LegacySceneSelectionFactory.cc
+add_executable(scene_visual_selection_factory_test
+    unit/SceneVisualSelectionFactoryTest.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneVisualSelectionFactory.cc
     ${CMAKE_SOURCE_DIR}/src/SceneBuiltInChoiceCatalogs.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceListCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/SceneTypedVisualCatalogs.cc
@@ -1167,20 +1167,20 @@ add_executable(legacy_scene_selection_factory_test
     ${CMAKE_SOURCE_DIR}/src/imath.cc
 )
 
-target_include_directories(legacy_scene_selection_factory_test PRIVATE
+target_include_directories(scene_visual_selection_factory_test PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/src
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_compile_definitions(legacy_scene_selection_factory_test PRIVATE
+target_compile_definitions(scene_visual_selection_factory_test PRIVATE
     CTH_LIBDIR="${CTH_DATA_DIR}"
 )
 
-target_link_libraries(legacy_scene_selection_factory_test PRIVATE m)
+target_link_libraries(scene_visual_selection_factory_test PRIVATE m)
 
-add_test(NAME legacy_scene_selection_factory_test
-    COMMAND legacy_scene_selection_factory_test)
+add_test(NAME scene_visual_selection_factory_test
+    COMMAND scene_visual_selection_factory_test)
 
 add_executable(scene_typed_visual_catalogs_test
     unit/SceneTypedVisualCatalogsTest.cc
