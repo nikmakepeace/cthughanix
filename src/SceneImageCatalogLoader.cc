@@ -5,7 +5,7 @@
 #include "config.h"
 
 #include "Configuration.h"
-#include "Image.h"
+#include "IndexedImage.h"
 #include "ProcessServices.h"
 #include "SceneImageCatalog.h"
 #include "pcx.h"

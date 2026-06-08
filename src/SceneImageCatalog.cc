@@ -2,7 +2,7 @@
 
 #include "SceneImageCatalog.h"
 
-#include "Image.h"
+#include "IndexedImage.h"
 
 #include <string.h>
 

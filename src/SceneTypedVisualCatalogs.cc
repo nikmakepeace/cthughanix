@@ -2,7 +2,7 @@
 
 #include "SceneTypedVisualCatalogs.h"
 
-#include "Image.h"
+#include "IndexedImage.h"
 #include "PaletteEntry.h"
 #include "SceneImageCatalog.h"
 #include "ScenePaletteCatalog.h"

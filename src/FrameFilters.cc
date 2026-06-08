@@ -4,7 +4,7 @@
 #include "FlashlightRenderer.h"
 #include "FramePalette.h"
 #include "BitmapFont.h"
-#include "Image.h"
+#include "IndexedImage.h"
 #include "ProcessServices.h"
 #include "FrameFilters.h"
 #include "PaletteEntry.h"

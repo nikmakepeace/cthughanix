@@ -201,6 +201,14 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
     assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.h",
         "#include \"Image.h\"");
     assertSourceDoesNotContain("src/FrameFilters.h", "#include \"Image.h\"");
+    assertSourceContains("src/FrameGeneratorSceneBinding.cc",
+        "#include \"IndexedImage.h\"");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
+        "#include \"Image.h\"");
+    assertSourceContains("src/FrameFilters.cc", "#include \"IndexedImage.h\"");
+    assertSourceDoesNotContain("src/FrameFilters.cc", "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/IndexedImage.h", "EffectControl");
+    assertSourceContains("src/Image.h", "#include \"IndexedImage.h\"");
 }
 
 static void testGeneratorDiagnosticsAndMathTablesAreOwned() {
