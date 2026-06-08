@@ -180,7 +180,6 @@ Application::Application(int argc, char* argv[])
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        *imageOptionValue,
         *quietMessageOptionValue);
 }
 
@@ -206,7 +205,6 @@ Application::Application(int argc, char* argv[],
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        *imageOptionValue,
         *quietMessageOptionValue);
 }
 

@@ -1017,6 +1017,11 @@ from this plan.
      list/interface compatibility, and legacy option implementation files.
      Frame Generator files use Scene ports plus narrow border/flashlight
      renderer ports instead of including global visual option headers.
+   - F2/list interfaces for Scene visual choices are registered from native
+     `RuntimeSceneTarget` selections only. The list interface no longer carries
+     visual `EffectControl` fallbacks or the legacy visual option headers;
+     display-only `EffectControl` list support remains scoped to the display
+     option list.
 
 6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
    Native object, image, and palette Scene catalog loaders are in place.
@@ -1026,11 +1031,13 @@ from this plan.
    longer mirrored back into visual `EffectControl` globals.
 
    What remains:
-   - Retire any pre-startup or non-Scene UI fallback that still displays Scene
-     visual choices through legacy `EffectControl` lists. This is complete when
-     F2 lists, X11 menus, keymap actions, and runtime config display code all
-     consume native Scene selections after construction, with any remaining
-     display-only legacy control path scoped to non-Scene display options.
+   - Retire any remaining non-Scene UI fallback that still displays Scene
+     visual choices through legacy `EffectControl` lists. F2/list interfaces
+     now consume native Scene selections without visual option fallbacks. This
+     is complete when X11 menus, keymap actions, and runtime config display
+     code all consume native Scene selections after construction, with any
+     remaining display-only legacy control path scoped to non-Scene display
+     options.
    - Delete the remaining bridge sources and test allowances. This is complete
      when no production command, config, startup, save/restore, preset,
      serialization, UI, or Frame Generator path names `LegacyScene*` for visual

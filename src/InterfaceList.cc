@@ -2,19 +2,11 @@
 #include "Interface.h"
 #include "InterfaceRuntime.h"
 #include "imath.h"
-#include "BorderOption.h"
 #include "DisplayDevice.h"
-#include "FlashlightOption.h"
-#include "FlameOptions.h"
-#include "RuntimeCommandSink.h"
 #include "Scene.h"
 #include "SceneChoiceSelection.h"
 #include "Screen.h"
-#include "Image.h"
 #include "keymap.h"
-#include "PaletteOption.h"
-#include "TranslationOption.h"
-#include "WaveOptions.h"
 
 //
 // ERROR:
@@ -38,11 +30,11 @@ public:
         , sceneTarget(RuntimeSceneFlame)
         , hasSceneTarget(0) { }
 
-    InterfaceList(const char* name, const char* title, EffectControl* o,
+    InterfaceList(const char* name, const char* title,
         RuntimeSceneTarget sceneTarget_)
         : Interface(name, title, NULL)
         , pos(0)
-        , effectControl(o)
+        , effectControl(0)
         , sceneTarget(sceneTarget_)
         , hasSceneTarget(1) { }
 
@@ -52,8 +44,10 @@ public:
 
     int entryCount(InterfaceRuntime& runtime) const {
         SceneOptionSelection* selection = sceneSelection(runtime);
-        return (selection != NULL) ? selection->entryCount()
-                                   : effectControl->getNEntries();
+        if (hasSceneTarget)
+            return (selection != NULL) ? selection->entryCount() : 0;
+
+        return (effectControl != NULL) ? effectControl->getNEntries() : 0;
     }
 
     const char* rowName(SceneOptionSelection* selection, int index) const {
@@ -62,7 +56,8 @@ public:
             return (choice != NULL) ? choice->name() : "unknown";
         }
 
-        return effectControl->entries[index]->name;
+        return (effectControl != NULL) ? effectControl->entries[index]->name
+                                       : "unknown";
     }
 
     const char* rowDescription(
@@ -70,7 +65,8 @@ public:
         if (selection != NULL)
             return rowName(selection, index);
 
-        return effectControl->entries[index]->desc;
+        return (effectControl != NULL) ? effectControl->entries[index]->desc
+                                       : "";
     }
 
     const char* rowUseText(SceneOptionSelection* selection, int index) const {
@@ -79,7 +75,8 @@ public:
             return (choice != NULL && choice->inUse()) ? "yes" : "no";
         }
 
-        return effectControl->entries[index]->use.text();
+        return (effectControl != NULL) ? effectControl->entries[index]->use.text()
+                                       : "no";
     }
 
     virtual void display(InterfaceRuntime& runtime) {
@@ -196,36 +193,32 @@ int InterfaceList::do_key(int key) {
 }
 #endif
 
-void registerListInterfaces(InterfaceRuntime& runtime, ImageOption& images) {
+void registerListInterfaces(InterfaceRuntime& runtime) {
     runtime.registerOwnedInterface(
         new InterfaceList("Display", "Select Display", &screen));
     runtime.registerOwnedInterface(
-        new InterfaceList("Flame", "Select Flame", &flame,
-            RuntimeSceneFlame));
+        new InterfaceList("Flame", "Select Flame", RuntimeSceneFlame));
     runtime.registerOwnedInterface(
-        new InterfaceList("Border", "Select Border of Buffer", &border,
+        new InterfaceList("Border", "Select Border of Buffer",
             RuntimeSceneBorder));
     runtime.registerOwnedInterface(
         new InterfaceList("Translate", "Select Translation Table",
-            &translation, RuntimeSceneTranslation));
+            RuntimeSceneTranslation));
     runtime.registerOwnedInterface(
-        new InterfaceList("Wave", "Select Wave", &wave, RuntimeSceneWave));
+        new InterfaceList("Wave", "Select Wave", RuntimeSceneWave));
     runtime.registerOwnedInterface(
-        new InterfaceList("Table", "Select Sound Table", &table,
-            RuntimeSceneTable));
+        new InterfaceList("Table", "Select Sound Table", RuntimeSceneTable));
     runtime.registerOwnedInterface(
-        new InterfaceList("WaveScaling", "Select Wave Scaling", &waveScale,
+        new InterfaceList("WaveScaling", "Select Wave Scaling",
             RuntimeSceneWaveScale));
     runtime.registerOwnedInterface(
         new InterfaceList("Object", "Select 3D Object (for some waves)",
-            &object, RuntimeSceneObject));
+            RuntimeSceneObject));
     runtime.registerOwnedInterface(
-        new InterfaceList("Palette", "Select Palette", &palette,
-            RuntimeScenePalette));
+        new InterfaceList("Palette", "Select Palette", RuntimeScenePalette));
     runtime.registerOwnedInterface(
-        new InterfaceList("Image", "Select Image", &images,
-            RuntimeSceneImage));
+        new InterfaceList("Image", "Select Image", RuntimeSceneImage));
     runtime.registerOwnedInterface(
-        new InterfaceList("Flashlight", "Select Flashlight", &flashlight,
+        new InterfaceList("Flashlight", "Select Flashlight",
             RuntimeSceneFlashlight));
 }
