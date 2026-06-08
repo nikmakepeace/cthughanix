@@ -25,15 +25,6 @@ class LegacySceneEffectControlCatalog : public SceneEffectControlCatalog {
         return SceneNoChange;
     }
 
-    SceneOptionSelection* selectionFor(
-        const EffectControl& option) const {
-        if (bindings == 0)
-            return 0;
-
-        return const_cast<SceneOptionSelection*>(
-            bindings->selectionFor(option));
-    }
-
     void syncBoundControlsFromSelections() {
         if (bindings != 0)
             bindings->syncControlsFromSelections();
@@ -68,49 +59,50 @@ public:
         return selectionFor(option) != 0;
     }
 
+    virtual SceneOptionSelection* selectionFor(EffectControl& option) {
+        return const_cast<SceneOptionSelection*>(
+            static_cast<const LegacySceneEffectControlCatalog*>(this)
+                ->selectionFor(option));
+    }
+
+    virtual const SceneOptionSelection* selectionFor(
+        const EffectControl& option) const {
+        if (bindings == 0)
+            return 0;
+
+        return bindings->selectionFor(option);
+    }
+
     virtual unsigned int change(
-        EffectControl& option, int by, RandomSource& randomSource) {
+        SceneOptionSelection& selection, int by, RandomSource& randomSource) {
         (void)randomSource;
         int previousImageValue = selections.images().currentValue();
-        SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0) {
-            selection->change(by);
-            syncBoundControlsFromSelections();
-        }
-        return changeForSelection(selection, previousImageValue);
+        selection.change(by);
+        syncBoundControlsFromSelections();
+        return changeForSelection(&selection, previousImageValue);
     }
 
-    virtual unsigned int change(EffectControl& option, const char* to,
+    virtual unsigned int change(SceneOptionSelection& selection, const char* to,
         RandomSource& randomSource) {
         int previousImageValue = selections.images().currentValue();
-        SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0) {
-            selection->change(to, randomSource);
-            syncBoundControlsFromSelections();
-        }
-        return changeForSelection(selection, previousImageValue);
+        selection.change(to, randomSource);
+        syncBoundControlsFromSelections();
+        return changeForSelection(&selection, previousImageValue);
     }
 
-    virtual unsigned int activate(EffectControl& option, int index) {
+    virtual unsigned int activate(SceneOptionSelection& selection, int index) {
         int previousImageValue = selections.images().currentValue();
-        SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0) {
-            selection->activate(index);
-            syncBoundControlsFromSelections();
-        }
-        return changeForSelection(selection, previousImageValue);
+        selection.activate(index);
+        syncBoundControlsFromSelections();
+        return changeForSelection(&selection, previousImageValue);
     }
 
-    virtual void toggleLock(EffectControl& option) {
-        SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0)
-            selection->toggleLock();
+    virtual void toggleLock(SceneOptionSelection& selection) {
+        selection.toggleLock();
     }
 
-    virtual void toggleChoiceUse(EffectControl& option, int index) {
-        SceneOptionSelection* selection = selectionFor(option);
-        if (selection != 0)
-            selection->toggleChoiceUse(index);
+    virtual void toggleChoiceUse(SceneOptionSelection& selection, int index) {
+        selection.toggleChoiceUse(index);
     }
 };
 

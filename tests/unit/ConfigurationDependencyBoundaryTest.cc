@@ -1336,6 +1336,12 @@ static void testSceneStartupUsesSceneConfig() {
         "class SceneEffectControlCatalog : public SceneRuntimeControlBridge");
     assertSourceContains("src/LegacySceneEffectControlCatalog.h",
         "virtual int isSceneOption(const EffectControl& option) const = 0;");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
+        "SceneOptionSelection* selectionFor(EffectControl& option)");
+    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
+        "SceneOptionSelection& selection, int by");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "change(\n        EffectControl& option");
     assertSourceDoesNotContain("src/SceneDependencies.h", "class EffectControl;");
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "EffectControl& option");
@@ -2393,7 +2399,11 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/EffectControl.cc", "value = Random");
     assertSourceDoesNotContain("src/EffectControl.cc", "return Random");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
-        "selection->change(to, randomSource)");
+        "selection.change(to, randomSource)");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "SceneOptionSelection* selection = effectControls.selectionFor(option)");
+    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
+        "effectControls.change(*selection, by, randomSource)");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "option.change(to, randomSource, doSave)");
     assertSourceContains("src/LegacySceneEffectControlTarget.cc",
@@ -2541,9 +2551,13 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/SceneChoiceSelection.h",
         "virtual void toggleChoiceUse(int index);");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
-        "selection->toggleLock()");
+        "selection.toggleLock()");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
-        "selection->toggleChoiceUse(index)");
+        "selection.toggleChoiceUse(index)");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "toggleLock(EffectControl& option)");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "toggleChoiceUse(EffectControl& option");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
         "option.lock.change");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",

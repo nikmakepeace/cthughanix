@@ -28,32 +28,48 @@ int SceneCommandsEffectControlOwner::ownsEffectControl(
 
 void SceneCommandsEffectControlOwner::changeEffectControlBy(
     EffectControl& option, int by, int doSave) {
-    if (doSave && effectControls.isSceneOption(option))
+    SceneOptionSelection* selection = effectControls.selectionFor(option);
+    if (selection == 0)
+        return;
+
+    if (doSave)
         effectRegistry.saveAll();
     sceneCommands.refreshFromOptionsAndMaybeCueImage(
-        effectControls.change(option, by, randomSource));
+        effectControls.change(*selection, by, randomSource));
 }
 
 void SceneCommandsEffectControlOwner::changeEffectControlTo(
     EffectControl& option, const char* to, int doSave) {
-    if (doSave && effectControls.isSceneOption(option))
+    SceneOptionSelection* selection = effectControls.selectionFor(option);
+    if (selection == 0)
+        return;
+
+    if (doSave)
         effectRegistry.saveAll();
     sceneCommands.refreshFromOptionsAndMaybeCueImage(
-        effectControls.change(option, to, randomSource));
+        effectControls.change(*selection, to, randomSource));
 }
 
 void SceneCommandsEffectControlOwner::activateEffectControl(
     EffectControl& option, int index) {
+    SceneOptionSelection* selection = effectControls.selectionFor(option);
+    if (selection == 0)
+        return;
+
     sceneCommands.refreshFromOptionsAndMaybeCueImage(
-        effectControls.activate(option, index));
+        effectControls.activate(*selection, index));
 }
 
 void SceneCommandsEffectControlOwner::toggleEffectControlLock(
     EffectControl& option) {
-    effectControls.toggleLock(option);
+    SceneOptionSelection* selection = effectControls.selectionFor(option);
+    if (selection != 0)
+        effectControls.toggleLock(*selection);
 }
 
 void SceneCommandsEffectControlOwner::toggleEffectChoiceUse(
     EffectControl& option, int index) {
-    effectControls.toggleChoiceUse(option, index);
+    SceneOptionSelection* selection = effectControls.selectionFor(option);
+    if (selection != 0)
+        effectControls.toggleChoiceUse(*selection, index);
 }

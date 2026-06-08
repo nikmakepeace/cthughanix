@@ -197,6 +197,7 @@ public:
     int syncCalls;
     int syncControlsCalls;
     const EffectControl* sceneOption;
+    RecordingSceneOptionSelection sceneSelection;
     int changeByCalls;
     int changeByOrder;
     unsigned int syncResponse;
@@ -209,6 +210,7 @@ public:
         , syncCalls(0)
         , syncControlsCalls(0)
         , sceneOption(0)
+        , sceneSelection()
         , changeByCalls(0)
         , changeByOrder(0)
         , syncResponse(SceneNoChange)
@@ -229,19 +231,31 @@ public:
     virtual int isSceneOption(const EffectControl& option) const {
         return &option == sceneOption;
     }
-    virtual unsigned int change(EffectControl&, int, RandomSource&) {
+    virtual SceneOptionSelection* selectionFor(EffectControl& option) {
+        return const_cast<SceneOptionSelection*>(
+            static_cast<const SyncingEffectControlCatalog*>(this)
+                ->selectionFor(option));
+    }
+    virtual const SceneOptionSelection* selectionFor(
+        const EffectControl& option) const {
+        return (&option == sceneOption) ? &sceneSelection : 0;
+    }
+    virtual unsigned int change(SceneOptionSelection& selection, int,
+        RandomSource&) {
+        assert(&selection == &sceneSelection);
         changeByCalls++;
         changeByOrder = ++eventSequence;
         return changeByResponse;
     }
-    virtual unsigned int change(EffectControl&, const char*, RandomSource&) {
+    virtual unsigned int change(SceneOptionSelection&, const char*,
+        RandomSource&) {
         return SceneNoChange;
     }
-    virtual unsigned int activate(EffectControl&, int) {
+    virtual unsigned int activate(SceneOptionSelection&, int) {
         return SceneNoChange;
     }
-    virtual void toggleLock(EffectControl&) { }
-    virtual void toggleChoiceUse(EffectControl&, int) { }
+    virtual void toggleLock(SceneOptionSelection&) { }
+    virtual void toggleChoiceUse(SceneOptionSelection&, int) { }
 };
 
 class RecordingEffectRegistry : public SceneEffectRegistry {

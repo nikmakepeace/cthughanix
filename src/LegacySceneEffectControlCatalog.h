@@ -10,6 +10,7 @@
 
 class EffectControl;
 class RandomSource;
+class SceneOptionSelection;
 
 /**
  * Compatibility routing for legacy EffectControl commands during migration.
@@ -19,17 +20,20 @@ public:
     virtual ~SceneEffectControlCatalog() { }
 
     virtual int isSceneOption(const EffectControl& option) const = 0;
+    virtual SceneOptionSelection* selectionFor(EffectControl& option) = 0;
+    virtual const SceneOptionSelection* selectionFor(
+        const EffectControl& option) const = 0;
     virtual unsigned int change(
-        EffectControl& option, int by, RandomSource& randomSource) = 0;
-    virtual unsigned int change(EffectControl& option, const char* to,
+        SceneOptionSelection& selection, int by, RandomSource& randomSource) = 0;
+    virtual unsigned int change(SceneOptionSelection& selection, const char* to,
         RandomSource& randomSource) = 0;
-    virtual unsigned int activate(EffectControl& option, int index) = 0;
+    virtual unsigned int activate(SceneOptionSelection& selection, int index) = 0;
 
     /** Toggles the Scene-owned lock corresponding to a legacy control. */
-    virtual void toggleLock(EffectControl& option) = 0;
+    virtual void toggleLock(SceneOptionSelection& selection) = 0;
 
     /** Toggles Scene-owned choice availability for a legacy control. */
-    virtual void toggleChoiceUse(EffectControl& option, int index) = 0;
+    virtual void toggleChoiceUse(SceneOptionSelection& selection, int index) = 0;
 
     virtual RuntimeEffectControlOwner* createEffectControlOwner(
         SceneCommands& sceneCommands, SceneEffectRegistry& effectRegistry,

@@ -977,6 +977,9 @@ concrete changes needed before the surface can disappear.
    registry and preset operations now mutate native selections first and then
    push those values out through the temporary legacy-control synchronizer
    instead of pulling stale global control values back over native selections.
+   Legacy runtime effect-control commands now use `EffectControl&` only for the
+   edge lookup; catalog change, activate, lock, and choice-use operations run on
+   the resolved native `SceneOptionSelection&`.
 
    Concrete work still required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`
