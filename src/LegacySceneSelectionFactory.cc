@@ -18,11 +18,6 @@
 
 namespace {
 
-static int legacyChoiceInUse(EffectControl& option, int index, int defaultUse) {
-    EffectChoice* choice = option[index];
-    return (choice != 0) ? choice->inUse() : defaultUse;
-}
-
 static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
     EffectControl& option) {
     SceneFlameChoiceCatalog* catalog = new SceneFlameChoiceCatalog(
@@ -32,7 +27,7 @@ static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
         const Flame* flame = flameByIndex(i);
         if (flame != 0)
             catalog->addChoice(
-                flame, flame->name(), legacyChoiceInUse(option, i, i != 0));
+                flame, flame->name(), sceneBuiltInFlameChoiceInUse(i));
     }
 
     return catalog;
@@ -47,7 +42,7 @@ static SceneChoiceCatalog* createSceneWaveChoiceCatalog(
         Wave* wave = waveByIndex(i);
         if (wave != 0)
             catalog->addChoice(
-                wave, wave->name(), legacyChoiceInUse(option, i, i < 33));
+                wave, wave->name(), sceneBuiltInWaveChoiceInUse(i));
     }
 
     return catalog;

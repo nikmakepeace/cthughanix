@@ -7,6 +7,30 @@ class SceneChoiceCatalog;
 class SceneChoiceLock;
 
 /**
+ * Returns the native default availability for a built-in flame choice.
+ *
+ * The clear flame at index zero is selectable directly but excluded from
+ * random/cyclic changes by default, matching the historical catalog without
+ * reading legacy option-entry state.
+ *
+ * @param index Built-in flame catalog index.
+ * @return Nonzero when the flame should be enabled by default.
+ */
+int sceneBuiltInFlameChoiceInUse(int index);
+
+/**
+ * Returns the native default availability for a built-in wave choice.
+ *
+ * Diagnostic/no-op wave entries at the end of the catalog are selectable
+ * directly but excluded from random/cyclic changes by default, matching the
+ * historical catalog without reading legacy option-entry state.
+ *
+ * @param index Built-in wave catalog index.
+ * @return Nonzero when the wave should be enabled by default.
+ */
+int sceneBuiltInWaveChoiceInUse(int index);
+
+/**
  * Creates the fixed wave-scale Scene choice catalog.
  *
  * The returned catalog owns its choices and the supplied lock.

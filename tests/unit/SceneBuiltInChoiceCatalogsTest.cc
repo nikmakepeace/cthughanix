@@ -15,6 +15,21 @@ public:
     virtual void change(const char*) { }
 };
 
+static void testFlameCatalogUsesNativeDefaultAvailability() {
+    assert(sceneBuiltInFlameChoiceInUse(-1) == 0);
+    assert(sceneBuiltInFlameChoiceInUse(0) == 0);
+    assert(sceneBuiltInFlameChoiceInUse(1) == 1);
+    assert(sceneBuiltInFlameChoiceInUse(18) == 1);
+}
+
+static void testWaveCatalogUsesNativeDefaultAvailability() {
+    assert(sceneBuiltInWaveChoiceInUse(-1) == 0);
+    assert(sceneBuiltInWaveChoiceInUse(0) == 1);
+    assert(sceneBuiltInWaveChoiceInUse(32) == 1);
+    assert(sceneBuiltInWaveChoiceInUse(33) == 0);
+    assert(sceneBuiltInWaveChoiceInUse(34) == 0);
+}
+
 static void assertChoice(SceneChoiceCatalog& catalog, int index,
     const char* name) {
     SceneChoice* choice = catalog.choiceAt(index);
@@ -75,6 +90,8 @@ static void testFlashlightCatalogUsesNativeAliases() {
 }
 
 int main() {
+    testFlameCatalogUsesNativeDefaultAvailability();
+    testWaveCatalogUsesNativeDefaultAvailability();
     testWaveScaleCatalogUsesNativeFixedChoices();
     testTableCatalogUsesNativeFixedChoices();
     testBorderCatalogUsesNativeFixedChoices();

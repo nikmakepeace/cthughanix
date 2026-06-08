@@ -929,9 +929,8 @@ surface can disappear, and whether that work is already complete.
      such as objects, translations, palettes, and images should load into owned
      typed entries; built-in catalogs should expose native metadata without
      `EffectChoiceList`.
-   - Move allowed-choice metadata into native catalogs. In particular, any
-     remaining flame/wave availability reads through `EffectChoice::inUse()`
-     must become native catalog metadata.
+   - Move remaining allowed-choice metadata into native catalogs, so no catalog
+     availability decision depends on `EffectChoice::inUse()`.
    - Move current-value lookup into native selections or typed owner ports, so
      Scene never asks an `EffectControl` for the selected payload.
    - Move random/change behavior, including random palette mutation and
@@ -949,6 +948,9 @@ surface can disappear, and whether that work is already complete.
    Current progress toward that gate:
    - General-flame selection is native.
    - Flame and wave selections point at typed `Flame` and `Wave` catalog items.
+   - Flame and wave default availability is now native
+     `SceneBuiltInChoiceCatalogs` metadata instead of a read through legacy
+     `EffectChoice::inUse()`.
    - Object, translation, palette, and image selections copy typed payloads into
      owned Scene catalog entries.
    - Wave-scale, table, border, and flashlight choice metadata is built by

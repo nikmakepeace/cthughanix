@@ -2716,10 +2716,18 @@ static void testEffectControlUsesInjectedRandomSource() {
         "createSceneWaveScaleChoiceCatalog");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
         "createSceneFlashlightChoiceCatalog");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
+        "sceneBuiltInFlameChoiceInUse");
+    assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
+        "sceneBuiltInWaveChoiceInUse");
     assertSourceDoesNotContain("src/SceneBuiltInChoiceCatalogs.h",
         "EffectControl");
     assertSourceDoesNotContain("src/SceneBuiltInChoiceCatalogs.cc",
         "EffectControl");
+    assertSourceDoesNotContain("src/SceneBuiltInChoiceCatalogs.h",
+        "EffectChoice");
+    assertSourceDoesNotContain("src/SceneBuiltInChoiceCatalogs.cc",
+        "EffectChoice");
     assertSourceDoesNotContain("src/SceneChoiceListCatalog.h",
         "EffectControl");
     assertSourceDoesNotContain("src/SceneChoiceListCatalog.cc",
@@ -2732,6 +2740,12 @@ static void testEffectControlUsesInjectedRandomSource() {
         "#include \"SceneBuiltInChoiceCatalogs.h\"");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"LegacySceneChoiceLock.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
+        "legacyChoiceInUse");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "sceneBuiltInFlameChoiceInUse(i)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "sceneBuiltInWaveChoiceInUse(i)");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"SceneChoiceListCatalog.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

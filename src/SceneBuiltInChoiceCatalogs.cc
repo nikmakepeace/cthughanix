@@ -11,6 +11,14 @@ static SceneChoiceListCatalog* createSceneChoiceListCatalog(
     return new SceneChoiceListCatalog(catalogName, lock);
 }
 
+int sceneBuiltInFlameChoiceInUse(int index) {
+    return index > 0;
+}
+
+int sceneBuiltInWaveChoiceInUse(int index) {
+    return (index >= 0) && (index < 33);
+}
+
 SceneChoiceCatalog* createSceneWaveScaleChoiceCatalog(
     const char* catalogName, SceneChoiceLock* lock) {
     static const char* names[] = { "scale0", "scale1", "scale2" };
