@@ -10,7 +10,6 @@
 #include <memory>
 
 class RandomSource;
-class RuntimeEffectControlOwner;
 struct EffectPolicy;
 
 /**
@@ -26,7 +25,6 @@ class SceneRuntime {
     Scene sceneValue;
     SceneCommands commandsValue;
     SceneCommandsTarget commandTargetValue;
-    std::unique_ptr<RuntimeEffectControlOwner> effectControlOwnerValue;
     SceneSerializer serializerValue;
 
 public:
@@ -43,7 +41,6 @@ public:
     SceneSnapshot snapshot() const;
 
     SceneCommandTarget& commandTarget();
-    RuntimeEffectControlOwner& effectControlOwner();
     SceneSerializer& serializer();
 };
 

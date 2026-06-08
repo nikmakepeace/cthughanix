@@ -996,21 +996,23 @@ concrete changes needed before the surface can disappear.
    `EffectControl&`. The X11 panel visual menus and palette metadata "next
    untagged" shortcut also dispatch typed Scene activation commands; the
    display menu and private legacy adapters still use the generic
-   effect-control route where they belong.
+   effect-control route where they belong. `RuntimeEffectControlOwner` and
+   `LegacySceneEffectControlTarget` have been deleted, so runtime effect-control
+   routing no longer performs Scene ownership checks by `EffectControl&`
+   identity. The legacy Scene control bridge is now one-way: it only pushes
+   native Scene selection values back to temporary legacy controls, and no
+   longer exposes `selectionFor(...)`, `change(...)`, `activate(...)`, lock/use,
+   or `syncFromControls()` APIs.
 
    Concrete work still required:
-   - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`
-     with native command targets keyed by typed scene-selection identifiers.
-   - Move remaining legacy effect-control callers for lock/use toggles,
-     change-by, change-to, random, save, restore, and startup synchronization
-     onto native selection owners.
+   - Move remaining random, save, restore, and startup synchronization behavior
+     that still depends on legacy control mirrors onto native selection owners.
    - Move ini serialization and runtime config contribution from legacy
      adapters to Scene/native visual serializers.
-   - Remove `EffectControl` identity checks from visual runtime-command routing.
    - Delete `LegacySceneEffectControlBindings`,
-     `LegacySceneEffectControlCatalog`, `LegacySceneEffectControlTarget`,
-     `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogs`, and their
-     CMake/test allowances after production wiring no longer includes them.
+     `LegacySceneEffectControlCatalog`, `LegacySceneSelectionAdapters`,
+     `LegacySceneVisualCatalogs`, and their CMake/test allowances after
+     production wiring no longer includes them.
 
    Completion gate: no production command, config, or serialization path uses
    `LegacyScene*` or visual `EffectControl&`; CMake no longer builds those

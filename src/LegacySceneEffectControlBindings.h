@@ -3,41 +3,20 @@
 #ifndef CTHUGHA_LEGACY_SCENE_EFFECT_CONTROL_BINDINGS_H
 #define CTHUGHA_LEGACY_SCENE_EFFECT_CONTROL_BINDINGS_H
 
-class SceneOptionSelection;
 class SceneVisualSelections;
-class EffectControl;
 
 /**
- * Adapter-level lookup table for legacy EffectControl command routing.
+ * Adapter-level table for legacy EffectControl synchronization.
  *
  * Native Scene selections should not implement legacy EffectControl identity
- * APIs. This table is the temporary compatibility surface that maps older UI
- * and keymap commands to the Scene-owned selection that now holds visual state.
+ * APIs. This table is the temporary compatibility surface that mirrors the
+ * Scene-owned selection values back to legacy controls still read by older
+ * catalog/display code.
  */
 class LegacySceneEffectControlBindings {
 public:
     /** Destroys the compatibility binding table. */
     virtual ~LegacySceneEffectControlBindings() { }
-
-    /**
-     * Finds the Scene selection controlled by a legacy EffectControl.
-     *
-     * @param option Legacy control identity from UI/keymap routing.
-     * @return Matching Scene selection, or NULL when the control is not visual.
-     */
-    virtual SceneOptionSelection* selectionFor(EffectControl& option) = 0;
-
-    /**
-     * Finds the Scene selection controlled by a legacy EffectControl.
-     *
-     * @param option Legacy control identity from UI/keymap routing.
-     * @return Matching Scene selection, or NULL when the control is not visual.
-     */
-    virtual const SceneOptionSelection* selectionFor(
-        const EffectControl& option) const = 0;
-
-    /** Synchronizes all bound selections from their legacy control values. */
-    virtual void syncFromControls() = 0;
 
     /** Synchronizes all legacy control values from their bound selections. */
     virtual void syncControlsFromSelections() = 0;

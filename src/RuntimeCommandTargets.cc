@@ -45,22 +45,14 @@ RuntimeChangeSet RoutedRuntimeOptionTarget::changeTo(const char* to) {
 }
 
 RoutedRuntimeEffectControlTarget::RoutedRuntimeEffectControlTarget(
-    EffectControl& control_, RuntimeEffectControlOwner& effectControlOwner_,
-    RuntimeDisplayControls& displayControls_,
+    EffectControl& control_, RuntimeDisplayControls& displayControls_,
     RuntimeEffectControls& effectControls_)
     : control(control_)
-    , effectControlOwner(effectControlOwner_)
     , displayControls(displayControls_)
     , effectControls(effectControls_) { }
 
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeBy(int by) {
     RuntimeChangeSet changes;
-
-    if (effectControlOwner.ownsEffectControl(control)) {
-        effectControlOwner.changeEffectControlBy(control, by, 0);
-        changes.sceneChanges = 1;
-        return changes;
-    }
 
     if (displayControls.changeDisplayEffectControlBy(control, by, changes))
         return changes;
@@ -72,12 +64,6 @@ RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeBy(int by) {
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeTo(const char* to) {
     RuntimeChangeSet changes;
 
-    if (effectControlOwner.ownsEffectControl(control)) {
-        effectControlOwner.changeEffectControlTo(control, to, 0);
-        changes.sceneChanges = 1;
-        return changes;
-    }
-
     if (displayControls.changeDisplayEffectControlTo(control, to, changes))
         return changes;
 
@@ -88,12 +74,6 @@ RuntimeChangeSet RoutedRuntimeEffectControlTarget::changeTo(const char* to) {
 RuntimeChangeSet RoutedRuntimeEffectControlTarget::activate(int index) {
     RuntimeChangeSet changes;
 
-    if (effectControlOwner.ownsEffectControl(control)) {
-        effectControlOwner.activateEffectControl(control, index);
-        changes.sceneChanges = 1;
-        return changes;
-    }
-
     if (displayControls.activateDisplayEffectControl(control, index, changes))
         return changes;
 
@@ -102,32 +82,20 @@ RuntimeChangeSet RoutedRuntimeEffectControlTarget::activate(int index) {
 }
 
 void RoutedRuntimeEffectControlTarget::toggleLock() {
-    if (effectControlOwner.ownsEffectControl(control)) {
-        effectControlOwner.toggleEffectControlLock(control);
-        return;
-    }
-
     effectControls.toggleEffectControlLock(control);
 }
 
 void RoutedRuntimeEffectControlTarget::toggleChoiceUse(int index) {
-    if (effectControlOwner.ownsEffectControl(control)) {
-        effectControlOwner.toggleEffectChoiceUse(control, index);
-        return;
-    }
-
     effectControls.toggleEffectChoiceUse(control, index);
 }
 
 RoutedRuntimeCommandTargetRouter::RoutedRuntimeCommandTargetRouter(
     RuntimeCommandSink& runtimeCommands_,
-    RuntimeEffectControlOwner& effectControlOwner_,
     RuntimeDisplayControls& displayControls_,
     RuntimeAudioControls& audioControls_,
     RuntimeAutoChangeControls& autoChangeControls_,
     RuntimeEffectControls& effectControls_)
     : runtimeCommands(runtimeCommands_)
-    , effectControlOwner(effectControlOwner_)
     , displayControls(displayControls_)
     , audioControls(audioControls_)
     , autoChangeControls(autoChangeControls_)
@@ -135,32 +103,32 @@ RoutedRuntimeCommandTargetRouter::RoutedRuntimeCommandTargetRouter(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlBy(
     EffectControl& control, int by) {
-    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
-        displayControls, effectControls);
+    RoutedRuntimeEffectControlTarget target(control, displayControls,
+        effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::changeEffectControlBy(target, by));
 }
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeEffectControlTo(
     EffectControl& control, const char* to) {
-    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
-        displayControls, effectControls);
+    RoutedRuntimeEffectControlTarget target(control, displayControls,
+        effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::changeEffectControlTo(target, to));
 }
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::activateEffectControl(
     EffectControl& control, int index) {
-    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
-        displayControls, effectControls);
+    RoutedRuntimeEffectControlTarget target(control, displayControls,
+        effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::activateEffectControl(target, index));
 }
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::toggleEffectChoiceUse(
     EffectControl& control, int index) {
-    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
-        displayControls, effectControls);
+    RoutedRuntimeEffectControlTarget target(control, displayControls,
+        effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::toggleEffectChoiceUse(target, index));
 }
@@ -181,8 +149,8 @@ RuntimeChangeSet RoutedRuntimeCommandTargetRouter::changeOptionTo(
 
 RuntimeChangeSet RoutedRuntimeCommandTargetRouter::toggleEffectControlLock(
     EffectControl& control) {
-    RoutedRuntimeEffectControlTarget target(control, effectControlOwner,
-        displayControls, effectControls);
+    RoutedRuntimeEffectControlTarget target(control, displayControls,
+        effectControls);
     return runtimeCommands.apply(
         RuntimeCommand::toggleEffectControlLock(target));
 }

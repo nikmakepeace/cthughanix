@@ -35,22 +35,10 @@ public:
     virtual void save(int slot) = 0;
 };
 
-/**
- * Synchronizes Scene-owned selection state from external mutation sources.
- */
+/** Synchronizes Scene-owned selection state to temporary legacy controls. */
 class SceneSelectionSynchronizer {
 public:
     virtual ~SceneSelectionSynchronizer();
-
-    /**
-     * Pulls externally mutated legacy control state into Scene selections.
-     *
-     * This is only needed while legacy EffectControl command paths can still
-     * mutate visual state outside the Scene selection owners.
-     *
-     * @return SceneChange flags forced by the synchronization.
-     */
-    virtual unsigned int syncFromControls() = 0;
 
     /**
      * Pushes Scene-owned selection state out to temporary legacy controls.

@@ -1,7 +1,5 @@
 #include "Configuration.h"
-#include "EffectControl.h"
 #include "LegacySceneEffectControlCatalog.h"
-#include "LegacySceneEffectControlTarget.h"
 #include "ProcessServices.h"
 #include "Scene.h"
 #include "SceneChoiceSelection.h"
@@ -230,65 +228,20 @@ class SyncingEffectControlCatalog : public SceneEffectControlCatalog {
     RecordingVisualCatalogs& visualCatalogs;
 
 public:
-    int syncCalls;
     int syncControlsCalls;
-    const EffectControl* sceneOption;
-    RecordingSceneOptionSelection sceneSelection;
-    int changeByCalls;
-    int changeByOrder;
-    unsigned int syncResponse;
     unsigned int syncControlsResponse;
-    unsigned int changeByResponse;
 
     explicit SyncingEffectControlCatalog(
         RecordingVisualCatalogs& visualCatalogs_)
         : visualCatalogs(visualCatalogs_)
-        , syncCalls(0)
         , syncControlsCalls(0)
-        , sceneOption(0)
-        , sceneSelection()
-        , changeByCalls(0)
-        , changeByOrder(0)
-        , syncResponse(SceneNoChange)
-        , syncControlsResponse(SceneNoChange)
-        , changeByResponse(SceneNoChange) { }
+        , syncControlsResponse(SceneNoChange) { }
 
-    virtual unsigned int syncFromControls() {
-        syncCalls++;
-        visualCatalogs.stateValue = 7;
-        return syncResponse;
-    }
     virtual unsigned int syncControlsFromSelections() {
         syncControlsCalls++;
         visualCatalogs.stateValue = 9;
         return syncControlsResponse;
     }
-
-    virtual SceneOptionSelection* selectionFor(EffectControl& option) {
-        return const_cast<SceneOptionSelection*>(
-            static_cast<const SyncingEffectControlCatalog*>(this)
-                ->selectionFor(option));
-    }
-    virtual const SceneOptionSelection* selectionFor(
-        const EffectControl& option) const {
-        return (&option == sceneOption) ? &sceneSelection : 0;
-    }
-    virtual unsigned int change(SceneOptionSelection& selection, int,
-        RandomSource&) {
-        assert(&selection == &sceneSelection);
-        changeByCalls++;
-        changeByOrder = ++eventSequence;
-        return changeByResponse;
-    }
-    virtual unsigned int change(SceneOptionSelection&, const char*,
-        RandomSource&) {
-        return SceneNoChange;
-    }
-    virtual unsigned int activate(SceneOptionSelection&, int) {
-        return SceneNoChange;
-    }
-    virtual void toggleLock(SceneOptionSelection&) { }
-    virtual void toggleChoiceUse(SceneOptionSelection&, int) { }
 };
 
 class RecordingEffectRegistry : public SceneEffectRegistry {
@@ -340,46 +293,9 @@ static void testRestorePushesSceneSelectionsBeforeReadingSceneSettings() {
     commands.restore();
 
     assert(effectRegistry.restoreCalls == 1);
-    assert(effectControls.syncCalls == 0);
     assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.currentSettingsCalls == 1);
     assert(scene.settings().borderMode == 9);
-}
-
-static EffectControl& testSceneOption() {
-    static OffEntry offEntry("off");
-    static EffectChoiceList entries(&offEntry);
-    static EffectControl option(0, "scene-option", entries);
-    return option;
-}
-
-static void testEffectControlSaveUsesExplicitRegistryBeforeCatalogChange() {
-    eventSequence = 0;
-
-    Scene scene;
-    DummySceneGeometry geometry;
-    RecordingVisualCatalogs visualCatalogs;
-    SyncingEffectControlCatalog effectControls(visualCatalogs);
-    RecordingEffectRegistry effectRegistry;
-    RecordingPresetCatalog presets;
-    DummyRandomSource randomSource;
-    EffectControl& option = testSceneOption();
-    effectControls.sceneOption = &option;
-    effectControls.changeByResponse = SceneImageChanged;
-
-    SceneCommandDependencies dependencies(
-        visualCatalogs, effectControls, effectRegistry, presets);
-    SceneCommands commands(scene, geometry, dependencies, randomSource);
-    SceneCommandsEffectControlOwner target(
-        commands, effectControls, effectRegistry, randomSource);
-
-    target.changeEffectControlBy(option, 1, 1);
-
-    assert(effectRegistry.saveCalls == 1);
-    assert(effectControls.changeByCalls == 1);
-    assert(effectRegistry.saveOrder > 0);
-    assert(effectControls.changeByOrder > effectRegistry.saveOrder);
-    assert(visualCatalogs.currentImageCalls == 1);
 }
 
 static void testChangeOneUsesSyncReturnedImageChangeForCue() {
@@ -398,7 +314,6 @@ static void testChangeOneUsesSyncReturnedImageChangeForCue() {
 
     commands.changeOne();
 
-    assert(effectControls.syncCalls == 0);
     assert(effectControls.syncControlsCalls == 1);
     assert(visualCatalogs.currentImageCalls == 1);
 }
@@ -541,7 +456,6 @@ static void testSceneSelectionPolicyApplierUsesSceneSelections() {
 
 int main() {
     testRestorePushesSceneSelectionsBeforeReadingSceneSettings();
-    testEffectControlSaveUsesExplicitRegistryBeforeCatalogChange();
     testChangeOneUsesSyncReturnedImageChangeForCue();
     testSceneCommandsExposeNativeSelectionActions();
     testSceneSelectionRegistryOwnsSelectionHistoryAndRandomChanges();

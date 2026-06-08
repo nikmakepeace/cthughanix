@@ -2,8 +2,6 @@
 
 #include "SceneRuntime.h"
 
-#include "RuntimeCommandTargets.h"
-
 SceneRuntime::SceneRuntime(SceneGeometry& geometry,
     SceneVisualCatalogFactory& visualCatalogFactory,
     RandomSource& randomSource)
@@ -22,10 +20,6 @@ SceneRuntime::SceneRuntime(SceneGeometry& geometry,
               sceneEffectRegistryValue, sceneSelectionPresetCatalogValue),
           randomSource)
     , commandTargetValue(commandsValue)
-    , effectControlOwnerValue(
-          visualCatalogFactoryResultValue.controlBridge
-          ->createEffectControlOwner(
-              commandsValue, sceneEffectRegistryValue, randomSource))
     , serializerValue(sceneValue) {
     if (visualCatalogFactoryResultValue.selections != 0)
         sceneEffectRegistryValue.registerSelections(
@@ -56,10 +50,6 @@ SceneSnapshot SceneRuntime::snapshot() const {
 
 SceneCommandTarget& SceneRuntime::commandTarget() {
     return commandTargetValue;
-}
-
-RuntimeEffectControlOwner& SceneRuntime::effectControlOwner() {
-    return *effectControlOwnerValue;
 }
 
 SceneSerializer& SceneRuntime::serializer() {

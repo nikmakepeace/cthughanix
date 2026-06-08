@@ -45,7 +45,6 @@ struct SceneCommandRecord {
 };
 
 static SceneCommandRecord sceneRecord = { "", 0, 0, 0, SceneSelectionFlame };
-static const EffectControl* currentSceneOption = 0;
 
 static void recordSceneCommand(
     const char* name, int value = 0, const char* text = 0,
@@ -60,7 +59,6 @@ static void recordSceneCommand(
 
 static void resetSceneRecord() {
     recordSceneCommand("");
-    currentSceneOption = 0;
 }
 
 static void recordSceneSelectionBy(SceneSelectionTarget target, int by) {
@@ -164,34 +162,6 @@ public:
     }
     virtual void toggleChoiceUse(SceneSelectionTarget target, int index) {
         recordSceneCommand("toggle-scene-choice-use", index, 0, 0, target);
-    }
-};
-
-class RecordingEffectControlOwner : public RuntimeEffectControlOwner {
-public:
-    virtual int ownsEffectControl(const EffectControl& option) const {
-        return &option == currentSceneOption;
-    }
-
-    virtual void changeEffectControlBy(EffectControl& option, int by, int) {
-        recordSceneCommand("change-by", by, 0, &option);
-    }
-
-    virtual void changeEffectControlTo(EffectControl& option, const char* to,
-        int) {
-        recordSceneCommand("change-to", 0, to, &option);
-    }
-
-    virtual void activateEffectControl(EffectControl& option, int index) {
-        recordSceneCommand("activate", index, 0, &option);
-    }
-
-    virtual void toggleEffectControlLock(EffectControl& option) {
-        recordSceneCommand("toggle-lock", 0, 0, &option);
-    }
-
-    virtual void toggleEffectChoiceUse(EffectControl& option, int index) {
-        recordSceneCommand("toggle-use", index, 0, &option);
     }
 };
 
@@ -643,7 +613,6 @@ public:
     RecordingRuntimeAutoChangeControls autoChangeControls;
     RecordingRuntimeEffectControls effectControls;
     RecordingSceneCommandTarget sceneCommands;
-    RecordingEffectControlOwner effectControlOwner;
     RuntimeChangeMediator mediator;
     RoutedRuntimeCommandTargetRouter targetRouter;
 
@@ -655,11 +624,10 @@ public:
         , autoChangeControls()
         , effectControls()
         , sceneCommands()
-        , effectControlOwner()
         , mediator(sceneCommands, persistence, shutdown, displayControls,
               audioControls, autoChangeControls, effectControls)
-        , targetRouter(mediator, effectControlOwner, displayControls,
-              audioControls, autoChangeControls, effectControls) { }
+        , targetRouter(mediator, displayControls, audioControls,
+              autoChangeControls, effectControls) { }
 };
 
 static void testRoutesSceneCommandsThroughSceneCommands() {
@@ -886,26 +854,15 @@ static void testEffectControlCommandsRouteByOwner() {
     EffectChoiceList entries(choices, 2);
     EffectControl effect(-1, "effect", entries);
 
-    currentSceneOption = &effect;
-    RuntimeChangeSet sceneChange
-        = harness.targetRouter.changeEffectControlBy(effect, 5);
-    assert(sceneChange.sceneChanges == 1);
-    assert(strcmp(sceneRecord.name, "change-by") == 0);
-    assert(sceneRecord.option == &effect);
-    assert(sceneRecord.value == 5);
-    assert(harness.displayControls.displayEffectByCalls == 0);
-    assert(harness.effectControls.effectByCalls == 0);
-
-    currentSceneOption = 0;
     harness.displayControls.handlesDisplayEffectControl = 1;
     harness.displayControls.displayResponse.displayChanged = 1;
     RuntimeChangeSet displayChange
-        = harness.targetRouter.changeEffectControlBy(effect, 1);
+        = harness.targetRouter.changeEffectControlBy(effect, 5);
     assert(displayChange.sceneChanges == 0);
     assert(displayChange.displayChanged == 1);
     assert(harness.displayControls.displayEffectByCalls == 1);
     assert(harness.displayControls.lastDisplayEffectControl == &effect);
-    assert(harness.displayControls.lastDisplayValue == 1);
+    assert(harness.displayControls.lastDisplayValue == 5);
     assert(harness.effectControls.effectByCalls == 0);
 
     harness.displayControls.handlesDisplayEffectControl = 0;
@@ -925,27 +882,14 @@ static void testEffectControlCommandsRouteByOwner() {
     assert(harness.effectControls.activateCalls == 1);
     assert(harness.effectControls.lastValue == 0);
 
-    currentSceneOption = &effect;
-    RuntimeChangeSet sceneActivation
-        = harness.targetRouter.activateEffectControl(effect, 1);
-    assert(sceneActivation.sceneChanges == 1);
-    assert(strcmp(sceneRecord.name, "activate") == 0);
-    assert(sceneRecord.option == &effect);
-    assert(sceneRecord.value == 1);
-    assert(harness.effectControls.activateCalls == 1);
-
     harness.targetRouter.toggleEffectControlLock(effect);
-    assert(strcmp(sceneRecord.name, "toggle-lock") == 0);
-    assert(sceneRecord.option == &effect);
-    assert(harness.effectControls.lockToggles == 0);
+    assert(harness.effectControls.lockToggles == 1);
+    assert(harness.effectControls.lastEffectControl == &effect);
 
     harness.targetRouter.toggleEffectChoiceUse(effect, 1);
-    assert(strcmp(sceneRecord.name, "toggle-use") == 0);
-    assert(sceneRecord.option == &effect);
-    assert(sceneRecord.value == 1);
-    assert(harness.effectControls.choiceUseToggles == 0);
-
-    currentSceneOption = 0;
+    assert(harness.effectControls.choiceUseToggles == 1);
+    assert(harness.effectControls.lastEffectControl == &effect);
+    assert(harness.effectControls.lastValue == 1);
 }
 
 static void testOptionCommandsRouteThroughOwningControls() {

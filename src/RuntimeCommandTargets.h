@@ -84,35 +84,6 @@ public:
 };
 
 /**
- * Owner port for legacy EffectControls that are still routed by identity.
- */
-class RuntimeEffectControlOwner {
-public:
-    /** Destroys the owner interface. */
-    virtual ~RuntimeEffectControlOwner() { }
-
-    /** Returns nonzero when this owner handles the supplied control. */
-    virtual int ownsEffectControl(const EffectControl& control) const = 0;
-
-    /** Applies a relative change through the owning subsystem. */
-    virtual void changeEffectControlBy(
-        EffectControl& control, int by, int doSave = 0) = 0;
-
-    /** Applies an absolute change through the owning subsystem. */
-    virtual void changeEffectControlTo(
-        EffectControl& control, const char* to, int doSave = 0) = 0;
-
-    /** Activates one choice through the owning subsystem. */
-    virtual void activateEffectControl(EffectControl& control, int index) = 0;
-
-    /** Toggles the owned control lock through the owning subsystem. */
-    virtual void toggleEffectControlLock(EffectControl& control) = 0;
-
-    /** Toggles owned choice use through the owning subsystem. */
-    virtual void toggleEffectChoiceUse(EffectControl& control, int index) = 0;
-};
-
-/**
  * Runtime option target that routes a legacy Option through subsystem ports.
  */
 class RoutedRuntimeOptionTarget : public RuntimeOptionTarget {
@@ -147,7 +118,6 @@ public:
  */
 class RoutedRuntimeEffectControlTarget : public RuntimeEffectControlTarget {
     EffectControl& control;
-    RuntimeEffectControlOwner& effectControlOwner;
     RuntimeDisplayControls& displayControls;
     RuntimeEffectControls& effectControls;
 
@@ -156,12 +126,10 @@ public:
      * Creates a routed effect-control target.
      *
      * @param control_ Legacy effect control being routed.
-     * @param effectControlOwner_ Owner port for migrated controls.
      * @param displayControls_ Display control port.
      * @param effectControls_ Effect control port.
      */
     RoutedRuntimeEffectControlTarget(EffectControl& control_,
-        RuntimeEffectControlOwner& effectControlOwner_,
         RuntimeDisplayControls& displayControls_,
         RuntimeEffectControls& effectControls_);
 
@@ -262,7 +230,6 @@ public:
  */
 class RoutedRuntimeCommandTargetRouter : public RuntimeCommandTargetRouter {
     RuntimeCommandSink& runtimeCommands;
-    RuntimeEffectControlOwner& effectControlOwner;
     RuntimeDisplayControls& displayControls;
     RuntimeAudioControls& audioControls;
     RuntimeAutoChangeControls& autoChangeControls;
@@ -273,14 +240,12 @@ public:
      * Creates a routed target router.
      *
      * @param runtimeCommands_ Command sink that executes target-backed commands.
-     * @param effectControlOwner_ Owner port for migrated controls.
      * @param displayControls_ Display control port.
      * @param audioControls_ Audio control port.
      * @param autoChangeControls_ Auto-change control port.
      * @param effectControls_ Effect control port.
      */
     RoutedRuntimeCommandTargetRouter(RuntimeCommandSink& runtimeCommands_,
-        RuntimeEffectControlOwner& effectControlOwner_,
         RuntimeDisplayControls& displayControls_,
         RuntimeAudioControls& audioControls_,
         RuntimeAutoChangeControls& autoChangeControls_,

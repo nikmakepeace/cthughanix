@@ -46,10 +46,6 @@ public:
     virtual SceneOptionSelection& flashlight();
     virtual SceneImageSelection& images();
 
-    virtual SceneOptionSelection* selectionFor(EffectControl& option);
-    virtual const SceneOptionSelection* selectionFor(
-        const EffectControl& option) const;
-    virtual void syncFromControls();
     virtual void syncControlsFromSelections();
 };
 
@@ -114,55 +110,6 @@ SceneOptionSelection& LegacySceneSelectionAdapters::flashlight() {
 
 SceneImageSelection& LegacySceneSelectionAdapters::images() {
     return selections->images();
-}
-
-SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
-    EffectControl& option) {
-    return const_cast<SceneOptionSelection*>(
-        static_cast<const LegacySceneSelectionAdapters*>(this)->selectionFor(
-            option));
-}
-
-const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
-    const EffectControl& option) const {
-    if (&option == &flameControl)
-        return &selections->flame();
-    if (&option == &generalFlameControl)
-        return &selections->generalFlame();
-    if (&option == &waveControl)
-        return &selections->wave();
-    if (&option == &waveScaleControl)
-        return &selections->waveScale();
-    if (&option == &objectControl)
-        return &selections->object();
-    if (&option == &translationControl)
-        return &selections->translation();
-    if (&option == &borderControl)
-        return &selections->border();
-    if (&option == &flashlightControl)
-        return &selections->flashlight();
-    if (&option == &paletteControl)
-        return &selections->palette();
-    if (&option == &tableControl)
-        return &selections->table();
-    if (&option == &imagesControl)
-        return &selections->images();
-
-    return 0;
-}
-
-void LegacySceneSelectionAdapters::syncFromControls() {
-    selections->flame().setValue(int(flameControl));
-    selections->generalFlame().setValue(int(generalFlameControl));
-    selections->wave().setValue(int(waveControl));
-    selections->waveScale().setValue(int(waveScaleControl));
-    selections->table().setValue(int(tableControl));
-    selections->object().setValue(int(objectControl));
-    selections->translation().setValue(int(translationControl));
-    selections->palette().setValue(int(paletteControl));
-    selections->border().setValue(int(borderControl));
-    selections->flashlight().setValue(int(flashlightControl));
-    selections->images().setValue(int(imagesControl));
 }
 
 void LegacySceneSelectionAdapters::syncControlsFromSelections() {

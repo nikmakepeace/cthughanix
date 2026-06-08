@@ -1058,12 +1058,7 @@ add_executable(scene_commands_sync_test
     ${CMAKE_SOURCE_DIR}/src/SceneRuntimeDependencies.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
-    ${CMAKE_SOURCE_DIR}/src/LegacySceneEffectControlTarget.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
-    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
-    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
-    ${CMAKE_SOURCE_DIR}/src/Option.cc
-    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
 )
 
 target_include_directories(scene_commands_sync_test PRIVATE

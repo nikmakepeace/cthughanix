@@ -10,7 +10,6 @@
 #include <vector>
 
 struct EffectPolicy;
-class RuntimeEffectControlOwner;
 class SceneOptionSelection;
 class SceneVisualSelections;
 
@@ -20,9 +19,6 @@ class SceneVisualSelections;
 class SceneRuntimeControlBridge : public SceneSelectionSynchronizer {
 public:
     virtual ~SceneRuntimeControlBridge();
-    virtual RuntimeEffectControlOwner* createEffectControlOwner(
-        SceneCommands& sceneCommands, SceneEffectRegistry& effectRegistry,
-        RandomSource& randomSource) = 0;
 };
 
 class SceneVisualCatalogFactoryResult {

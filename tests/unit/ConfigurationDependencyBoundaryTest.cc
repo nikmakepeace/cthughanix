@@ -549,14 +549,8 @@ static void testAudioFrameOwnsPerFrameMetrics() {
         "sceneCommands.toggleChoiceUse(");
     assertSourceContains("src/Scene.h",
         "class SceneCommandsTarget : public SceneCommandTarget");
-    assertSourceContains("src/LegacySceneEffectControlTarget.h",
-        "class SceneCommandsEffectControlOwner : public RuntimeEffectControlOwner");
-    assertSourceContains("src/LegacySceneEffectControlTarget.h",
-        "virtual int ownsEffectControl(const EffectControl& option) const");
-    assertSourceDoesNotContain("src/LegacySceneEffectControlTarget.h",
-        "class SceneEffectControlTarget");
-    assertSourceDoesNotContain("src/LegacySceneEffectControlTarget.h",
-        "SceneCommandsEffectControlTarget");
+    assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.h");
+    assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.cc");
     assertSourceDoesNotContain("src/Scene.h",
         "class SceneEffectControlTarget");
     assertSourceDoesNotContain("src/Scene.h",
@@ -577,8 +571,10 @@ static void testAudioFrameOwnsPerFrameMetrics() {
         "#include \"EffectRegistry.h\"");
     assertSourceDoesNotContain("src/SceneRuntime.h",
         "#include \"EffectPresetCatalog.h\"");
-    assertSourceContains("src/SceneRuntime.h",
-        "std::unique_ptr<RuntimeEffectControlOwner> effectControlOwnerValue");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "RuntimeEffectControlOwner");
+    assertSourceDoesNotContain("src/SceneRuntime.h",
+        "effectControlOwner");
     assertSourceDoesNotContain("src/SceneRuntime.h",
         "SceneEffectControlTarget");
     assertSourceContains("src/SceneRuntime.h",
@@ -593,7 +589,7 @@ static void testAudioFrameOwnsPerFrameMetrics() {
         "#include \"LegacySceneEffectControlTarget.h\"");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "#include \"LegacySceneEffectControlCatalog.h\"");
-    assertSourceContains("src/SceneRuntime.cc",
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
         "#include \"RuntimeCommandTargets.h\"");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "#include \"EffectControlPolicy.h\"");
@@ -602,14 +598,12 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "#include \"EffectPresetCatalog.h\"");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
-        "new SceneCommandsEffectControlOwner");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "new SceneCommandsEffectControlOwner");
-    assertSourceContains("src/CMakeLists.txt",
+        "SceneCommandsEffectControlOwner");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
         "LegacySceneEffectControlTarget.cc");
     assertSourceContains("src/Application.cc",
         "sceneRuntimeValue->commandTarget()");
-    assertSourceContains("src/Application.cc",
+    assertSourceDoesNotContain("src/Application.cc",
         "sceneRuntimeValue->effectControlOwner()");
     assertSourceDoesNotContain("src/Application.cc",
         "sceneRuntimeValue->effectControlTarget()");
@@ -1333,10 +1327,10 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotExist("src/LegacySceneEffectControlSelection.h");
     assertSourceContains("src/LegacySceneEffectControlBindings.h",
         "class LegacySceneEffectControlBindings");
-    assertSourceContains("src/LegacySceneEffectControlBindings.h",
-        "SceneOptionSelection* selectionFor(EffectControl& option)");
-    assertSourceContains("src/LegacySceneEffectControlBindings.h",
-        "virtual void syncFromControls() = 0;");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlBindings.h",
+        "selectionFor");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlBindings.h",
+        "syncFromControls");
     assertSourceContains("src/LegacySceneEffectControlBindings.h",
         "virtual void syncControlsFromSelections() = 0;");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
@@ -1361,12 +1355,12 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneEffectControlCatalog");
     assertSourceContains("src/LegacySceneEffectControlCatalog.h",
         "class SceneEffectControlCatalog : public SceneRuntimeControlBridge");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
-        "SceneOptionSelection* selectionFor(EffectControl& option)");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "selectionFor");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
         "isSceneOption");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.h",
-        "SceneOptionSelection& selection, int by");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "SceneOptionSelection& selection");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
         "change(\n        EffectControl& option");
     assertSourceDoesNotContain("src/SceneDependencies.h", "class EffectControl;");
@@ -1517,8 +1511,7 @@ static void testSceneStartupUsesSceneConfig() {
         "dependencies.visualCatalogs.currentSettings(geometry)");
     assertSourceContains("src/Scene.cc",
         "dependencies.visualCatalogs.applyStartupConfig(config, randomSource)");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "effectControls.selectionFor(option) != 0");
+    assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.cc");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.effectControls.isSceneOption(option)");
     assertSourceContains("src/Scene.cc",
@@ -1875,11 +1868,11 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/RuntimeCommandTargets.h",
         "class RuntimeEffectControlTarget");
     assertSourceContains("src/RuntimeCommandTargets.h",
-        "class RuntimeEffectControlOwner");
-    assertSourceContains("src/RuntimeCommandTargets.h",
         "class RoutedRuntimeEffectControlTarget");
-    assertSourceContains("src/RuntimeCommandTargets.h",
-        "RuntimeEffectControlOwner& effectControlOwner");
+    assertSourceDoesNotContain("src/RuntimeCommandTargets.h",
+        "RuntimeEffectControlOwner");
+    assertSourceDoesNotContain("src/RuntimeCommandTargets.h",
+        "effectControlOwner");
     assertSourceDoesNotContain("src/RuntimeCommandTargets.h",
         "SceneEffectControlTarget");
     assertSourceDoesNotContain("src/RuntimeCommandTargets.cc",
@@ -2495,16 +2488,11 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/EffectControl.cc", "rand()");
     assertSourceDoesNotContain("src/EffectControl.cc", "value = Random");
     assertSourceDoesNotContain("src/EffectControl.cc", "return Random");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
-        "selection.change(to, randomSource)");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "SceneOptionSelection* selection = effectControls.selectionFor(option)");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "effectControls.change(*selection, by, randomSource)");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
+        "selection.change(");
+    assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.cc");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "option.change(to, randomSource, doSave)");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "effectRegistry.saveAll()");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.effectRegistry.saveAll()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
@@ -2517,6 +2505,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "dependencies.selectionSync.syncControlsFromSelections()");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.selectionSync.syncFromControls()");
+    assertSourceDoesNotContain("src/SceneDependencies.h",
+        "syncFromControls");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "return imageChangeFrom(previousImageValue)");
     assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
@@ -2613,18 +2603,18 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectControl* changeOne");
     assertSourceDoesNotContain("src/SceneRuntimeDependencies.cc",
         "EffectControl* RegistrySceneEffectRegistry::changeOne");
-    assertSourceContains("src/SceneRuntime.cc",
+    assertSourceDoesNotContain("src/SceneRuntime.cc",
         "createEffectControlOwner(");
-    assertSourceContains("src/LegacySceneEffectControlTarget.cc",
-        "SceneEffectControlCatalog::createEffectControlOwner");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
+        "createEffectControlOwner");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "legacyEffectControls");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
         "registerSelection(registry");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "legacySceneEffectControlBindings(selections_)");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
-        "bindings->syncFromControls()");
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
+        "syncFromControls");
     assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
         "bindings->syncControlsFromSelections()");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
@@ -2647,9 +2637,9 @@ static void testEffectControlUsesInjectedRandomSource() {
         "virtual void toggleLock();");
     assertSourceContains("src/SceneChoiceSelection.h",
         "virtual void toggleChoiceUse(int index);");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
         "selection.toggleLock()");
-    assertSourceContains("src/LegacySceneEffectControlCatalog.cc",
+    assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.cc",
         "selection.toggleChoiceUse(index)");
     assertSourceDoesNotContain("src/LegacySceneEffectControlCatalog.h",
         "toggleLock(EffectControl& option)");

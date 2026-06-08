@@ -269,8 +269,8 @@ void Application::initSceneRuntime() {
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
         *runtimeEffectControlsValue));
     runtimeCommandRouterValue.reset(new RoutedRuntimeCommandTargetRouter(
-        *runtimeChangeMediatorValue, sceneRuntimeValue->effectControlOwner(),
-        *runtimeDisplayControlsValue, *runtimeAudioControlsValue,
+        *runtimeChangeMediatorValue, *runtimeDisplayControlsValue,
+        *runtimeAudioControlsValue,
         *runtimeAutoChangeControlsValue, *runtimeEffectControlsValue));
     interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get());
 }
