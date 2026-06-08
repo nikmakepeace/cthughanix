@@ -493,31 +493,28 @@ also has a cleaner setup port.
 commands, selection history, presets, startup effect policy, serialization, and
 automatic scene-change policy are all owned by Scene-facing types.
 
-The remaining Scene-facing debt is intentionally quarantined in a narrow
-`LegacyScene*` startup bridge:
+The remaining Scene-facing debt is intentionally quarantined in legacy catalog
+loader adapters:
 
 - `Application` creates the native
-  `createSceneVisualCatalogServiceFactory(...)`, but its temporary selection
-  input still comes from `createLegacyGlobalSceneVisualSelections(...)`.
-  That bridge reaches through global visual `EffectControl`/option objects such
-  as `flame`, `wave`, `translation`, `palette`, `border`, and `flashlight`.
-- `LegacyGlobalSceneSelectionFactory` translates the remaining legacy startup
-  values into native `SceneVisualSelectionSeeds` and
-  `SceneVisualSelections`.
-- This bridge remains temporary until the visual catalog/filterchain side owns
-  flames, waves, palettes, images, translation tables, and frame geometry
+  `createSceneVisualCatalogServiceFactory(...)` from native
+  `SceneVisualSelectionSeeds`; startup names are applied through
+  `SceneRuntime::applyStartupConfig(...)`.
+- `LegacySceneImageCatalogAdapter`, `LegacyScenePaletteCatalogAdapter`, and
+  `LegacySceneWaveObjectCatalogAdapter` still copy data loaded by legacy visual
+  option/catalog code into native Scene catalogs.
+- These adapters remain temporary until the visual catalog/filterchain side
+  owns flames, waves, palettes, images, translation tables, and frame geometry
   without `CthughaBuffer::buffer` or process-wide option catalogs.
 
 #### Services Needed
 
-- Native `SceneVisualSelectionSeeds` at application startup: backed by owned
-  visual catalog state rather than legacy `EffectControl` globals.
 - Owned visual catalogs for flame, wave, table, object, translation, palette,
   image, border, and flashlight choices, including allowed-choice metadata.
 - `FrameGeometry` from Frame Generator so Scene and visual catalogs do not depend
   on `VideoDirector`/`CthughaBuffer` as geometry providers.
-- Removal-condition tests for deleting `LegacyGlobalSceneSelectionFactory` once
-  native startup seeding replaces `createLegacyGlobalSceneVisualSelections(...)`.
+- Removal-condition tests for deleting the remaining `LegacyScene*CatalogAdapter`
+  files once native visual loaders own object, palette, and image catalogs.
 
 #### API Surface
 
@@ -574,9 +571,7 @@ public:
    aliases.
 3. Introduce native visual catalogs and selection storage for flames, waves,
    translations, palettes, images, border, flashlight, and related metadata.
-4. Replace `createLegacyGlobalSceneVisualSelections(...)` in `Application`
-   startup with native visual selection seeds.
-5. Delete `LegacyScene*` adapters and their boundary exceptions once no
+4. Delete `LegacyScene*` adapters and their boundary exceptions once no
    production wiring needs legacy visual `EffectControl&` inputs.
 
 ### Audio
@@ -921,9 +916,8 @@ from this plan.
 
 5. **Move visual catalogs and selections off global `EffectControl` objects.
    Status: remaining.**
-   Compatibility surface: `LegacyGlobalSceneSelectionFactory.cc` and temporary
-   visual `EffectControl` entries still used to load, name, lock, select,
-   randomize, or mirror visual choices.
+   Compatibility surface: temporary visual `EffectControl` entries still used
+   to load, name, lock, select, randomize, or mirror visual choices.
 
    Purpose: stand in for native visual owners while the old visual system still
    owns file loading, generated catalog construction, current-value lookup,
@@ -971,9 +965,9 @@ from this plan.
      `SceneBuiltInChoiceCatalogs`; native `SceneVisualSelectionFactory` builds
      selections from explicit `SceneVisualSelectionSeeds`.
    - File-backed object, translation, palette, and image choice-catalog
-     construction lives in `SceneTypedVisualCatalogs`; the remaining global
-     selection bridge supplies temporary seed values for option names, lock
-     state, and current values until startup seeding is fully native.
+     construction lives in `SceneTypedVisualCatalogs`; `Application` supplies
+     default native seed values and startup config applies named choices without
+     reading global visual `EffectControl` selection values.
    - Translation entries are generated into native `SceneTranslationCatalog`
      ownership, mirrored into the temporary legacy translation option, and used
      directly by Scene translation selections.
@@ -992,8 +986,6 @@ from this plan.
      `ScenePaletteRandomizer`, which appends or replaces Scene-owned palette
      entries and persists generated random.N files without reading the global
      `palette` option.
-   - The remaining global visual selection bridge depends on the narrow
-     `PaletteOption` compatibility header instead of the broad Display header.
    - Scene visual settings construction, startup choice application, typed
      selection mutation, and random-palette mutation now live in
      `SceneVisualCatalogService` instead of a `LegacySceneVisualCatalogs`
@@ -1002,43 +994,46 @@ from this plan.
      global palette path and its persistence coverage.
    - `SceneVisualCatalogServiceFactory` now owns the native visual catalog
      service construction, and `LegacySceneVisualCatalogFactory` is deleted.
-     The temporary read of current legacy visual globals is isolated in
-     `LegacyGlobalSceneSelectionFactory`.
    - `LegacySceneSelectionFactory` is deleted. `SceneVisualSelectionFactory`
      owns native selection construction from explicit seeds, and
      `SceneVisualSelectionFactoryTest` covers direct native startup seeding
      without constructing visual `EffectControl` globals.
+   - `LegacyGlobalSceneSelectionFactory` is deleted. `Application` builds
+     default `SceneVisualSelectionSeeds` directly, so Scene runtime construction
+     no longer reads current values or locks from global visual controls.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - Border and flashlight legacy option globals live behind narrow
      `BorderOption` and `FlashlightOption` compatibility headers, while frame
-     filters use the separate renderer ports and the global visual selection
-     bridge avoids the renderer umbrellas.
+     filters use the separate renderer ports instead of the global option
+     headers.
    - Flame, wave, and translation legacy option globals live behind
      `FlameOptions`, `WaveOptions`, and `TranslationOption` compatibility
-     headers. The global visual selection bridge and list interface use those
-     headers instead of the broader generation/renderer umbrellas.
+     headers. Legacy list/interface and loading paths use those headers instead
+     of the broader generation/renderer umbrellas.
    - `Application` creates the native visual catalog service factory and
      `SceneRuntime` after built-in/file-backed visual catalog loading, so copied
      Scene catalogs see loaded object, translation, palette, and image entries.
-   - Global visual headers are quarantined in legacy construction files, and
+   - Global visual headers are limited to Application startup/loading,
+     list/interface compatibility, and legacy option implementation files.
      Frame Generator files use Scene ports plus narrow border/flashlight
      renderer ports instead of including global visual option headers.
 
 6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
-   Remaining compatibility surface: `LegacyGlobalSceneSelectionFactory`.
+   Remaining compatibility surfaces: `LegacySceneImageCatalogAdapter`,
+   `LegacyScenePaletteCatalogAdapter`, and
+   `LegacySceneWaveObjectCatalogAdapter`.
    `LegacySceneSelectionAdapters`, `LegacySceneSelectionFactory`,
-   `LegacyScenePaletteRandomizer`, and `LegacySceneVisualCatalogFactory` are
-   deleted; native selections are no longer mirrored back into visual
-   `EffectControl` globals.
+   `LegacyScenePaletteRandomizer`, `LegacySceneVisualCatalogFactory`, and
+   `LegacyGlobalSceneSelectionFactory` are deleted; native selections are no
+   longer mirrored back into visual `EffectControl` globals.
 
    What remains:
-   - Replace `LegacyGlobalSceneSelectionFactory` with native startup seeding.
-     This is complete when startup config and loaded native catalogs seed
-     `SceneVisualSelectionSeeds` without reading flame, wave, translation,
-     palette, border, flashlight, or image `EffectControl` values; the global
-     factory file is removed from CMake; and tests cover the application
-     startup path that supplies those seeds directly.
+   - Replace the remaining legacy catalog adapters with native visual loaders.
+     This is complete when objects, palettes, images, and translations load
+     directly into owned Scene/visual catalogs without first populating
+     `EffectChoice` lists, Application no longer calls `loadScene*FromLegacy`,
+     and CMake/boundary tests assert those adapter files are absent.
    - Retire any pre-startup or non-Scene UI fallback that still displays Scene
      visual choices through legacy `EffectControl` lists. This is complete when
      F2 lists, X11 menus, keymap actions, and runtime config display code all
@@ -1403,8 +1398,8 @@ Recommended Frame/Visual order:
    explicit geometry values.
 4. Introduce native visual catalogs/selections for flames, waves, translations,
    palettes, images, border, and flashlight.
-5. Replace `createLegacyGlobalSceneVisualSelections(...)` in Application
-   startup.
+5. Replace `loadScene*FromLegacy(...)` catalog adapter calls with native visual
+   loaders.
 6. Delete `LegacyScene*` once no production path needs legacy visual
    `EffectControl&` adapters.
 
