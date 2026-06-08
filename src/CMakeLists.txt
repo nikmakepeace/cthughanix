@@ -44,7 +44,6 @@ set(CTHUGHA_COMMON_SOURCES
     LegacyScenePaletteCatalogAdapter.cc
     LegacySceneWaveObjectCatalogAdapter.cc
     SceneVisualSelectionFactory.cc
-    LegacyGlobalSceneSelectionFactory.cc
     SceneVisualCatalogServiceFactory.cc
     SceneVisualCatalogService.cc
     SceneRuntime.cc
