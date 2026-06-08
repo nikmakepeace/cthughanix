@@ -7,7 +7,6 @@
 #include "IndexedImage.h"
 #include "ProcessServices.h"
 #include "FrameFilters.h"
-#include "PaletteEntry.h"
 #include "Wave.h"
 
 #include <string.h>
@@ -431,18 +430,8 @@ FramePalette& PaletteFilter::framePalette() {
     return framePaletteValue;
 }
 
-int PaletteFilter::needsTarget(PaletteEntry* paletteEntry) const {
-    return paletteEntry != 0 && needsTarget(paletteEntry->colors());
-}
-
 int PaletteFilter::needsTarget(const ColorPalette& palette) const {
     return !transition.hasTarget(palette);
-}
-
-void PaletteFilter::setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
-    const PaletteTransitionStrategy& strategy) {
-    if (paletteEntry != 0)
-        setTargetPalette(paletteEntry->colors(), frameBudget, strategy);
 }
 
 void PaletteFilter::setTargetPalette(const ColorPalette& palette, int frameBudget,

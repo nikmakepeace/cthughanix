@@ -989,6 +989,9 @@ from this plan.
      Random/add-random palette mutation now uses `ScenePaletteRandomizer`,
      which appends or replaces Scene-owned palette entries and persists
      generated random.N files without reading the global `palette` option.
+     Frame Generator consumes the selected `ColorPalette` from `SceneSettings`
+     and no longer includes `PaletteEntry.h` or exposes `PaletteEntry` overloads
+     in `PaletteFilter`.
    - Scene visual settings construction, startup choice application, typed
      selection mutation, and random-palette mutation now live in
      `SceneVisualCatalogService` instead of a `LegacySceneVisualCatalogs`

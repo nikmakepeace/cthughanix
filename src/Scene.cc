@@ -15,6 +15,7 @@ SceneSettings::SceneSettings()
     , translationTable()
     , translateIndex(0)
     , palette(0)
+    , paletteColors(0)
     , paletteIndex(0)
     , borderMode(0)
     , flashlightEnabled(0)
@@ -121,6 +122,7 @@ unsigned int Scene::compareSettings(const SceneSettings& settings) const {
         changes |= SceneTranslationChanged;
 
     if ((settingsValue.palette != settings.palette)
+        || (settingsValue.paletteColors != settings.paletteColors)
         || (settingsValue.paletteIndex != settings.paletteIndex))
         changes |= ScenePaletteChanged;
 
