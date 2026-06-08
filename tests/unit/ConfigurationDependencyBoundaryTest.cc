@@ -2549,9 +2549,21 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneControlBackedSelection : public SceneChoiceSelection");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "SceneChoiceSelection waveScaleValue;");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "SceneChoiceSelection tableValue;");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "SceneChoiceSelection objectValue;");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "SceneChoiceSelection borderValue;");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "SceneChoiceSelection flashlightValue;");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "LegacySceneControlBackedSelection waveScaleValue;");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "LegacySceneControlBackedSelection tableValue;");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "LegacySceneControlBackedSelection objectValue;");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "LegacySceneControlBackedSelection borderValue;");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

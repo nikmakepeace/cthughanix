@@ -106,14 +106,17 @@ public:
 
 class LegacySceneSelectionAdapters : public SceneVisualSelections,
     public LegacySceneEffectControlBindings {
+    EffectControl& waveScaleControl;
+    EffectControl& tableControl;
+    EffectControl& objectControl;
     EffectControl& borderControl;
     EffectControl& flashlightControl;
     LegacySceneFlameSelection flameValue;
     LegacySceneGeneralFlameSelection generalFlameValue;
     LegacySceneWaveSelection waveValue;
-    LegacySceneControlBackedSelection waveScaleValue;
-    LegacySceneControlBackedSelection tableValue;
-    LegacySceneControlBackedSelection objectValue;
+    SceneChoiceSelection waveScaleValue;
+    SceneChoiceSelection tableValue;
+    SceneChoiceSelection objectValue;
     LegacySceneTranslationSelection translationValue;
     LegacyScenePaletteSelection paletteValue;
     SceneChoiceSelection borderValue;
@@ -310,14 +313,20 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     EffectControl& waveScale_, EffectControl& table_, EffectControl& object_,
     EffectControl& translation_, EffectControl& palette_,
     EffectControl& border_, EffectControl& flashlight_, EffectControl& images_)
-    : borderControl(border_)
+    : waveScaleControl(waveScale_)
+    , tableControl(table_)
+    , objectControl(object_)
+    , borderControl(border_)
     , flashlightControl(flashlight_)
     , flameValue(flame_)
     , generalFlameValue(generalFlame_)
     , waveValue(wave_)
-    , waveScaleValue(waveScale_)
-    , tableValue(table_)
-    , objectValue(object_)
+    , waveScaleValue(new SceneEffectChoiceCatalog(waveScale_.name(),
+          waveScale_.choiceList(), waveScale_.lock), int(waveScale_))
+    , tableValue(new SceneEffectChoiceCatalog(table_.name(),
+          table_.choiceList(), table_.lock), int(table_))
+    , objectValue(new SceneEffectChoiceCatalog(object_.name(),
+          object_.choiceList(), object_.lock), int(object_))
     , translationValue(translation_)
     , paletteValue(palette_)
     , borderValue(new SceneEffectChoiceCatalog(border_.name(),
@@ -385,9 +394,9 @@ const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
         return &generalFlameValue;
     if (waveValue.isOption(option))
         return &waveValue;
-    if (waveScaleValue.isOption(option))
+    if (&option == &waveScaleControl)
         return &waveScaleValue;
-    if (objectValue.isOption(option))
+    if (&option == &objectControl)
         return &objectValue;
     if (translationValue.isOption(option))
         return &translationValue;
@@ -397,7 +406,7 @@ const SceneOptionSelection* LegacySceneSelectionAdapters::selectionFor(
         return &flashlightValue;
     if (paletteValue.isOption(option))
         return &paletteValue;
-    if (tableValue.isOption(option))
+    if (&option == &tableControl)
         return &tableValue;
     if (imagesValue.isOption(option))
         return &imagesValue;
@@ -409,9 +418,9 @@ void LegacySceneSelectionAdapters::syncFromControls() {
     flameValue.syncFromControl();
     generalFlameValue.syncFromControl();
     waveValue.syncFromControl();
-    waveScaleValue.syncFromControl();
-    tableValue.syncFromControl();
-    objectValue.syncFromControl();
+    waveScaleValue.setValue(int(waveScaleControl));
+    tableValue.setValue(int(tableControl));
+    objectValue.setValue(int(objectControl));
     translationValue.syncFromControl();
     paletteValue.syncFromControl();
     borderValue.setValue(int(borderControl));
@@ -423,9 +432,9 @@ void LegacySceneSelectionAdapters::syncControlsFromSelections() {
     flameValue.syncControlFromSelection();
     generalFlameValue.syncControlFromSelection();
     waveValue.syncControlFromSelection();
-    waveScaleValue.syncControlFromSelection();
-    tableValue.syncControlFromSelection();
-    objectValue.syncControlFromSelection();
+    waveScaleControl.setValue(waveScaleValue.currentValue());
+    tableControl.setValue(tableValue.currentValue());
+    objectControl.setValue(objectValue.currentValue());
     translationValue.syncControlFromSelection();
     paletteValue.syncControlFromSelection();
     borderControl.setValue(borderValue.currentValue());
