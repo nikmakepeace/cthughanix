@@ -84,10 +84,15 @@ set(CTHUGHA_COMMON_SOURCES
     DosVga9x14Font.cc
     FrameClock.cc
     FrameCompletion.cc
+    FrameFilterchainPipeline.cc
+    FrameGeneratorContext.cc
+    FrameGeneratorRuntime.cc
+    FrameGeneratorSceneBinding.cc
     FrameGeometry.cc
     FramePacer.cc
     FrameRateMeter.cc
     FrameStore.cc
+    FrameTransitionController.cc
     Image.cc
     IndexedDisplayFrame.cc
     OverlaySource.cc
@@ -99,7 +104,6 @@ set(CTHUGHA_COMMON_SOURCES
     VideoFilters.cc
     VideoFilterchainFactory.cc
     VideoFrameBudget.cc
-    VideoDirector.cc
     keymap.cc
     InterfaceCredits.cc
     InterfaceList.cc

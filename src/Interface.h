@@ -15,6 +15,7 @@ class InputQueue;
 class InterfaceRuntime;
 class ImageOption;
 class KeymapRegistry;
+class Option;
 class RuntimeConfigRegistry;
 
 class InterfaceElement {
@@ -116,7 +117,8 @@ public:
  *
  * @param runtime Interface runtime that will own selection/adapter state.
  */
-void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images);
+void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images,
+    Option& quietMessageOption);
 void registerInterfaceKeyActions(CommandRegistry& registry);
 
 #endif

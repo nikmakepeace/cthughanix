@@ -256,6 +256,44 @@ target_link_libraries(frame_store_test PRIVATE m)
 
 add_test(NAME frame_store_test COMMAND frame_store_test)
 
+add_executable(frame_transition_controller_test
+    unit/FrameTransitionControllerTest.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameTransitionController.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+)
+
+target_include_directories(frame_transition_controller_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(frame_transition_controller_test PRIVATE m)
+
+add_test(NAME frame_transition_controller_test
+    COMMAND frame_transition_controller_test)
+
+add_executable(frame_generator_boundary_test
+    unit/FrameGeneratorBoundaryTest.cc
+)
+
+target_compile_definitions(frame_generator_boundary_test PRIVATE
+    CTHUGHA_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+target_include_directories(frame_generator_boundary_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(frame_generator_boundary_test PRIVATE m)
+
+add_test(NAME frame_generator_boundary_test
+    COMMAND frame_generator_boundary_test)
+
 add_executable(frame_clock_test
     unit/FrameClockTest.cc
     ${CMAKE_SOURCE_DIR}/src/FrameClock.cc

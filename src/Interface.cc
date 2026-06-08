@@ -26,8 +26,6 @@
 #include <signal.h>
 #include <string>
 
-extern OptionTime changeMsgTime;
-
 ////////////////////////////////////////////////////////////////////////////
 
 //
@@ -503,7 +501,7 @@ public:
 
 class InterfaceOptions : public Interface {
 public:
-    InterfaceOptions()
+    explicit InterfaceOptions(Option& quietMessageOption)
         : Interface("Options", "Options", NULL) {
         nElements = 9;
         elements = new InterfaceElement*[nElements];
@@ -521,7 +519,7 @@ public:
             "Quiet change time        : %10s",
             AutoChangeControlQuietMs, 100, 500, 1000);
         elements[5] = new InterfaceElementOption(
-            "Time before silence Msg. : %10s", &changeMsgTime, 100, 500, 1000);
+            "Time before silence Msg. : %10s", &quietMessageOption, 100, 500, 1000);
         elements[6] = new InterfaceElementAutoChangeOption(
             "Cumulative fire level    : %10s",
             AutoChangeControlCumulativeFireLevel, 10, 50, 100);
@@ -567,11 +565,12 @@ void registerInterfaceKeyActions(CommandRegistry& registry) {
     registerHelpKeyActions(registry);
 }
 
-void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images) {
+void registerDefaultInterfaces(InterfaceRuntime& runtime, ImageOption& images,
+    Option& quietMessageOption) {
     runtime.registerOwnedInterface(new InterfaceMain());
     runtime.registerOwnedInterface(new Interface("Mixer", "Mixer", NULL));
     runtime.registerOwnedInterface(new InterfaceEffectControl(images));
-    runtime.registerOwnedInterface(new InterfaceOptions());
+    runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption));
     registerAudioInterfaces(runtime);
     registerListInterfaces(runtime, images);
     registerHelpInterface(runtime);

@@ -11,6 +11,7 @@
 
 class AutoChangeSettings;
 class AudioProcessingState;
+class Option;
 
 /**
  * Adds one runtime owner's current state to a Config snapshot.
@@ -69,6 +70,7 @@ public:
 class LegacyRuntimeConfigContributor : public RuntimeConfigContributor {
     const AutoChangeSettings& autoChangeSettings;
     const AudioProcessingState& audioProcessingState;
+    const Option& quietMessageOption;
 
 public:
     /**
@@ -76,9 +78,11 @@ public:
      *
      * @param autoChangeSettings_ Runtime-owned automatic scene-change settings.
      * @param audioProcessingState_ Runtime-owned audio processing state.
+     * @param quietMessageOption_ Runtime quiet-message threshold option.
      */
     LegacyRuntimeConfigContributor(const AutoChangeSettings& autoChangeSettings_,
-        const AudioProcessingState& audioProcessingState_);
+        const AudioProcessingState& audioProcessingState_,
+        const Option& quietMessageOption_);
 
     /**
      * Overlays display, audio-processing, auto-change, and policy values that

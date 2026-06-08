@@ -47,15 +47,17 @@ public:
  */
 class DefaultRuntimeAutoChangeControls : public RuntimeAutoChangeControls {
     AutoChangeControls& autoChangeControls;
+    Option& quietMessageOption;
 
 public:
     /**
      * Creates settings-backed runtime auto-change controls.
      *
      * @param autoChangeControls_ Option adapters backed by owned settings.
+     * @param quietMessageOption_ Frame Generator quiet-message threshold option.
      */
     explicit DefaultRuntimeAutoChangeControls(
-        AutoChangeControls& autoChangeControls_);
+        AutoChangeControls& autoChangeControls_, Option& quietMessageOption_);
 
     /** Toggles automatic scene-change lock setting. */
     virtual void toggleLock();

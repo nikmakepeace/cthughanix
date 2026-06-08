@@ -28,30 +28,3 @@ int ilog2(int n) {
     }
     return r;
 }
-
-/*
- * sine
- */
-int sine[320]; /* sine in 1/320° */
-
-double sin360[360];
-
-int init_imath() {
-    int i;
-
-    for (i = 0; i < 320; i++)
-        sine[i] = (int)(128 * sin((double)i * 0.03927));
-
-    for (i = 0; i < 360; i++)
-        sin360[i] = sin((double)i * (2.0 * M_PI / 360.0));
-
-    return 0;
-}
-
-double isin(int deg) {
-    deg %= 360;
-    if (deg < 0)
-        deg += 360;
-
-    return sin360[deg];
-}

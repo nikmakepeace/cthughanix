@@ -9,12 +9,11 @@
 #include "AudioAnalyzer.h"
 #include "PlatformLifecycle.h"
 #include "Configuration.h"
+#include "FrameGeneratorRuntime.h"
 #include "FramePacer.h"
 #include "InputQueue.h"
 #include "keymap.h"
 #include "ProcessServices.h"
-#include "VideoDirector.h"
-#include "VideoFilterchainSequence.h"
 
 #include <memory>
 #include <vector>
@@ -51,7 +50,6 @@ class SceneChangeScheduler;
 class SceneRuntime;
 class SceneSnapshot;
 class SceneVisualCatalogFactory;
-class VideoFilterchain;
 
 /**
  * Top-level graphical application lifecycle.
@@ -80,8 +78,7 @@ class Application {
     int exitStatusValue;
     Config startupConfigValue;
     std::vector<ConfigDiagnostic> startupConfigDiagnostics;
-    std::unique_ptr<VideoFilterchain> videoFilterchain;
-    VideoFilterchainSequence videoFilterchainSequence;
+    FrameGeneratorRuntime frameGeneratorValue;
     LegacyDisplayFrontendInitializer displayFrontendInitializerValue;
     DisplayFrontendInitializer* displayFrontendInitializer;
     AcousticContext acousticContextValue;
@@ -94,7 +91,6 @@ class Application {
     std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
     std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
     std::unique_ptr<SceneChangeScheduler> sceneChangeSchedulerValue;
-    VideoDirector videoDirectorValue;
     std::unique_ptr<SceneVisualCatalogFactory> sceneVisualCatalogFactoryValue;
     std::unique_ptr<SceneRuntime> sceneRuntimeValue;
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
@@ -142,8 +138,8 @@ class Application {
     /** Clears and releases the Application-owned mixer runtime. */
     void shutdownMixerRuntime();
 
-    /** Destroys the visual filterchain and its owned filters. */
-    void shutdownVideoFilterchain();
+    /** Destroys the frame generator filterchain and its owned filters. */
+    void shutdownFrameGeneratorPipeline();
 
     /**
      * Creates and starts application-owned audio ingest.
@@ -167,11 +163,11 @@ class Application {
     void runAudioFramePipeline(AudioFrame& frame);
 
     /**
-     * Runs the visual filterchain for one frame.
+     * Runs the frame generator for one frame.
      *
      * @return Published IndexedFrame for display, or NULL when no frame is ready.
      */
-    const IndexedFrame* runVideoFilterchain(
+    const IndexedFrame* runFrameGenerator(
         AudioFrame& frame, const SceneSnapshot& sceneSnapshot);
 
 public:
@@ -224,10 +220,10 @@ public:
     void initSceneRuntime();
 
     /**
-     * Creates the configured video filterchain and connects its frame palette
-     * to the display device.
+     * Creates the configured frame generator filterchain and connects its
+     * frame palette to the display device.
      */
-    void initVideoFilterchain();
+    void initFrameGeneratorPipeline();
 
     /**
      * Creates the audio frame pipeline after scene commands are available.

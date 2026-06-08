@@ -10,7 +10,7 @@ class VideoFilterchainSequence {
     std::vector<unsigned int> sequenceValue;
 
 public:
-    /** Named stage ids understood by VideoFilterchainFactory and VideoDirector. */
+    /** Named stage ids understood by VideoFilterchainFactory and Frame Generator. */
     enum Stage {
         /** One-shot indexed image injection into active/passive buffers. */
         ImageStage,

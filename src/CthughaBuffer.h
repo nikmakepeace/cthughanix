@@ -6,6 +6,8 @@
 #include "cthugha.h"
 
 class CthughaBuffer {
+    friend class FrameStore;
+
 public:
     CthughaBuffer();
     ~CthughaBuffer();
@@ -60,10 +62,6 @@ private:
 
     int allocationByteCount() const;
     unsigned char* visiblePixels(unsigned char* allocation) const;
-
-public:
-    static CthughaBuffer buffer;
-    static CthughaBuffer* current;
 
     /**
      * Allocates active/passive pixel memory for the current dimensions.

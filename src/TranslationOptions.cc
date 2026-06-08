@@ -3,9 +3,9 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "ProcessServices.h"
+#include "SceneGeometry.h"
 #include "TranslationOptions.h"
 #include "TranslateGenerator.h"
-#include "CthughaBuffer.h"
 
 #include <vector>
 
@@ -22,14 +22,14 @@ void configureTranslationOptions(const EffectPolicy& config) {
 /*
  * Initialize the translate-tables.
  */
-int init_translate(const CthughaBuffer& buffer, RandomSource& randomSource) {
+int init_translate(const SceneGeometry& geometry, RandomSource& randomSource) {
 
     if (use_translates) {
 
         CTH_INFO("  loading translation tables...\n");
 
         std::vector<GeneratedTranslationTable> generatedTables;
-        defaultTranslationCatalog().generateAll(buffer.width(), buffer.height(),
+        defaultTranslationCatalog().generateAll(geometry.width(), geometry.height(),
             randomSource, generatedTables);
         for (unsigned int i = 0; i < generatedTables.size(); i++) {
             const GeneratedTranslationTable& generated = generatedTables[i];

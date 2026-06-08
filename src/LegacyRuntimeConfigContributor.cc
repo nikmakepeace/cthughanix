@@ -7,9 +7,9 @@
 #include "AutoChangeSettings.h"
 #include "AudioProcessing.h"
 #include "CthughaDisplay.h"
+#include "Option.h"
 #include "Screen.h"
 #include "TranslationOptions.h"
-#include "VideoDirector.h"
 #include "waves.h"
 
 #include <cstring>
@@ -27,9 +27,11 @@ static std::string persistedName(const char* name) {
 
 LegacyRuntimeConfigContributor::LegacyRuntimeConfigContributor(
     const AutoChangeSettings& autoChangeSettings_,
-    const AudioProcessingState& audioProcessingState_)
+    const AudioProcessingState& audioProcessingState_,
+    const Option& quietMessageOption_)
     : autoChangeSettings(autoChangeSettings_)
-    , audioProcessingState(audioProcessingState_) { }
+    , audioProcessingState(audioProcessingState_)
+    , quietMessageOption(quietMessageOption_) { }
 
 void LegacyRuntimeConfigContributor::contribute(Config& config) const {
     config.scene.presentation = persistedName(screen.currentName());
@@ -41,7 +43,7 @@ void LegacyRuntimeConfigContributor::contribute(Config& config) const {
 
     config.autoChange = autoChangeSettings.config();
 
-    config.messages.quietMessageMs = int(changeMsgTime);
+    config.messages.quietMessageMs = int(quietMessageOption);
 
     config.effectPolicy.useTranslatesEnabled = int(use_translates);
     config.effectPolicy.useObjectsEnabled = int(use_objects);

@@ -5,15 +5,15 @@
 #include "RuntimeAutoChangeControls.h"
 
 #include "AutoChangeControls.h"
-#include "VideoDirector.h"
-
-static int isAutoChangeOption(Option& option) {
-    return (&option == &changeMsgTime);
-}
 
 DefaultRuntimeAutoChangeControls::DefaultRuntimeAutoChangeControls(
-    AutoChangeControls& autoChangeControls_)
-    : autoChangeControls(autoChangeControls_) { }
+    AutoChangeControls& autoChangeControls_, Option& quietMessageOption_)
+    : autoChangeControls(autoChangeControls_)
+    , quietMessageOption(quietMessageOption_) { }
+
+static int isSameOption(Option& lhs, Option& rhs) {
+    return &lhs == &rhs;
+}
 
 static void markChanged(RuntimeChangeSet& changes) {
     changes.autoChangeChanged = 1;
@@ -30,7 +30,7 @@ int DefaultRuntimeAutoChangeControls::changeAutoChangeOptionBy(
         return 1;
     }
 
-    if (!isAutoChangeOption(option))
+    if (!isSameOption(option, quietMessageOption))
         return 0;
 
     option.change(by);
@@ -45,7 +45,7 @@ int DefaultRuntimeAutoChangeControls::changeAutoChangeOptionTo(
         return 1;
     }
 
-    if (!isAutoChangeOption(option))
+    if (!isSameOption(option, quietMessageOption))
         return 0;
 
     option.change(to);

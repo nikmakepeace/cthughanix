@@ -60,6 +60,9 @@ add_executable(visual_effects_bench
     ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaBuffer.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneGeometry.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeometry.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameStore.cc
     ${CMAKE_SOURCE_DIR}/src/Flame.cc
     ${CMAKE_SOURCE_DIR}/src/flames.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc

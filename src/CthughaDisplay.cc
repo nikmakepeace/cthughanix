@@ -1,6 +1,5 @@
 #include "cthugha.h"
 #include "CthughaDisplay.h"
-#include "CthughaBuffer.h"
 #include "display.h"
 #include "DisplayDevice.h"
 #include "DisplayRuntime.h"
@@ -70,7 +69,7 @@ void CthughaDisplay::present(const IndexedFrame& frame) {
     sourceFrame = &frame;
     if (frame.framePalette != NULL)
         device().setFramePalette(frame.framePalette);
-    presentCurrentWithContext(0);
+    presentSourceWithContext(0);
 }
 
 void CthughaDisplay::present(const IndexedFrame& frame,
@@ -83,14 +82,10 @@ void CthughaDisplay::present(const IndexedFrame& frame,
     sourceFrame = &frame;
     if (frame.framePalette != NULL)
         device().setFramePalette(frame.framePalette);
-    presentCurrentWithContext(&context);
+    presentSourceWithContext(&context);
 }
 
-void CthughaDisplay::presentCurrent(const VideoFrameContext& context) {
-    presentCurrentWithContext(&context);
-}
-
-void CthughaDisplay::presentCurrentWithContext(const VideoFrameContext* context) {
+void CthughaDisplay::presentSourceWithContext(const VideoFrameContext* context) {
     presentationContextValue = context;
     (*this)();
     presentationContextValue = 0;
@@ -100,30 +95,28 @@ const unsigned char* CthughaDisplay::sourcePixels() const {
     if (sourceFrame != NULL && sourceFrame->valid())
         return sourceFrame->pixels;
 
-    // Legacy fallback for code paths that still call operator() without first
-    // publishing an IndexedFrame through present().
-    return CthughaBuffer::current->passivePixels();
+    return NULL;
 }
 
 int CthughaDisplay::sourceWidth() const {
     if (sourceFrame != NULL && sourceFrame->valid())
         return sourceFrame->width;
 
-    return CthughaBuffer::current->width();
+    return 0;
 }
 
 int CthughaDisplay::sourceHeight() const {
     if (sourceFrame != NULL && sourceFrame->valid())
         return sourceFrame->height;
 
-    return CthughaBuffer::current->height();
+    return 0;
 }
 
 int CthughaDisplay::sourcePitch() const {
     if (sourceFrame != NULL && sourceFrame->valid())
         return sourceFrame->pitch;
 
-    return CthughaBuffer::current->width();
+    return 0;
 }
 
 int CthughaDisplay::sourceSize() const {

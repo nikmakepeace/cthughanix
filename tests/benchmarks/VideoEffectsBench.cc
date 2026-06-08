@@ -1,5 +1,6 @@
 #include "CthughaBuffer.h"
 #include "CthughaDisplay.h"
+#include "FrameStore.h"
 #include "Flame.h"
 #include "Translate.h"
 #include "VideoFilterchain.h"
@@ -395,8 +396,13 @@ const ImageFixture& zeroImage() {
     return image;
 }
 
+FrameStore& benchmarkStore() {
+    static FrameStore store;
+    return store;
+}
+
 CthughaBuffer& benchmarkBuffer() {
-    return CthughaBuffer::buffer;
+    return benchmarkStore().compatibilityBuffer();
 }
 
 void copyImageWithHiddenRows(unsigned char* visibleBuffer, const ImageFixture& image) {
@@ -465,15 +471,12 @@ void initializeVideoBenchmarks() {
         return;
 
     initialized = 1;
-    CthughaBuffer& buffer = benchmarkBuffer();
-    buffer.setDimensions(config().width, config().height);
+    benchmarkStore().resize(FrameGeometry(PixelSize(config().width,
+        config().height), kHiddenRows));
 
     srand(0);
-    init_imath();
     init_flames();
     createTranslationEntries();
-
-    buffer.allocatePixels();
 }
 
 void setCommonCounters(benchmark::State& state) {

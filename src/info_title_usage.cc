@@ -2,8 +2,6 @@
 #include "information.h"
 #include "AudioOptions.h"
 #include "DisplayDevice.h"
-#include "CthughaBuffer.h"
-#include "VideoDirector.h"
 #include "TranslationOptions.h"
 #include "configuration_defaults.h"
 

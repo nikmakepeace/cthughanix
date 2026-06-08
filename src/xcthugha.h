@@ -155,6 +155,7 @@ public:
     int paletteInitialized;
     int initialized;
     DisplayViewport presentationViewport;
+    PixelSize fallbackIndexedFrameSize;
 
 protected:
     static Widget xcth_toplevel;

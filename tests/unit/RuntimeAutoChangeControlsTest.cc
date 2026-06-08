@@ -6,13 +6,11 @@
 
 #include "AutoChangeControls.h"
 #include "AutoChangeSettings.h"
+#include "Option.h"
 #include "ProcessServices.h"
-#include "VideoDirector.h"
 
 #include <assert.h>
 #include <stdarg.h>
-
-OptionTime changeMsgTime("message-time", 0);
 
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_context(int, const char*, const char*, ...) { return 0; }
@@ -105,7 +103,9 @@ static void testToggleLockMutatesSettings() {
     RecordingLogSink log;
     FakeAutoChangeSettings settings;
     AutoChangeControls controls(settings, log);
-    DefaultRuntimeAutoChangeControls runtimeControls(controls);
+    OptionTime quietMessageOption("message-time", 0);
+    DefaultRuntimeAutoChangeControls runtimeControls(controls,
+        quietMessageOption);
 
     runtimeControls.toggleLock();
     assert(settings.lockedValue == 1);
@@ -117,7 +117,9 @@ static void testGenericAutoChangeOptionsMutateSettings() {
     RecordingLogSink log;
     FakeAutoChangeSettings settings;
     AutoChangeControls controls(settings, log);
-    DefaultRuntimeAutoChangeControls runtimeControls(controls);
+    OptionTime quietMessageOption("message-time", 0);
+    DefaultRuntimeAutoChangeControls runtimeControls(controls,
+        quietMessageOption);
 
     RuntimeChangeSet changes;
     int handled = runtimeControls.changeAutoChangeOptionBy(
@@ -144,7 +146,9 @@ static void testUnrelatedOptionsAreNotChanged() {
     RecordingLogSink log;
     FakeAutoChangeSettings settings;
     AutoChangeControls controls(settings, log);
-    DefaultRuntimeAutoChangeControls runtimeControls(controls);
+    OptionTime quietMessageOption("message-time", 0);
+    DefaultRuntimeAutoChangeControls runtimeControls(controls,
+        quietMessageOption);
     RecordingOption unrelated;
 
     RuntimeChangeSet changes;
@@ -172,7 +176,9 @@ static void testInvalidAutoChangeOptionValueUsesInjectedLogSink() {
     assert(settings.waitMinMsValue == 1000);
     assert(log.writes == 1);
 
-    DefaultRuntimeAutoChangeControls runtimeControls(controls);
+    OptionTime quietMessageOption("message-time", 0);
+    DefaultRuntimeAutoChangeControls runtimeControls(controls,
+        quietMessageOption);
     handled = runtimeControls.changeAutoChangeOptionTo(
         controls.lockedOption(), "maybe", changes);
     assert(handled == 1);

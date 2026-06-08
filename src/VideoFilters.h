@@ -225,6 +225,7 @@ class FrameCommitFilter : public VideoFilter {
     const char* waveName;
     const char* waveScaleName;
     const char* tableName;
+    int debugReports;
 
 public:
     FrameCommitFilter();

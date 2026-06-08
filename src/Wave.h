@@ -107,6 +107,8 @@ public:
 class WaveLookupTables {
     int sineWidth;
     std::vector<int> sineValues;
+    std::vector<int> legacySineValues;
+    std::vector<double> degreeSineValues;
 
 public:
     WaveLookupTables();
@@ -118,6 +120,30 @@ public:
      * @return Pointer to width signed values scaled around +/-128, or NULL.
      */
     const int* sineForWidth(int width);
+
+    /**
+     * Returns the historical 320-step sine table value.
+     *
+     * @param index Angle index in the legacy 0..319 circle.
+     * @return Sine value scaled around +/-128.
+     */
+    int legacySine(int index);
+
+    /**
+     * Returns sine for a degree angle.
+     *
+     * @param degrees Angle in degrees.
+     * @return Sine in floating-point units.
+     */
+    double sineDegrees(int degrees);
+
+    /**
+     * Returns cosine for a degree angle.
+     *
+     * @param degrees Angle in degrees.
+     * @return Cosine in floating-point units.
+     */
+    double cosineDegrees(int degrees);
 };
 
 /**
@@ -173,6 +199,30 @@ public:
      * @return Cached sine table, or NULL.
      */
     const int* sineForWidth(int width);
+
+    /**
+     * Returns the historical 320-step sine table value.
+     *
+     * @param index Angle index in the legacy 0..319 circle.
+     * @return Sine value scaled around +/-128.
+     */
+    int legacySine(int index);
+
+    /**
+     * Returns sine for a degree angle from generator-owned tables.
+     *
+     * @param degrees Angle in degrees.
+     * @return Sine in floating-point units.
+     */
+    double sineDegrees(int degrees) const;
+
+    /**
+     * Returns cosine for a degree angle from generator-owned tables.
+     *
+     * @param degrees Angle in degrees.
+     * @return Cosine in floating-point units.
+     */
+    double cosineDegrees(int degrees) const;
 
     /**
      * Returns a random integer in [0, exclusiveMax).

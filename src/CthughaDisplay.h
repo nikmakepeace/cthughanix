@@ -59,7 +59,7 @@ protected:
     const IndexedDisplayFrame& composePresentationFrame(
         PresentationScreenSelection& screenSelection);
     const IndexedDisplayFrame& composePresentationFrame();
-    void presentCurrentWithContext(const VideoFrameContext* context);
+    void presentSourceWithContext(const VideoFrameContext* context);
 
     void updateFPS();
     void checkZoom();
@@ -102,17 +102,7 @@ public:
      */
     void present(const IndexedFrame& frame, const VideoFrameContext& context);
 
-    /**
-     * Presents the current source frame or legacy buffer with audio context.
-     *
-     * This keeps the no-argument virtual display entry point while allowing the
-     * application frame loop to supply explicit audio state.
-     *
-     * @param context Borrowed per-frame audio/timing context.
-     */
-    void presentCurrent(const VideoFrameContext& context);
-
-    /** Legacy display path used when no IndexedFrame is available. */
+    /** Frontend-specific presentation path for the current explicit source frame. */
     virtual void operator()() { }
 
     const unsigned char* sourcePixels() const;

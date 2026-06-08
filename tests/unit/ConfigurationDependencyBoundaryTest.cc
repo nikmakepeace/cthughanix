@@ -179,7 +179,7 @@ static void testAudioDeviceSettingsAreStartupOnly() {
     assertSourceContains("src/AudioIngest.cc", "log->debug");
     assertSourceContains("src/Application.h", "ConsoleLogSink logSinkValue");
     assertSourceContains("src/Application.cc",
-        "CthughaBuffer::buffer.maxDimension(), randomSourceValue");
+        "frameGeneratorValue.geometry().maxDimension(), randomSourceValue");
     assertSourceContains("src/Application.cc", "secondsClockValue, logSinkValue");
     assertSourceContains("src/PcmSource.cc", "AudioInput::format() const");
     assertSourceContains("src/Audio.h", "PcmSource(LogSink& log_)");
@@ -610,7 +610,7 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceContains("src/Application.cc",
         "interfaceRuntimeValue->setSceneChangeStatusProvider(\n"
         "        sceneChangeSchedulerValue.get())");
-    assertSourceContains("src/Application.cc", "class VideoDirectorQuietObserver");
+    assertSourceContains("src/Application.cc", "class FrameGeneratorQuietObserver");
     assertSourceContains("src/Application.cc",
         "autoChangeQuietObserverValue.reset(");
     assertSourceContains("src/Application.cc",
@@ -676,9 +676,11 @@ static void testAutoChangeSettingsAreApplicationOwned() {
         "#include \"cthugha.h\"");
     assertSourceDoesNotContain("src/AutoChangeControls.cc", "CTH_");
     assertSourceContains("src/Application.cc",
-        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
+        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue,\n"
+        "            frameGeneratorValue.quietMessageOption())");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.setRandomSource(randomSourceValue)");
+        "frameGeneratorValue(randomSourceValue, countdownTimerFactoryValue,\n"
+        "          logSinkValue)");
     assertSourceContains("src/Application.cc",
         "interfaceRuntimeValue->setAutoChangeControls(autoChangeControlsValue.get())");
     assertSourceContains("src/Application.cc",
@@ -713,10 +715,11 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/SceneChangeScheduler.h", "RandomSource& randomSource");
     assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "gettime()");
     assertSourceDoesNotContain("src/SceneChangeScheduler.cc", "rand()");
-    assertSourceContains("src/VideoDirector.h", "RandomSource* randomSourceValue");
-    assertSourceContains("src/VideoDirector.cc",
-        "silenceMessage.setRandomSource(randomSource)");
-    assertSourceDoesNotContain("src/VideoDirector.cc", "rand()");
+    assertSourceContains("src/FrameGeneratorSceneBinding.h",
+        "RandomSource& randomSourceValue");
+    assertSourceContains("src/FrameGeneratorSceneBinding.cc",
+        "silenceMessage.setRandomSource(randomSourceValue)");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc", "rand()");
     assertSourceContains("src/SilenceMessage.h", "RandomSource* randomSourceValue");
     assertSourceDoesNotContain("src/SilenceMessage.cc", "rand()");
     assertSourceDoesNotContain("src/DefaultMessagesProvider.cc", "rand()");
@@ -1073,9 +1076,8 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc",
         "audioProcessingSelectorValue->configureStartup(startupConfigValue.scene)");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.configureTransitions(startupConfigValue.sceneTransition)");
-    assertSourceContains("src/Application.cc",
-        "videoDirectorValue.configureQuietMessages(startupConfigValue.messages)");
+        "frameGeneratorValue.configure(startupConfigValue.display,\n"
+        "        startupConfigValue.sceneTransition, startupConfigValue.messages)");
     assertSourceContains("src/SceneRuntime.h",
         "void applyStartupConfig(const SceneConfig& config)");
     assertSourceContains("src/SceneRuntime.cc",
@@ -1233,14 +1235,15 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/CMakeLists.txt", "CthughaBufferSceneGeometry.cc");
     assertSourceDoesNotContain("src/SceneDependencies.h", "CthughaBuffer");
     assertSourceDoesNotContain("src/SceneDependencies.cc", "#include \"CthughaBuffer.h\"");
-    assertSourceContains("src/VideoDirector.h",
-        "class VideoDirector : public SceneObserver, public SceneGeometry");
-    assertSourceContains("src/VideoDirector.h", "#include \"SceneGeometry.h\"");
-    assertSourceContains("src/VideoDirector.h", "virtual int width() const");
-    assertSourceContains("src/VideoDirector.h", "virtual int height() const");
-    assertSourceContains("src/VideoDirector.cc", "return targetBuffer.width()");
-    assertSourceContains("src/VideoDirector.cc", "return targetBuffer.height()");
-    assertSourceContains("src/Application.h", "VideoDirector videoDirectorValue");
+    assertSourceContains("src/FrameGeometry.h",
+        "class FrameGeometry : public SceneGeometry");
+    assertSourceContains("src/FrameGeometry.h", "#include \"SceneGeometry.h\"");
+    assertSourceContains("src/FrameGeometry.h", "virtual int width() const");
+    assertSourceContains("src/FrameGeometry.h", "virtual int height() const");
+    assertSourceContains("src/FrameGeneratorRuntime.h",
+        "SceneGeometry& sceneGeometry()");
+    assertSourceContains("src/Application.h",
+        "FrameGeneratorRuntime frameGeneratorValue");
     assertSourceDoesNotContain("src/Application.h",
         "std::unique_ptr<SceneGeometry> sceneGeometryValue");
     assertSourceDoesNotContain("src/Application.h",
@@ -1268,12 +1271,12 @@ static void testSceneStartupUsesSceneConfig() {
         "flameGeneral, wave,\n"
         "            waveScale, table, object");
     assertSourceContains("src/Application.cc",
-        "sceneRuntimeValue.reset(new SceneRuntime(videoDirectorValue,\n"
+        "sceneRuntimeValue.reset(new SceneRuntime(frameGeneratorValue.sceneGeometry(),\n"
         "        *sceneVisualCatalogFactoryValue, randomSourceValue))");
     assertSourceDoesNotContain("src/Application.cc",
         "new LegacySceneVisualCatalogFactory(*sceneVisualSelectionsValue)");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.bindScene(sceneRuntimeValue->scene())");
+        "frameGeneratorValue.bindScene(sceneRuntimeValue->scene())");
     assertSourceContains("src/Application.cc",
         "*sceneVisualCatalogFactoryValue, randomSourceValue)");
     assertSourceDoesNotContain("src/Application.cc",
@@ -1485,7 +1488,7 @@ static void testSceneSnapshotFlowsThroughFrameContext() {
     assertSourceContains("src/Application.cc",
         "SceneSnapshot sceneSnapshot = sceneRuntimeValue->snapshot()");
     assertSourceContains("src/Application.cc",
-        "runVideoFilterchain(audioFrame, sceneSnapshot)");
+        "runFrameGenerator(audioFrame, sceneSnapshot)");
     assertSourceContains("src/Application.cc",
         "acousticContextValue, &sceneSnapshot");
 }
@@ -1703,7 +1706,8 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Application.cc",
         "mixerControlsValue.get())");
     assertSourceContains("src/Application.cc",
-        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue)");
+        "new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue,\n"
+        "            frameGeneratorValue.quietMessageOption())");
     assertSourceContains("src/Application.cc",
         "new DefaultRuntimeEffectControls(randomSourceValue)");
     assertSourceContains("src/RuntimeEffectControls.h",
@@ -1909,7 +1913,7 @@ static void testX11PanelInputsUseRuntimeCommands() {
     assertSourceDoesNotContain("src/Application.h",
         "SceneCommands& sceneCommands");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.imageOption(), *runtimeChangeMediatorValue");
+        "frameGeneratorValue.imageOption(), *runtimeChangeMediatorValue");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "currentNameOrEmpty(images)");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
@@ -1993,7 +1997,9 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Application.h",
         "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
-        "registerDefaultInterfaces(*interfaceRuntimeValue, videoDirectorValue.imageOption())");
+        "registerDefaultInterfaces(*interfaceRuntimeValue,\n"
+        "        frameGeneratorValue.imageOption(),\n"
+        "        frameGeneratorValue.quietMessageOption())");
     assertSourceDoesNotContain("src/keymap.h", "setInterfaceRuntime");
     assertSourceDoesNotContain("src/keymap.h", "interfaceRuntime");
     assertSourceDoesNotContain("src/keymap.cc", "keymapInterfaceRuntime");
@@ -2016,7 +2022,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new InterfaceEffectControl(images))");
     assertSourceContains("src/Interface.cc",
-        "runtime.registerOwnedInterface(new InterfaceOptions())");
+        "runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption))");
     assertSourceContains("src/AudioSystem.cc",
         "runtime.registerOwnedInterface(");
     assertSourceContains("src/InterfaceList.cc",
@@ -2165,13 +2171,13 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
 
 static void testTranslationGenerationUsesApplicationRandomSource() {
     assertSourceContains("src/Application.cc",
-        "initializeVisualCatalogs(CthughaBuffer::buffer, startupConfigValue.paths,\n"
-        "            randomSourceValue)");
-    assertSourceContains("src/Application.cc", "init_translate(buffer, randomSource)");
+        "initializeVisualCatalogs(frameGeneratorValue.geometry(),\n"
+        "            startupConfigValue.paths, randomSourceValue)");
+    assertSourceContains("src/Application.cc", "init_translate(geometry, randomSource)");
     assertSourceContains("src/TranslationOptions.h",
-        "int init_translate(const CthughaBuffer& buffer, RandomSource& randomSource)");
+        "int init_translate(const SceneGeometry& geometry, RandomSource& randomSource)");
     assertSourceContains("src/TranslationOptions.cc",
-        "defaultTranslationCatalog().generateAll(buffer.width(), buffer.height(),\n"
+        "defaultTranslationCatalog().generateAll(geometry.width(), geometry.height(),\n"
         "            randomSource, generatedTables)");
     assertSourceContains("src/TranslateGenerator.h",
         "void generateAll(int width, int height, RandomSource& randomSource");
@@ -2189,8 +2195,8 @@ static void testPaletteTransitionUsesInjectedRandomSource() {
     assertSourceContains("src/PaletteTransition.cc",
         "randomSource.uniformInt(nPaletteTransitionStrategies)");
     assertSourceDoesNotContain("src/PaletteTransition.cc", "rand()");
-    assertSourceContains("src/VideoDirector.cc",
-        "randomPaletteTransitionStrategy(*randomSourceValue)");
+    assertSourceContains("src/FrameGeneratorSceneBinding.cc",
+        "randomPaletteTransitionStrategy(randomSourceValue)");
     assertSourceContains("tests/unit/PaletteTransitionTest.cc",
         "testRandomStrategyUsesInjectedRandomSource");
 }
@@ -2202,11 +2208,11 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
         "randomSource.uniformInt(3)");
     assertSourceContains("src/PaletteRandomGenerator.cc",
         "randomSource.uniformInt(256)");
-    assertSourceContains("src/display.h",
+    assertSourceContains("src/PaletteEntry.h",
         "static void addRandom(RandomSource& randomSource)");
-    assertSourceContains("src/display.h",
+    assertSourceContains("src/PaletteEntry.h",
         "static void randomizeLast(RandomSource& randomSource)");
-    assertSourceContains("src/display.h",
+    assertSourceContains("src/PaletteEntry.h",
         "Re-randomizes the currently selected random.N palette");
     assertSourceContains("src/palettes.cc",
         "generateRandomPalette(colors(), randomSource)");
@@ -2217,7 +2223,7 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/palettes.cc", "#include \"imath.h\"");
     assertSourceDoesNotContain("src/palettes.cc", "::Random(3)");
     assertSourceDoesNotContain("src/palettes.cc", "::Random(256)");
-    assertSourceDoesNotContain("src/display.h", "static void Random()");
+    assertSourceDoesNotContain("src/PaletteEntry.h", "static void Random()");
     assertSourceContains("src/LegacySceneCatalogAdapters.cc",
         "PaletteEntry::randomizeLast(randomSource)");
     assertSourceContains("src/LegacySceneCatalogAdapters.cc",
@@ -2250,8 +2256,8 @@ static void testWavesUseInjectedRandomSource() {
     assertSourceContains("src/VideoFilters.cc",
         "wave->execute(frame.buffer(), frame.context(), config,\n"
         "            needsConfiguration, state, lookupTables, *randomSourceValue)");
-    assertSourceContains("src/VideoDirector.cc",
-        "waveFilter->setRandomSource(*randomSourceValue)");
+    assertSourceContains("src/FrameGeneratorSceneBinding.cc",
+        "waveFilter->setRandomSource(randomSourceValue)");
     assertSourceContains("src/waves.cc", "runtime.randomInt(256)");
     assertSourceContains("src/waves.cc", "runtime.randomCenteredInt(100)");
     assertSourceDoesNotContain("src/waves.cc", "rand()");
@@ -2263,13 +2269,10 @@ static void testWavesUseInjectedRandomSource() {
 }
 
 static void testImagePlacementUsesInjectedRandomSource() {
-    assertSourceContains("src/VideoDirector.h",
-        "explicit VideoDirector(CthughaBuffer& targetBuffer_)");
-    assertSourceContains("src/VideoDirector.h",
-        "CthughaBuffer& targetBuffer");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue(CthughaBuffer::buffer)");
-    assertSourceDoesNotContain("src/VideoDirector.cc",
+        "frameGeneratorValue(randomSourceValue, countdownTimerFactoryValue,\n"
+        "          logSinkValue)");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
         "CthughaBuffer::buffer");
     assertSourceContains("src/Image.h",
         "int bufferHeight, RandomSource& randomSource) const");
@@ -2278,8 +2281,8 @@ static void testImagePlacementUsesInjectedRandomSource() {
     assertSourceContains("src/Image.cc",
         "randomSource.uniformInt(bufferSize - imageSize + 1)");
     assertSourceDoesNotContain("src/Image.cc", "Random(");
-    assertSourceContains("src/VideoDirector.cc",
-        "buffer->width(), buffer->height(), *randomSourceValue)");
+    assertSourceContains("src/FrameGeneratorSceneBinding.cc",
+        "geometryValue.width(), geometryValue.height(), randomSourceValue)");
     assertSourceContains("tests/unit/ImagePlacementTest.cc",
         "testSmallImagePlacementUsesInjectedRandomSource");
 }
@@ -2289,7 +2292,7 @@ static void testGeneralFlameUsesInjectedRandomSource() {
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
         "palette, border, flashlight, images)");
     assertSourceContains("src/Application.cc",
-        "flashlight, videoDirectorValue.imageOption());");
+        "flashlight, frameGeneratorValue.imageOption());");
     assertSourceContains("src/Application.cc",
         "*sceneVisualCatalogFactoryValue, randomSourceValue)");
     assertSourceContains("src/SceneRuntime.cc",
@@ -2569,9 +2572,10 @@ static void testQotdTimingUsesApplicationCountdownTimers() {
     assertSourceContains("src/Application.h",
         "SystemCountdownTimerFactory countdownTimerFactoryValue");
     assertSourceContains("src/Application.cc",
-        "videoDirectorValue.setTimerFactory(countdownTimerFactoryValue)");
-    assertSourceContains("src/VideoDirector.h",
-        "void setTimerFactory(CountdownTimerFactory& timerFactory)");
+        "frameGeneratorValue(randomSourceValue, countdownTimerFactoryValue,\n"
+        "          logSinkValue)");
+    assertSourceContains("src/FrameGeneratorSceneBinding.h",
+        "RandomSource& randomSource, CountdownTimerFactory& timerFactory)");
     assertSourceContains("src/SilenceMessage.h",
         "void setTimerFactory(CountdownTimerFactory& timerFactory)");
     assertSourceContains("src/QotdMessagesProvider.h",

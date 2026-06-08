@@ -9,7 +9,7 @@
 #include "ProcessServices.h"
 #include "VideoFilters.h"
 #include "cth_buffer.h"
-#include "display.h"
+#include "PaletteEntry.h"
 #include "Wave.h"
 
 #include <vector>
@@ -363,7 +363,8 @@ FrameCommitFilter::FrameCommitFilter()
     : flameName("unknown")
     , waveName("unknown")
     , waveScaleName("unknown")
-    , tableName("unknown") { }
+    , tableName("unknown")
+    , debugReports(0) { }
 
 void FrameCommitFilter::setSceneNames(const char* flameName_, const char* waveName_,
     const char* waveScaleName_, const char* tableName_) {
@@ -375,7 +376,6 @@ void FrameCommitFilter::setSceneNames(const char* flameName_, const char* waveNa
 
 void FrameCommitFilter::execute(VideoFrame& frame) {
     CTH_TRACE("committing indexed buffer frame\n", "video filterchain");
-    static int debugReports = 0;
     CthughaBuffer& buffer = frame.buffer();
 
     if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {

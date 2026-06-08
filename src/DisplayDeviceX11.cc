@@ -18,7 +18,6 @@
 #include "InputQueue.h"
 #include "Interface.h"
 #include "cth_buffer.h"
-#include "CthughaBuffer.h"
 #include "DisplayBackend.h"
 #include "DisplayRuntime.h"
 #include "OverlaySource.h"
@@ -50,14 +49,6 @@
 
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
-
-static int fallbackIndexedDisplayWidth() {
-    return 2 * CthughaBuffer::current->width();
-}
-
-static int fallbackIndexedDisplayHeight() {
-    return 2 * CthughaBuffer::current->height();
-}
 
 static void renderOverlayCommands(DisplayDevice& device,
     const OverlayCommands& overlays) {
@@ -501,7 +492,10 @@ DisplayDeviceX11::DisplayDeviceX11(Scene& scene_, ImageOption& images_,
     , image(NULL)
     , copyText(0)
     , paletteInitialized(0)
-    , initialized(0) {
+    , initialized(0)
+    , presentationViewport()
+    , fallbackIndexedFrameSize(2 * config.bufferWidth,
+          2 * config.bufferHeight) {
 
     CTH_INFO("Initializing X11 display...\n");
     changeKeyButtonData.device = this;
@@ -1106,14 +1100,14 @@ int DisplayDeviceX11::indexedDisplayWidth() const {
     if (presentationViewport.valid())
         return presentationViewport.frameSize.width;
 
-    return fallbackIndexedDisplayWidth();
+    return fallbackIndexedFrameSize.width;
 }
 
 int DisplayDeviceX11::indexedDisplayHeight() const {
     if (presentationViewport.valid())
         return presentationViewport.frameSize.height;
 
-    return fallbackIndexedDisplayHeight();
+    return fallbackIndexedFrameSize.height;
 }
 
 void DisplayDeviceX11::setPresentationViewport(const DisplayViewport& viewport) {

@@ -3,7 +3,6 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "EffectChoiceLoader.h"
-#include "display.h"
 #include "Interface.h"
 #include "information.h"
 #include "imath.h"
@@ -211,7 +210,7 @@ static void init_wave_options() {
  * wave_pete2
  * - Entry: Pete2 (Dot VS sine)
  * - Does: plots vertical dots displaced by sample, one channel on each side.
- * - Colours: tableColor(runtime, sine[sample]), so colour uses a sine lookup of the sample.
+ * - Colours use the runtime-owned legacy sine lookup for the sample.
  * - Sound: PreparedWaveSamples(context, buffer.height()) from context processed wave data.
  *
  * wave_fract1
@@ -451,10 +450,11 @@ static int frameRate(const VideoFrameContext& context) {
  * the newer object waves keep the same cheap integer-angle timing while
  * choosing a more interesting axis at startup.
  */
-static void rotate_axis(
-    double x, double y, double z, const double axis[3], int angle, double& rx, double& ry, double& rz) {
-    double s = isin(angle);
-    double c = icos(angle);
+static void rotate_axis(const WaveRuntime& runtime,
+    double x, double y, double z, const double axis[3], int angle,
+    double& rx, double& ry, double& rz) {
+    double s = runtime.sineDegrees(angle);
+    double c = runtime.cosineDegrees(angle);
     double inv_c = 1.0 - c;
     double dot = axis[0] * x + axis[1] * y + axis[2] * z;
 
@@ -651,11 +651,11 @@ static void draw_axis_wire_model(CthughaBuffer& buffer, WaveRuntime& runtime,
 
     for (i = 0; i < frame.n; i++) {
         wire_point(frame, i, 0, x, y, z);
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
+        rotate_axis(runtime, x, y, z, axis, theta, ax, ay, az);
         project_wire_point(buffer, ax, ay, az, scale, cameraDistance, x1, y1);
 
         wire_point(frame, i, 1, x, y, z);
-        rotate_axis(x, y, z, axis, theta, ax, ay, az);
+        rotate_axis(runtime, x, y, z, axis, theta, ax, ay, az);
         project_wire_point(buffer, ax, ay, az, scale, cameraDistance, x2, y2);
 
         draw_line(buffer, x1, y1, x2, y2, tableColor(runtime, col));
@@ -1374,7 +1374,7 @@ void wave_pete1(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
     }
 }
 
-/* Writes table-mapped sine lookup indices, tableColor(runtime, sine[sample]). */
+/* Writes table-mapped sine lookup indices from runtime-owned sine tables. */
 void wave_pete2(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRuntime& runtime) { /* Dot VS sine */
     int x, tmp;
 
@@ -1382,9 +1382,11 @@ void wave_pete2(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
 
     for (x = 0; x < buffer.height(); x++) {
         tmp = sound.sample(x, 0);
-        putat_cut(buffer, MID_X - (tmp >> runtime.waveScale), x, tableColor(runtime, sine[tmp]));
+        putat_cut(buffer, MID_X - (tmp >> runtime.waveScale), x,
+            tableColor(runtime, runtime.legacySine(tmp)));
         tmp = sound.sample(x, 1);
-        putat_cut(buffer, MID_X + (tmp >> runtime.waveScale), x, tableColor(runtime, sine[tmp]));
+        putat_cut(buffer, MID_X + (tmp >> runtime.waveScale), x,
+            tableColor(runtime, runtime.legacySine(tmp)));
     }
 }
 
@@ -1590,18 +1592,18 @@ void wave_aaron(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRun
                 state.x -= 320;
             tmp = sound.sample(i, 0);
 
-            sx = (sine[state.x] * tmp) >> 9;
+            sx = (runtime.legacySine(state.x) * tmp) >> 9;
             txl += sx;
-            sy = (sine[state.y] * tmp) >> 9;
+            sy = (runtime.legacySine(state.y) * tmp) >> 9;
             tyl += sy;
 
             putat_cut(buffer, state.cxl + sx, state.cyl + sy, tableColor(runtime, tmp));
 
             tmp = sound.sample(i, 1);
 
-            sx = (sine[state.x] * tmp) >> 9;
+            sx = (runtime.legacySine(state.x) * tmp) >> 9;
             txr += sx;
-            sy = (sine[state.y] * tmp) >> 9;
+            sy = (runtime.legacySine(state.y) * tmp) >> 9;
             tyr += sy;
 
             putat_cut(buffer, state.cxr - sx, state.cyr - sy, tableColor(runtime, tmp));
@@ -1875,7 +1877,7 @@ void wave_wire1dot6(CthughaBuffer& buffer, const VideoFrameContext& context, Wav
         y *= stretch;
         z *= stretch;
 
-        rotate_axis(x, y, z, state.axis, state.theta, ax, ay, az);
+        rotate_axis(runtime, x, y, z, state.axis, state.theta, ax, ay, az);
 
         project_wire_point(buffer, ax, ay, az, frame.screenScale, cameraDistance, x1, y1);
 
@@ -1886,7 +1888,7 @@ void wave_wire1dot6(CthughaBuffer& buffer, const VideoFrameContext& context, Wav
         y *= stretch;
         z *= stretch;
 
-        rotate_axis(x, y, z, state.axis, state.theta, ax, ay, az);
+        rotate_axis(runtime, x, y, z, state.axis, state.theta, ax, ay, az);
 
         project_wire_point(buffer, ax, ay, az, frame.screenScale, cameraDistance, x2, y2);
 
@@ -1903,8 +1905,8 @@ static void init_wire2_copy(WaveRuntime& runtime, int loc[3], int& psi, int& rat
     loc[1] = runtime.randomInt(whirlyRadius * 2) - whirlyRadius;
     j = runtime.randomInt(320);
     k = 1 + runtime.randomInt(whirlyRadius - 1);
-    loc[0] = int(isin(j) * k);
-    loc[2] = int(icos(j) * k);
+    loc[0] = int(runtime.sineDegrees(j) * k);
+    loc[2] = int(runtime.cosineDegrees(j) * k);
 
     rate = 1 + runtime.randomInt(7);
     if (runtime.randomInt(2))
@@ -1981,8 +1983,8 @@ public:
             double cto = 1.0;
 
             if (modelRotation == SharedYAxis) {
-                sto = isin(state.psi[copy]);
-                cto = icos(state.psi[copy]);
+                sto = runtime.sineDegrees(state.psi[copy]);
+                cto = runtime.cosineDegrees(state.psi[copy]);
                 state.psi[copy] += state.rate[copy];
             } else {
                 state.psi[copy] += state.rate[copy];
@@ -1991,9 +1993,9 @@ public:
             for (int segment = 0; geometry.obj[segment][0][0] != -1; segment++) {
                 int x1, y1, x2, y2;
 
-                projectEndpoint(state, geometry, copy, segment, 0,
+                projectEndpoint(runtime, state, geometry, copy, segment, 0,
                     sto, cto, x1, y1);
-                projectEndpoint(state, geometry, copy, segment, 1,
+                projectEndpoint(runtime, state, geometry, copy, segment, 1,
                     sto, cto, x2, y2);
 
                 draw_line(buffer, x1, y1, x2, y2,
@@ -2064,15 +2066,15 @@ private:
         return 1;
     }
 
-    void projectEndpoint(const State& state, const Geometry& geometry, int copy,
-        int segment, int endpoint, double sto, double cto, int& screenX,
-        int& screenY) const {
+    void projectEndpoint(WaveRuntime& runtime, const State& state,
+        const Geometry& geometry, int copy, int segment, int endpoint,
+        double sto, double cto, int& screenX, int& screenY) const {
         double x = state.loc[copy][0];
         double y = state.loc[copy][1];
         double z = state.loc[copy][2];
         double ax, ay, az;
 
-        rotate_axis(x, y, z, state.blobAxis, state.theta, ax, ay, az);
+        rotate_axis(runtime, x, y, z, state.blobAxis, state.theta, ax, ay, az);
 
         x = (geometry.obj[segment][endpoint][0] - geometry.objectMidX)
             / geometry.objectScale;
@@ -2087,7 +2089,7 @@ private:
             az += z * cto - x * sto;
         } else {
             double lx, ly, lz;
-            rotate_axis(x, y, z, state.modelAxis[copy], state.psi[copy],
+            rotate_axis(runtime, x, y, z, state.modelAxis[copy], state.psi[copy],
                 lx, ly, lz);
             ax += lx;
             ay += ly;
@@ -2167,15 +2169,17 @@ void wave_spiral(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRu
     la = (double)al * mx / 256.0 / 128.0;
     ra = (double)ar * mx / 256.0 / 128.0;
 
-    ox = int(a * sine[(state.ofs + 120) % 320] + la * sine[120] / 2);
-    oy = int(a * sine[state.ofs] + ra * sine[0] / 2);
+    ox = int(a * runtime.legacySine(state.ofs + 120)
+        + la * runtime.legacySine(120) / 2);
+    oy = int(a * runtime.legacySine(state.ofs)
+        + ra * runtime.legacySine(0) / 2);
 
     for (i = 1; i < 320; i++) {
 
-        x = a * sine[(i + state.ofs + 120) % 320]
-            + la * sine[((i)*state.loops + 120) % 320] / 2;
-        y = a * sine[(i + state.ofs) % 320]
-            + ra * sine[((i)*state.loops) % 320] / 2;
+        x = a * runtime.legacySine(i + state.ofs + 120)
+            + la * runtime.legacySine((i * state.loops) + 120) / 2;
+        y = a * runtime.legacySine(i + state.ofs)
+            + ra * runtime.legacySine(i * state.loops) / 2;
 
         draw_line(buffer, int(cx + ox), int(cy + oy), int(cx + x), int(cy + y),
             tableColor(runtime, state.col));
@@ -2337,11 +2341,15 @@ void wave_warp(CthughaBuffer& buffer, const VideoFrameContext& context, WaveRunt
             /* draw the ring of warps */
             for (j = 0; j < tr; j++) {
                 x1 = int(state.cx + ((double)state.theWarps[i].r)
-                        * isin((360 * j) / tr + state.theWarps[i].theta));
+                        * runtime.sineDegrees((360 * j) / tr
+                            + state.theWarps[i].theta));
                 y1 = int(state.cy + ((double)state.theWarps[i].r)
-                        * icos((360 * j) / tr + state.theWarps[i].theta));
-                x2 = int(state.cx + (double)r2 * isin(360 * j / tr + t2));
-                y2 = int(state.cy + (double)r2 * icos(360 * j / tr + t2));
+                        * runtime.cosineDegrees((360 * j) / tr
+                            + state.theWarps[i].theta));
+                x2 = int(state.cx + (double)r2
+                    * runtime.sineDegrees(360 * j / tr + t2));
+                y2 = int(state.cy + (double)r2
+                    * runtime.cosineDegrees(360 * j / tr + t2));
                 draw_line(buffer, x1, y1, x2, y2,
                     tableColor(runtime, state.theWarps[i].col));
             }

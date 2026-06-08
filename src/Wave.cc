@@ -98,6 +98,38 @@ const int* WaveLookupTables::sineForWidth(int width) {
     return &sineValues[0];
 }
 
+int WaveLookupTables::legacySine(int index) {
+    if (legacySineValues.empty()) {
+        legacySineValues.resize(320);
+        for (int i = 0; i < 320; i++)
+            legacySineValues[i] = (int)(128 * sin((double)i * 0.03927));
+    }
+
+    index %= 320;
+    if (index < 0)
+        index += 320;
+
+    return legacySineValues[index];
+}
+
+double WaveLookupTables::sineDegrees(int degrees) {
+    if (degreeSineValues.empty()) {
+        degreeSineValues.resize(360);
+        for (int i = 0; i < 360; i++)
+            degreeSineValues[i] = sin((double)i * (2.0 * M_PI / 360.0));
+    }
+
+    degrees %= 360;
+    if (degrees < 0)
+        degrees += 360;
+
+    return degreeSineValues[degrees];
+}
+
+double WaveLookupTables::cosineDegrees(int degrees) {
+    return sineDegrees(degrees + 90);
+}
+
 WaveRuntime::WaveRuntime(const WaveConfig& config, int needsConfiguration_,
     WaveState& state_, WaveLookupTables& lookupTables_, RandomSource& randomSource_,
     int fireBudget)
@@ -131,6 +163,18 @@ void WaveRuntime::scaleFire(int numerator, int denominator) {
 
 const int* WaveRuntime::sineForWidth(int width) {
     return lookupTables.sineForWidth(width);
+}
+
+int WaveRuntime::legacySine(int index) {
+    return lookupTables.legacySine(index);
+}
+
+double WaveRuntime::sineDegrees(int degrees) const {
+    return lookupTables.sineDegrees(degrees);
+}
+
+double WaveRuntime::cosineDegrees(int degrees) const {
+    return lookupTables.cosineDegrees(degrees);
 }
 
 int WaveRuntime::randomInt(int exclusiveMax) {

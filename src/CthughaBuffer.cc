@@ -4,10 +4,6 @@
 
 static const int hiddenBorderRowsPerSide = 3; // Unit: rows; used above and below visible pixels by BorderFilter and flame feedback.
 
-CthughaBuffer CthughaBuffer::buffer;
-
-CthughaBuffer* CthughaBuffer::current = &CthughaBuffer::buffer;
-
 CthughaBuffer::CthughaBuffer()
     : activeAllocation(0)
     , passiveAllocation(0)
