@@ -1013,6 +1013,9 @@ from this plan.
      `LegacyGlobalSceneSelectionFactory`.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
+   - Border and flashlight legacy option globals live behind narrow
+     `BorderOption` and `FlashlightOption` compatibility headers, while frame
+     filters use the separate renderer ports.
    - `Application` creates the temporary visual factory and `SceneRuntime`
      after built-in/file-backed visual catalog loading, so copied Scene
      catalogs see loaded object, translation, palette, and image entries.

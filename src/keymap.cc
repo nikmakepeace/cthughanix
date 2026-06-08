@@ -6,8 +6,6 @@
 #include "keys.h"
 #include "display.h"
 #include "disp-sys.h"
-#include "Border.h"
-#include "Flashlight.h"
 #include "flames.h"
 #include "waves.h"
 #include "imath.h"

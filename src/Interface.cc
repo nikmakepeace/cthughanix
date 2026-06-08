@@ -9,8 +9,6 @@
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
 #include "AudioProcessing.h"
-#include "Border.h"
-#include "Flashlight.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimeConfigSelection.h"
 #include "RuntimeCommandSink.h"

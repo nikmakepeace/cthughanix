@@ -2,8 +2,8 @@
 
 #include "LegacyGlobalSceneSelectionFactory.h"
 
-#include "Border.h"
-#include "Flashlight.h"
+#include "BorderOption.h"
+#include "FlashlightOption.h"
 #include "Image.h"
 #include "LegacySceneSelectionAdapters.h"
 #include "TranslationOptions.h"

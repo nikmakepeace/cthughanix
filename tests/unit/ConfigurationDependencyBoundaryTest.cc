@@ -1512,10 +1512,23 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"flames.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"waves.h\"");
-    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+    assertSourceDoesNotContain("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"Border.h\"");
-    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+    assertSourceDoesNotContain("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"Flashlight.h\"");
+    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+        "#include \"BorderOption.h\"");
+    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+        "#include \"FlashlightOption.h\"");
+    assertSourceContains("src/BorderOption.h", "extern EffectControl border");
+    assertSourceContains("src/FlashlightOption.h",
+        "extern EffectControl flashlight");
+    assertSourceContains("src/Border.h", "#include \"BorderOption.h\"");
+    assertSourceContains("src/Border.h", "#include \"BorderRenderer.h\"");
+    assertSourceContains("src/Flashlight.h",
+        "#include \"FlashlightOption.h\"");
+    assertSourceContains("src/Flashlight.h",
+        "#include \"FlashlightRenderer.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"TranslationOptions.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
