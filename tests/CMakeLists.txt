@@ -1106,6 +1106,7 @@ add_test(NAME scene_choice_lock_value_test
 add_executable(legacy_scene_selection_adapters_test
     unit/LegacySceneSelectionAdaptersTest.cc
     ${CMAKE_SOURCE_DIR}/src/LegacySceneSelectionAdapters.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneDependencies.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc

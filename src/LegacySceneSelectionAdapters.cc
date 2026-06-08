@@ -4,6 +4,7 @@
 
 #include "EffectControl.h"
 #include "LegacySceneControlMirror.h"
+#include "SceneDependencies.h"
 
 #include <memory>
 #include <utility>
@@ -75,6 +76,38 @@ void LegacySceneSelectionMirror::syncControlsFromSelections() {
     syncControlFromSelection(imagesControl, selections.images());
 }
 
+class LegacySceneSelectionSynchronizer : public SceneSelectionSynchronizer {
+    SceneVisualSelections& selections;
+    LegacySceneControlMirror& mirror;
+    int syncedImageValue;
+
+    unsigned int imageChangeFrom(int previousImageValue) {
+        return (selections.images().currentValue() != previousImageValue)
+            ? SceneImageChanged
+            : SceneNoChange;
+    }
+
+    void syncBoundControlsFromSelections() {
+        mirror.syncControlsFromSelections();
+        syncedImageValue = selections.images().currentValue();
+    }
+
+public:
+    LegacySceneSelectionSynchronizer(SceneVisualSelections& selections_,
+        LegacySceneControlMirror& mirror_)
+        : selections(selections_)
+        , mirror(mirror_)
+        , syncedImageValue(selections_.images().currentValue()) { }
+
+    virtual unsigned int syncControlsFromSelections() {
+        int previousImageValue = syncedImageValue;
+
+        syncBoundControlsFromSelections();
+
+        return imageChangeFrom(previousImageValue);
+    }
+};
+
 }
 
 LegacySceneSelectionAdapterSet::LegacySceneSelectionAdapterSet(
@@ -84,6 +117,12 @@ LegacySceneSelectionAdapterSet::LegacySceneSelectionAdapterSet(
     , controlMirror(std::move(controlMirror_)) { }
 
 LegacySceneSelectionAdapterSet::~LegacySceneSelectionAdapterSet() { }
+
+std::unique_ptr<SceneSelectionSynchronizer>
+LegacySceneSelectionAdapterSet::createSelectionSynchronizer() {
+    return std::unique_ptr<SceneSelectionSynchronizer>(
+        new LegacySceneSelectionSynchronizer(*selections, *controlMirror));
+}
 
 std::unique_ptr<LegacySceneSelectionAdapterSet>
 createLegacySceneSelectionAdapters(

@@ -1394,8 +1394,8 @@ static void testSceneStartupUsesSceneConfig() {
         "virtual void syncControlsFromSelections() = 0;");
     assertSourceDoesNotExist("src/LegacySceneEffectControlCatalog.h");
     assertSourceDoesNotExist("src/LegacySceneEffectControlCatalog.cc");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
-        "#include \"LegacySceneControlMirror.h\"");
+    assertSourceDoesNotExist("src/LegacySceneSelectionSynchronizer.h");
+    assertSourceDoesNotExist("src/LegacySceneSelectionSynchronizer.cc");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "#include \"LegacySceneControlMirror.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
@@ -1423,15 +1423,13 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "class SceneRuntimeControlBridge");
     assertSourceDoesNotContain("src/SceneDependencies.h", "class SceneEffectControlCatalog");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.h",
-        "createLegacySceneSelectionSynchronizer");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "createSelectionSynchronizer");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "selectionFor");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "isSceneOption");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
-        "SceneOptionSelection& selection");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "change(\n        EffectControl& option");
     assertSourceDoesNotContain("src/SceneDependencies.h", "class EffectControl;");
     assertSourceDoesNotContain("src/SceneDependencies.h",
@@ -1463,7 +1461,7 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"LegacySceneCatalogAdapters.h\"");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogFactory.h",
         "#include \"LegacySceneSelectionAdapters.h\"");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneSelectionSynchronizer : public SceneSelectionSynchronizer");
     assertSourceContains("src/LegacySceneVisualCatalogFactory.h",
         "class LegacySceneVisualCatalogFactory : public SceneVisualCatalogFactory");
@@ -1624,7 +1622,7 @@ static void testSceneStartupUsesSceneConfig() {
         "class LegacyScenePaletteRandomizer");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneCatalogAdapters.cc");
     assertSourceDoesNotContain("src/CMakeLists.txt", "LegacySceneEffectControlCatalog.cc");
-    assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionSynchronizer.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "LegacySceneSelectionSynchronizer.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionAdapters.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionFactory.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacyGlobalSceneSelectionFactory.cc");
@@ -1671,7 +1669,7 @@ static void testSceneStartupUsesSceneConfig() {
         "dependencies.effectControls.isImageOption");
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "isImageOption");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "isImageOption");
     assertSourceDoesNotContain("src/Scene.cc",
         "dependencies.visualCatalogs.isImageOption");
@@ -2742,7 +2740,7 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/EffectControl.cc", "rand()");
     assertSourceDoesNotContain("src/EffectControl.cc", "value = Random");
     assertSourceDoesNotContain("src/EffectControl.cc", "return Random");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "selection.change(");
     assertSourceDoesNotExist("src/LegacySceneEffectControlTarget.cc");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
@@ -2761,7 +2759,7 @@ static void testEffectControlUsesInjectedRandomSource() {
         "dependencies.selectionSync.syncFromControls()");
     assertSourceDoesNotContain("src/SceneDependencies.h",
         "syncFromControls");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "return imageChangeFrom(previousImageValue)");
     assertSourceContains("tests/unit/SceneCommandsSyncTest.cc",
         "testChangeOneUsesSyncReturnedImageChangeForCue");
@@ -2859,19 +2857,19 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectControl* RegistrySceneEffectRegistry::changeOne");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "createEffectControlOwner(");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "createEffectControlOwner");
     assertSourceDoesNotContain("src/SceneRuntime.cc",
         "legacyEffectControls");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "registerSelection(registry");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "legacySceneControlMirror");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "LegacySceneControlMirror& mirror_");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "syncFromControls");
-    assertSourceContains("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "mirror.syncControlsFromSelections()");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "syncLegacyControlsFromSelections(controlMirror)");
@@ -2910,17 +2908,17 @@ static void testEffectControlUsesInjectedRandomSource() {
         "virtual int lockEnabled() const;");
     assertSourceContains("src/SceneChoiceSelection.h",
         "virtual void toggleChoiceUse(int index);");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "selection.toggleLock()");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "selection.toggleChoiceUse(index)");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "toggleLock(EffectControl& option)");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "toggleChoiceUse(EffectControl& option");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "option.lock.change");
-    assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "option[index]->setUse");
     assertSourceDoesNotContain("src/SceneChoiceSelection.h",
         "#include \"EffectControl.h\"");

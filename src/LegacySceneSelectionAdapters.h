@@ -11,6 +11,7 @@
 class EffectControl;
 class SceneImageCatalog;
 class ScenePaletteCatalog;
+class SceneSelectionSynchronizer;
 class SceneTranslationCatalog;
 class SceneWaveObjectCatalog;
 
@@ -30,6 +31,14 @@ public:
         std::unique_ptr<SceneVisualSelections> selections_,
         std::unique_ptr<LegacySceneControlMirror> controlMirror_);
     ~LegacySceneSelectionAdapterSet();
+
+    /**
+     * Creates the temporary one-way synchronizer for these adapters.
+     *
+     * @return Synchronizer that mirrors Scene selection values into the bound
+     *         legacy controls.
+     */
+    std::unique_ptr<SceneSelectionSynchronizer> createSelectionSynchronizer();
 };
 
 /**

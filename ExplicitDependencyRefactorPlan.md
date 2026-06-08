@@ -501,8 +501,8 @@ adapters:
   implementation still reaches through global visual `EffectControl`/option
   objects such as `flame`, `wave`, `translation`, `palette`, `border`, and
   `flashlight`.
-- `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogFactory`,
-  `LegacySceneControlMirror`, and `LegacySceneSelectionSynchronizer` translate
+- `LegacySceneSelectionAdapters`, `LegacySceneVisualCatalogFactory`, and
+  `LegacySceneControlMirror` translate
   those legacy controls into `SceneVisualSelections`, `SceneVisualCatalogs`, and
   the temporary one-way mirror that older visual code still reads.
 - The adapter remains necessary until the visual catalog/filterchain side owns
@@ -1032,9 +1032,8 @@ from this plan.
 6. **Delete legacy visual command, binding, and config bridges. Status:
    remaining.**
    Compatibility surface: `LegacySceneControlMirror`,
-   `LegacySceneSelectionSynchronizer`, `LegacySceneSelectionAdapters`,
-   `LegacyGlobalSceneSelectionFactory`, `LegacySceneVisualCatalogFactory`, and
-   `LegacySceneCatalogAdapters`.
+   `LegacySceneSelectionAdapters`, `LegacyGlobalSceneSelectionFactory`,
+   `LegacySceneVisualCatalogFactory`, and `LegacySceneCatalogAdapters`.
 
    Purpose: keep native Scene selections synchronized with old controls while
    runtime commands, startup sync, save/restore, presets, and ini persistence
@@ -1080,6 +1079,9 @@ from this plan.
      instead of discovered through RTTI or selection-side identity lookup.
    - `SceneRuntimeControlBridge` is deleted; the factory result now carries the
      generic `SceneSelectionSynchronizer` port directly.
+   - The temporary one-way scene-selection synchronizer is now private to
+     `LegacySceneSelectionAdapters`; the standalone
+     `LegacySceneSelectionSynchronizer` header/source are deleted.
    - The legacy mirror is now a separate `LegacySceneSelectionMirror` owned
      alongside native `SceneVisualSelections`; native selections no longer
      subclass or delegate through the legacy mirror adapter.

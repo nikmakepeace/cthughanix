@@ -5,7 +5,6 @@
 #include "LegacyGlobalSceneSelectionFactory.h"
 #include "LegacySceneCatalogAdapters.h"
 #include "LegacySceneSelectionAdapters.h"
-#include "LegacySceneSelectionSynchronizer.h"
 #include "SceneImageCatalog.h"
 #include "ScenePaletteCatalog.h"
 #include "SceneTranslationCatalog.h"
@@ -28,10 +27,8 @@ SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(
     std::unique_ptr<SceneVisualCatalogs> visualCatalogs(
         new SceneVisualCatalogService(
             selectionState, selections, *paletteRandomizer));
-    std::unique_ptr<SceneSelectionSynchronizer> selectionSync
-        = createLegacySceneSelectionSynchronizer(selections, controlMirror);
     return SceneVisualCatalogFactoryResult(std::move(visualCatalogs),
-        std::move(selectionSync), selections);
+        ownedAdapters->createSelectionSynchronizer(), selections);
 }
 
 std::unique_ptr<SceneVisualCatalogFactory> createLegacySceneVisualCatalogFactory(
