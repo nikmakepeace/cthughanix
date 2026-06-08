@@ -179,6 +179,13 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
     assertFilesDoNotContain(files, fileCount, "#include \"DisplayDevice.h\"");
     assertFilesDoNotContain(files, fileCount, "#include \"DisplayRuntime.h\"");
     assertFilesDoNotContain(files, fileCount, "#include \"display.h\"");
+    assertFilesDoNotContain(files, fileCount, "#include \"Border.h\"");
+    assertFilesDoNotContain(files, fileCount, "#include \"Flashlight.h\"");
+    assertSourceContains("src/FrameFilters.cc", "#include \"BorderRenderer.h\"");
+    assertSourceContains("src/FrameFilters.cc",
+        "#include \"FlashlightRenderer.h\"");
+    assertSourceDoesNotContain("src/BorderRenderer.h", "EffectControl");
+    assertSourceDoesNotContain("src/FlashlightRenderer.h", "EffectControl");
 }
 
 static void testGeneratorDiagnosticsAndMathTablesAreOwned() {

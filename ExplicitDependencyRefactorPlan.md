@@ -938,7 +938,10 @@ concrete changes needed before the surface can disappear.
    `LegacySceneSelectionAdapters.cc` no longer includes visual catalog globals.
    `FrameGeneratorSceneBinding.cc` now stays behind `SceneSettings` and
    `FrameFilters`; it no longer includes legacy global visual option headers
-   such as `Border.h`, `Flashlight.h`, or `Configuration.h`.
+   such as `Border.h`, `Flashlight.h`, or `Configuration.h`. Border and
+   flashlight rendering now have narrow `BorderRenderer.h` and
+   `FlashlightRenderer.h` ports, so `FrameFilters.cc` can use those renderer
+   helpers without including the global option headers.
 
    Concrete work still required:
    - Add native visual catalog owners that load or generate every choice used by
