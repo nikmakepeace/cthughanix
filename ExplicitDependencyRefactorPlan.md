@@ -914,6 +914,9 @@ changes needed before the surface can disappear.
    factory. Random/add-random
    palette commands now refresh the owned Scene palette copy after the legacy
    random palette adapter mutates or appends the persisted palette entry.
+   Global visual headers needed to construct the temporary factory are isolated
+   in `LegacySceneVisualCatalogFactory.cc`; `LegacySceneVisualCatalogs.cc`
+   works through Scene selection ports.
 
    Concrete changes required:
    - Move catalog loading, generated entries, allowed-choice metadata, and
