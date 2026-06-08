@@ -626,3 +626,501 @@ The SDL3 macOS buildout is complete when:
   or `CthughaBuffer::current`;
 - Display still receives all dependencies through constructors, open requests,
   per-frame method parameters, or `DisplaySystem`-owned objects.
+
+## MiniAudio Cross-Platform Audio Device Plan
+
+This section describes a better first multiplatform audio path than writing a
+bespoke CoreAudio sink. The goal is not to move Cthugha's audio model into
+miniaudio. The goal is to use miniaudio's low-level device API as the platform
+device layer while keeping Cthugha's existing decoded-history and visualizer
+contracts intact.
+
+Current architecture to preserve:
+
+- file/random/live input produces decoded interleaved PCM;
+- `DecodedAudioHistory` owns the retained PCM history;
+- the visual cursor reads frame-centered windows for `AudioFrame`;
+- the output cursor drains audible PCM through `AudioPassthrough`;
+- minimp3 remains the current MP3 decoder unless a later simplification pass
+  intentionally replaces it.
+
+MiniAudio should sit at the edge:
+
+- `AudioMiniAudioOutput`: playback device backend implementing `AudioOutput`;
+- `MiniAudioCapturePcmSource`: optional live capture source replacing or
+  supplementing OSS `/dev/dsp` input;
+- miniaudio backend selection: Core Audio on macOS/iOS, WASAPI on Windows,
+  PulseAudio/ALSA/JACK on Linux, AAudio/OpenSL ES on Android, Web Audio under
+  Emscripten, or the null backend for tests and fallback.
+
+Reference assumptions to re-check at implementation time:
+
+- Miniaudio's low-level API is the right level. It gives access to raw playback
+  and capture devices via a callback, which matches Cthugha's "we own the PCM"
+  design.
+- Do not use the high-level engine, node graph, or resource manager in the first
+  pass. Cthugha already owns decoding, history, analysis, and visual/audio
+  synchronization.
+- Miniaudio objects are transparent structs whose addresses must remain stable
+  for their lifetime. Store them in owned heap objects or stable class members,
+  not temporary stack frames.
+- Miniaudio's `ma_pcm_rb` is single-producer/single-consumer. It may be useful
+  inside `MiniAudioCapturePcmSource`, but it should not replace
+  `DecodedAudioHistory`, which has one writer and two independent readers.
+- The device callback must not allocate, log normally, dispatch commands, stop
+  or restart the device, or touch display/scene/interface state.
+
+### Prerequisites
+
+Vendor miniaudio into the source tree instead of depending on a system package:
+
+- add `external/miniaudio/miniaudio.h`;
+- add the upstream license text next to it;
+- build exactly one implementation translation unit, such as
+  `src/MiniAudioImplementation.cc` with `MINIAUDIO_IMPLEMENTATION` defined
+  before including `miniaudio.h`, or an equivalent `external/miniaudio/miniaudio.c`;
+- pin the imported miniaudio version in a small README or comment so later
+  upgrades are deliberate.
+
+Useful first build with the current X11 display frontend:
+
+```sh
+cmake -S . -B build-miniaudio-x11 -G Ninja \
+  -DCTH_BUILD_X11=ON \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build-miniaudio-x11
+ctest --test-dir build-miniaudio-x11 --output-on-failure
+```
+
+Once SDL3 exists, the same audio backend should work in a native macOS
+display/audio build:
+
+```sh
+cmake -S . -B build-macos-native -G Ninja \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=ON \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF \
+  -DCMAKE_PREFIX_PATH="$(brew --prefix)"
+cmake --build build-macos-native
+ctest --test-dir build-macos-native --output-on-failure
+```
+
+On macOS, miniaudio can use runtime framework loading. For an app-bundle,
+signing, or notarization pass, prefer disabling runtime linking and explicitly
+linking the Apple frameworks that miniaudio requires.
+
+### Build-System Shape
+
+Add:
+
+```cmake
+option(CTH_ENABLE_MINIAUDIO "Enable miniaudio playback/capture devices" ON)
+```
+
+When `CTH_ENABLE_MINIAUDIO` is enabled:
+
+- set `WITH_MINIAUDIO=1` in `config.h`;
+- compile one miniaudio implementation translation unit;
+- add `AudioMiniAudioOutput.cc` and optional `MiniAudioCapturePcmSource.cc`;
+- add miniaudio include paths privately to the audio implementation target;
+- link platform libraries required by miniaudio only where needed;
+- print miniaudio availability in the top-level CMake summary.
+
+Use compile definitions to keep the first integration small:
+
+- keep device I/O enabled;
+- disable miniaudio's engine, node graph, resource manager, encoding, and
+  waveform/noise generation;
+- consider disabling miniaudio's decoding while minimp3 and the existing WAV/raw
+  sources remain the canonical file path;
+- on platforms where packaging forbids runtime loading, define
+  `MA_NO_RUNTIME_LINKING` and link native libraries explicitly.
+
+Do not make miniaudio mandatory for Linux or existing X11 builds. Pulse, OSS,
+and null output should continue to compile independently until miniaudio is
+well-characterized on every target we care about.
+
+### Configuration And Selection Shape
+
+Add an output-driver id if explicit sink selection is in scope:
+
+```c++
+enum AudioOutputDriverId {
+  AudioOutputDriverAuto,
+  AudioOutputDriverNull,
+  AudioOutputDriverPulse,
+  AudioOutputDriverOss,
+  AudioOutputDriverMiniAudio
+};
+```
+
+Parse:
+
+- ini key: `audio.output_driver`;
+- command-line option: `--audio-output-driver DRIVER`;
+- allowed values: `auto`, `null`, `pulse`, `oss`, `miniaudio`.
+
+Automatic selection should be platform-aware:
+
+1. `--silent` or `AudioConfig.silentEnabled`: select `AudioNullOutput`.
+2. macOS/Windows/mobile/Web builds: try `AudioMiniAudioOutput` first.
+3. Linux builds: keep the existing Pulse-first behavior until miniaudio latency
+   and underrun behavior are characterized; allow explicit `miniaudio`.
+4. OSS builds: use OSS as a legacy fallback where no better backend opens.
+5. Fall back to `AudioNullOutput`.
+
+Add `Environment::miniAudioOutputAvailable` and, when capture lands,
+`Environment::miniAudioCaptureAvailable`. These should represent compiled
+support. Real device failure belongs inside the miniaudio-backed object so the
+object can release native resources and report why it did not open.
+
+Initial miniaudio-specific config should stay small:
+
+```c++
+struct MiniAudioConfig {
+  std::string playbackDeviceName;
+  std::string captureDeviceName;
+  int outputTargetLatencyMs;
+  int periodSizeInFrames;
+  int periodCount;
+};
+```
+
+Only add device-name and period controls when the first backend needs them.
+Default-device playback can land before user-facing device selection.
+
+### Playback Contract
+
+`AudioMiniAudioOutput` should implement the existing `AudioOutput` interface:
+
+```c++
+class AudioMiniAudioOutput : public AudioOutput {
+public:
+  AudioMiniAudioOutput(const PcmFormat& format,
+                       SecondsClock& clock,
+                       LogSink& log,
+                       const AudioOutputConfig& config,
+                       AudioOutputDump* outputDump = NULL,
+                       int autoOpen = 1);
+
+  virtual ~AudioMiniAudioOutput();
+  virtual int write(const void* buffer, int size);
+  virtual int isOpen() const;
+  virtual int isRealtime() const;
+  virtual void update();
+  virtual int supportsCallbackDrain() const;
+  virtual void startCallbackDrain(AudioOutputStream& stream,
+                                  const std::atomic<int>* inputFinished,
+                                  int scratchSamples);
+  virtual void notifyCallbackDrain();
+  virtual void stopCallbackDrain();
+  virtual int presentationDelaySamples() const;
+  virtual int queuedTargetSamples() const;
+};
+```
+
+The real playback path should use miniaudio's data callback. `write()` can be a
+test/fallback method, but normal playback should not add another
+application-owned output thread. `AudioPassthrough` already has the right shape:
+it prefers callback-drain backends and avoids starting its worker thread when
+callback drain starts.
+
+Close the existing callback-completion gap before relying on miniaudio for
+finite file playback. Callback-driven outputs need a way to report that the
+input is finished and all real decoded samples have been submitted. Add a narrow
+query such as `AudioOutput::callbackDrainComplete()` or update
+`AudioPassthrough` so it polls backend completion while callback drain is active.
+
+### Playback Callback Behavior
+
+The miniaudio playback callback receives `pOutput`, `pInput`, and a frame count.
+For playback, fill `pOutput` and ignore `pInput`.
+
+Callback rules:
+
+1. If callback drain is inactive, fill silence and return.
+2. Resync the `AudioOutputStream` if it has fallen behind decoded history.
+3. Copy available PCM into `pOutput`, converting only when the miniaudio device
+   format differs from the source/session format.
+4. Fill the remainder with silence.
+5. Commit only real decoded samples, not silence padding.
+6. Update atomics for submitted samples, queued samples, underruns, and drained
+   state.
+7. Never call `ma_device_start()`, `ma_device_stop()`, `ma_device_uninit()`, or
+   configuration code from inside the callback.
+
+All debug logs should be emitted outside the callback from owner-thread methods
+or from a periodic diagnostics poll.
+
+### Capture Contract
+
+Live capture should be a second phase after playback works.
+
+Implement capture as a `PcmSource`:
+
+```c++
+class MiniAudioCapturePcmSource : public PcmSource {
+public:
+  explicit MiniAudioCapturePcmSource(const AudioSettings& settings,
+                                     const MiniAudioConfig& config,
+                                     LogSink& log);
+  virtual int read(char* buffer, int bytes, int samples);
+  virtual const PcmFormat& format() const;
+  virtual int hasError() const;
+};
+```
+
+The capture callback writes input PCM into a small capture-local buffer.
+`PcmSource::read()` drains that buffer into the existing `AudioIngest` input
+thread, which then appends to `DecodedAudioHistory` like every other source.
+
+This means live capture and file playback still converge at the same history
+object, and the visualizer continues to read the same `AudioFrame` facade. It
+also avoids pushing miniaudio callbacks directly into visual policy.
+
+### PCM Format And Conversion
+
+Prefer formats already used by the project:
+
+- `SF_u8` maps to `ma_format_u8`;
+- `SF_s16_le` maps to `ma_format_s16` on little-endian builds;
+- `SF_s16_be` should be converted or rejected unless tests prove a direct path;
+- unsupported formats should be converted locally or cause a clear fallback.
+
+Keep conversion local to the miniaudio backend or a small shared audio
+conversion helper. Do not mutate `AudioSettings`, `DecodedAudioHistory`, or the
+source-published `PcmFormat` to match a device.
+
+For low-latency WASAPI shared mode, miniaudio has backend-specific behavior
+around sample-rate conversion. Test explicit sample rates and the native-device
+format path before hard-coding Windows defaults.
+
+### Timing And Synchronization
+
+`AudioPassthrough::presentationSamplePosition()` uses
+`AudioOutput::presentationDelaySamples()` to align visuals with audible output.
+For miniaudio, start with a conservative estimate:
+
+- submitted sample position minus configured target delay;
+- plus any known device period/queued lead that miniaudio exposes cleanly;
+- fallback to `AudioOutput::presentationDelaySamples()`.
+
+Do not read visual timing from miniaudio directly. The visualizer should remain
+driven by `AudioIngest` and `AudioPassthrough` using explicit sample positions.
+
+Use the shared atomic playback-clock approach as the first synchronization
+model. The callback thread already advances the passthrough cursor, so it should
+publish an absolute PCM-frame position after each successful drain. The main
+thread reads that position, subtracts the current output presentation delay, and
+builds the 1024-sample visual window from `DecodedAudioHistory` at the resulting
+sample position.
+
+Keep this as an owned object, not a process-global variable:
+
+```c++
+class AudioPlaybackClock {
+  std::atomic<long long> submittedEndSample;
+  std::atomic<int> presentationDelaySamples;
+
+public:
+  void publishSubmittedEndSample(long long sample);
+  void publishPresentationDelaySamples(int samples);
+  long long presentationCenterSample() const;
+};
+```
+
+Callback thread behavior:
+
+1. Copy available PCM from `AudioOutputStream` into miniaudio's `pOutput`.
+2. Commit only the real decoded samples drained from history.
+3. Publish `AudioOutputStream::submittedEndPosition()` to
+   `AudioPlaybackClock`.
+4. Publish an updated presentation-delay estimate when the backend has one.
+
+Main/visualizer thread behavior:
+
+1. Read `AudioPlaybackClock::presentationCenterSample()`.
+2. Clamp the sample position to the retained decoded-history window.
+3. Copy the centered 1024-sample window from `DecodedAudioHistory`.
+4. Build `AudioFrame`, run processing/FFT, and render visuals from that frame.
+
+The published value must be an absolute PCM-frame position, not a ring-buffer
+offset. This keeps wraparound out of synchronization logic and lets both the
+visual cursor and output cursor continue to reason in the same sample-position
+space.
+
+### Native Backend Escape Hatch
+
+A bespoke CoreAudio or WASAPI sink should be deferred. It becomes worth doing
+only if miniaudio fails a concrete requirement:
+
+- unacceptable latency or drift that cannot be fixed with miniaudio config;
+- missing device-selection behavior needed for Cthugha's UI;
+- callback completion or shutdown behavior that cannot be made robust;
+- packaging/signing constraints that are simpler with a small native sink;
+- a platform where miniaudio support is unavailable or unstable.
+
+If that happens, the native sink should implement the same `AudioOutput`
+contract as `AudioMiniAudioOutput`. No visual, scene, display, or command code
+should care which device backend is selected.
+
+### Tests
+
+Use four layers of tests. The first three should run in default `ctest`; the
+fourth should be opt-in because it opens a real audio device.
+
+1. **Source-boundary tests.**
+   - only miniaudio implementation files include `miniaudio.h`;
+   - `Application.cc`, Display files, Scene files, and visual files do not
+     include miniaudio headers;
+   - miniaudio files do not include X11 or SDL3 headers;
+   - miniaudio is compiled into exactly one implementation translation unit.
+
+2. **Pure unit tests.**
+   - `PcmFormat` to miniaudio format mapping;
+   - unsupported-format conversion/fallback behavior;
+   - output selection for silent, explicit miniaudio, unavailable miniaudio,
+     existing Pulse/OSS fallback, and null fallback;
+   - callback-drain completion state for finite input;
+   - `AudioPlaybackClock` publication, delay subtraction, clamping, and absolute
+     sample-position behavior;
+   - presentation-delay calculation;
+   - underrun counters are instance-local;
+   - capture-buffer read/write behavior with fake callback input.
+
+3. **MiniAudio API adapter tests with fakes.**
+   Wrap miniaudio calls behind a tiny adapter only where lifecycle tests need
+   determinism. Use a fake implementation to prove:
+   - open creates a context/device after validating format;
+   - open failure releases already-created resources;
+   - start installs the stream and begins callback drain;
+   - callback fills PCM, commits real samples, pads silence, publishes the
+     submitted sample position, and reports drain;
+   - stop and close are idempotent;
+   - capture callback writes input frames and `PcmSource::read()` drains them.
+
+4. **Device smoke tests.**
+   These should run only when explicitly enabled, for example with
+   `CTH_RUN_AUDIO_DEVICE_TESTS=ON`, and should require an output device.
+
+Smoke targets:
+
+- `miniaudio_playback_open_smoke`: opens the default playback device and closes
+  it.
+- `miniaudio_sine_smoke`: plays a short generated sine wave or fixture PCM
+  through `AudioMiniAudioOutput`.
+- `miniaudio_file_passthrough_smoke`: runs the application against a short WAV
+  or MP3 fixture and verifies callback counters and clean completion.
+- `miniaudio_capture_smoke`: captures a short buffer from the default input
+  device when permissions and hardware allow it.
+
+### Manual Verification
+
+After unit tests pass, run a short manual pass on each target platform:
+
+1. Build with `CTH_ENABLE_MINIAUDIO=ON`.
+2. Launch a short file-backed run and confirm startup logs select miniaudio and
+   name the underlying backend.
+3. Confirm audio is audible and finite file playback drains to shutdown.
+4. Run `--silent` and confirm `AudioNullOutput` is selected.
+5. Run WAV `SF_s16_le`, MP3 decoded `SF_s16_le`, random `SF_u8`, and a raw
+   format fixture if available.
+6. Test explicit `--audio-output-driver=miniaudio` and fallback behavior when
+   the device cannot open.
+7. On Linux, compare Pulse and miniaudio for underrun count, latency, and visual
+   sync before changing automatic priority.
+8. After SDL3 lands, repeat the same miniaudio checks with
+   `CTH_BUILD_X11=OFF` and `CTH_BUILD_SDL3=ON`.
+
+Example full-application command for the X11 path:
+
+```sh
+./build-miniaudio-x11/src/xcthugha \
+  --play=tests/fixtures/audio/sine-50-1600-doubling-4s.wav \
+  --audio-output-driver=miniaudio \
+  --disp-mode=320x200 \
+  --max-fps=30 \
+  --no-save
+```
+
+Example full-application command once SDL3 and miniaudio are both wired:
+
+```sh
+./build-macos-native/src/cthugha \
+  --display-driver=sdl3 \
+  --play=tests/fixtures/audio/sine-50-1600-doubling-4s.wav \
+  --audio-output-driver=miniaudio \
+  --disp-mode=320x200 \
+  --max-fps=30 \
+  --no-save
+```
+
+### Debug And Diagnostics
+
+Add debug logs outside the device callback for:
+
+- selected output sink;
+- selected miniaudio backend;
+- requested PCM format and actual device callback format;
+- sample rate, channels, period size, period count, and target latency;
+- playback device name when available;
+- capture device name when available;
+- device open/start/stop/close;
+- callback drain start/stop;
+- underrun count changes;
+- submitted sample position and presentation delay in bounded trace logs;
+- fallback reason when miniaudio cannot open.
+
+### Incremental Implementation Order
+
+1. Vendor miniaudio and add `CTH_ENABLE_MINIAUDIO` / `WITH_MINIAUDIO`.
+2. Add an inert miniaudio implementation translation unit and CMake summary.
+3. Add `AudioOutputDriverMiniAudio` parsing if explicit sink selection is in
+   scope for the first pass.
+4. Add `Environment::miniAudioOutputAvailable` and runtime diagnostics.
+5. Add PCM-format mapping helpers and tests.
+6. Add `AudioMiniAudioOutput` with fake adapter lifecycle tests.
+7. Add `AudioPlaybackClock` and tests for absolute sample-position publishing.
+8. Implement playback open/close/start/stop around `ma_device`.
+9. Implement callback drain over `AudioOutputStream` and publish the playback
+   clock from the callback.
+10. Close the callback-completion contract in `AudioPassthrough`.
+11. Wire `RuntimeFactory::createAudioOutput()` to try miniaudio on the intended
+    platforms.
+12. Add opt-in playback smoke tests.
+13. Add `MiniAudioCapturePcmSource` after playback is stable.
+14. Compare miniaudio against Pulse on Linux before changing Linux auto
+    priority.
+15. Re-run the same audio backend under SDL3 when the display port lands.
+
+### Acceptance Criteria
+
+The miniaudio device path is complete when:
+
+- builds with `CTH_ENABLE_MINIAUDIO=ON` configure and compile on the target
+  platforms without requiring PulseAudio, OSS, or hand-written CoreAudio/WASAPI
+  code;
+- default `ctest` passes without opening a real audio device;
+- opt-in playback smoke tests pass on at least macOS and Windows before those
+  platforms are treated as supported;
+- automatic output selection chooses miniaudio on macOS/Windows when sound is
+  enabled;
+- Linux keeps the existing Pulse behavior until miniaudio has comparable
+  latency and underrun results;
+- `--silent` still selects `AudioNullOutput`;
+- finite file playback drains and allows application shutdown;
+- output diagnostics show selected sink, underlying backend, PCM format, device
+  format, buffer shape, and fallback reasons;
+- miniaudio source files contain the only miniaudio includes;
+- no miniaudio path reads or writes scene, display, interface, runtime-command,
+  or visual-buffer globals;
+- Audio still receives all dependencies through `AudioConfig`,
+  `AudioOutputConfig`, `RuntimeFactory`, constructor parameters, callback-drain
+  arguments, and owned backend objects.
+
+The later native-sink fallback milestone is only necessary if this miniaudio
+path fails a documented platform requirement.
