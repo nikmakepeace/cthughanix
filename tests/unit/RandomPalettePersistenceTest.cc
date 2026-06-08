@@ -3,7 +3,7 @@
  */
 
 #include "ProcessServices.h"
-#include "display.h"
+#include "PaletteOption.h"
 
 #include <assert.h>
 #include <stdarg.h>

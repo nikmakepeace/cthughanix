@@ -1559,6 +1559,10 @@ static void testSceneStartupUsesSceneConfig() {
         "class LegacySceneWaveObjectSource");
     assertSourceContains("src/LegacySceneCatalogAdapters.cc",
         "class LegacyScenePaletteRandomizer : public ScenePaletteRandomizer");
+    assertSourceDoesNotContain("src/LegacySceneCatalogAdapters.cc",
+        "#include \"display.h\"");
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
+        "#include \"PaletteOption.h\"");
     assertSourceDoesNotContain("src/LegacySceneCatalogAdapters.h",
         "class SceneWaveObjectSource");
     assertSourceContains("src/LegacySceneCatalogAdapters.h",
@@ -2507,6 +2511,11 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
         "static void randomizeLast(RandomSource& randomSource)");
     assertSourceContains("src/PaletteEntry.h",
         "Re-randomizes the currently selected random.N palette");
+    assertSourceContains("src/PaletteOption.h",
+        "class PaletteOption : public EffectControl");
+    assertSourceContains("src/display.h", "#include \"PaletteOption.h\"");
+    assertSourceDoesNotContain("src/display.h",
+        "class PaletteOption : public EffectControl");
     assertSourceContains("src/palettes.cc",
         "generateRandomPalette(colors(), randomSource)");
     assertSourceContains("src/palettes.cc", "maxLoadedRandomPaletteIndex()");
@@ -2521,6 +2530,14 @@ static void testPaletteGenerationUsesInjectedRandomSource() {
         "PaletteEntry::randomizeLast(randomSource)");
     assertSourceContains("src/LegacySceneCatalogAdapters.cc",
         "PaletteEntry::addRandom(randomSource)");
+    assertSourceContains("src/LegacySceneCatalogAdapters.cc",
+        "#include \"PaletteOption.h\"");
+    assertSourceDoesNotContain("src/LegacySceneCatalogAdapters.cc",
+        "#include \"display.h\"");
+    assertSourceContains("tests/unit/RandomPalettePersistenceTest.cc",
+        "#include \"PaletteOption.h\"");
+    assertSourceDoesNotContain("tests/unit/RandomPalettePersistenceTest.cc",
+        "#include \"display.h\"");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",
         "PaletteEntry::randomizeLast(randomSource)");
     assertSourceDoesNotContain("src/SceneVisualCatalogService.cc",

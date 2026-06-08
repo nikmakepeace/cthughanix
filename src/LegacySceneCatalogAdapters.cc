@@ -2,7 +2,7 @@
 
 #include "LegacySceneCatalogAdapters.h"
 
-#include "display.h"
+#include "PaletteOption.h"
 
 namespace {
 

@@ -12,8 +12,7 @@
 #define __DISPLAY_H__
 
 #include "cthugha.h"
-#include "EffectControl.h"
-#include "PaletteEntry.h"
+#include "PaletteOption.h"
 
 extern unsigned long bitmap_colors0[256]; /* "compiled" palette */
 extern unsigned long bitmap_colors1[256];
@@ -24,18 +23,6 @@ extern int rev_byte_order;
 /*
  *  Stuff about palettes
  */
-extern EffectChoiceList paletteEntries;
-
-class PaletteOption : public EffectControl {
-public:
-    PaletteOption();
-
-    PaletteEntry* currentPaletteEntry();
-    const ColorPalette* currentPalette();
-};
-
-extern PaletteOption palette;
-
 struct PathConfig;
 
 int load_palettes(const PathConfig& pathConfig); /* initializiation */

@@ -999,6 +999,8 @@ from this plan.
      after the legacy palette loader runs, and initial Scene palette selections
      use that native catalog. Random/add-random palette mutation still uses the
      temporary legacy palette randomizer bridge.
+   - The temporary legacy palette randomizer bridge depends on the narrow
+     `PaletteOption` compatibility header instead of the broad Display header.
    - Scene visual settings construction, startup choice application, typed
      selection mutation, and random-palette catalog refresh now live in
      `SceneVisualCatalogService` instead of a `LegacySceneVisualCatalogs`
