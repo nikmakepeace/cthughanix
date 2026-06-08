@@ -22,7 +22,7 @@ static int audioBorderBytesAvailable(const VideoFrameContext& context) {
     return context.rawAudioData != 0 ? 1024 * int(sizeof(char2)) : 0;
 }
 
-static void copyAudioBorderRow(unsigned char* destination, int width,
+static void copyAudioBorderRow(unsigned char* destination, int width, int pitch,
     const VideoFrameContext& context) {
     const unsigned char* rawBytes
         = reinterpret_cast<const unsigned char*>(context.rawAudioData);
@@ -33,6 +33,8 @@ static void copyAudioBorderRow(unsigned char* destination, int width,
         memcpy(destination, rawBytes, copyBytes);
     if (copyBytes < width)
         memset(destination + copyBytes, 0, width - copyBytes);
+    if (width < pitch)
+        memset(destination + width, 0, pitch - width);
 }
 
 void apply_border(FrameRenderTarget& buffer, const VideoFrameContext& context, int borderMode) {
@@ -41,6 +43,7 @@ void apply_border(FrameRenderTarget& buffer, const VideoFrameContext& context, i
         return;
 
     int width = buffer.width();
+    int pitch = buffer.pitch();
     int hiddenRows = buffer.hiddenBorderRows();
     int hiddenBytes = buffer.hiddenBorderByteCount();
     unsigned char* top = buffer.activeTopHiddenRows();
@@ -53,8 +56,8 @@ void apply_border(FrameRenderTarget& buffer, const VideoFrameContext& context, i
         break;
     case 1:
         for (int i = 0; i < hiddenRows; i++) {
-            copyAudioBorderRow(top + i * width, width, context);
-            copyAudioBorderRow(bottom + i * width, width, context);
+            copyAudioBorderRow(top + i * pitch, width, pitch, context);
+            copyAudioBorderRow(bottom + i * pitch, width, pitch, context);
         }
         break;
     case 2: {

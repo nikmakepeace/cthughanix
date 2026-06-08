@@ -401,7 +401,7 @@ int init_wave(const PathConfig& pathConfig) {
  * some helping macros and functions
  */
 
-#define addr(x, y) ((x) + (y) * buffer.width())
+#define addr(x, y) (buffer.visibleOffset((x), (y)))
 #define BOTTOM (buffer.height() - 1)
 #define MID_Y (buffer.height() >> 1)
 #define MID_X (buffer.width() >> 1)
@@ -668,8 +668,8 @@ void putat(FrameRenderTarget& buffer, int x, int y, int val) {
     buffer.activePixels()[a] = val;
     buffer.activePixels()[a - 1] = val;
     buffer.activePixels()[a + 1] = val;
-    buffer.activePixels()[a + buffer.width()] = val;
-    buffer.activePixels()[a - buffer.width()] = val;
+    buffer.activePixels()[a + buffer.pitch()] = val;
+    buffer.activePixels()[a - buffer.pitch()] = val;
 }
 
 void putat_cut(FrameRenderTarget& buffer, int x, int y, int val) {
@@ -720,7 +720,7 @@ void draw_line(FrameRenderTarget& buffer, int x1, int y1, int x2, int y2, int c)
                 k -= lx;
                 j += dy;
             }
-            buffer.activePixels()[i + j * buffer.width()] = c;
+            buffer.activePixels()[buffer.visibleOffset(i, j)] = c;
         }
     } else {
         for (i = y1, j = x1, k = 0; i != y2; i += dy, k += lx) {
@@ -728,7 +728,7 @@ void draw_line(FrameRenderTarget& buffer, int x1, int y1, int x2, int y2, int c)
                 k -= ly;
                 j += dx;
             }
-            buffer.activePixels()[j + i * buffer.width()] = c;
+            buffer.activePixels()[buffer.visibleOffset(j, i)] = c;
         }
     }
 }
@@ -754,7 +754,7 @@ void do_vwave(FrameRenderTarget& buffer, int ystart, int yend, int x, int val) {
     pos = buffer.activePixels() + addr(x, ys);
     for (; ys <= ye; ys++) {
         *pos = (char)val;
-        pos += buffer.width();
+        pos += buffer.pitch();
     }
 }
 

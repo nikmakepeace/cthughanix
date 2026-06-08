@@ -9,8 +9,7 @@ FrameRenderTarget::FrameRenderTarget()
     , passiveAllocation(0)
     , activeBuffer(0)
     , passiveBuffer(0)
-    , widthValue(160)
-    , heightValue(100) { }
+    , layoutValue() { }
 
 FrameRenderTarget::~FrameRenderTarget() {
     delete[] activeAllocation;
@@ -18,44 +17,56 @@ FrameRenderTarget::~FrameRenderTarget() {
 }
 
 int FrameRenderTarget::width() const {
-    return widthValue;
+    return layoutValue.width();
 }
 
 int FrameRenderTarget::height() const {
-    return heightValue;
+    return layoutValue.height();
+}
+
+int FrameRenderTarget::pitch() const {
+    return layoutValue.pitch();
 }
 
 int FrameRenderTarget::size() const {
-    return widthValue * heightValue;
+    return layoutValue.visiblePixelCount();
+}
+
+int FrameRenderTarget::visibleStorageByteCount() const {
+    return layoutValue.visibleStorageByteCount();
 }
 
 int FrameRenderTarget::bottom() const {
-    return heightValue - 1;
+    return height() - 1;
 }
 
 int FrameRenderTarget::maxDimension() const {
-    return max(widthValue, heightValue);
+    return max(width(), height());
 }
 
 int FrameRenderTarget::hiddenBorderRows() const {
-    return hiddenBorderRowsPerSide;
+    return layoutValue.topHiddenRows();
 }
 
 int FrameRenderTarget::hiddenBorderByteCount() const {
-    return hiddenBorderRows() * width();
+    return layoutValue.topHiddenByteCount();
 }
 
 void FrameRenderTarget::setDimensions(int width_, int height_) {
-    widthValue = width_;
-    heightValue = height_;
+    setLayout(FrameStorageLayout(PixelSize(width_, height_), width_,
+        hiddenBorderRowsPerSide));
+}
+
+void FrameRenderTarget::setLayout(const FrameStorageLayout& layout) {
+    layoutValue = layout;
 }
 
 int FrameRenderTarget::allocationByteCount() const {
-    return size() + 2 * hiddenBorderByteCount();
+    return layoutValue.allocationByteCount();
 }
 
 unsigned char* FrameRenderTarget::visiblePixels(unsigned char* allocation) const {
-    return allocation == 0 ? 0 : allocation + hiddenBorderByteCount();
+    return allocation == 0 ? 0 : allocation + layoutValue.visibleByteOffset();
 }
 
 void FrameRenderTarget::allocatePixels() {
@@ -93,22 +104,46 @@ unsigned char* FrameRenderTarget::activePixels() {
     return activeBuffer;
 }
 
+unsigned char* FrameRenderTarget::activeRow(int y) {
+    return activeBuffer == 0 ? 0 : activeBuffer + y * pitch();
+}
+
 unsigned char* FrameRenderTarget::passivePixels() {
     return passiveBuffer;
+}
+
+unsigned char* FrameRenderTarget::passiveRow(int y) {
+    return passiveBuffer == 0 ? 0 : passiveBuffer + y * pitch();
 }
 
 const unsigned char* FrameRenderTarget::activePixels() const {
     return activeBuffer;
 }
 
+const unsigned char* FrameRenderTarget::activeRow(int y) const {
+    return activeBuffer == 0 ? 0 : activeBuffer + y * pitch();
+}
+
 const unsigned char* FrameRenderTarget::passivePixels() const {
     return passiveBuffer;
 }
 
+const unsigned char* FrameRenderTarget::passiveRow(int y) const {
+    return passiveBuffer == 0 ? 0 : passiveBuffer + y * pitch();
+}
+
 unsigned char* FrameRenderTarget::activeTopHiddenRows() {
-    return activeBuffer == 0 ? 0 : activeBuffer - hiddenBorderByteCount();
+    return activeAllocation;
 }
 
 unsigned char* FrameRenderTarget::activeBottomHiddenRows() {
-    return activeBuffer == 0 ? 0 : activeBuffer + size();
+    return activeAllocation == 0 ? 0 : activeAllocation + layoutValue.bottomHiddenByteOffset();
+}
+
+int FrameRenderTarget::visibleRowsArePacked() const {
+    return pitch() == width();
+}
+
+int FrameRenderTarget::visibleOffset(int x, int y) const {
+    return layoutValue.visibleOffset(x, y);
 }

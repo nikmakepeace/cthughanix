@@ -39,11 +39,19 @@ int FrameBufferView::valid() const {
 
 FrameStore::FrameStore()
     : geometryValue()
+    , layoutValue(geometryValue.size(), geometryValue.width(),
+          geometryValue.hiddenBorderRows())
     , bufferValue() { }
 
 void FrameStore::resize(const FrameGeometry& geometry) {
-    geometryValue = geometry;
-    bufferValue.setDimensions(geometry.width(), geometry.height());
+    resize(FrameStorageLayout(geometry.size(), geometry.width(),
+        geometry.hiddenBorderRows()));
+}
+
+void FrameStore::resize(const FrameStorageLayout& layout) {
+    layoutValue = layout;
+    geometryValue = FrameGeometry(layout.visibleSize(), layout.topHiddenRows());
+    bufferValue.setLayout(layoutValue);
     bufferValue.allocatePixels();
 }
 
@@ -51,14 +59,18 @@ const FrameGeometry& FrameStore::geometry() const {
     return geometryValue;
 }
 
+const FrameStorageLayout& FrameStore::layout() const {
+    return layoutValue;
+}
+
 FrameBufferView FrameStore::active() {
     return FrameBufferView(bufferValue.activePixels(), geometryValue.size(),
-        geometryValue.width());
+        layoutValue.pitch());
 }
 
 FrameBufferView FrameStore::passive() {
     return FrameBufferView(bufferValue.passivePixels(), geometryValue.size(),
-        geometryValue.width());
+        layoutValue.pitch());
 }
 
 void FrameStore::swapActivePassive() {

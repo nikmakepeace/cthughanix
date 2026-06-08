@@ -86,6 +86,15 @@ static void testOldVideoDirectorIsRetired() {
     assertSourceDoesNotExist("src/VideoDirector.cc");
 }
 
+static void testFrameStoreOwnsStorageLayout() {
+    assertSourceContains("src/FrameStore.h", "FrameStorageLayout layoutValue");
+    assertSourceContains("src/FrameStore.cc", "bufferValue.setLayout(layoutValue)");
+    assertSourceContains("src/FrameRenderTarget.h", "int pitch() const");
+    assertSourceContains("src/FrameRenderTarget.h", "int visibleOffset(int x, int y) const");
+    assertSourceDoesNotContain("src/FrameStore.cc",
+        "geometryValue.width());");
+}
+
 static void testDisplayNeverReadsGeneratorCurrentStorage() {
     assertSourceDoesNotContain("src/CthughaDisplay.cc",
         "FrameRenderTarget::current");
@@ -115,6 +124,7 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
         "src/FrameRenderTarget.cc",
         "src/FrameStore.h",
         "src/FrameStore.cc",
+        "src/FrameStorageLayout.h",
         "src/FrameTransitionController.h",
         "src/FrameTransitionController.cc",
         "src/VideoFilterchain.h",
@@ -157,6 +167,7 @@ int main() {
     testFrameGeneratorOwnsApplicationStorageAndPipeline();
     testLegacyCthughaBufferIsRetired();
     testOldVideoDirectorIsRetired();
+    testFrameStoreOwnsStorageLayout();
     testDisplayNeverReadsGeneratorCurrentStorage();
     testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands();
     testGeneratorDiagnosticsAndMathTablesAreOwned();

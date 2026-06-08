@@ -48,14 +48,14 @@ void ImageFilter::execute(VideoFrame& frame) {
             + (placement.sourceY + row) * image->width()
             + placement.sourceX;
         unsigned char* activeDestination = active
-            + (placement.destinationY + row) * buffer.width()
+            + (placement.destinationY + row) * buffer.pitch()
             + placement.destinationX;
 
         memcpy(activeDestination, source, placement.width);
 
         if (overlayPassiveBuffer && passive != 0) {
             unsigned char* passiveDestination = passive
-                + (placement.destinationY + row) * buffer.width()
+                + (placement.destinationY + row) * buffer.pitch()
                 + placement.destinationX;
             memcpy(passiveDestination, source, placement.width);
         }
@@ -304,7 +304,7 @@ static void textInjectionDrawLine(FrameRenderTarget& buffer, const BitmapFont& f
 
         for (int row = 0; row < font.glyphHeight; row++) {
             uint16_t mask = font.row(character, row);
-            unsigned char* destination = pixels + (y + row) * buffer.width() + glyphX;
+            unsigned char* destination = pixels + (y + row) * buffer.pitch() + glyphX;
 
             for (int column = 0; column < font.glyphWidth; column++) {
                 if (mask & (uint16_t(1) << (font.glyphWidth - 1 - column)))
@@ -381,12 +381,15 @@ void FrameCommitFilter::execute(VideoFrame& frame) {
     if (CTH_LOG_ENABLED(CTH_LOG_DEBUG) && (debugReports < 16)) {
         int nonzero = 0;
         int peak = 0;
-        for (int i = 0; i < buffer.size(); i++) {
-            int value = buffer.activePixels()[i];
-            if (value != 0)
-                nonzero++;
-            if (value > peak)
-                peak = value;
+        for (int y = 0; y < buffer.height(); y++) {
+            const unsigned char* row = buffer.activeRow(y);
+            for (int x = 0; x < buffer.width(); x++) {
+                int value = row[x];
+                if (value != 0)
+                    nonzero++;
+                if (value > peak)
+                    peak = value;
+            }
         }
         debugReports++;
         CTH_DEBUG("visual buffer: wave=%s wave-scale=%s flame=%s table=%s nonzero-pixels=%d peak-pixel=%d size=%d\n",
@@ -465,7 +468,7 @@ void IndexedFrameFilter::execute(VideoFrame& frame) {
     CTH_TRACE("publishing indexed frame\n", "video filterchain");
     FrameRenderTarget& buffer = frame.buffer();
     frame.publishIndexedFrame(IndexedFrame(buffer.passivePixels(),
-        buffer.width(), buffer.height(), buffer.width(), frame.framePalette()));
+        buffer.width(), buffer.height(), buffer.pitch(), frame.framePalette()));
 }
 
 FramePalette* framePaletteFromFilterchain(VideoFilterchain& filterchain) {

@@ -55,6 +55,7 @@ public:
  */
 class FrameStore {
     FrameGeometry geometryValue;
+    FrameStorageLayout layoutValue;
     FrameRenderTarget bufferValue;
 
 public:
@@ -68,8 +69,18 @@ public:
      */
     void resize(const FrameGeometry& geometry);
 
+    /**
+     * Resizes owned active/passive storage to an explicit layout.
+     *
+     * @param layout New storage layout, including pitch and hidden rows.
+     */
+    void resize(const FrameStorageLayout& layout);
+
     /** @return Current frame geometry. */
     const FrameGeometry& geometry() const;
+
+    /** @return Current active/passive storage layout. */
+    const FrameStorageLayout& layout() const;
 
     /** @return Mutable visible active buffer view. */
     FrameBufferView active();

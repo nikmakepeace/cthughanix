@@ -35,6 +35,40 @@ static void testFrameStoreResizesAndExposesBufferViews() {
     assert(store.activeBottomHiddenRows() == active.pixels() + 21);
 }
 
+static void testFrameStoreOwnsPaddedStorageLayout() {
+    FrameStore store;
+    FrameStorageLayout layout(PixelSize(5, 3), 8, 2);
+
+    store.resize(layout);
+
+    FrameBufferView active = store.active();
+    FrameBufferView passive = store.passive();
+    FrameRenderTarget& target = store.renderTarget();
+
+    assert(active.valid());
+    assert(passive.valid());
+    assert(store.layout().pitch() == 8);
+    assert(store.layout().visibleStorageByteCount() == 24);
+    assert(store.layout().topHiddenByteCount() == 16);
+    assert(store.layout().bottomHiddenByteCount() == 16);
+    assert(store.layout().allocationByteCount() == 56);
+    assert(active.width() == 5);
+    assert(active.height() == 3);
+    assert(active.pitch() == 8);
+    assert(passive.pitch() == 8);
+    assert(target.width() == 5);
+    assert(target.height() == 3);
+    assert(target.pitch() == 8);
+    assert(target.visibleStorageByteCount() == 24);
+    assert(target.hiddenBorderByteCount() == 16);
+    assert(!target.visibleRowsArePacked());
+    assert(target.activeTopHiddenRows() == active.pixels() - 16);
+    assert(target.activeBottomHiddenRows() == active.pixels() + 24);
+    assert(target.activeRow(2) == active.pixels() + 16);
+    assert(target.passiveRow(1) == passive.pixels() + 8);
+    assert(target.visibleOffset(4, 2) == 20);
+}
+
 static void testFrameStoreSwapsActiveAndPassiveBuffers() {
     FrameStore store;
     store.resize(FrameGeometry(PixelSize(4, 2)));
@@ -54,14 +88,13 @@ static void testFrameStoreSwapsActiveAndPassiveBuffers() {
 
 static void testFrameStoreClearsVisibleAndHiddenStorage() {
     FrameStore store;
-    FrameGeometry geometry(PixelSize(5, 2), 2);
-    store.resize(geometry);
+    FrameStorageLayout layout(PixelSize(5, 2), 8, 2);
+    store.resize(layout);
 
-    int allocationBytes = geometry.width() * geometry.height()
-        + 2 * geometry.hiddenBorderByteCount();
+    int allocationBytes = layout.allocationByteCount();
     memset(store.activeTopHiddenRows(), 0x7f, allocationBytes);
     memset(store.renderTarget().passivePixels(), 0x55,
-        geometry.width() * geometry.height());
+        layout.visibleStorageByteCount());
 
     store.clear();
 
@@ -70,13 +103,14 @@ static void testFrameStoreClearsVisibleAndHiddenStorage() {
         assert(activeAllocation[i] == 0);
 
     const unsigned char* passive = store.renderTarget().passivePixels();
-    for (int i = 0; i < geometry.width() * geometry.height(); ++i)
+    for (int i = 0; i < layout.visibleStorageByteCount(); ++i)
         assert(passive[i] == 0);
 }
 
 int main() {
     testFrameGeometryReportsDerivedValues();
     testFrameStoreResizesAndExposesBufferViews();
+    testFrameStoreOwnsPaddedStorageLayout();
     testFrameStoreSwapsActiveAndPassiveBuffers();
     testFrameStoreClearsVisibleAndHiddenStorage();
     return 0;

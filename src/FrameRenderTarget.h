@@ -4,6 +4,7 @@
 #define __FRAME_RENDER_TARGET_H
 
 #include "cthugha.h"
+#include "FrameStorageLayout.h"
 
 /**
  * Mutable active/passive indexed pixel target for one Frame Generator store.
@@ -28,8 +29,14 @@ public:
     /** @return Visible frame height in indexed pixels. */
     int height() const;
 
+    /** @return Bytes between adjacent row starts. */
+    int pitch() const;
+
     /** @return Visible frame pixel count. */
     int size() const;
+
+    /** @return Visible-row storage bytes, including row padding. */
+    int visibleStorageByteCount() const;
 
     /** @return Last visible y coordinate. */
     int bottom() const;
@@ -55,6 +62,13 @@ public:
      */
     void setDimensions(int width_, int height_);
 
+    /**
+     * Sets the storage layout before FrameStore allocates pixels.
+     *
+     * @param layout Visible size, pitch, hidden rows, and allocation offsets.
+     */
+    void setLayout(const FrameStorageLayout& layout);
+
     /** Swaps active and passive allocations. */
     void swapBuffers();
 
@@ -66,14 +80,38 @@ public:
     /** @return Mutable first visible pixel of the active buffer. */
     unsigned char* activePixels();
 
+    /**
+     * @param y Visible row index.
+     * @return Mutable active row start for y.
+     */
+    unsigned char* activeRow(int y);
+
     /** @return Mutable first visible pixel of the passive buffer. */
     unsigned char* passivePixels();
+
+    /**
+     * @param y Visible row index.
+     * @return Mutable passive row start for y.
+     */
+    unsigned char* passiveRow(int y);
 
     /** @return Immutable first visible pixel of the active buffer. */
     const unsigned char* activePixels() const;
 
+    /**
+     * @param y Visible row index.
+     * @return Immutable active row start for y.
+     */
+    const unsigned char* activeRow(int y) const;
+
     /** @return Immutable first visible pixel of the passive buffer. */
     const unsigned char* passivePixels() const;
+
+    /**
+     * @param y Visible row index.
+     * @return Immutable passive row start for y.
+     */
+    const unsigned char* passiveRow(int y) const;
 
     /**
      * @return First hidden row above the active visible image.
@@ -85,6 +123,18 @@ public:
      */
     unsigned char* activeBottomHiddenRows();
 
+    /** @return Nonzero when visible rows have no padding. */
+    int visibleRowsArePacked() const;
+
+    /**
+     * Maps a visible x/y coordinate to a byte offset from activePixels().
+     *
+     * @param x Visible x coordinate.
+     * @param y Visible y coordinate.
+     * @return Storage offset from the visible image start.
+     */
+    int visibleOffset(int x, int y) const;
+
 private:
     FrameRenderTarget(const FrameRenderTarget&) = delete;
     FrameRenderTarget& operator=(const FrameRenderTarget&) = delete;
@@ -93,8 +143,7 @@ private:
     unsigned char* passiveAllocation;
     unsigned char* activeBuffer; /* visible pixels next on screen */
     unsigned char* passiveBuffer; /* visible pixels current on screen */
-    int widthValue;
-    int heightValue;
+    FrameStorageLayout layoutValue;
 
     int allocationByteCount() const;
     unsigned char* visiblePixels(unsigned char* allocation) const;
