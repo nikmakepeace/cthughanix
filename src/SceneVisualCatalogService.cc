@@ -4,6 +4,7 @@
 
 #include "Configuration.h"
 #include "Flame.h"
+#include "PaletteEntry.h"
 #include "SceneTypedVisualCatalogs.h"
 #include "SceneVisualSelections.h"
 
@@ -104,6 +105,8 @@ const SceneSettings& SceneVisualCatalogService::currentSettings(
     settings.translationName = selections.translation().currentName();
 
     settings.palette = selections.palette().currentPaletteEntry();
+    settings.paletteColors
+        = (settings.palette != 0) ? &settings.palette->colors() : 0;
     settings.paletteIndex = selections.palette().currentValue();
     settings.paletteName = selections.palette().currentName();
 

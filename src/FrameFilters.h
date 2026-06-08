@@ -14,7 +14,6 @@
 
 class BitmapFont;
 class IndexedImage;
-class PaletteEntry;
 class RandomSource;
 
 enum TextInjectionHorizontalAlign {
@@ -300,26 +299,10 @@ public:
     FramePalette& framePalette();
 
     /**
-     * @param paletteEntry Palette option entry to compare against current target.
-     * @return Nonzero when a new transition target is needed.
-     */
-    int needsTarget(PaletteEntry* paletteEntry) const;
-
-    /**
      * @param palette Palette to compare against current target.
      * @return Nonzero when a new transition target is needed.
      */
     int needsTarget(const ColorPalette& palette) const;
-
-    /**
-     * Starts or replaces the target palette transition.
-     *
-     * @param paletteEntry Palette entry to transition toward; ignored when NULL.
-     * @param frameBudget Number of visual frames over which to transition.
-     * @param strategy Per-frame palette interpolation strategy.
-     */
-    void setTargetPalette(PaletteEntry* paletteEntry, int frameBudget,
-        const PaletteTransitionStrategy& strategy);
 
     /**
      * Starts or replaces the target palette transition.

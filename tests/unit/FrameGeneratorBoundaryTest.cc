@@ -221,6 +221,11 @@ static void testFrameGeneratorModuleDoesNotReachDisplayOrRuntimeCommands() {
         "#include \"Image.h\"");
     assertSourceContains("src/FrameFilters.cc", "#include \"IndexedImage.h\"");
     assertSourceDoesNotContain("src/FrameFilters.cc", "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/FrameGeneratorSceneBinding.cc",
+        "#include \"PaletteEntry.h\"");
+    assertSourceDoesNotContain("src/FrameFilters.cc",
+        "#include \"PaletteEntry.h\"");
+    assertSourceDoesNotContain("src/FrameFilters.h", "PaletteEntry");
     assertSourceDoesNotContain("src/IndexedImage.h", "EffectControl");
     assertSourceContains("src/Image.h", "#include \"IndexedImage.h\"");
 }

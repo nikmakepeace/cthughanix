@@ -10,6 +10,7 @@
 #include <vector>
 
 class Flame;
+class ColorPalette;
 class IndexedImage;
 class PaletteEntry;
 class RandomSource;
@@ -63,6 +64,7 @@ public:
     int translateIndex;
 
     PaletteEntry* palette;
+    const ColorPalette* paletteColors;
     int paletteIndex;
 
     int borderMode;

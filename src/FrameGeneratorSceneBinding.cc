@@ -4,7 +4,6 @@
 
 #include "IndexedImage.h"
 #include "PaletteTransition.h"
-#include "PaletteEntry.h"
 #include "FrameFilters.h"
 
 template <class Filter>
@@ -14,7 +13,7 @@ static Filter* stageFilter(FrameFilterchain& filterchain,
 }
 
 static const ColorPalette* scenePaletteColors(const SceneSettings& settings) {
-    return (settings.palette != 0) ? &settings.palette->colors() : 0;
+    return settings.paletteColors;
 }
 
 FrameGeneratorSceneBinding::FrameGeneratorSceneBinding(
@@ -157,12 +156,13 @@ void FrameGeneratorSceneBinding::applySceneToFilterchain(unsigned int changes,
         PaletteFilter* paletteFilter
             = stageFilter<PaletteFilter>(*filterchain,
                 FrameFilterchainSequence::PaletteStage);
-        if (paletteFilter != 0) {
-            int frameBudget = paletteFilter->needsTarget(settings.palette)
+        const ColorPalette* paletteColors = scenePaletteColors(settings);
+        if (paletteFilter != 0 && paletteColors != 0) {
+            int frameBudget = paletteFilter->needsTarget(*paletteColors)
                 ? transitionController.paletteChangeFrameBudget(randomSourceValue,
                     frameBudgetFramesPerSecond)
                 : 0;
-            paletteFilter->setTargetPalette(settings.palette, frameBudget,
+            paletteFilter->setTargetPalette(*paletteColors, frameBudget,
                 randomPaletteTransitionStrategy(randomSourceValue));
         }
     }
