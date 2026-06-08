@@ -81,13 +81,16 @@ static void testSelectionParsesLockPrefixes() {
 
     selection.change("locked:42", randomSource);
     assert(selection.encodedValue() == 42);
+    assert(selection.lockEnabled() == 1);
     assert(std::strcmp(selection.currentName(), "locked:42") == 0);
 
     selection.change("no-lock:17", randomSource);
     assert(selection.encodedValue() == 17);
+    assert(selection.lockEnabled() == 0);
     assert(std::strcmp(selection.currentName(), "17") == 0);
 
     selection.toggleLock();
+    assert(selection.lockEnabled() == 1);
     assert(std::strcmp(selection.selectionText(), "locked:17") == 0);
 }
 

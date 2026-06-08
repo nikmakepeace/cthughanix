@@ -48,6 +48,10 @@ void SceneOptionSelection::activate(int index) {
         setValue(index);
 }
 
+int SceneOptionSelection::lockEnabled() const {
+    return 0;
+}
+
 void SceneOptionSelection::toggleLock() { }
 
 void SceneOptionSelection::toggleChoiceUse(int) { }

@@ -39,7 +39,6 @@ set(CTHUGHA_COMMON_SOURCES
     SceneTypedVisualCatalogs.cc
     SceneVisualSelectionSet.cc
     SceneVisualSelections.cc
-    LegacySceneChoiceLock.cc
     LegacySceneCatalogAdapters.cc
     LegacySceneImageCatalogAdapter.cc
     LegacyScenePaletteCatalogAdapter.cc

@@ -68,6 +68,9 @@ public:
     /** Activates the encoded value when the index is in range. */
     virtual void activate(int index);
 
+    /** @return Nonzero when random selection changes should be suppressed. */
+    virtual int lockEnabled() const;
+
     /** Toggles the selection lock. */
     virtual void toggleLock();
 

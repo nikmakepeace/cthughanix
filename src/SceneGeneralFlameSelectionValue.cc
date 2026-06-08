@@ -115,6 +115,10 @@ void SceneGeneralFlameSelectionValue::activate(int index) {
         setValue(index);
 }
 
+int SceneGeneralFlameSelectionValue::lockEnabled() const {
+    return lockValue.get() != 0 && lockValue->enabled();
+}
+
 void SceneGeneralFlameSelectionValue::toggleLock() {
     if (lockValue.get() != 0)
         lockValue->change(lockValue->enabled() ? "off" : "on");

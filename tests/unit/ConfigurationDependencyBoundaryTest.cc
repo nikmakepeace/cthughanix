@@ -2896,6 +2896,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "class SceneChoiceSelection : public virtual SceneOptionSelection");
     assertSourceContains("src/SceneChoiceSelection.h",
         "virtual void toggleLock();");
+    assertSourceContains("src/SceneVisualSelections.h",
+        "virtual int lockEnabled() const;");
     assertSourceContains("src/SceneChoiceSelection.h",
         "virtual void toggleChoiceUse(int index);");
     assertSourceDoesNotContain("src/LegacySceneSelectionSynchronizer.cc",
@@ -2923,7 +2925,9 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("src/CMakeLists.txt", "SceneChoiceListCatalog.cc");
     assertSourceContains("src/CMakeLists.txt", "SceneBuiltInChoiceCatalogs.cc");
     assertSourceContains("src/CMakeLists.txt", "SceneChoiceSelection.cc");
-    assertSourceContains("src/CMakeLists.txt", "LegacySceneChoiceLock.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "LegacySceneChoiceLock.cc");
+    assertSourceContains("src/SceneChoiceSelection.h",
+        "class SceneChoiceLockValue : public SceneChoiceLock");
     assertSourceDoesNotContain("src/CMakeLists.txt", "SceneEffectChoiceCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
         "SceneGeneralFlameSelectionValue.cc");
@@ -2938,7 +2942,9 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("tests/CMakeLists.txt",
         "SceneBuiltInChoiceCatalogsTest.cc");
     assertSourceContains("tests/CMakeLists.txt",
-        "legacy_scene_choice_lock_test");
+        "scene_choice_lock_value_test");
+    assertSourceContains("tests/CMakeLists.txt",
+        "legacy_scene_selection_adapters_test");
     assertSourceDoesNotContain("tests/CMakeLists.txt",
         "scene_effect_choice_catalog_test");
     assertSourceContains("tests/CMakeLists.txt",
@@ -3080,8 +3086,9 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotExist("src/SceneEffectChoiceCatalog.h");
     assertSourceDoesNotExist("src/SceneEffectChoiceCatalog.cc");
     assertSourceDoesNotExist("tests/unit/SceneEffectChoiceCatalogTest.cc");
-    assertSourceContains("src/LegacySceneChoiceLock.h",
-        "class LegacySceneChoiceLock : public SceneChoiceLock");
+    assertSourceDoesNotExist("src/LegacySceneChoiceLock.h");
+    assertSourceDoesNotExist("src/LegacySceneChoiceLock.cc");
+    assertSourceDoesNotExist("tests/unit/LegacySceneChoiceLockTest.cc");
     assertSourceContains("src/SceneChoiceListCatalog.h",
         "class SceneChoiceListCatalog : public SceneChoiceCatalog");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.h",
@@ -3126,8 +3133,12 @@ static void testEffectControlUsesInjectedRandomSource() {
         "#include \"display.h\"");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneBuiltInChoiceCatalogs.h\"");
-    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"LegacySceneChoiceLock.h\"");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "new SceneChoiceLockValue(int(flame.lock))");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "control.lock.setValue(selection.lockEnabled())");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "legacyChoiceInUse");
     assertSourceContains("src/SceneBuiltInChoiceCatalogs.cc",
@@ -3337,7 +3348,9 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void LegacySceneControlBackedSelection::selectionChanged()");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "generalFlameControl.setValue(selections.generalFlame().currentValue())");
+        "control.setValue(selection.currentValue())");
+    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "control.lock.setValue(selection.lockEnabled())");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void SceneChoiceSelection::mirrorToControl()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

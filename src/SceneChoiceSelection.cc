@@ -22,6 +22,28 @@ SceneChoice::~SceneChoice() { }
 
 SceneChoiceLock::~SceneChoiceLock() { }
 
+SceneChoiceLockValue::SceneChoiceLockValue(int enabled_)
+    : enabledValue(enabled_ != 0) { }
+
+int SceneChoiceLockValue::enabled() const {
+    return enabledValue;
+}
+
+void SceneChoiceLockValue::change(const char* to) {
+    if (to == 0)
+        return;
+
+    if (!strncasecmp("yes", to, 3) || !strncasecmp("on", to, 2)
+        || !strncasecmp("1", to, 1)) {
+        enabledValue = 1;
+    } else if (!strncasecmp("no", to, 2) || !strncasecmp("off", to, 3)
+        || !strncasecmp("0", to, 1)) {
+        enabledValue = 0;
+    } else {
+        CTH_ERROR("Illegal yes/no-value `%s'.\n", to);
+    }
+}
+
 SceneChoiceCatalog::~SceneChoiceCatalog() { }
 
 SceneChoiceSelection::SceneChoiceSelection(
@@ -243,6 +265,10 @@ void SceneChoiceSelection::activate(int index) {
         choice->setUse(1);
     selectedValue = index;
     change(0);
+}
+
+int SceneChoiceSelection::lockEnabled() const {
+    return selectionLock().enabled();
 }
 
 void SceneChoiceSelection::toggleLock() {

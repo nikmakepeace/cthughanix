@@ -10,6 +10,12 @@
 
 namespace {
 
+static void syncControlFromSelection(
+    EffectControl& control, SceneOptionSelection& selection) {
+    control.setValue(selection.currentValue());
+    control.lock.setValue(selection.lockEnabled());
+}
+
 class LegacySceneSelectionMirror : public LegacySceneControlMirror {
     EffectControl& flameControl;
     EffectControl& generalFlameControl;
@@ -56,17 +62,17 @@ LegacySceneSelectionMirror::LegacySceneSelectionMirror(EffectControl& flame_,
     , selections(selections_) { }
 
 void LegacySceneSelectionMirror::syncControlsFromSelections() {
-    flameControl.setValue(selections.flame().currentValue());
-    generalFlameControl.setValue(selections.generalFlame().currentValue());
-    waveControl.setValue(selections.wave().currentValue());
-    waveScaleControl.setValue(selections.waveScale().currentValue());
-    tableControl.setValue(selections.table().currentValue());
-    objectControl.setValue(selections.object().currentValue());
-    translationControl.setValue(selections.translation().currentValue());
-    paletteControl.setValue(selections.palette().currentValue());
-    borderControl.setValue(selections.border().currentValue());
-    flashlightControl.setValue(selections.flashlight().currentValue());
-    imagesControl.setValue(selections.images().currentValue());
+    syncControlFromSelection(flameControl, selections.flame());
+    syncControlFromSelection(generalFlameControl, selections.generalFlame());
+    syncControlFromSelection(waveControl, selections.wave());
+    syncControlFromSelection(waveScaleControl, selections.waveScale());
+    syncControlFromSelection(tableControl, selections.table());
+    syncControlFromSelection(objectControl, selections.object());
+    syncControlFromSelection(translationControl, selections.translation());
+    syncControlFromSelection(paletteControl, selections.palette());
+    syncControlFromSelection(borderControl, selections.border());
+    syncControlFromSelection(flashlightControl, selections.flashlight());
+    syncControlFromSelection(imagesControl, selections.images());
 }
 
 }

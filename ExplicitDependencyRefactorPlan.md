@@ -1073,9 +1073,11 @@ from this plan.
    - `RuntimeEffectControlOwner`, `LegacySceneEffectControlTarget`,
      `LegacySceneEffectControlBindings`, and
      `LegacySceneEffectControlCatalog` are deleted.
-   - The remaining bridge is one-way: it pushes native selection values back to
-     temporary legacy controls and is passed explicitly instead of discovered
-     through RTTI or selection-side identity lookup.
+   - Scene selection lock state is now owned by native `SceneChoiceLockValue`
+     instances; `LegacySceneChoiceLock` is deleted.
+   - The remaining bridge is one-way: it pushes native selection values and
+     lock states back to temporary legacy controls and is passed explicitly
+     instead of discovered through RTTI or selection-side identity lookup.
    - The legacy mirror is now a separate `LegacySceneSelectionMirror` owned
      alongside native `SceneVisualSelections`; native selections no longer
      subclass or delegate through the legacy mirror adapter.

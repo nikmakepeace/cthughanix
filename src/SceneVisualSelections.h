@@ -36,6 +36,9 @@ public:
      */
     virtual void activate(int index);
 
+    /** @return Nonzero when this selection is locked against random changes. */
+    virtual int lockEnabled() const;
+
     /** Toggles the selection lock when the concrete selection has one. */
     virtual void toggleLock();
 

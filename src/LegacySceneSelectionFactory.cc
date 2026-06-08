@@ -3,7 +3,6 @@
 #include "LegacySceneSelectionAdapters.h"
 
 #include "EffectControl.h"
-#include "LegacySceneChoiceLock.h"
 #include "SceneBuiltInChoiceCatalogs.h"
 #include "SceneChoiceSelection.h"
 #include "SceneGeneralFlameSelectionValue.h"
@@ -26,45 +25,47 @@ createLegacySceneSelectionAdapters(
         std::unique_ptr<SceneVisualSelections>(new SceneVisualSelectionSet(
             new SceneFlameChoiceSelection(
                 createSceneFlameChoiceCatalog(flame.name(),
-                    new LegacySceneChoiceLock(flame.lock)),
+                    new SceneChoiceLockValue(int(flame.lock))),
                 int(flame)),
             new SceneGeneralFlameSelectionValue(generalFlame.name(),
-                new LegacySceneChoiceLock(generalFlame.lock),
+                new SceneChoiceLockValue(int(generalFlame.lock)),
                 int(generalFlame)),
             new SceneWaveChoiceSelection(
                 createSceneWaveChoiceCatalog(wave.name(),
-                    new LegacySceneChoiceLock(wave.lock)),
+                    new SceneChoiceLockValue(int(wave.lock))),
                 int(wave)),
             new SceneChoiceSelection(
                 createSceneWaveScaleChoiceCatalog(waveScale.name(),
-                    new LegacySceneChoiceLock(waveScale.lock)),
+                    new SceneChoiceLockValue(int(waveScale.lock))),
                 int(waveScale)),
             new SceneChoiceSelection(
                 createSceneTableChoiceCatalog(table.name(),
-                    new LegacySceneChoiceLock(table.lock)),
+                    new SceneChoiceLockValue(int(table.lock))),
                 int(table)),
             new SceneWaveObjectChoiceSelection(
                 createSceneWaveObjectChoiceCatalog(object.name(),
-                    new LegacySceneChoiceLock(object.lock), waveObjects),
+                    new SceneChoiceLockValue(int(object.lock)), waveObjects),
                 int(object)),
             new SceneTranslationChoiceSelection(
                 createSceneTranslationChoiceCatalog(translation.name(),
-                    new LegacySceneChoiceLock(translation.lock), translations),
+                    new SceneChoiceLockValue(int(translation.lock)),
+                    translations),
                 int(translation)),
             new ScenePaletteChoiceSelection(
                 createScenePaletteChoiceCatalog(palette.name(),
-                    new LegacySceneChoiceLock(palette.lock), paletteCatalog),
+                    new SceneChoiceLockValue(int(palette.lock)),
+                    paletteCatalog),
                 int(palette)),
             new SceneChoiceSelection(
                 createSceneBorderChoiceCatalog(border.name(),
-                    new LegacySceneChoiceLock(border.lock)),
+                    new SceneChoiceLockValue(int(border.lock))),
                 int(border)),
             new SceneChoiceSelection(
                 createSceneFlashlightChoiceCatalog(flashlight.name(),
-                    new LegacySceneChoiceLock(flashlight.lock)),
+                    new SceneChoiceLockValue(int(flashlight.lock))),
                 int(flashlight)),
             new SceneImageChoiceSelection(
                 createSceneImageChoiceCatalog(images.name(),
-                    new LegacySceneChoiceLock(images.lock), imageCatalog),
+                    new SceneChoiceLockValue(int(images.lock)), imageCatalog),
                 int(images)))));
 }

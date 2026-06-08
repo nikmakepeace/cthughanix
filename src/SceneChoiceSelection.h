@@ -22,8 +22,34 @@ class SceneChoiceLock {
 public:
     virtual ~SceneChoiceLock();
 
+    /** @return Nonzero when random selection changes should be suppressed. */
     virtual int enabled() const = 0;
+
+    /**
+     * Changes the lock using yes/no text such as "on", "off", "1", or "0".
+     */
     virtual void change(const char* to) = 0;
+};
+
+/**
+ * Native owned lock state for a Scene choice selection.
+ *
+ * This keeps Scene selections independent from legacy option storage. Any
+ * legacy controls that still need the lock bit must mirror it explicitly at a
+ * synchronization boundary.
+ */
+class SceneChoiceLockValue : public SceneChoiceLock {
+    int enabledValue;
+
+public:
+    /** Creates a lock with the given initial enabled state. */
+    explicit SceneChoiceLockValue(int enabled_ = 0);
+
+    /** @return Nonzero when random selection changes should be suppressed. */
+    virtual int enabled() const;
+
+    /** Changes the lock using yes/no text such as "on", "off", "1", or "0". */
+    virtual void change(const char* to);
 };
 
 class SceneChoiceCatalog {
@@ -69,6 +95,7 @@ public:
     virtual void change(const char* to, RandomSource& randomSource);
     virtual int changeRandom(RandomSource& randomSource);
     virtual void activate(int index);
+    virtual int lockEnabled() const;
     virtual void toggleLock();
     virtual void toggleChoiceUse(int index);
     virtual void setValue(int index);

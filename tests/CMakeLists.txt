@@ -1086,25 +1086,43 @@ target_link_libraries(scene_palette_catalog_test PRIVATE m)
 add_test(NAME scene_palette_catalog_test
     COMMAND scene_palette_catalog_test)
 
-add_executable(legacy_scene_choice_lock_test
-    unit/LegacySceneChoiceLockTest.cc
-    ${CMAKE_SOURCE_DIR}/src/LegacySceneChoiceLock.cc
+add_executable(scene_choice_lock_value_test
+    unit/SceneChoiceLockValueTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
-    ${CMAKE_SOURCE_DIR}/src/Option.cc
-    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
 )
 
-target_include_directories(legacy_scene_choice_lock_test PRIVATE
+target_include_directories(scene_choice_lock_value_test PRIVATE
     ${CMAKE_BINARY_DIR}
     ${CMAKE_BINARY_DIR}/src
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(legacy_scene_choice_lock_test PRIVATE m)
+target_link_libraries(scene_choice_lock_value_test PRIVATE m)
 
-add_test(NAME legacy_scene_choice_lock_test
-    COMMAND legacy_scene_choice_lock_test)
+add_test(NAME scene_choice_lock_value_test
+    COMMAND scene_choice_lock_value_test)
+
+add_executable(legacy_scene_selection_adapters_test
+    unit/LegacySceneSelectionAdaptersTest.cc
+    ${CMAKE_SOURCE_DIR}/src/LegacySceneSelectionAdapters.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+)
+
+target_include_directories(legacy_scene_selection_adapters_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(legacy_scene_selection_adapters_test PRIVATE m)
+
+add_test(NAME legacy_scene_selection_adapters_test
+    COMMAND legacy_scene_selection_adapters_test)
 
 add_executable(scene_typed_visual_catalogs_test
     unit/SceneTypedVisualCatalogsTest.cc

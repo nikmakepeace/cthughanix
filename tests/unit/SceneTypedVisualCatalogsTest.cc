@@ -128,6 +128,7 @@ static void testWaveSelectionReturnsTypedWave() {
     assert(selection.currentWave() == none);
 
     selection.toggleLock();
+    assert(selection.lockEnabled() == 1);
     assert(catalog->lock().enabled() == 1);
 }
 
