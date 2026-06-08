@@ -29,6 +29,7 @@ set(CTHUGHA_COMMON_SOURCES
     SceneDependencies.cc
     SceneRuntimeDependencies.cc
     SceneChoiceListCatalog.cc
+    SceneBuiltInChoiceCatalogs.cc
     SceneChoiceSelection.cc
     SceneGeneralFlameSelectionValue.cc
     SceneTypedVisualCatalogs.cc

@@ -5,7 +5,7 @@
 #include "EffectControl.h"
 #include "Image.h"
 #include "LegacySceneChoiceLock.h"
-#include "SceneChoiceListCatalog.h"
+#include "SceneBuiltInChoiceCatalogs.h"
 #include "SceneChoiceSelection.h"
 #include "SceneGeneralFlameSelectionValue.h"
 #include "SceneTypedVisualCatalogs.h"
@@ -16,68 +16,11 @@
 #include "flames.h"
 #include "waves.h"
 
-#include <cstdio>
-
 namespace {
 
 static int legacyChoiceInUse(EffectControl& option, int index, int defaultUse) {
     EffectChoice* choice = option[index];
     return (choice != 0) ? choice->inUse() : defaultUse;
-}
-
-static SceneChoiceListCatalog* createSceneChoiceListCatalog(
-    EffectControl& option) {
-    return new SceneChoiceListCatalog(
-        option.name(), new LegacySceneChoiceLock(option.lock));
-}
-
-static SceneChoiceCatalog* createWaveScaleChoiceCatalog(
-    EffectControl& option) {
-    static const char* names[] = { "scale0", "scale1", "scale2" };
-    SceneChoiceListCatalog* catalog = createSceneChoiceListCatalog(option);
-
-    for (unsigned int i = 0; i < sizeof(names) / sizeof(names[0]); i++)
-        catalog->addChoice(names[i], legacyChoiceInUse(option, int(i), 1));
-
-    return catalog;
-}
-
-static SceneChoiceCatalog* createTableChoiceCatalog(EffectControl& option) {
-    SceneChoiceListCatalog* catalog = createSceneChoiceListCatalog(option);
-
-    for (int i = 0; i < 10; i++) {
-        char name[16];
-        snprintf(name, sizeof(name), "table%d", i);
-        catalog->addChoice(name, legacyChoiceInUse(option, i, 1));
-    }
-
-    return catalog;
-}
-
-static SceneChoiceCatalog* createBorderChoiceCatalog(EffectControl& option) {
-    SceneChoiceListCatalog* catalog = createSceneChoiceListCatalog(option);
-
-    for (int i = 0; i < 4; i++) {
-        char name[16];
-        snprintf(name, sizeof(name), "border%d", i);
-        catalog->addChoice(name, legacyChoiceInUse(option, i, 1));
-    }
-
-    return catalog;
-}
-
-static SceneChoiceCatalog* createFlashlightChoiceCatalog(
-    EffectControl& option) {
-    SceneChoiceListCatalog* catalog = createSceneChoiceListCatalog(option);
-    SceneChoiceListEntry& off = catalog->addChoice(
-        "off", legacyChoiceInUse(option, 0, 1));
-    off.addAlias("no");
-    off.addAlias("0");
-    SceneChoiceListEntry& on = catalog->addChoice(
-        "on", legacyChoiceInUse(option, 1, 1));
-    on.addAlias("yes");
-    on.addAlias("1");
-    return catalog;
 }
 
 static SceneChoiceCatalog* createSceneFlameChoiceCatalog(
@@ -192,8 +135,12 @@ createLegacySceneSelectionAdapters(
             new SceneWaveChoiceSelection(
                 createSceneWaveChoiceCatalog(wave), int(wave)),
             new SceneChoiceSelection(
-                createWaveScaleChoiceCatalog(waveScale), int(waveScale)),
-            new SceneChoiceSelection(createTableChoiceCatalog(table),
+                createSceneWaveScaleChoiceCatalog(waveScale.name(),
+                    new LegacySceneChoiceLock(waveScale.lock)),
+                int(waveScale)),
+            new SceneChoiceSelection(
+                createSceneTableChoiceCatalog(table.name(),
+                    new LegacySceneChoiceLock(table.lock)),
                 int(table)),
             new SceneWaveObjectChoiceSelection(
                 createSceneWaveObjectChoiceCatalog(object), int(object)),
@@ -202,10 +149,14 @@ createLegacySceneSelectionAdapters(
                 int(translation)),
             new ScenePaletteChoiceSelection(
                 createScenePaletteChoiceCatalog(palette), int(palette)),
-            new SceneChoiceSelection(createBorderChoiceCatalog(border),
+            new SceneChoiceSelection(
+                createSceneBorderChoiceCatalog(border.name(),
+                    new LegacySceneChoiceLock(border.lock)),
                 int(border)),
             new SceneChoiceSelection(
-                createFlashlightChoiceCatalog(flashlight), int(flashlight)),
+                createSceneFlashlightChoiceCatalog(flashlight.name(),
+                    new LegacySceneChoiceLock(flashlight.lock)),
+                int(flashlight)),
             new SceneImageChoiceSelection(
                 createSceneImageChoiceCatalog(images), int(images)))));
 }

@@ -857,7 +857,10 @@ completion gates are satisfied.
    helpers without including the global option headers. `FrameGeneratorRuntime`
    also no longer includes the full configuration header; its public API uses
    forwarded startup config ports and delegates config interpretation to the
-   geometry, transition, and message collaborators.
+   geometry, transition, and message collaborators. Fixed wave-scale, table,
+   border, and flashlight choice metadata now lives in native
+   `SceneBuiltInChoiceCatalogs`, so those selections no longer read legacy
+   `EffectChoice` entries for allowed-choice state.
 
    Concrete work still required:
    - Add native visual catalog owners that load or generate every choice used by
