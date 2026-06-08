@@ -15,6 +15,14 @@ createLegacySceneSelectionAdapters(
     EffectControl& waveScale, EffectControl& table, EffectControl& object,
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
+    std::unique_ptr<SceneVisualSelections> selections);
+
+std::unique_ptr<LegacySceneSelectionAdapterSet>
+createLegacySceneSelectionAdapters(
+    EffectControl& flame, EffectControl& generalFlame, EffectControl& wave,
+    EffectControl& waveScale, EffectControl& table, EffectControl& object,
+    EffectControl& translation, EffectControl& palette, EffectControl& border,
+    EffectControl& flashlight, EffectControl& images,
     const SceneWaveObjectCatalog& waveObjects,
     const SceneImageCatalog& imageCatalog,
     const ScenePaletteCatalog& paletteCatalog,

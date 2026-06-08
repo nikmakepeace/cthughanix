@@ -7,13 +7,8 @@
 
 #include <memory>
 
-class EffectControl;
 class LegacySceneControlMirror;
-class SceneImageCatalog;
-class ScenePaletteCatalog;
 class SceneSelectionSynchronizer;
-class SceneTranslationCatalog;
-class SceneWaveObjectCatalog;
 
 /**
  * Owned native selections plus their explicit legacy control mirror.
@@ -43,35 +38,5 @@ public:
      */
     std::unique_ptr<SceneSelectionSynchronizer> createSelectionSynchronizer();
 };
-
-/**
- * Builds legacy-backed Scene selections from current global visual controls.
- *
- * This is the compatibility factory used while catalog loading still lives in
- * legacy EffectControl instances.
- */
-std::unique_ptr<LegacySceneSelectionAdapterSet>
-createLegacySceneSelectionAdapters(
-    EffectControl& flame, EffectControl& generalFlame, EffectControl& wave,
-    EffectControl& waveScale, EffectControl& table, EffectControl& object,
-    EffectControl& translation, EffectControl& palette, EffectControl& border,
-    EffectControl& flashlight, EffectControl& images,
-    const SceneWaveObjectCatalog& waveObjects,
-    const SceneImageCatalog& imageCatalog,
-    const ScenePaletteCatalog& paletteCatalog,
-    const SceneTranslationCatalog& translations);
-
-/**
- * Wraps prebuilt native selections with a legacy control sync mirror.
- *
- * @param selections Owned native selection set to expose to Scene.
- */
-std::unique_ptr<LegacySceneSelectionAdapterSet>
-createLegacySceneSelectionAdapters(
-    EffectControl& flame, EffectControl& generalFlame, EffectControl& wave,
-    EffectControl& waveScale, EffectControl& table, EffectControl& object,
-    EffectControl& translation, EffectControl& palette, EffectControl& border,
-    EffectControl& flashlight, EffectControl& images,
-    std::unique_ptr<SceneVisualSelections> selections);
 
 #endif

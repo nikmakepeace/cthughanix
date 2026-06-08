@@ -1399,6 +1399,10 @@ static void testSceneStartupUsesSceneConfig() {
         "class LegacySceneSelectionAdapterSet");
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
         "std::unique_ptr<LegacySceneControlMirror> controlMirror");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
+        "EffectControl& flame");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
+        "SceneImageCatalog");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "dynamic_cast<LegacySceneControlMirror");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
@@ -1564,15 +1568,16 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"Image.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"TranslationOptions.h\"");
-    assertSourceContains("src/LegacySceneSelectionAdapters.h",
-        "std::unique_ptr<LegacySceneSelectionAdapterSet>\n"
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "createLegacySceneSelectionAdapters");
+    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+        "createLegacySceneSelectionAdapters(flame, flameGeneral, wave");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneSelectionMirror : public LegacySceneControlMirror");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneSelectionAdapters : public SceneVisualSelections");
-    assertSourceContains("src/LegacySceneSelectionAdapters.h",
-        "std::unique_ptr<SceneVisualSelections> selections");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
+        "std::unique_ptr<SceneVisualSelections> selections);");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "return selections->flame();");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
@@ -3388,9 +3393,9 @@ static void testEffectControlUsesInjectedRandomSource() {
         "dynamic_cast<ImageEntry*>(currentEffectChoice())");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "translationOption.translationTable(currentValue())");
-    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "EffectControl& flame, EffectControl& generalFlame, EffectControl& wave");
-    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "EffectControl& translation, EffectControl& palette, EffectControl& border");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "FlameOption");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h", "GeneralFlameOption");
