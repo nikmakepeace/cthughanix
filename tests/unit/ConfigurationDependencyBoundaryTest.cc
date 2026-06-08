@@ -2961,17 +2961,23 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectChoice");
     assertSourceDoesNotContain("src/SceneWaveObjectCatalog.cc",
         "EffectChoice");
-    assertSourceContains("src/LegacySceneWaveObjectCatalogAdapter.cc",
-        "loadSceneWaveObjectCatalogFromLegacy(");
-    assertSourceContains("src/LegacySceneWaveObjectCatalogAdapter.cc",
+    assertSourceDoesNotExist("src/LegacySceneWaveObjectCatalogAdapter.h");
+    assertSourceDoesNotExist("src/LegacySceneWaveObjectCatalogAdapter.cc");
+    assertSourceContains("src/SceneWaveObjectCatalogLoader.cc",
+        "copySceneWaveObjectCatalogFromEffectControl(");
+    assertSourceContains("src/SceneWaveObjectCatalogLoader.cc",
         "waveObjectEntryObject(choice)");
     assertSourceContains("src/Application.h",
         "std::unique_ptr<SceneWaveObjectCatalog> sceneWaveObjectCatalogValue");
     assertSourceContains("src/Application.cc",
-        "loadSceneWaveObjectCatalogFromLegacy(object, waveObjects)");
+        "copySceneWaveObjectCatalogFromEffectControl(object, waveObjects)");
     assertSourceContains("src/CMakeLists.txt", "SceneWaveObjectCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
+        "SceneWaveObjectCatalogLoader.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
         "LegacySceneWaveObjectCatalogAdapter.cc");
+    assertSourceContains("tests/CMakeLists.txt",
+        "scene_catalog_loader_test");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"WaveObject.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
@@ -2984,6 +2990,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "waveObjects.objectAt(i)");
     assertSourceContains("tests/unit/SceneWaveObjectCatalogTest.cc",
         "testCatalogOwnsCopiedWaveObjects");
+    assertSourceContains("tests/unit/SceneCatalogLoaderTest.cc",
+        "testCopiesWaveObjectsFromEffectControl");
     assertSourceContains("src/SceneImageCatalog.h",
         "class SceneImageCatalog");
     assertSourceDoesNotContain("src/SceneImageCatalog.h",
@@ -2998,17 +3006,21 @@ static void testEffectControlUsesInjectedRandomSource() {
         "ImageEntry");
     assertSourceDoesNotContain("src/SceneImageCatalog.cc",
         "ImageEntry");
-    assertSourceContains("src/LegacySceneImageCatalogAdapter.cc",
-        "loadSceneImageCatalogFromLegacy(");
-    assertSourceContains("src/LegacySceneImageCatalogAdapter.cc",
+    assertSourceDoesNotExist("src/LegacySceneImageCatalogAdapter.h");
+    assertSourceDoesNotExist("src/LegacySceneImageCatalogAdapter.cc");
+    assertSourceContains("src/SceneImageCatalogLoader.cc",
+        "copySceneImageCatalogFromImageOption(");
+    assertSourceContains("src/SceneImageCatalogLoader.cc",
         "dynamic_cast<ImageEntry*>(imageOption[i])");
     assertSourceContains("src/Application.h",
         "std::unique_ptr<SceneImageCatalog> sceneImageCatalogValue");
     assertSourceContains("src/Application.cc",
-        "loadSceneImageCatalogFromLegacy(\n"
+        "copySceneImageCatalogFromImageOption(\n"
         "        *imageOptionValue, *sceneImageCatalogValue)");
     assertSourceContains("src/CMakeLists.txt", "SceneImageCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
+        "SceneImageCatalogLoader.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
         "LegacySceneImageCatalogAdapter.cc");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "#include \"Image.h\"");
@@ -3024,6 +3036,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "images.imageAt(i)");
     assertSourceContains("tests/unit/SceneImageCatalogTest.cc",
         "testCatalogOwnsCopiedIndexedImages");
+    assertSourceContains("tests/unit/SceneCatalogLoaderTest.cc",
+        "testCopiesImagesFromImageOption");
     assertSourceContains("src/ScenePaletteCatalog.h",
         "class ScenePaletteCatalog");
     assertSourceDoesNotContain("src/ScenePaletteCatalog.h",
@@ -3034,16 +3048,20 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectChoice");
     assertSourceDoesNotContain("src/ScenePaletteCatalog.cc",
         "EffectChoice");
-    assertSourceContains("src/LegacyScenePaletteCatalogAdapter.cc",
-        "loadScenePaletteCatalogFromLegacy(");
-    assertSourceContains("src/LegacyScenePaletteCatalogAdapter.cc",
+    assertSourceDoesNotExist("src/LegacyScenePaletteCatalogAdapter.h");
+    assertSourceDoesNotExist("src/LegacyScenePaletteCatalogAdapter.cc");
+    assertSourceContains("src/ScenePaletteCatalogLoader.cc",
+        "copyScenePaletteCatalogFromEffectControl(");
+    assertSourceContains("src/ScenePaletteCatalogLoader.cc",
         "dynamic_cast<PaletteEntry*>(paletteOption[i])");
     assertSourceContains("src/Application.h",
         "std::unique_ptr<ScenePaletteCatalog> scenePaletteCatalogValue");
     assertSourceContains("src/Application.cc",
-        "loadScenePaletteCatalogFromLegacy(palette, palettes)");
+        "copyScenePaletteCatalogFromEffectControl(palette, palettes)");
     assertSourceContains("src/CMakeLists.txt", "ScenePaletteCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
+        "ScenePaletteCatalogLoader.cc");
+    assertSourceDoesNotContain("src/CMakeLists.txt",
         "LegacyScenePaletteCatalogAdapter.cc");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "dynamic_cast<PaletteEntry*>(option[i])");
@@ -3053,6 +3071,8 @@ static void testEffectControlUsesInjectedRandomSource() {
         "#include \"ScenePaletteCatalog.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "entry->inUse()");
+    assertSourceContains("tests/unit/SceneCatalogLoaderTest.cc",
+        "testCopiesPalettesFromEffectControl");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",
         "palettes.entryCount()");
     assertSourceDoesNotContain("src/LegacySceneSelectionFactory.cc",

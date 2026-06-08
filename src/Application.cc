@@ -28,9 +28,6 @@
 #include "IndexedFrame.h"
 #include "Interface.h"
 #include "InterfaceRuntime.h"
-#include "LegacySceneImageCatalogAdapter.h"
-#include "LegacyScenePaletteCatalogAdapter.h"
-#include "LegacySceneWaveObjectCatalogAdapter.h"
 #include "Mixer.h"
 #include "IniFiles.h"
 #include "Option.h"
@@ -46,13 +43,16 @@
 #include "Scene.h"
 #include "SceneChangeScheduler.h"
 #include "SceneImageCatalog.h"
+#include "SceneImageCatalogLoader.h"
 #include "ScenePaletteCatalog.h"
+#include "ScenePaletteCatalogLoader.h"
 #include "SceneRuntime.h"
 #include "SceneTranslationCatalog.h"
 #include "SceneVisualCatalogServiceFactory.h"
 #include "SceneVisualSelectionFactory.h"
 #include "SceneVisualSelections.h"
 #include "SceneWaveObjectCatalog.h"
+#include "SceneWaveObjectCatalogLoader.h"
 #include "Screen.h"
 #include "TranslationOptions.h"
 #include "FrameGeneratorFrameBudget.h"
@@ -245,16 +245,18 @@ void Application::initSceneRuntime() {
         sceneTranslationCatalogValue.reset(new SceneTranslationCatalog());
     if (sceneWaveObjectCatalogValue.get() == NULL) {
         sceneWaveObjectCatalogValue.reset(new SceneWaveObjectCatalog());
-        loadSceneWaveObjectCatalogFromLegacy(object, *sceneWaveObjectCatalogValue);
+        copySceneWaveObjectCatalogFromEffectControl(
+            object, *sceneWaveObjectCatalogValue);
     }
     if (sceneImageCatalogValue.get() == NULL) {
         sceneImageCatalogValue.reset(new SceneImageCatalog());
-        loadSceneImageCatalogFromLegacy(
+        copySceneImageCatalogFromImageOption(
             *imageOptionValue, *sceneImageCatalogValue);
     }
     if (scenePaletteCatalogValue.get() == NULL) {
         scenePaletteCatalogValue.reset(new ScenePaletteCatalog());
-        loadScenePaletteCatalogFromLegacy(palette, *scenePaletteCatalogValue);
+        copyScenePaletteCatalogFromEffectControl(
+            palette, *scenePaletteCatalogValue);
     }
     if (sceneVisualCatalogFactoryValue.get() == NULL) {
         SceneVisualSelectionSeeds sceneVisualSelectionSeeds;
@@ -569,7 +571,7 @@ int Application::initialize() {
         return 0;
     }
     sceneImageCatalogValue.reset(new SceneImageCatalog());
-    loadSceneImageCatalogFromLegacy(
+    copySceneImageCatalogFromImageOption(
         *imageOptionValue, *sceneImageCatalogValue);
     init_border();
     init_flashlight();
@@ -800,11 +802,11 @@ static int initializeVisualCatalogs(const FrameGeometry& geometry,
 
     if (init_wave(pathConfig, log))
         return 1;
-    loadSceneWaveObjectCatalogFromLegacy(object, waveObjects);
+    copySceneWaveObjectCatalogFromEffectControl(object, waveObjects);
 
     if (load_palettes(pathConfig))
         return 1;
-    loadScenePaletteCatalogFromLegacy(palette, palettes);
+    copyScenePaletteCatalogFromEffectControl(palette, palettes);
 
     return 0;
 }

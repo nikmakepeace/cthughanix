@@ -1,12 +1,12 @@
-// Legacy loader adapter for native Scene palette catalogs.
+// Scene palette catalog loader compatibility helpers.
 
-#include "LegacyScenePaletteCatalogAdapter.h"
+#include "ScenePaletteCatalogLoader.h"
 
 #include "EffectControl.h"
 #include "PaletteEntry.h"
 #include "ScenePaletteCatalog.h"
 
-void loadScenePaletteCatalogFromLegacy(
+void copyScenePaletteCatalogFromEffectControl(
     EffectControl& paletteOption, ScenePaletteCatalog& catalog) {
     catalog.clear();
 

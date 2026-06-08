@@ -1,11 +1,11 @@
-// Legacy loader adapter for native Scene image catalogs.
+// Scene image catalog loader compatibility helpers.
 
-#include "LegacySceneImageCatalogAdapter.h"
+#include "SceneImageCatalogLoader.h"
 
 #include "Image.h"
 #include "SceneImageCatalog.h"
 
-void loadSceneImageCatalogFromLegacy(
+void copySceneImageCatalogFromImageOption(
     ImageOption& imageOption, SceneImageCatalog& catalog) {
     catalog.clear();
 
