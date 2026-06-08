@@ -6,6 +6,14 @@
 #include <cassert>
 #include <memory>
 
+std::unique_ptr<LegacySceneSelectionAdapterSet>
+createLegacySceneSelectionAdapters(
+    EffectControl& flame, EffectControl& generalFlame, EffectControl& wave,
+    EffectControl& waveScale, EffectControl& table, EffectControl& object,
+    EffectControl& translation, EffectControl& palette, EffectControl& border,
+    EffectControl& flashlight, EffectControl& images,
+    std::unique_ptr<SceneVisualSelections> selections);
+
 int cth_log_enabled(int) { return 0; }
 int cth_log(int, const char*, ...) { return 0; }
 int cth_log_error(const char*, ...) { return 0; }
