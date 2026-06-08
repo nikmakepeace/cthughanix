@@ -1325,10 +1325,12 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"LegacySceneEffectControlBindings.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
         "#include \"LegacySceneEffectControlBindings.h\"");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneVisualSelectionSet.h\"");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneVisualSelectionSet(");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"SceneVisualSelectionSet.h\"");
     assertSourceDoesNotContain("src/SceneVisualSelectionSet.h",
         "EffectControl");
     assertSourceContains("src/LegacySceneVisualCatalogs.cc",
@@ -1412,6 +1414,16 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"flames.h\"");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.cc",
         "#include \"waves.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"display.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"flames.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"waves.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"Image.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"TranslationOptions.h\"");
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
         "std::unique_ptr<SceneVisualSelections> createLegacySceneSelectionAdapters");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
@@ -1459,6 +1471,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/CMakeLists.txt", "LegacySceneCatalogAdapters.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneEffectControlCatalog.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionAdapters.cc");
+    assertSourceContains("src/CMakeLists.txt", "LegacySceneSelectionFactory.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneVisualCatalogFactory.cc");
     assertSourceContains("src/CMakeLists.txt", "LegacySceneVisualCatalogs.cc");
     assertSourceDoesNotContain("src/LegacySceneVisualCatalogs.h", "FlameOption&");
@@ -2612,15 +2625,19 @@ static void testEffectControlUsesInjectedRandomSource() {
         "EffectControl");
     assertSourceDoesNotContain("src/SceneChoiceListCatalog.cc",
         "EffectControl");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneChoiceListCatalog.h\"");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "#include \"LegacySceneChoiceLock.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
+        "#include \"SceneChoiceListCatalog.h\"");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "#include \"LegacySceneChoiceLock.h\"");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class EffectControlSceneChoice");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class EffectControlSceneChoiceCatalog");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "#include \"SceneGeneralFlameSelectionValue.h\"");
     assertSourceContains("src/SceneGeneralFlameSelectionValue.h",
         "class SceneGeneralFlameSelectionValue : public SceneGeneralFlameSelection");
@@ -2688,39 +2705,38 @@ static void testEffectControlUsesInjectedRandomSource() {
         "class LegacyScenePaletteSelection");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneImageSelection");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneFlameChoiceSelection(\n"
-        "              createSceneFlameChoiceCatalog(flame_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "new SceneGeneralFlameSelectionValue(generalFlame_.name()");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createSceneFlameChoiceCatalog(flame)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "new SceneGeneralFlameSelectionValue(generalFlame.name()");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneWaveChoiceSelection(\n"
-        "              createSceneWaveChoiceCatalog(wave_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createSceneWaveChoiceCatalog(wave)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneChoiceSelection(\n"
-        "              createWaveScaleChoiceCatalog(waveScale_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "new SceneChoiceSelection(createTableChoiceCatalog(table_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createWaveScaleChoiceCatalog(waveScale)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "new SceneChoiceSelection(createTableChoiceCatalog(table)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneWaveObjectChoiceSelection(\n"
-        "              createSceneWaveObjectChoiceCatalog(object_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createSceneWaveObjectChoiceCatalog(object)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneTranslationChoiceSelection(\n"
-        "              createSceneTranslationChoiceCatalog(translation_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createSceneTranslationChoiceCatalog(translation)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new ScenePaletteChoiceSelection(\n"
-        "              createScenePaletteChoiceCatalog(palette_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "                createScenePaletteChoiceCatalog(palette)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
+        "new SceneChoiceSelection(createBorderChoiceCatalog(border)");
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneChoiceSelection(\n"
-        "              createBorderChoiceCatalog(border_)");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "new SceneChoiceSelection(\n"
-        "              createFlashlightChoiceCatalog(flashlight_)");
+        "                createFlashlightChoiceCatalog(flashlight)");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "createOwnedSceneChoiceCatalog");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionFactory.cc",
         "new SceneImageChoiceSelection(\n"
-        "              createSceneImageChoiceCatalog(images_)");
+        "                createSceneImageChoiceCatalog(images)");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "flameValue(new SceneEffectChoiceCatalog");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

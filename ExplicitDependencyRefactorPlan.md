@@ -933,7 +933,9 @@ concrete changes needed before the surface can disappear.
    works through Scene selection ports. `SceneVisualSelectionSet` now owns the
    native visual selection ports without depending on legacy control identity;
    `LegacySceneSelectionAdapters` delegates to that set while retaining only the
-   temporary legacy lookup and synchronization table.
+   temporary legacy lookup and synchronization table. Global-backed selection
+   construction is isolated in `LegacySceneSelectionFactory.cc`, so
+   `LegacySceneSelectionAdapters.cc` no longer includes visual catalog globals.
 
    Concrete work still required:
    - Add native visual catalog owners that load or generate every choice used by
