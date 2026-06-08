@@ -4,6 +4,7 @@
 #include "cth_buffer.h"
 #include "display.h"
 #include "Image.h"
+#include "pcx.h"
 
 /* load 1 pcx-file from disk
 
@@ -105,7 +106,7 @@ public:
     }
 };
 
-EffectChoice* read_pcx_image(
+IndexedImage* read_pcx_indexed_image(
     FILE* file, const char* name, const char* /* dir */, const char* /*total_name*/,
     const ImageLoadTarget& target) {
     int x, y;
@@ -197,6 +198,16 @@ EffectChoice* read_pcx_image(
     }
 
     image->setPalette(sourcePalette);
+    return image;
+}
+
+EffectChoice* read_pcx_image(
+    FILE* file, const char* name, const char* dir, const char* totalName,
+    const ImageLoadTarget& target) {
+    IndexedImage* image = read_pcx_indexed_image(file, name, dir, totalName,
+        target);
+    if (image == NULL)
+        return NULL;
 
     return new ImageEntry(name, "", image);
 }

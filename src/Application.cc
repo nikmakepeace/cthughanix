@@ -251,8 +251,11 @@ void Application::initSceneRuntime() {
     }
     if (sceneImageCatalogValue.get() == NULL) {
         sceneImageCatalogValue.reset(new SceneImageCatalog());
-        copySceneImageCatalogFromImageOption(
-            *imageOptionValue, *sceneImageCatalogValue);
+        loadSceneImageCatalog(*sceneImageCatalogValue,
+            startupConfigValue.paths,
+            startupConfigValue.effectPolicy.imageFilesEnabled,
+            frameGeneratorValue.geometry().width(),
+            frameGeneratorValue.geometry().height(), logSinkValue);
     }
     if (scenePaletteCatalogValue.get() == NULL) {
         scenePaletteCatalogValue.reset(new ScenePaletteCatalog());
@@ -572,8 +575,11 @@ int Application::initialize() {
         return 0;
     }
     sceneImageCatalogValue.reset(new SceneImageCatalog());
-    copySceneImageCatalogFromImageOption(
-        *imageOptionValue, *sceneImageCatalogValue);
+    loadSceneImageCatalog(*sceneImageCatalogValue,
+        startupConfigValue.paths,
+        startupConfigValue.effectPolicy.imageFilesEnabled,
+        frameGeneratorValue.geometry().width(),
+        frameGeneratorValue.geometry().height(), logSinkValue);
     init_border();
     init_flashlight();
 

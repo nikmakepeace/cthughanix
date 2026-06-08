@@ -1033,6 +1033,8 @@ static void testCatalogLoadingUsesPathConfig() {
     assertSourceContains("src/waves.cc", "loadEffectChoices(object, pathConfig");
     assertSourceContains("src/SceneWaveObjectCatalogLoader.cc",
         "pathConfig.extraLibraryPath");
+    assertSourceContains("src/SceneImageCatalogLoader.cc",
+        "pathConfig.extraLibraryPath");
 }
 
 static void testCatalogLoadingSkipsDuplicateNamesWithoutCompressedAssetShellOut() {
@@ -3018,14 +3020,25 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotExist("src/LegacySceneImageCatalogAdapter.h");
     assertSourceDoesNotExist("src/LegacySceneImageCatalogAdapter.cc");
     assertSourceContains("src/SceneImageCatalogLoader.cc",
-        "copySceneImageCatalogFromImageOption(");
+        "loadSceneImageCatalog(");
     assertSourceContains("src/SceneImageCatalogLoader.cc",
-        "dynamic_cast<ImageEntry*>(imageOption[i])");
+        "read_pcx_indexed_image");
+    assertSourceContains("src/SceneImageCatalogLoader.cc",
+        "read_png_indexed_image");
+    assertSourceDoesNotContain("src/SceneImageCatalogLoader.h",
+        "ImageOption");
+    assertSourceDoesNotContain("src/SceneImageCatalogLoader.cc",
+        "copySceneImageCatalogFromImageOption");
+    assertSourceDoesNotContain("src/SceneImageCatalogLoader.cc",
+        "dynamic_cast<ImageEntry*>");
     assertSourceContains("src/Application.h",
         "std::unique_ptr<SceneImageCatalog> sceneImageCatalogValue");
     assertSourceContains("src/Application.cc",
-        "copySceneImageCatalogFromImageOption(\n"
-        "        *imageOptionValue, *sceneImageCatalogValue)");
+        "loadSceneImageCatalog(*sceneImageCatalogValue,\n"
+        "        startupConfigValue.paths,\n"
+        "        startupConfigValue.effectPolicy.imageFilesEnabled");
+    assertSourceDoesNotContain("src/Application.cc",
+        "copySceneImageCatalogFromImageOption(");
     assertSourceContains("src/CMakeLists.txt", "SceneImageCatalog.cc");
     assertSourceContains("src/CMakeLists.txt",
         "SceneImageCatalogLoader.cc");
@@ -3046,7 +3059,7 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceContains("tests/unit/SceneImageCatalogTest.cc",
         "testCatalogOwnsCopiedIndexedImages");
     assertSourceContains("tests/unit/SceneCatalogLoaderTest.cc",
-        "testCopiesImagesFromImageOption");
+        "testLoadsImagesFromPathConfig");
     assertSourceContains("src/ScenePaletteCatalog.h",
         "class ScenePaletteCatalog");
     assertSourceDoesNotContain("src/ScenePaletteCatalog.h",
