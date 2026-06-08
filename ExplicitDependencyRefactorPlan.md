@@ -801,97 +801,10 @@ item answers three questions:
 - What must be true before the compatibility surface is no longer needed?
 - What concrete work has already satisfied, or still must satisfy, that gate?
 
-Items marked complete are kept here only to document why the temporary surface
-existed and what satisfied its completion gate. Items marked remaining name the
-concrete changes needed before the surface can disappear.
+Only remaining items are listed here. Completed bullets are erased once their
+completion gates are satisfied.
 
-1. **Retire the `CthughaBuffer`/`VideoDirector` global storage path. Status:
-   complete.**
-   Compatibility purpose: this surface preserved the old active/passive frame
-   storage, scene observation, palette transition, cue, and filterchain
-   behavior while ownership moved under Frame Generator.
-
-   What removes it: Frame Generator must own frame storage, geometry,
-   scene-binding state, transition state, and pipeline execution, and callers
-   must receive the generated frame explicitly instead of reading process-global
-   storage.
-
-   Concrete work already completed:
-   - `VideoDirector` is deleted.
-   - Static `CthughaBuffer::buffer` and `CthughaBuffer::current` aliases are
-     gone.
-   - `FrameGeneratorRuntime` owns `FrameGeometry`, `FrameStore`,
-     `FrameGeneratorPipeline`, `FrameGeneratorSceneBinding`, and
-     `FrameTransitionController`.
-   - Display no longer falls back to generator storage for current pixels.
-   - `Application` passes the returned `IndexedFrame` to Display explicitly.
-   - Boundary tests block `CthughaBuffer` aliases, display globals, and runtime
-     command/persistence reach-through from the Frame Generator path.
-
-2. **Rename or port legacy `VideoFilterchain`, `VideoFilters`,
-   `VideoFrameContext`, and `VideoFrameBudget` APIs. Status: complete.**
-   Compatibility purpose: this surface kept the old video/filterchain
-   vocabulary alive while filters, frame-budget helpers, and pipeline code moved
-   under `FrameGeneratorRuntime`.
-
-   What removes it: public Frame Generator headers, source files, tests,
-   benchmarks, and CMake entries must expose only Frame Generator or neutral
-   names. Any remaining `Video*` name must be isolated as a private legacy
-   adapter with a boundary test explaining why it still exists.
-
-   Concrete work already completed:
-   - The old `VideoFilterchain*`, `VideoFilters*`, `VideoFrameContext`, and
-     `VideoFrameBudget*` files no longer exist.
-   - The public generator path uses `FrameFilterchain*`,
-     `FrameGeneratorContext`, `FrameGeneratorFrameBudget`,
-     `FrameGeneratorPipeline`, and `FrameGeneratorRuntime`.
-   - CMake, unit tests, and benchmarks use the new names.
-   - Boundary tests assert that public Frame Generator files do not contain the
-     legacy `Video*` API names.
-
-3. **Replace generator-side legacy logging macros with explicit `LogSink&`.
-   Status: complete.**
-   Compatibility purpose: this surface let old generator and filter code keep
-   logging through process-level `CTH_*` macros before diagnostics were
-   injectable.
-
-   What removes it: diagnostics must enter the generator path through
-   `FrameGeneratorRuntime` or explicit filter/pipeline collaborators, and
-   generator sources must not include the logging macro bridge just to report
-   configure/render/filter diagnostics.
-
-   Concrete work already completed:
-   - `FrameGeneratorRuntime` receives `LogSink&`.
-   - Scene binding, pipeline, filterchain, filter frames, and wave runtime code
-     receive explicit logging collaborators.
-   - Frame Generator boundary tests reject `CTH_DEBUG`, `CTH_INFO`,
-     `CTH_WARN`, `CTH_ERROR`, `CTH_TRACE`, and `CTH_LOG_ENABLED` in the
-     generator path.
-   - Generator diagnostics tests can inject a recording or silent log sink.
-
-4. **Replace the generator render input compatibility bundle. Status: complete
-   for Frame Generator.**
-   Compatibility purpose: this surface carried raw audio, processed wave data,
-   `AudioMetrics`, `AcousticContext`, scene snapshot, timing, and frame budget
-   through the old frame-render context shape while generator inputs were being
-   split into explicit dependencies.
-
-   What removes it: render inputs must be explicit borrow-only values, and Audio
-   must provide immutable analysis snapshots instead of exposing its rolling
-   analyzer object to generation code.
-
-   Concrete work already completed:
-   - `FrameGeneratorContext` carries `AudioFrame` pointers, raw/processed audio
-     buffers, `AudioAnalysisSnapshot`, `SceneSnapshot`, timing, and explicit
-     frame-budget values.
-   - Frame Generator files do not expose `VideoFrameContext`,
-     `FrameRenderContext`, or `AcousticContext`.
-   - Boundary tests block `AudioAnalyzer.h`, `AcousticContext`, and
-     `FrameRenderContext` from Frame Generator sources.
-   - `FrameRenderContext` and `AcousticContext` may still exist in Scene,
-     Audio, and Display follow-up work, but they are no longer generator inputs.
-
-5. **Move visual catalogs and selections off global `EffectControl` objects.
+1. **Move visual catalogs and selections off global `EffectControl` objects.
    Status: remaining.**
    Compatibility purpose: this surface lets explicit Scene selections coexist
    with legacy visual catalogs. `LegacySceneVisualCatalogFactory.cc`
@@ -970,7 +883,7 @@ concrete changes needed before the surface can disappear.
    every catalog and selection used by Scene/Frame Generator; and boundary tests
    block global visual `EffectControl` dependencies from those modules.
 
-6. **Delete legacy visual command, binding, and config bridges. Status:
+2. **Delete legacy visual command, binding, and config bridges. Status:
    remaining.**
    Compatibility purpose: this surface keeps old visual control mirrors,
    save/restore behavior, startup synchronization, and ini contribution working
@@ -1032,7 +945,7 @@ concrete changes needed before the surface can disappear.
    adapters; and boundary tests assert that Scene and Frame Generator use
    native visual owners.
 
-7. **Finish the separate Display cleanup outside Frame Generator. Status:
+3. **Finish the separate Display cleanup outside Frame Generator. Status:
    related remaining.**
    Compatibility purpose: this surface is for older presentation, overlay,
    panel, and event code that still expects global display access. Display still
