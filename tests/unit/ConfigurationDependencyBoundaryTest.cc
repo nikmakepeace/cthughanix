@@ -1399,7 +1399,7 @@ static void testSceneStartupUsesSceneConfig() {
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
         "class LegacySceneSelectionAdapterSet");
     assertSourceContains("src/LegacySceneSelectionAdapters.h",
-        "LegacySceneControlMirror& controlMirror");
+        "std::unique_ptr<LegacySceneControlMirror> controlMirror");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "dynamic_cast<LegacySceneControlMirror");
     assertSourceContains("src/LegacySceneSelectionFactory.cc",
@@ -1513,12 +1513,14 @@ static void testSceneStartupUsesSceneConfig() {
         "std::unique_ptr<LegacySceneSelectionAdapterSet>\n"
         "createLegacySceneSelectionAdapters");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+        "class LegacySceneSelectionMirror : public LegacySceneControlMirror");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "class LegacySceneSelectionAdapters : public SceneVisualSelections");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "std::unique_ptr<SceneVisualSelections> selections;");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceContains("src/LegacySceneSelectionAdapters.h",
+        "std::unique_ptr<SceneVisualSelections> selections");
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "return selections->flame();");
-    assertSourceContains("src/LegacySceneSelectionAdapters.cc",
+    assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "return selections->images();");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.h",
         "class LegacySceneFlameSelection");
@@ -3217,7 +3219,7 @@ static void testEffectControlUsesInjectedRandomSource() {
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void LegacySceneControlBackedSelection::selectionChanged()");
     assertSourceContains("src/LegacySceneSelectionAdapters.cc",
-        "generalFlameControl.setValue(selections->generalFlame().currentValue())");
+        "generalFlameControl.setValue(selections.generalFlame().currentValue())");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",
         "void SceneChoiceSelection::mirrorToControl()");
     assertSourceDoesNotContain("src/LegacySceneSelectionAdapters.cc",

@@ -1057,6 +1057,9 @@ from this plan.
    - The remaining bridge is one-way: it pushes native selection values back to
      temporary legacy controls and is passed explicitly instead of discovered
      through RTTI or selection-side identity lookup.
+   - The legacy mirror is now a separate `LegacySceneSelectionMirror` owned
+     alongside native `SceneVisualSelections`; native selections no longer
+     subclass or delegate through the legacy mirror adapter.
    - Legacy control synchronization is now performed at the `SceneCommands`
      boundary through `SceneSelectionSynchronizer`; the native
      `SceneVisualCatalogService` does not know about `LegacySceneControlMirror`

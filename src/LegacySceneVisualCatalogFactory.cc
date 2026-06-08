@@ -24,7 +24,7 @@ LegacySceneVisualCatalogFactory::LegacySceneVisualCatalogFactory(
     std::unique_ptr<LegacySceneSelectionAdapterSet> ownedAdapters_)
     : ownedAdapters(std::move(ownedAdapters_))
     , selections(*ownedAdapters->selections)
-    , controlMirror(ownedAdapters->controlMirror)
+    , controlMirror(*ownedAdapters->controlMirror)
     , paletteRandomizer(createLegacyScenePaletteRandomizer()) { }
 
 SceneVisualCatalogFactoryResult LegacySceneVisualCatalogFactory::create(

@@ -15,20 +15,20 @@ class SceneTranslationCatalog;
 class SceneWaveObjectCatalog;
 
 /**
- * Owned legacy selection adapter plus its explicit control mirror.
+ * Owned native selections plus their explicit legacy control mirror.
  *
- * The mirror points into the selection adapter object owned by selections; it
- * is exposed separately so Scene wiring does not need to discover it through
- * RTTI or legacy EffectControl identity.
+ * The mirror is intentionally separate from the selection set so native Scene
+ * selections do not implement legacy EffectControl identity or synchronization
+ * behavior.
  */
 class LegacySceneSelectionAdapterSet {
 public:
     std::unique_ptr<SceneVisualSelections> selections;
-    LegacySceneControlMirror& controlMirror;
+    std::unique_ptr<LegacySceneControlMirror> controlMirror;
 
     LegacySceneSelectionAdapterSet(
         std::unique_ptr<SceneVisualSelections> selections_,
-        LegacySceneControlMirror& controlMirror_);
+        std::unique_ptr<LegacySceneControlMirror> controlMirror_);
     ~LegacySceneSelectionAdapterSet();
 };
 
@@ -50,9 +50,9 @@ createLegacySceneSelectionAdapters(
     const SceneTranslationCatalog& translations);
 
 /**
- * Wraps prebuilt native selections with legacy control lookup/sync bindings.
+ * Wraps prebuilt native selections with a legacy control sync mirror.
  *
- * @param selections Owned native selection set to expose through the adapter.
+ * @param selections Owned native selection set to expose to Scene.
  */
 std::unique_ptr<LegacySceneSelectionAdapterSet>
 createLegacySceneSelectionAdapters(

@@ -10,8 +10,7 @@
 
 namespace {
 
-class LegacySceneSelectionAdapters : public SceneVisualSelections,
-    public LegacySceneControlMirror {
+class LegacySceneSelectionMirror : public LegacySceneControlMirror {
     EffectControl& flameControl;
     EffectControl& generalFlameControl;
     EffectControl& waveControl;
@@ -23,38 +22,26 @@ class LegacySceneSelectionAdapters : public SceneVisualSelections,
     EffectControl& borderControl;
     EffectControl& flashlightControl;
     EffectControl& imagesControl;
-    std::unique_ptr<SceneVisualSelections> selections;
+    SceneVisualSelections& selections;
 
 public:
-    LegacySceneSelectionAdapters(EffectControl& flame_,
+    LegacySceneSelectionMirror(EffectControl& flame_,
         EffectControl& generalFlame_, EffectControl& wave_,
         EffectControl& waveScale_, EffectControl& table_,
         EffectControl& object_, EffectControl& translation_,
         EffectControl& palette_, EffectControl& border_,
         EffectControl& flashlight_, EffectControl& images_,
-        std::unique_ptr<SceneVisualSelections> selections_);
-
-    virtual SceneFlameSelection& flame();
-    virtual SceneGeneralFlameSelection& generalFlame();
-    virtual SceneWaveSelection& wave();
-    virtual SceneOptionSelection& waveScale();
-    virtual SceneOptionSelection& table();
-    virtual SceneOptionSelection& object();
-    virtual SceneTranslationSelection& translation();
-    virtual ScenePaletteSelection& palette();
-    virtual SceneOptionSelection& border();
-    virtual SceneOptionSelection& flashlight();
-    virtual SceneImageSelection& images();
+        SceneVisualSelections& selections_);
 
     virtual void syncControlsFromSelections();
 };
 
-LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_,
+LegacySceneSelectionMirror::LegacySceneSelectionMirror(EffectControl& flame_,
     EffectControl& generalFlame_, EffectControl& wave_,
     EffectControl& waveScale_, EffectControl& table_, EffectControl& object_,
     EffectControl& translation_, EffectControl& palette_,
     EffectControl& border_, EffectControl& flashlight_, EffectControl& images_,
-    std::unique_ptr<SceneVisualSelections> selections_)
+    SceneVisualSelections& selections_)
     : flameControl(flame_)
     , generalFlameControl(generalFlame_)
     , waveControl(wave_)
@@ -66,73 +53,29 @@ LegacySceneSelectionAdapters::LegacySceneSelectionAdapters(EffectControl& flame_
     , borderControl(border_)
     , flashlightControl(flashlight_)
     , imagesControl(images_)
-    , selections(std::move(selections_)) { }
+    , selections(selections_) { }
 
-SceneFlameSelection& LegacySceneSelectionAdapters::flame() {
-    return selections->flame();
-}
-
-SceneGeneralFlameSelection& LegacySceneSelectionAdapters::generalFlame() {
-    return selections->generalFlame();
-}
-
-SceneWaveSelection& LegacySceneSelectionAdapters::wave() {
-    return selections->wave();
-}
-
-SceneOptionSelection& LegacySceneSelectionAdapters::waveScale() {
-    return selections->waveScale();
-}
-
-SceneOptionSelection& LegacySceneSelectionAdapters::table() {
-    return selections->table();
-}
-
-SceneOptionSelection& LegacySceneSelectionAdapters::object() {
-    return selections->object();
-}
-
-SceneTranslationSelection& LegacySceneSelectionAdapters::translation() {
-    return selections->translation();
-}
-
-ScenePaletteSelection& LegacySceneSelectionAdapters::palette() {
-    return selections->palette();
-}
-
-SceneOptionSelection& LegacySceneSelectionAdapters::border() {
-    return selections->border();
-}
-
-SceneOptionSelection& LegacySceneSelectionAdapters::flashlight() {
-    return selections->flashlight();
-}
-
-SceneImageSelection& LegacySceneSelectionAdapters::images() {
-    return selections->images();
-}
-
-void LegacySceneSelectionAdapters::syncControlsFromSelections() {
-    flameControl.setValue(selections->flame().currentValue());
-    generalFlameControl.setValue(selections->generalFlame().currentValue());
-    waveControl.setValue(selections->wave().currentValue());
-    waveScaleControl.setValue(selections->waveScale().currentValue());
-    tableControl.setValue(selections->table().currentValue());
-    objectControl.setValue(selections->object().currentValue());
-    translationControl.setValue(selections->translation().currentValue());
-    paletteControl.setValue(selections->palette().currentValue());
-    borderControl.setValue(selections->border().currentValue());
-    flashlightControl.setValue(selections->flashlight().currentValue());
-    imagesControl.setValue(selections->images().currentValue());
+void LegacySceneSelectionMirror::syncControlsFromSelections() {
+    flameControl.setValue(selections.flame().currentValue());
+    generalFlameControl.setValue(selections.generalFlame().currentValue());
+    waveControl.setValue(selections.wave().currentValue());
+    waveScaleControl.setValue(selections.waveScale().currentValue());
+    tableControl.setValue(selections.table().currentValue());
+    objectControl.setValue(selections.object().currentValue());
+    translationControl.setValue(selections.translation().currentValue());
+    paletteControl.setValue(selections.palette().currentValue());
+    borderControl.setValue(selections.border().currentValue());
+    flashlightControl.setValue(selections.flashlight().currentValue());
+    imagesControl.setValue(selections.images().currentValue());
 }
 
 }
 
 LegacySceneSelectionAdapterSet::LegacySceneSelectionAdapterSet(
     std::unique_ptr<SceneVisualSelections> selections_,
-    LegacySceneControlMirror& controlMirror_)
+    std::unique_ptr<LegacySceneControlMirror> controlMirror_)
     : selections(std::move(selections_))
-    , controlMirror(controlMirror_) { }
+    , controlMirror(std::move(controlMirror_)) { }
 
 LegacySceneSelectionAdapterSet::~LegacySceneSelectionAdapterSet() { }
 
@@ -143,11 +86,11 @@ createLegacySceneSelectionAdapters(
     EffectControl& translation, EffectControl& palette, EffectControl& border,
     EffectControl& flashlight, EffectControl& images,
     std::unique_ptr<SceneVisualSelections> selections) {
-    LegacySceneSelectionAdapters* adapter = new LegacySceneSelectionAdapters(
+    std::unique_ptr<LegacySceneControlMirror> controlMirror(
+        new LegacySceneSelectionMirror(
         flame, generalFlame, wave, waveScale, table, object, translation,
-        palette, border, flashlight, images, std::move(selections));
-    std::unique_ptr<SceneVisualSelections> ownedSelections(adapter);
+        palette, border, flashlight, images, *selections));
     return std::unique_ptr<LegacySceneSelectionAdapterSet>(
         new LegacySceneSelectionAdapterSet(
-            std::move(ownedSelections), *adapter));
+            std::move(selections), std::move(controlMirror)));
 }
