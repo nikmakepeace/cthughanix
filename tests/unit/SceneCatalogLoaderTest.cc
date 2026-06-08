@@ -48,6 +48,21 @@ EffectChoice* read_png_image(FILE*, const char*, const char*, const char*,
     return 0;
 }
 
+IndexedImage* read_pcx_indexed_image(FILE*, const char* name, const char*,
+    const char*, const ImageLoadTarget&) {
+    ColorPalette* palette = new ColorPalette();
+    palette->setColor(1, 10, 20, 30);
+
+    IndexedImage* image = new IndexedImage(name, 1, 1, palette);
+    image->mutablePixels()[0] = 7;
+    return image;
+}
+
+IndexedImage* read_png_indexed_image(FILE*, const char*, const char*,
+    const char*, const ImageLoadTarget&) {
+    return 0;
+}
+
 class SilentLogSink : public LogSink {
 public:
     virtual int enabled(int) const { return 0; }
@@ -115,6 +130,31 @@ static void removeTemporaryObjectRoot(const std::string& root) {
     rmdir(root.c_str());
 }
 
+static std::string createTemporaryImageRoot() {
+    char pathTemplate[] = "/tmp/cthughanix-scene-images-XXXXXX";
+    char* path = mkdtemp(pathTemplate);
+    assert(path != 0);
+
+    std::string root(path);
+    std::string imageDir = root + "/img";
+    assert(mkdir(imageDir.c_str(), 0700) == 0);
+    return root;
+}
+
+static void writeImageFile(const std::string& root, const char* name) {
+    std::string path = root + "/img/" + name;
+    FILE* file = fopen(path.c_str(), "w");
+    assert(file != 0);
+    assert(fputs("stub image\n", file) >= 0);
+    fclose(file);
+}
+
+static void removeTemporaryImageRoot(const std::string& root) {
+    unlink((root + "/img/fixture.pcx").c_str());
+    rmdir((root + "/img").c_str());
+    rmdir(root.c_str());
+}
+
 static void testLoadsWaveObjectsFromPathConfig() {
     std::string root = createTemporaryObjectRoot();
     writeObjectFile(root, "fixture.obj");
@@ -146,27 +186,32 @@ static void testLoadsWaveObjectsFromPathConfig() {
     removeTemporaryObjectRoot(root);
 }
 
-static void testCopiesImagesFromImageOption() {
-    ColorPalette* palette = new ColorPalette();
-    palette->setColor(1, 10, 20, 30);
-    IndexedImage* image = new IndexedImage("fixture-source", 1, 1, palette);
-    image->mutablePixels()[0] = 7;
+static void testLoadsImagesFromPathConfig() {
+    std::string root = createTemporaryImageRoot();
+    writeImageFile(root, "fixture.pcx");
 
-    ImageOption images(-1, "image-test");
-    images.add(new ImageEntry("fixture-image", "", image));
-
+    PathConfig pathConfig;
+    pathConfig.extraLibraryPath = root;
+    SilentLogSink log;
     SceneImageCatalog catalog;
-    copySceneImageCatalogFromImageOption(images, catalog);
 
-    int index = catalogIndexByName(catalog, "fixture-image");
+    loadSceneImageCatalog(catalog, pathConfig, 1, 320, 200, log);
+
+    int noneIndex = catalogIndexByName(catalog, "none");
+    assert(noneIndex >= 0);
+    assert(catalog.imageAt(noneIndex) == 0);
+
+    int index = catalogIndexByName(catalog, "fixture");
     assert(index >= 0);
     assert(catalog.inUseAt(index) == 1);
 
     const IndexedImage* copied = catalog.imageAt(index);
     assert(copied != 0);
-    assert(strcmp(copied->name(), "fixture-source") == 0);
+    assert(strcmp(copied->name(), "fixture") == 0);
     assert(copied->pixels()[0] == 7);
     assert(copied->palette()->component(1, 0) == 10);
+
+    removeTemporaryImageRoot(root);
 }
 
 static void testCopiesPalettesFromEffectControl() {
@@ -189,7 +234,7 @@ static void testCopiesPalettesFromEffectControl() {
 
 int main() {
     testLoadsWaveObjectsFromPathConfig();
-    testCopiesImagesFromImageOption();
+    testLoadsImagesFromPathConfig();
     testCopiesPalettesFromEffectControl();
     return 0;
 }

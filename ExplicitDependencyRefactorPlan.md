@@ -500,8 +500,8 @@ catalog loaders:
   `createSceneVisualCatalogServiceFactory(...)` from native
   `SceneVisualSelectionSeeds`; startup names are applied through
   `SceneRuntime::applyStartupConfig(...)`.
-- `SceneImageCatalogLoader` and `ScenePaletteCatalogLoader` still copy data
-  loaded by compatibility visual option/catalog code into native Scene catalogs.
+- `ScenePaletteCatalogLoader` still copies data loaded by compatibility visual
+  option/catalog code into a native Scene catalog.
 - These loaders remain temporary until the visual catalog/filterchain side
   owns flames, waves, palettes, images, translation tables, and frame geometry
   without `CthughaBuffer::buffer` or process-wide option catalogs.
@@ -974,9 +974,9 @@ from this plan.
      `SceneWaveObjectCatalog` ownership through `SceneWaveObjectCatalogLoader`,
      and Scene object selections use that native catalog without copying from
      the global object `EffectControl`.
-   - Image entries are copied into native `SceneImageCatalog` ownership after
-     the explicit Frame Generator image option loads, and Scene image
-     selections use that native catalog.
+   - Image entries load directly into native `SceneImageCatalog` ownership
+     through `SceneImageCatalogLoader`, and Scene image selections use that
+     native catalog without copying from the temporary legacy `ImageOption`.
    - The temporary legacy `ImageOption` is owned by `Application` for loading,
      Display/interface compatibility, and legacy adapter wiring; public Frame
      Generator APIs no longer expose `ImageOption` or include `Image.h`.
@@ -1012,29 +1012,27 @@ from this plan.
      headers. Legacy list/interface and loading paths use those headers instead
      of the broader generation/renderer umbrellas.
    - `Application` creates the native visual catalog service factory and
-     `SceneRuntime` after built-in/file-backed visual catalog loading, so copied
-     Scene catalogs see loaded object, translation, palette, and image entries.
+     `SceneRuntime` after built-in/file-backed visual catalog loading, so Scene
+     catalogs see loaded object, translation, palette, and image entries.
    - Global visual headers are limited to Application startup/loading,
      list/interface compatibility, and legacy option implementation files.
      Frame Generator files use Scene ports plus narrow border/flashlight
      renderer ports instead of including global visual option headers.
 
 6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
-   Remaining compatibility surfaces: `SceneImageCatalogLoader` and
-   `ScenePaletteCatalogLoader`.
+   Remaining compatibility surface: `ScenePaletteCatalogLoader`.
    `LegacySceneSelectionAdapters`, `LegacySceneSelectionFactory`,
    `LegacyScenePaletteRandomizer`, `LegacySceneVisualCatalogFactory`, and
    `LegacyGlobalSceneSelectionFactory` are deleted; native selections are no
    longer mirrored back into visual `EffectControl` globals.
 
    What remains:
-   - Replace the remaining compatibility copy loaders with native visual
-     loaders.
-     This is complete when palettes and images load directly into owned
-     Scene/visual catalogs without first populating `EffectChoice` lists,
-     Application no longer copies catalogs from `EffectControl` or
-     `ImageOption`, and CMake/boundary tests assert the compatibility loader
-     files are absent.
+   - Replace the remaining compatibility palette copy loader with a native
+     visual loader.
+     This is complete when palettes load directly into owned Scene/visual
+     catalogs without first populating `EffectChoice` lists, Application no
+     longer copies the palette catalog from `EffectControl`, and CMake/boundary
+     tests assert the compatibility loader files are absent.
    - Retire any pre-startup or non-Scene UI fallback that still displays Scene
      visual choices through legacy `EffectControl` lists. This is complete when
      F2 lists, X11 menus, keymap actions, and runtime config display code all
