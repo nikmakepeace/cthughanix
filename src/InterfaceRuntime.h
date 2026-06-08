@@ -5,6 +5,8 @@
 #ifndef __INTERFACE_RUNTIME_H
 #define __INTERFACE_RUNTIME_H
 
+#include "RuntimeCommand.h"
+
 #include <vector>
 
 class SceneChangeStatusProvider;
@@ -294,6 +296,22 @@ public:
         const char* optionKeymapName, int key);
 
     /**
+     * Runs a key through a typed Scene selection row.
+     *
+     * @param sceneTarget Scene selection targeted by visual-row actions.
+     * @param element Element supplying increment sizes for value actions.
+     * @param sceneSelectionKeymapName First keymap to try.
+     * @param optionKeymapName Fallback option keymap.
+     * @param key Key code to route.
+     * @return Keymap handling result.
+     */
+    int runSceneSelectionKey(RuntimeSceneTarget sceneTarget,
+        InterfaceElementOption& element, KeymapRegistry& keymaps,
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, const char* sceneSelectionKeymapName,
+        const char* optionKeymapName, int key);
+
+    /**
      * Runs a key through an effect-choice list row with scoped command context.
      *
      * @param effectControl Effect control owning the selected row.
@@ -302,6 +320,18 @@ public:
      * @return Keymap handling result.
      */
     int runEffectChoiceKey(EffectControl& effectControl, Option& option,
+        KeymapRegistry& keymaps, CommandRegistry& commands,
+        CommandDispatcher& dispatcher, CommandContext& context,
+        int selectedIndex, int key);
+
+    /**
+     * Runs a key through a typed Scene choice-list row.
+     *
+     * @param sceneTarget Scene selection targeted by list actions.
+     * @param key Key code to route.
+     * @return Keymap handling result.
+     */
+    int runSceneChoiceKey(RuntimeSceneTarget sceneTarget,
         KeymapRegistry& keymaps, CommandRegistry& commands,
         CommandDispatcher& dispatcher, CommandContext& context,
         int selectedIndex, int key);

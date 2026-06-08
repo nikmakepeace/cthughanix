@@ -989,13 +989,19 @@ concrete changes needed before the surface can disappear.
    `selectionFor(...)` as the single legacy identity lookup. `SceneCommands`,
    `SceneCommandTarget`, and `RuntimeCommand` now expose typed Scene activation,
    lock, and choice-use commands so UI/keymap callers can move off visual
-   `EffectControl&` routing.
+   `EffectControl&` routing. The F2 visual selection rows and visual choice
+   list interfaces now install typed `RuntimeSceneTarget` command contexts, so
+   change-by, change-to, activate, lock, and choice-use actions dispatch typed
+   Scene runtime commands instead of identifying the visual target by
+   `EffectControl&`. Display rows and private legacy adapters still use the
+   generic effect-control route where they belong.
 
    Concrete work still required:
    - Replace `LegacySceneEffectControlBindings::selectionFor(EffectControl&)`
      with native command targets keyed by typed scene-selection identifiers.
-   - Move lock/use toggles, change-by, change-to, random, save, restore, and
-     startup synchronization onto native selection owners.
+   - Move remaining legacy effect-control callers for lock/use toggles,
+     change-by, change-to, random, save, restore, and startup synchronization
+     onto native selection owners.
    - Move ini serialization and runtime config contribution from legacy
      adapters to Scene/native visual serializers.
    - Remove `EffectControl` identity checks from visual runtime-command routing.

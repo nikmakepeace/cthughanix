@@ -1919,10 +1919,51 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceDoesNotContain("src/InterfaceRuntime.h", "commandRouterValue");
     assertSourceContains("src/keymap.h",
         "RuntimeCommandTargetRouter* commandRouterValue");
+    assertSourceContains("src/keymap.h",
+        "RuntimeSceneTarget sceneTargetValue");
+    assertSourceContains("src/keymap.h",
+        "void targetSceneSelection(RuntimeSceneTarget sceneTarget");
+    assertSourceContains("src/keymap.h",
+        "void targetSceneChoice(RuntimeSceneTarget sceneTarget");
     assertSourceContains("src/keymap.cc",
         "commandRouterValue->toggleEffectChoiceUse");
     assertSourceContains("src/keymap.cc",
         "commandRouterValue->changeOptionBy");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::changeSceneBy(sceneTargetValue, step)");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::changeSceneTo(sceneTargetValue, text)");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::toggleSceneLock(sceneTargetValue)");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::toggleSceneChoiceUse(");
+    assertSourceContains("src/keymap.cc",
+        "RuntimeCommand::activateScene(");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "int runSceneSelectionKey(RuntimeSceneTarget sceneTarget");
+    assertSourceContains("src/InterfaceRuntime.h",
+        "int runSceneChoiceKey(RuntimeSceneTarget sceneTarget");
+    assertSourceContains("src/InterfaceRuntime.cc",
+        "context.targetSceneSelection(sceneTarget, element)");
+    assertSourceContains("src/InterfaceRuntime.cc",
+        "context.targetSceneChoice(sceneTarget, selectedIndex)");
+    assertSourceContains("src/Interface.cc",
+        "class InterfaceElementRuntimeConfigSceneSelection");
+    assertSourceContains("src/Interface.cc",
+        "runtime.runSceneSelectionKey(sceneTarget");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionFlame, RuntimeSceneFlame");
+    assertSourceContains("src/Interface.cc",
+        "RuntimeConfigSelectionImage, RuntimeSceneImage");
+    assertSourceContains("src/InterfaceList.cc",
+        "runtime.runSceneChoiceKey(sceneTarget");
+    assertSourceContains("src/InterfaceList.cc",
+        "new InterfaceList(\"Flame\", \"Select Flame\", &flame,\n"
+        "            RuntimeSceneFlame)");
+    assertSourceContains("tests/unit/InterfaceRuntimeTest.cc",
+        "testSceneSelectionCommandContextUsesTypedRuntimeCommand");
+    assertSourceContains("tests/unit/InterfaceRuntimeTest.cc",
+        "testSceneChoiceCommandContextUsesTypedRuntimeCommand");
     assertSourceContains("src/DisplayDeviceX11-Panel.cc",
         "runtimeCommandRouter.activateEffectControl");
     assertSourceDoesNotContain("src/InterfaceRuntime.cc",

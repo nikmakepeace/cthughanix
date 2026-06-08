@@ -4,6 +4,7 @@
 #define __KEYMAP_H
 
 #include "cthugha.h"
+#include "RuntimeCommand.h"
 
 #include <vector>
 
@@ -61,6 +62,8 @@ class CommandContext {
     RuntimeCommandTargetRouter* commandRouterValue;
     Option* optionValue;
     EffectControl* effectControlValue;
+    RuntimeSceneTarget sceneTargetValue;
+    int hasSceneTargetValue;
     InterfaceElementOption* optionElementValue;
     int effectChoiceIndexValue;
 
@@ -78,6 +81,23 @@ public:
         InterfaceElementOption& element);
     void targetEffectChoice(EffectControl& effectControl, Option& option,
         int selectedIndex);
+
+    /**
+     * Targets a typed Scene visual selection for scoped row-edit actions.
+     *
+     * @param sceneTarget Scene selection to mutate.
+     * @param element Interface element supplying increment metadata.
+     */
+    void targetSceneSelection(RuntimeSceneTarget sceneTarget,
+        InterfaceElementOption& element);
+
+    /**
+     * Targets a typed Scene visual choice for scoped list actions.
+     *
+     * @param sceneTarget Scene selection containing the choice.
+     * @param selectedIndex Choice index under the cursor.
+     */
+    void targetSceneChoice(RuntimeSceneTarget sceneTarget, int selectedIndex);
 
     void changeValueByElementIncrement(int incrementIndex, double value);
     void setValueFromElement(double value);

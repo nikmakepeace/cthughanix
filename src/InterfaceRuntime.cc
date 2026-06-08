@@ -299,12 +299,43 @@ int InterfaceRuntime::runEffectControlKey(EffectControl& effectControl,
     return result;
 }
 
+int InterfaceRuntime::runSceneSelectionKey(RuntimeSceneTarget sceneTarget,
+    InterfaceElementOption& element, KeymapRegistry& keymaps,
+    CommandRegistry& commands, CommandDispatcher& dispatcher,
+    CommandContext& baseContext, const char* sceneSelectionKeymapName,
+    const char* optionKeymapName, int key) {
+    CommandContext context = baseContext;
+    context.targetSceneSelection(sceneTarget, element);
+    int result = dispatcher.dispatchKeymap(keymaps, commands,
+        sceneSelectionKeymapName, key, context);
+    if (result == 1)
+        result = dispatcher.dispatchKeymap(keymaps, commands,
+            optionKeymapName, key, context);
+
+    return result;
+}
+
 int InterfaceRuntime::runEffectChoiceKey(EffectControl& effectControl,
     Option& option, KeymapRegistry& keymaps, CommandRegistry& commands,
     CommandDispatcher& dispatcher, CommandContext& baseContext,
     int selectedIndex, int key) {
     CommandContext context = baseContext;
     context.targetEffectChoice(effectControl, option, selectedIndex);
+    int result = dispatcher.dispatchKeymap(keymaps, commands, "ListOption",
+        key, context);
+    if (result)
+        result = dispatcher.dispatchKeymap(keymaps, commands, "Option", key,
+            context);
+
+    return result;
+}
+
+int InterfaceRuntime::runSceneChoiceKey(RuntimeSceneTarget sceneTarget,
+    KeymapRegistry& keymaps, CommandRegistry& commands,
+    CommandDispatcher& dispatcher, CommandContext& baseContext,
+    int selectedIndex, int key) {
+    CommandContext context = baseContext;
+    context.targetSceneChoice(sceneTarget, selectedIndex);
     int result = dispatcher.dispatchKeymap(keymaps, commands, "ListOption",
         key, context);
     if (result)

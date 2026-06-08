@@ -243,6 +243,8 @@ CommandContext::CommandContext(InterfaceRuntime& runtime,
     , commandRouterValue(commandRouter)
     , optionValue(NULL)
     , effectControlValue(NULL)
+    , sceneTargetValue(RuntimeSceneFlame)
+    , hasSceneTargetValue(0)
     , optionElementValue(NULL)
     , effectChoiceIndexValue(-1) { }
 
@@ -262,6 +264,7 @@ void CommandContext::targetOption(Option& option,
     InterfaceElementOption& element) {
     optionValue = &option;
     effectControlValue = NULL;
+    hasSceneTargetValue = 0;
     optionElementValue = &element;
     effectChoiceIndexValue = -1;
 }
@@ -270,6 +273,7 @@ void CommandContext::targetEffectControl(EffectControl& effectControl,
     InterfaceElementOption& element) {
     optionValue = &effectControl;
     effectControlValue = &effectControl;
+    hasSceneTargetValue = 0;
     optionElementValue = &element;
     effectChoiceIndexValue = -1;
 }
@@ -278,6 +282,27 @@ void CommandContext::targetEffectChoice(EffectControl& effectControl,
     Option& option, int selectedIndex) {
     optionValue = &option;
     effectControlValue = &effectControl;
+    hasSceneTargetValue = 0;
+    optionElementValue = NULL;
+    effectChoiceIndexValue = selectedIndex;
+}
+
+void CommandContext::targetSceneSelection(RuntimeSceneTarget sceneTarget,
+    InterfaceElementOption& element) {
+    optionValue = NULL;
+    effectControlValue = NULL;
+    sceneTargetValue = sceneTarget;
+    hasSceneTargetValue = 1;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+
+void CommandContext::targetSceneChoice(
+    RuntimeSceneTarget sceneTarget, int selectedIndex) {
+    optionValue = NULL;
+    effectControlValue = NULL;
+    sceneTargetValue = sceneTarget;
+    hasSceneTargetValue = 1;
     optionElementValue = NULL;
     effectChoiceIndexValue = selectedIndex;
 }
@@ -303,47 +328,66 @@ void CommandContext::changeValueByElementIncrement(int incrementIndex,
 
     int increment = commandContextIncrement(*optionElementValue,
         incrementIndex);
-    if ((increment == 0) || (commandRouterValue == NULL))
+    if (increment == 0)
         return;
 
     int step = int(value * increment);
-    if (effectControlValue != NULL) {
+    if ((hasSceneTargetValue != 0) && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(
+            RuntimeCommand::changeSceneBy(sceneTargetValue, step));
+    } else if ((effectControlValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeEffectControlBy(*effectControlValue, step);
-    } else if (optionValue != NULL) {
+    } else if ((optionValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeOptionBy(*optionValue, step);
     }
 }
 
 void CommandContext::setValueFromElement(double value) {
-    if ((optionElementValue == NULL) || (commandRouterValue == NULL))
+    if (optionElementValue == NULL)
         return;
 
     char text[128];
     snprintf(text, sizeof(text), "%d", int(value * optionElementValue->inc1));
 
-    if (effectControlValue != NULL) {
+    if ((hasSceneTargetValue != 0) && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(
+            RuntimeCommand::changeSceneTo(sceneTargetValue, text));
+    } else if ((effectControlValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeEffectControlTo(*effectControlValue, text);
         commandRouterValue->changeEffectControlBy(*effectControlValue, 0);
-    } else if (optionValue != NULL) {
+    } else if ((optionValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeOptionTo(*optionValue, text);
         commandRouterValue->changeOptionBy(*optionValue, 0);
     }
 }
 
 void CommandContext::toggleEffectControlLock() {
-    if ((effectControlValue != NULL) && (commandRouterValue != NULL))
+    if ((hasSceneTargetValue != 0) && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(
+            RuntimeCommand::toggleSceneLock(sceneTargetValue));
+    } else if ((effectControlValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->toggleEffectControlLock(*effectControlValue);
+    }
 }
 
 void CommandContext::toggleEffectChoiceUse() {
-    if ((effectControlValue != NULL) && (effectChoiceIndexValue >= 0)
-        && (commandRouterValue != NULL))
+    if ((hasSceneTargetValue != 0) && (effectChoiceIndexValue >= 0)
+        && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(RuntimeCommand::toggleSceneChoiceUse(
+            sceneTargetValue, effectChoiceIndexValue));
+    } else if ((effectControlValue != NULL) && (effectChoiceIndexValue >= 0)
+        && (commandRouterValue != NULL)) {
         commandRouterValue->toggleEffectChoiceUse(*effectControlValue,
             effectChoiceIndexValue);
+    }
 }
 
 void CommandContext::activateEffectChoice() {
-    if ((effectControlValue != NULL) && (optionValue != NULL)
+    if ((hasSceneTargetValue != 0) && (effectChoiceIndexValue >= 0)
+        && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(RuntimeCommand::activateScene(
+            sceneTargetValue, effectChoiceIndexValue));
+    } else if ((effectControlValue != NULL) && (optionValue != NULL)
         && (effectChoiceIndexValue >= 0) && (commandRouterValue != NULL)) {
         commandRouterValue->activateEffectControl(*effectControlValue,
             effectChoiceIndexValue);

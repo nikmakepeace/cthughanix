@@ -348,6 +348,25 @@ public:
     }
 };
 
+class InterfaceElementRuntimeConfigSceneSelection
+    : public InterfaceElementRuntimeConfigOption {
+    RuntimeSceneTarget sceneTarget;
+
+public:
+    InterfaceElementRuntimeConfigSceneSelection(const char* t,
+        RuntimeConfigSelectionField field_, RuntimeSceneTarget sceneTarget_)
+        : InterfaceElementRuntimeConfigOption(t, &optionDummy, field_)
+        , sceneTarget(sceneTarget_) { }
+
+    virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
+        CommandRegistry& commands, CommandDispatcher& dispatcher,
+        CommandContext& context, int key) {
+        return runtime.runSceneSelectionKey(sceneTarget, *this, keymaps,
+            commands, dispatcher, context, "EffectControlElement",
+            "OptionElement", key);
+    }
+};
+
 void ErrorMessages::addMessage(const char* text, InterfaceRuntime& runtime) {
     if (nMsgs == 128) {
         CTH_ERROR("too many errors: %s\n", text);
@@ -401,12 +420,10 @@ public:
 ACTION(setExtraKeymap) { context.runtime().setExtraKeymap(invocation.param); }
 
 class InterfaceEffectControl : public Interface {
-    ImageOption& images;
-
 public:
-    explicit InterfaceEffectControl(ImageOption& images_)
+    explicit InterfaceEffectControl(ImageOption&)
         : Interface("EffectControls", "Effect Controls", NULL)
-        , images(images_) {
+    {
 
         nElements = 13;
         elements = new InterfaceElement*[nElements];
@@ -415,49 +432,51 @@ public:
             elements[0] = new InterfaceElementRuntimeConfigEffectControl(
                 "Display (d,D)         : %s", &screen,
                 RuntimeConfigSelectionDisplay);
-            elements[1] = new InterfaceElementRuntimeConfigEffectControl(
-                "Flame (f,F)           : %s", &flame,
-                RuntimeConfigSelectionFlame);
+            elements[1] = new InterfaceElementRuntimeConfigSceneSelection(
+                "Flame (f,F)           : %s",
+                RuntimeConfigSelectionFlame, RuntimeSceneFlame);
             elements[2]
-                = new InterfaceElementRuntimeConfigEffectControl(
-                    "General Flame (g)     : %s", &flameGeneral,
-                    RuntimeConfigSelectionGeneralFlame);
-            elements[3] = new InterfaceElementRuntimeConfigEffectControl(
-                "Border (=)            : %s", &border,
-                RuntimeConfigSelectionBorder);
+                = new InterfaceElementRuntimeConfigSceneSelection(
+                    "General Flame (g)     : %s",
+                    RuntimeConfigSelectionGeneralFlame,
+                    RuntimeSceneGeneralFlame);
+            elements[3] = new InterfaceElementRuntimeConfigSceneSelection(
+                "Border (=)            : %s",
+                RuntimeConfigSelectionBorder, RuntimeSceneBorder);
             elements[4]
-                = new InterfaceElementRuntimeConfigEffectControl(
-                    "Translate (t,T)       : %s", &translation,
-                    RuntimeConfigSelectionTranslation);
-            elements[5] = new InterfaceElementRuntimeConfigEffectControl(
-                "Wave (w)              : %s", &wave,
-                RuntimeConfigSelectionWave);
+                = new InterfaceElementRuntimeConfigSceneSelection(
+                    "Translate (t,T)       : %s",
+                    RuntimeConfigSelectionTranslation,
+                    RuntimeSceneTranslation);
+            elements[5] = new InterfaceElementRuntimeConfigSceneSelection(
+                "Wave (w)              : %s",
+                RuntimeConfigSelectionWave, RuntimeSceneWave);
             elements[6]
                 = new InterfaceElementAudioProcessingOption(
                     "Sound Processing (m,M): %s",
                     RuntimeConfigSelectionAudioProcessing);
-            elements[7] = new InterfaceElementRuntimeConfigEffectControl(
-                "Table (b,B)           : %s", &table,
-                RuntimeConfigSelectionTable);
-            elements[8] = new InterfaceElementRuntimeConfigEffectControl(
-                "WaveScale (W)         : %s", &waveScale,
-                RuntimeConfigSelectionWaveScale);
+            elements[7] = new InterfaceElementRuntimeConfigSceneSelection(
+                "Table (b,B)           : %s",
+                RuntimeConfigSelectionTable, RuntimeSceneTable);
+            elements[8] = new InterfaceElementRuntimeConfigSceneSelection(
+                "WaveScale (W)         : %s",
+                RuntimeConfigSelectionWaveScale, RuntimeSceneWaveScale);
             elements[9]
-                = new InterfaceElementRuntimeConfigEffectControl(
-                    "Palette (p,P)         : %s", &palette,
-                    RuntimeConfigSelectionPalette);
+                = new InterfaceElementRuntimeConfigSceneSelection(
+                    "Palette (p,P)         : %s",
+                    RuntimeConfigSelectionPalette, RuntimeScenePalette);
             elements[10]
-                = new InterfaceElementRuntimeConfigEffectControl(
+                = new InterfaceElementRuntimeConfigSceneSelection(
                     "Image (x,X))          : %s",
-                    &images,
-                    RuntimeConfigSelectionImage);
-            elements[11] = new InterfaceElementRuntimeConfigEffectControl(
-                "3D-Object (j,J)       : %s", &object,
-                RuntimeConfigSelectionObject);
+                    RuntimeConfigSelectionImage, RuntimeSceneImage);
+            elements[11] = new InterfaceElementRuntimeConfigSceneSelection(
+                "3D-Object (j,J)       : %s",
+                RuntimeConfigSelectionObject, RuntimeSceneObject);
             elements[12]
-                = new InterfaceElementRuntimeConfigEffectControl(
-                    "Flashlight (s)        : %s", &flashlight,
-                    RuntimeConfigSelectionFlashlight);
+                = new InterfaceElementRuntimeConfigSceneSelection(
+                    "Flashlight (s)        : %s",
+                    RuntimeConfigSelectionFlashlight,
+                    RuntimeSceneFlashlight);
         }
     }
 
@@ -467,22 +486,6 @@ public:
         delete[] elements;
     }
 
-    void preRun() {
-#define O(i)                                                                                       \
-    ((InterfaceElementOption*)elements[i])->opt                                                    \
-        = ((InterfaceElementEffectControl*)elements[i])->effectControl
-        O(1) = &flame;
-        O(2) = &flameGeneral;
-        O(3) = &border;
-        O(4) = &translation;
-        O(5) = &wave;
-        O(7) = &table;
-        O(8) = &waveScale;
-        O(9) = &palette;
-        O(10) = &images;
-        O(11) = &object;
-        O(12) = &flashlight;
-    }
     void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
         CommandRegistry& commands, CommandDispatcher& dispatcher,
         CommandContext& context, int key) {

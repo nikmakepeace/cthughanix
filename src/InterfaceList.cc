@@ -25,12 +25,24 @@ class InterfaceList : public Interface {
     enum { size = 6 };
     int pos;
     EffectControl* effectControl;
+    RuntimeSceneTarget sceneTarget;
+    int hasSceneTarget;
 
 public:
     InterfaceList(const char* name, const char* title, EffectControl* o)
         : Interface(name, title, NULL)
         , pos(0)
-        , effectControl(o) { }
+        , effectControl(o)
+        , sceneTarget(RuntimeSceneFlame)
+        , hasSceneTarget(0) { }
+
+    InterfaceList(const char* name, const char* title, EffectControl* o,
+        RuntimeSceneTarget sceneTarget_)
+        : Interface(name, title, NULL)
+        , pos(0)
+        , effectControl(o)
+        , sceneTarget(sceneTarget_)
+        , hasSceneTarget(1) { }
 
     virtual void display(InterfaceRuntime& runtime) {
 
@@ -79,9 +91,14 @@ public:
         nElements = n;
 
         if ((sel < n) && (sel >= 0)) {
-            ret = runtime.runEffectChoiceKey(*effectControl,
-                effectControl->entries[sel]->use, keymaps, commands,
-                dispatcher, context, sel, key);
+            if (hasSceneTarget) {
+                ret = runtime.runSceneChoiceKey(sceneTarget, keymaps,
+                    commands, dispatcher, context, sel, key);
+            } else {
+                ret = runtime.runEffectChoiceKey(*effectControl,
+                    effectControl->entries[sel]->use, keymaps, commands,
+                    dispatcher, context, sel, key);
+            }
         }
 
         if (ret)
@@ -142,23 +159,32 @@ void registerListInterfaces(InterfaceRuntime& runtime, ImageOption& images) {
     runtime.registerOwnedInterface(
         new InterfaceList("Display", "Select Display", &screen));
     runtime.registerOwnedInterface(
-        new InterfaceList("Flame", "Select Flame", &flame));
+        new InterfaceList("Flame", "Select Flame", &flame,
+            RuntimeSceneFlame));
     runtime.registerOwnedInterface(
-        new InterfaceList("Border", "Select Border of Buffer", &border));
+        new InterfaceList("Border", "Select Border of Buffer", &border,
+            RuntimeSceneBorder));
     runtime.registerOwnedInterface(
-        new InterfaceList("Translate", "Select Translation Table", &translation));
+        new InterfaceList("Translate", "Select Translation Table",
+            &translation, RuntimeSceneTranslation));
     runtime.registerOwnedInterface(
-        new InterfaceList("Wave", "Select Wave", &wave));
+        new InterfaceList("Wave", "Select Wave", &wave, RuntimeSceneWave));
     runtime.registerOwnedInterface(
-        new InterfaceList("Table", "Select Sound Table", &table));
+        new InterfaceList("Table", "Select Sound Table", &table,
+            RuntimeSceneTable));
     runtime.registerOwnedInterface(
-        new InterfaceList("WaveScaling", "Select Wave Scaling", &waveScale));
+        new InterfaceList("WaveScaling", "Select Wave Scaling", &waveScale,
+            RuntimeSceneWaveScale));
     runtime.registerOwnedInterface(
-        new InterfaceList("Object", "Select 3D Object (for some waves)", &object));
+        new InterfaceList("Object", "Select 3D Object (for some waves)",
+            &object, RuntimeSceneObject));
     runtime.registerOwnedInterface(
-        new InterfaceList("Palette", "Select Palette", &palette));
+        new InterfaceList("Palette", "Select Palette", &palette,
+            RuntimeScenePalette));
     runtime.registerOwnedInterface(
-        new InterfaceList("Image", "Select Image", &images));
+        new InterfaceList("Image", "Select Image", &images,
+            RuntimeSceneImage));
     runtime.registerOwnedInterface(
-        new InterfaceList("Flashlight", "Select Flashlight", &flashlight));
+        new InterfaceList("Flashlight", "Select Flashlight", &flashlight,
+            RuntimeSceneFlashlight));
 }

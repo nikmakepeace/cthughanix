@@ -103,6 +103,8 @@ CommandContext::CommandContext(InterfaceRuntime& runtime,
     , commandRouterValue(commandRouter)
     , optionValue(NULL)
     , effectControlValue(NULL)
+    , sceneTargetValue(RuntimeSceneFlame)
+    , hasSceneTargetValue(0)
     , optionElementValue(NULL)
     , effectChoiceIndexValue(-1) { }
 InterfaceRuntime& CommandContext::runtime() const {
@@ -118,6 +120,7 @@ void CommandContext::targetOption(Option& option,
     InterfaceElementOption& element) {
     optionValue = &option;
     effectControlValue = NULL;
+    hasSceneTargetValue = 0;
     optionElementValue = &element;
     effectChoiceIndexValue = -1;
 }
@@ -125,6 +128,7 @@ void CommandContext::targetEffectControl(EffectControl& effectControl,
     InterfaceElementOption& element) {
     optionValue = &effectControl;
     effectControlValue = &effectControl;
+    hasSceneTargetValue = 0;
     optionElementValue = &element;
     effectChoiceIndexValue = -1;
 }
@@ -132,12 +136,31 @@ void CommandContext::targetEffectChoice(EffectControl& effectControl,
     Option& option, int selectedIndex) {
     optionValue = &option;
     effectControlValue = &effectControl;
+    hasSceneTargetValue = 0;
+    optionElementValue = NULL;
+    effectChoiceIndexValue = selectedIndex;
+}
+void CommandContext::targetSceneSelection(RuntimeSceneTarget sceneTarget,
+    InterfaceElementOption& element) {
+    optionValue = NULL;
+    effectControlValue = NULL;
+    sceneTargetValue = sceneTarget;
+    hasSceneTargetValue = 1;
+    optionElementValue = &element;
+    effectChoiceIndexValue = -1;
+}
+void CommandContext::targetSceneChoice(
+    RuntimeSceneTarget sceneTarget, int selectedIndex) {
+    optionValue = NULL;
+    effectControlValue = NULL;
+    sceneTargetValue = sceneTarget;
+    hasSceneTargetValue = 1;
     optionElementValue = NULL;
     effectChoiceIndexValue = selectedIndex;
 }
 void CommandContext::changeValueByElementIncrement(int incrementIndex,
     double value) {
-    if ((optionElementValue == NULL) || (commandRouterValue == NULL))
+    if (optionElementValue == NULL)
         return;
 
     int increment = 0;
@@ -152,15 +175,36 @@ void CommandContext::changeValueByElementIncrement(int incrementIndex,
         return;
 
     int step = int(value * increment);
-    if (effectControlValue != NULL)
+    if ((hasSceneTargetValue != 0) && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(
+            RuntimeCommand::changeSceneBy(sceneTargetValue, step));
+    } else if ((effectControlValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeEffectControlBy(*effectControlValue, step);
-    else if (optionValue != NULL)
+    } else if ((optionValue != NULL) && (commandRouterValue != NULL)) {
         commandRouterValue->changeOptionBy(*optionValue, step);
+    }
 }
 void CommandContext::setValueFromElement(double) { }
-void CommandContext::toggleEffectControlLock() { }
-void CommandContext::toggleEffectChoiceUse() { }
-void CommandContext::activateEffectChoice() { }
+void CommandContext::toggleEffectControlLock() {
+    if ((hasSceneTargetValue != 0) && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(
+            RuntimeCommand::toggleSceneLock(sceneTargetValue));
+    }
+}
+void CommandContext::toggleEffectChoiceUse() {
+    if ((hasSceneTargetValue != 0) && (effectChoiceIndexValue >= 0)
+        && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(RuntimeCommand::toggleSceneChoiceUse(
+            sceneTargetValue, effectChoiceIndexValue));
+    }
+}
+void CommandContext::activateEffectChoice() {
+    if ((hasSceneTargetValue != 0) && (effectChoiceIndexValue >= 0)
+        && (runtimeCommandSinkValue != NULL)) {
+        runtimeCommandSinkValue->apply(RuntimeCommand::activateScene(
+            sceneTargetValue, effectChoiceIndexValue));
+    }
+}
 
 int CommandDispatcher::dispatch(
     const std::vector<ActionInvocation>&, CommandContext&) const {
@@ -219,6 +263,22 @@ public:
     }
 
     virtual RuntimeChangeSet toggleEffectControlLock(EffectControl&) {
+        return RuntimeChangeSet();
+    }
+};
+
+class CapturingCommandSink : public RuntimeCommandSink {
+public:
+    int calls;
+    RuntimeCommand lastCommand;
+
+    CapturingCommandSink()
+        : calls(0)
+        , lastCommand(RuntimeCommandRequestClose) { }
+
+    virtual RuntimeChangeSet apply(const RuntimeCommand& command) {
+        calls++;
+        lastCommand = command;
         return RuntimeChangeSet();
     }
 };
@@ -321,6 +381,51 @@ static void testOptionCommandContextIsScoped() {
     assert(router.optionByCalls == 1);
 }
 
+static void testSceneSelectionCommandContextUsesTypedRuntimeCommand() {
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
+    CapturingCommandSink sink;
+    CapturingTargetRouter router;
+    SimpleOption fallback;
+    InterfaceElementOption element("scene: %s", &fallback, 5, 10, 20);
+    KeymapRegistry keymaps;
+    CommandRegistry commands;
+    CommandDispatcher dispatcher;
+    CommandContext context(runtime, &sink, &router);
+
+    assert(runtime.runSceneSelectionKey(RuntimeScenePalette, element,
+        keymaps, commands, dispatcher, context, "test", "option", 'p') == 0);
+    assert(sink.calls == 1);
+    assert(sink.lastCommand.type == RuntimeCommandChangeSceneBy);
+    assert(sink.lastCommand.sceneTarget == RuntimeScenePalette);
+    assert(sink.lastCommand.value == 5);
+    assert(router.optionByCalls == 0);
+
+    context.changeValueByElementIncrement(1, 1.0);
+    assert(sink.calls == 1);
+}
+
+static void testSceneChoiceCommandContextUsesTypedRuntimeCommand() {
+    FakeMillisecondClock clock(1000);
+    InterfaceRuntime runtime(clock);
+    CapturingCommandSink sink;
+    CapturingTargetRouter router;
+    CommandContext context(runtime, &sink, &router);
+
+    context.targetSceneChoice(RuntimeSceneImage, 4);
+    context.activateEffectChoice();
+    assert(sink.calls == 1);
+    assert(sink.lastCommand.type == RuntimeCommandActivateScene);
+    assert(sink.lastCommand.sceneTarget == RuntimeSceneImage);
+    assert(sink.lastCommand.value == 4);
+
+    context.toggleEffectChoiceUse();
+    assert(sink.calls == 2);
+    assert(sink.lastCommand.type == RuntimeCommandToggleSceneChoiceUse);
+    assert(sink.lastCommand.sceneTarget == RuntimeSceneImage);
+    assert(sink.lastCommand.value == 4);
+}
+
 static void testMillisecondsComeFromInjectedClock() {
     FakeMillisecondClock clock(1234);
     InterfaceRuntime runtime(clock);
@@ -336,6 +441,8 @@ int main() {
     testHelpScrollStateIsOwnedByRuntime();
     testCreditsAnimationStateIsOwnedByRuntime();
     testOptionCommandContextIsScoped();
+    testSceneSelectionCommandContextUsesTypedRuntimeCommand();
+    testSceneChoiceCommandContextUsesTypedRuntimeCommand();
     testMillisecondsComeFromInjectedClock();
     return 0;
 }
