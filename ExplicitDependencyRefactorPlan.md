@@ -999,8 +999,9 @@ from this plan.
      after the legacy palette loader runs, and initial Scene palette selections
      use that native catalog. Random/add-random palette mutation still uses the
      temporary legacy palette randomizer bridge.
-   - The temporary legacy palette randomizer bridge depends on the narrow
-     `PaletteOption` compatibility header instead of the broad Display header.
+   - The temporary legacy palette randomizer and global visual selection
+     bridges depend on the narrow `PaletteOption` compatibility header instead
+     of the broad Display header.
    - Scene visual settings construction, startup choice application, typed
      selection mutation, and random-palette catalog refresh now live in
      `SceneVisualCatalogService` instead of a `LegacySceneVisualCatalogs`
@@ -1015,7 +1016,8 @@ from this plan.
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - Border and flashlight legacy option globals live behind narrow
      `BorderOption` and `FlashlightOption` compatibility headers, while frame
-     filters use the separate renderer ports.
+     filters use the separate renderer ports and the global visual selection
+     bridge avoids the renderer umbrellas.
    - `Application` creates the temporary visual factory and `SceneRuntime`
      after built-in/file-backed visual catalog loading, so copied Scene
      catalogs see loaded object, translation, palette, and image entries.

@@ -6,8 +6,8 @@
 #include "FlashlightOption.h"
 #include "Image.h"
 #include "LegacySceneSelectionAdapters.h"
+#include "PaletteOption.h"
 #include "TranslationOptions.h"
-#include "display.h"
 #include "flames.h"
 #include "waves.h"
 

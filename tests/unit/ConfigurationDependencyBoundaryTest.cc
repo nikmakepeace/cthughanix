@@ -1506,8 +1506,10 @@ static void testSceneStartupUsesSceneConfig() {
         "#include \"TranslationOptions.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.h",
         "createLegacyGlobalSceneSelectionAdapters");
-    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+    assertSourceDoesNotContain("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"display.h\"");
+    assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
+        "#include \"PaletteOption.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
         "#include \"flames.h\"");
     assertSourceContains("src/LegacyGlobalSceneSelectionFactory.cc",
