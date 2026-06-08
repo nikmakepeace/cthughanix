@@ -925,9 +925,9 @@ from this plan.
 5. **Move visual catalogs and selections off global `EffectControl` objects.
    Status: remaining.**
    Compatibility surface: `LegacySceneVisualCatalogFactory.cc`,
-   `LegacySceneSelectionFactory.cc`, and temporary visual `EffectControl`
-   entries still used to load, name, lock, select, randomize, or mirror visual
-   choices.
+   `LegacyGlobalSceneSelectionFactory.cc`, `LegacySceneSelectionFactory.cc`,
+   and temporary visual `EffectControl` entries still used to load, name, lock,
+   select, randomize, or mirror visual choices.
 
    Purpose: stand in for native visual owners while the old visual system still
    owns file loading, generated catalog construction, current-value lookup,
@@ -1005,6 +1005,10 @@ from this plan.
      implementation. The random-palette dependency is a native
      `ScenePaletteRandomizer` port, with the old global palette implementation
      quarantined in `LegacySceneCatalogAdapters`.
+   - `LegacySceneVisualCatalogFactory` no longer includes the global flame,
+     wave, border, flashlight, display, or translation option headers. The
+     temporary read of current legacy visual globals is isolated in
+     `LegacyGlobalSceneSelectionFactory`.
    - Wave-scale, table, border, and flashlight choice metadata is built by
      `SceneBuiltInChoiceCatalogs` instead of borrowed from `EffectChoiceList`.
    - `Application` creates the temporary visual factory and `SceneRuntime`
@@ -1018,7 +1022,8 @@ from this plan.
    remaining.**
    Compatibility surface: `LegacySceneControlMirror`,
    `LegacySceneSelectionSynchronizer`, `LegacySceneSelectionAdapters`,
-   `LegacySceneVisualCatalogFactory`, and `LegacySceneCatalogAdapters`.
+   `LegacyGlobalSceneSelectionFactory`, `LegacySceneVisualCatalogFactory`, and
+   `LegacySceneCatalogAdapters`.
 
    Purpose: keep native Scene selections synchronized with old controls while
    runtime commands, startup sync, save/restore, presets, and ini persistence
