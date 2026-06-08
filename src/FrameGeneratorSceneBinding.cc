@@ -2,7 +2,7 @@
 
 #include "FrameGeneratorSceneBinding.h"
 
-#include "Image.h"
+#include "IndexedImage.h"
 #include "PaletteTransition.h"
 #include "PaletteEntry.h"
 #include "FrameFilters.h"

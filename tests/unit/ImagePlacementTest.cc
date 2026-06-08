@@ -4,6 +4,7 @@
 
 #include "EffectChoiceLoader.h"
 #include "Image.h"
+#include "ImagePlacement.h"
 #include "ProcessServices.h"
 #include "pcx.h"
 #include "png.h"

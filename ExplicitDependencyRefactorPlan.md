@@ -976,6 +976,10 @@ from this plan.
    - Image entries load directly into native `SceneImageCatalog` ownership
      through `SceneImageCatalogLoader`, and Scene image selections use that
      native catalog without copying from the temporary legacy `ImageOption`.
+   - `IndexedImage` and `ImageLoadTarget` live behind the narrow
+     `IndexedImage.h` payload header. Frame Generator and native Scene image
+     catalog code include that header instead of the legacy `Image.h`
+     compatibility surface, which still owns `ImageEntry` and `ImageOption`.
    - The temporary legacy `ImageOption` is owned by `Application` for loading,
      Display/interface compatibility, and legacy adapter wiring; public Frame
      Generator APIs no longer expose `ImageOption` or include `Image.h`.

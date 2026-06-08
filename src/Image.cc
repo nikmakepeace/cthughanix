@@ -4,6 +4,7 @@
 #include "cthugha.h"
 #include "Configuration.h"
 #include "EffectChoiceLoader.h"
+#include "ImagePlacement.h"
 #include "ProcessServices.h"
 #include "pcx.h"
 #include "png.h"
