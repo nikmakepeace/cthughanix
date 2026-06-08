@@ -1,12 +1,12 @@
-// Legacy loader adapter for native Scene wave-object catalogs.
+// Scene wave-object catalog loader compatibility helpers.
 
-#include "LegacySceneWaveObjectCatalogAdapter.h"
+#include "SceneWaveObjectCatalogLoader.h"
 
 #include "EffectControl.h"
 #include "SceneWaveObjectCatalog.h"
 #include "WaveObject.h"
 
-void loadSceneWaveObjectCatalogFromLegacy(
+void copySceneWaveObjectCatalogFromEffectControl(
     EffectControl& objectOption, SceneWaveObjectCatalog& catalog) {
     catalog.clear();
 

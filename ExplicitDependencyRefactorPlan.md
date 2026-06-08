@@ -493,17 +493,17 @@ also has a cleaner setup port.
 commands, selection history, presets, startup effect policy, serialization, and
 automatic scene-change policy are all owned by Scene-facing types.
 
-The remaining Scene-facing debt is intentionally quarantined in legacy catalog
-loader adapters:
+The remaining Scene-facing debt is intentionally quarantined in compatibility
+catalog loaders:
 
 - `Application` creates the native
   `createSceneVisualCatalogServiceFactory(...)` from native
   `SceneVisualSelectionSeeds`; startup names are applied through
   `SceneRuntime::applyStartupConfig(...)`.
-- `LegacySceneImageCatalogAdapter`, `LegacyScenePaletteCatalogAdapter`, and
-  `LegacySceneWaveObjectCatalogAdapter` still copy data loaded by legacy visual
+- `SceneImageCatalogLoader`, `ScenePaletteCatalogLoader`, and
+  `SceneWaveObjectCatalogLoader` still copy data loaded by compatibility visual
   option/catalog code into native Scene catalogs.
-- These adapters remain temporary until the visual catalog/filterchain side
+- These loaders remain temporary until the visual catalog/filterchain side
   owns flames, waves, palettes, images, translation tables, and frame geometry
   without `CthughaBuffer::buffer` or process-wide option catalogs.
 
@@ -513,8 +513,8 @@ loader adapters:
   image, border, and flashlight choices, including allowed-choice metadata.
 - `FrameGeometry` from Frame Generator so Scene and visual catalogs do not depend
   on `VideoDirector`/`CthughaBuffer` as geometry providers.
-- Removal-condition tests for deleting the remaining `LegacyScene*CatalogAdapter`
-  files once native visual loaders own object, palette, and image catalogs.
+- Removal-condition tests for deleting the remaining compatibility copy loaders
+  once native visual loaders own object, palette, and image catalogs.
 
 #### API Surface
 
@@ -1020,20 +1020,21 @@ from this plan.
      renderer ports instead of including global visual option headers.
 
 6. **Delete legacy visual startup and catalog bridges. Status: remaining.**
-   Remaining compatibility surfaces: `LegacySceneImageCatalogAdapter`,
-   `LegacyScenePaletteCatalogAdapter`, and
-   `LegacySceneWaveObjectCatalogAdapter`.
+   Remaining compatibility surfaces: `SceneImageCatalogLoader`,
+   `ScenePaletteCatalogLoader`, and `SceneWaveObjectCatalogLoader`.
    `LegacySceneSelectionAdapters`, `LegacySceneSelectionFactory`,
    `LegacyScenePaletteRandomizer`, `LegacySceneVisualCatalogFactory`, and
    `LegacyGlobalSceneSelectionFactory` are deleted; native selections are no
    longer mirrored back into visual `EffectControl` globals.
 
    What remains:
-   - Replace the remaining legacy catalog adapters with native visual loaders.
+   - Replace the remaining compatibility copy loaders with native visual
+     loaders.
      This is complete when objects, palettes, images, and translations load
      directly into owned Scene/visual catalogs without first populating
-     `EffectChoice` lists, Application no longer calls `loadScene*FromLegacy`,
-     and CMake/boundary tests assert those adapter files are absent.
+     `EffectChoice` lists, Application no longer copies catalogs from
+     `EffectControl` or `ImageOption`, and CMake/boundary tests assert the
+     compatibility loader files are absent.
    - Retire any pre-startup or non-Scene UI fallback that still displays Scene
      visual choices through legacy `EffectControl` lists. This is complete when
      F2 lists, X11 menus, keymap actions, and runtime config display code all
@@ -1398,8 +1399,8 @@ Recommended Frame/Visual order:
    explicit geometry values.
 4. Introduce native visual catalogs/selections for flames, waves, translations,
    palettes, images, border, and flashlight.
-5. Replace `loadScene*FromLegacy(...)` catalog adapter calls with native visual
-   loaders.
+5. Replace `copyScene*CatalogFrom*Option(...)` compatibility copy calls with
+   native visual loaders.
 6. Delete `LegacyScene*` once no production path needs legacy visual
    `EffectControl&` adapters.
 

@@ -1125,6 +1125,43 @@ target_link_libraries(scene_palette_catalog_test PRIVATE m)
 add_test(NAME scene_palette_catalog_test
     COMMAND scene_palette_catalog_test)
 
+add_executable(scene_catalog_loader_test
+    unit/SceneCatalogLoaderTest.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalogLoader.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneWaveObjectCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/WaveObject.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalogLoader.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneImageCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Image.cc
+    ${CMAKE_SOURCE_DIR}/src/ScenePaletteCatalogLoader.cc
+    ${CMAKE_SOURCE_DIR}/src/ScenePaletteCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/ColorPalette.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectRegistry.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectControlPolicy.cc
+    ${CMAKE_SOURCE_DIR}/src/EffectPresetCatalog.cc
+    ${CMAKE_SOURCE_DIR}/src/Option.cc
+    ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/imath.cc
+)
+
+target_compile_definitions(scene_catalog_loader_test PRIVATE
+    CTH_LIBDIR="${CTH_DATA_DIR}"
+)
+
+target_include_directories(scene_catalog_loader_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(scene_catalog_loader_test PRIVATE m)
+
+add_test(NAME scene_catalog_loader_test
+    COMMAND scene_catalog_loader_test)
+
 add_executable(scene_choice_lock_value_test
     unit/SceneChoiceLockValueTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
