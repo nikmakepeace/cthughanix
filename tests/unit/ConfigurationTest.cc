@@ -1,3 +1,7 @@
+/** @file
+ * Unit tests for startup configuration parsing and typed conversion.
+ */
+
 #include "Configuration.h"
 
 #include "configuration_defaults.h"
@@ -79,6 +83,12 @@ static void defaultsProduceTypedConfig() {
     assert(result.config.display.maxFramesPerSecond == DISPLAY_CONFIG_DEFAULT_MAX_FRAMES_PER_SECOND);
     assert(result.config.display.showFpsEnabled == DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED);
     assert(result.config.display.zoomMode == DISPLAY_CONFIG_DEFAULT_ZOOM_MODE);
+    assert(result.config.sdl3.highPixelDensityEnabled == SDL3_CONFIG_DEFAULT_HIGH_PIXEL_DENSITY_ENABLED);
+    assert(result.config.sdl3.resizableWindowEnabled == SDL3_CONFIG_DEFAULT_RESIZABLE_WINDOW_ENABLED);
+    assert(result.config.sdl3.rendererName == SDL3_CONFIG_DEFAULT_RENDERER_NAME);
+    assert(result.config.sdl3.frameDumpDirectory == SDL3_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY);
+    assert(result.config.sdl3.frameDumpLimit == SDL3_CONFIG_DEFAULT_FRAME_DUMP_LIMIT);
+    assert(result.config.sdl3.frameDumpEvery == SDL3_CONFIG_DEFAULT_FRAME_DUMP_EVERY);
     assert(result.config.autoChange.quietMs == AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS);
     assert(result.config.autoChange.waitMinMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS);
     assert(result.config.autoChange.waitRandomMs == AUTO_CHANGE_CONFIG_DEFAULT_WAIT_RANDOM_MS);
@@ -174,6 +184,12 @@ static void iniTextSourceProducesPatchWithoutGlobals() {
         "cthugha.max-fps: 60\n"
         "cthugha.show-fps: yes\n"
         "cthugha.zoom: 2\n"
+        "cthugha.sdl3-high-pixel-density: no\n"
+        "cthugha.sdl3-resizable-window: yes\n"
+        "cthugha.sdl3-renderer: software\n"
+        "cthugha.sdl3-frame-dump-directory: /tmp/cth-sdl3\n"
+        "cthugha.sdl3-frame-dump-limit: 4\n"
+        "cthugha.sdl3-frame-dump-every: 2\n"
         "cthugha.buff-size: 2\n");
     ConfigPatch patch = source.acquire(diagnostics);
 
@@ -257,7 +273,34 @@ static void iniTextSourceProducesPatchWithoutGlobals() {
     assert(*patchValue(patch, "display.max_frames_per_second") == "60");
     assert(*patchValue(patch, "display.show_fps") == "1");
     assert(*patchValue(patch, "display.zoom_mode") == "2");
+    assert(*patchValue(patch, "sdl3.high_pixel_density_enabled") == "0");
+    assert(*patchValue(patch, "sdl3.resizable_window_enabled") == "1");
+    assert(*patchValue(patch, "sdl3.renderer_name") == "software");
+    assert(*patchValue(patch, "sdl3.frame_dump_directory") == "/tmp/cth-sdl3");
+    assert(*patchValue(patch, "sdl3.frame_dump_limit") == "4");
+    assert(*patchValue(patch, "sdl3.frame_dump_every") == "2");
     assert(*patchValue(patch, "buffer.preset") == "2");
+}
+
+static void iniTextSourceBuildsSdl3Config() {
+    ConfigurationBuilder builder;
+    ConfigBuildResult result = builder.addDefaults()
+        .addIniText("memory",
+            "cthugha.sdl3.high_pixel_density_enabled: off\n"
+            "cthugha.sdl3.resizable_window_enabled: no\n"
+            "cthugha.sdl3.renderer_name: opengl\n"
+            "cthugha.sdl3.frame_dump_directory: /tmp/sdl3-frames\n"
+            "cthugha.sdl3.frame_dump_limit: 9\n"
+            "cthugha.sdl3.frame_dump_every: 3\n")
+        .build();
+
+    assert(result.ok());
+    assert(result.config.sdl3.highPixelDensityEnabled == 0);
+    assert(result.config.sdl3.resizableWindowEnabled == 0);
+    assert(result.config.sdl3.rendererName == "opengl");
+    assert(result.config.sdl3.frameDumpDirectory == "/tmp/sdl3-frames");
+    assert(result.config.sdl3.frameDumpLimit == 9);
+    assert(result.config.sdl3.frameDumpEvery == 3);
 }
 
 static void iniPaletteSmoothingAcceptsBooleanValues() {
@@ -800,6 +843,7 @@ int main() {
     commandLineSourceBuildsSceneConfig();
     commandLineSourceBuildsEffectAndSceneTransitionPolicyConfig();
     iniTextSourceBuildsEffectCatalogPolicy();
+    iniTextSourceBuildsSdl3Config();
     commandLineSourceHandlesDisplayAndBufferSettings();
     customBufferSizeIsClampedWithDeferredWarnings();
     invalidTypedValueProducesDeferredError();

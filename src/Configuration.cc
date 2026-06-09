@@ -77,6 +77,15 @@ static const char* KEY_DISPLAY_HEIGHT = "display.height";
 static const char* KEY_DISPLAY_MAX_FPS = "display.max_frames_per_second";
 static const char* KEY_DISPLAY_SHOW_FPS = "display.show_fps";
 static const char* KEY_DISPLAY_ZOOM_MODE = "display.zoom_mode";
+static const char* KEY_SDL3_HIGH_PIXEL_DENSITY
+    = "sdl3.high_pixel_density_enabled";
+static const char* KEY_SDL3_RESIZABLE_WINDOW
+    = "sdl3.resizable_window_enabled";
+static const char* KEY_SDL3_RENDERER_NAME = "sdl3.renderer_name";
+static const char* KEY_SDL3_FRAME_DUMP_DIRECTORY
+    = "sdl3.frame_dump_directory";
+static const char* KEY_SDL3_FRAME_DUMP_LIMIT = "sdl3.frame_dump_limit";
+static const char* KEY_SDL3_FRAME_DUMP_EVERY = "sdl3.frame_dump_every";
 static const char* KEY_BUFFER_PRESET = "buffer.preset";
 static const char* KEY_BUFFER_WIDTH = "buffer.width";
 static const char* KEY_BUFFER_HEIGHT = "buffer.height";
@@ -776,6 +785,34 @@ static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
             KEY_DISPLAY_SHOW_FPS, cleanedValue, 1, 1);
     } else if (key == "zoom") {
         patch.set(KEY_DISPLAY_ZOOM_MODE, cleanedValue, source);
+    } else if (key == "sdl3-high-pixel-density"
+        || key == "sdl3.high-pixel-density"
+        || key == "sdl3.high_pixel_density_enabled") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_SDL3_HIGH_PIXEL_DENSITY, cleanedValue, 1, 0);
+    } else if (key == "no-sdl3-high-pixel-density") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_SDL3_HIGH_PIXEL_DENSITY, cleanedValue, 1, 1);
+    } else if (key == "sdl3-resizable-window"
+        || key == "sdl3.resizable-window"
+        || key == "sdl3.resizable_window_enabled") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_SDL3_RESIZABLE_WINDOW, cleanedValue, 1, 0);
+    } else if (key == "no-sdl3-resizable-window") {
+        setIniBooleanOption(patch, diagnostics, source, key,
+            KEY_SDL3_RESIZABLE_WINDOW, cleanedValue, 1, 1);
+    } else if (key == "sdl3-renderer" || key == "sdl3-renderer-name"
+        || key == "sdl3.renderer_name") {
+        patch.set(KEY_SDL3_RENDERER_NAME, cleanedValue, source);
+    } else if (key == "sdl3-frame-dump-directory"
+        || key == "sdl3.frame_dump_directory") {
+        patch.set(KEY_SDL3_FRAME_DUMP_DIRECTORY, cleanedValue, source);
+    } else if (key == "sdl3-frame-dump-limit"
+        || key == "sdl3.frame_dump_limit") {
+        patch.set(KEY_SDL3_FRAME_DUMP_LIMIT, cleanedValue, source);
+    } else if (key == "sdl3-frame-dump-every"
+        || key == "sdl3.frame_dump_every") {
+        patch.set(KEY_SDL3_FRAME_DUMP_EVERY, cleanedValue, source);
     } else if (key == "buff-size") {
         setBufferSize(patch, source, cleanedValue);
 #ifdef CTH_XWIN
@@ -2228,6 +2265,14 @@ X11Config::X11Config()
     , frameDumpEvery(X11_CONFIG_DEFAULT_FRAME_DUMP_EVERY) { }
 #endif
 
+SDL3Config::SDL3Config()
+    : highPixelDensityEnabled(SDL3_CONFIG_DEFAULT_HIGH_PIXEL_DENSITY_ENABLED)
+    , resizableWindowEnabled(SDL3_CONFIG_DEFAULT_RESIZABLE_WINDOW_ENABLED)
+    , rendererName(SDL3_CONFIG_DEFAULT_RENDERER_NAME)
+    , frameDumpDirectory(SDL3_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY)
+    , frameDumpLimit(SDL3_CONFIG_DEFAULT_FRAME_DUMP_LIMIT)
+    , frameDumpEvery(SDL3_CONFIG_DEFAULT_FRAME_DUMP_EVERY) { }
+
 AutoChangeConfig::AutoChangeConfig()
     : quietMs(AUTO_CHANGE_CONFIG_DEFAULT_QUIET_MS)
     , waitMinMs(AUTO_CHANGE_CONFIG_DEFAULT_WAIT_MIN_MS)
@@ -2577,6 +2622,19 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         &config.x11.frameDumpEvery);
 #endif
 
+    applyBoolEntry(patch, diagnostics, KEY_SDL3_HIGH_PIXEL_DENSITY,
+        &config.sdl3.highPixelDensityEnabled);
+    applyBoolEntry(patch, diagnostics, KEY_SDL3_RESIZABLE_WINDOW,
+        &config.sdl3.resizableWindowEnabled);
+    if (const std::string* value = patch.value(KEY_SDL3_RENDERER_NAME))
+        config.sdl3.rendererName = *value;
+    if (const std::string* value = patch.value(KEY_SDL3_FRAME_DUMP_DIRECTORY))
+        config.sdl3.frameDumpDirectory = *value;
+    applyMinimumIntEntry(patch, diagnostics, KEY_SDL3_FRAME_DUMP_LIMIT, 1,
+        &config.sdl3.frameDumpLimit);
+    applyMinimumIntEntry(patch, diagnostics, KEY_SDL3_FRAME_DUMP_EVERY, 1,
+        &config.sdl3.frameDumpEvery);
+
     return config;
 }
 
@@ -2889,6 +2947,19 @@ ConfigPatch hardcodedDefaultConfigPatch() {
         booleanText(DISPLAY_CONFIG_DEFAULT_SHOW_FPS_ENABLED), "defaults");
     defaults.set(KEY_DISPLAY_ZOOM_MODE,
         integerText(DISPLAY_CONFIG_DEFAULT_ZOOM_MODE), "defaults");
+    defaults.set(KEY_SDL3_HIGH_PIXEL_DENSITY,
+        booleanText(SDL3_CONFIG_DEFAULT_HIGH_PIXEL_DENSITY_ENABLED),
+        "defaults");
+    defaults.set(KEY_SDL3_RESIZABLE_WINDOW,
+        booleanText(SDL3_CONFIG_DEFAULT_RESIZABLE_WINDOW_ENABLED), "defaults");
+    defaults.set(KEY_SDL3_RENDERER_NAME, SDL3_CONFIG_DEFAULT_RENDERER_NAME,
+        "defaults");
+    defaults.set(KEY_SDL3_FRAME_DUMP_DIRECTORY,
+        SDL3_CONFIG_DEFAULT_FRAME_DUMP_DIRECTORY, "defaults");
+    defaults.set(KEY_SDL3_FRAME_DUMP_LIMIT,
+        integerText(SDL3_CONFIG_DEFAULT_FRAME_DUMP_LIMIT), "defaults");
+    defaults.set(KEY_SDL3_FRAME_DUMP_EVERY,
+        integerText(SDL3_CONFIG_DEFAULT_FRAME_DUMP_EVERY), "defaults");
     defaults.set(KEY_EFFECT_IMAGE_FILES_ENABLED,
         booleanText(EFFECT_POLICY_DEFAULT_IMAGE_FILES_ENABLED),
         "defaults");

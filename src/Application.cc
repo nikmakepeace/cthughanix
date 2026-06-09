@@ -688,6 +688,8 @@ void Application::run() {
         DisplayEventStats eventStats
             = displaySystemValue.runtime().processEvents(
                 commandsInputValue->inputQueue());
+        if (eventStats.closeRequested && runtimeShutdownValue.get() != NULL)
+            runtimeShutdownValue->requestClose();
         if (traceDisplayTiming)
             eventsEnd = secondsClockValue.nowSeconds();
 
