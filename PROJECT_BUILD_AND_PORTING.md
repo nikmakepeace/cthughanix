@@ -1,129 +1,121 @@
-# Build and Porting Notes
+# Build And Porting Notes
 
 ## Build System
 
-CMake is the only supported build system.
+CMake is the active build system.
 
-The active build files are:
+Primary build files:
 
 ```text
 CMakeLists.txt
 cmake/config.h.in
 cmake/generate_keymap.cmake
 src/CMakeLists.txt
+tests/CMakeLists.txt
 tests/benchmarks/CMakeLists.txt
 ```
 
-The old autotools entry points have been removed from the tracked source tree.
-Generated configure-era files may still appear in dirty working directories,
-but they are ignored and are not part of the build contract.
-
-## CMake Build
-
-The normal build command is:
+The normal local build is:
 
 ```sh
 cmake -S . -B build
 cmake --build build
 ```
 
-The main executable target is:
+The main executable target is `xcthugha` when `CTH_BUILD_X11=ON`.
 
-- `xcthugha`: the X11 visualizer.
+## CMake Options
 
-Major CMake options:
+Current root options:
 
-- `CTH_BUILD_X11`: build the X11 frontend. Default: `ON`.
-- `CTH_BUILD_TESTS`: build and register focused unit tests. Default: `ON`.
-- `CTH_BUILD_BENCHMARKS`: build Google Benchmark performance suites. Default:
-  `OFF`.
-- `CTH_RUN_AUDIO_DEVICE_TESTS`: register opt-in smoke tests that open real
-  audio devices. Default: `OFF`.
-- `CTH_ENABLE_PULSE`: enable PulseAudio/PipeWire-Pulse output when
-  `libpulse-simple` is available. Default: `ON`.
+- `CTH_BUILD_X11`: build the X11 frontend. Default `ON`.
+- `CTH_BUILD_SDL3`: display option placeholder. Default `OFF`; not wired to a
+  target today.
+- `CTH_BUILD_TESTS`: build and register focused tests. Default `ON`.
+- `CTH_BUILD_BENCHMARKS`: build Google Benchmark suites. Default `OFF`.
+- `CTH_RUN_AUDIO_DEVICE_TESTS`: register smoke tests that open real audio
+  devices. Default `OFF`.
+- `CTH_ENABLE_PULSE`: enable PulseAudio-compatible output when
+  `libpulse-simple` is found. Default `ON`.
 - `CTH_ENABLE_DSP`: enable OSS `/dev/dsp` support when soundcard headers are
-  available. Default: `ON`.
+  present. Default `ON`.
 - `CTH_ENABLE_MIXER`: enable OSS mixer controls when soundcard headers are
-  available. Default: `ON`.
-- `CTH_ENABLE_MINIMP3`: enable embedded minimp3 decoding. Default: `ON`.
-- `CTH_ENABLE_MINIAUDIO`: enable vendored miniaudio playback and capture
-  devices. Default: `ON`.
-- `CTH_MINIAUDIO_NO_RUNTIME_LINKING`: on Apple builds, define
-  `MA_NO_RUNTIME_LINKING` and link miniaudio's required frameworks explicitly.
-  Default: `OFF`.
-- `CTH_DATA_DIR`: installed runtime data directory. Default:
+  present. Default `ON`.
+- `CTH_ENABLE_MINIMP3`: enable vendored minimp3 decoding. Default `ON`.
+- `CTH_ENABLE_MINIAUDIO`: enable vendored miniaudio playback/capture. Default
+  `ON`.
+- `CTH_MINIAUDIO_NO_RUNTIME_LINKING`: Apple-only miniaudio build mode that
+  defines `MA_NO_RUNTIME_LINKING` and links CoreFoundation, CoreAudio, and
+  AudioToolbox explicitly. Default `OFF`.
+- `CTH_DEV_DSP`: default OSS DSP path. Default `/dev/dsp`.
+- `CTH_DEV_MIXER`: default OSS mixer path. Default `/dev/mixer`.
+- `CTH_DATA_DIR`: installed runtime data directory. Default
   `${CMAKE_INSTALL_FULL_DATADIR}/cthughanix`.
 
-CMake writes the generated configuration header to:
+CMake writes generated `config.h` to the build directory and generates
+`default.keymap.str` from `src/default.keymap`.
 
-```text
-build/config.h
-```
+## Dependencies
 
-Source files should include it as `config.h` through the target include path,
-not by reaching for a source-tree generated header.
-
-## Native Dependencies
-
-Core/common:
+Core build:
 
 - C and C++ compiler;
-- CMake;
-- POSIX process/file APIs.
+- CMake 3.16 or newer;
+- POSIX headers/functions where available;
+- threads;
+- math library.
 
-X11 frontend:
+X11 target:
 
 - X11;
+- Xext;
 - Xt;
 - Xaw;
 - Xmu;
-- Xext;
-- Zlib;
-- optional Xpm.
+- Zlib.
 
-Audio and media:
+Audio/media:
 
-- embedded minimp3 for native MP3 decoding;
-- vendored miniaudio under `external/miniaudio` for cross-platform playback
-  and capture;
-- optional PulseAudio-compatible output via `libpulse-simple`;
-- optional OSS `/dev/dsp`;
-- optional OSS mixer ioctls.
+- `external/miniaudio` for optional playback/capture;
+- `external/minimp3` for optional MP3 decode;
+- optional `libpulse-simple`;
+- optional OSS soundcard headers;
+- optional OSS mixer ioctl support.
 
-Miniaudio does not require a system miniaudio package. On Linux it runtime-loads
-native backends such as ALSA, PulseAudio, JACK, and sndio when available. The
-project disables miniaudio's legacy OSS/audio(4) backends and keeps the
-existing Cthugha OSS code as the only OSS path. On Apple, the default build uses
-miniaudio runtime framework loading; app-bundle/signing paths can configure
-with `CTH_MINIAUDIO_NO_RUNTIME_LINKING=ON` to link CoreFoundation, CoreAudio,
-and AudioToolbox explicitly.
+Miniaudio is vendored and does not require a system miniaudio package. On Apple,
+the default build lets miniaudio perform runtime framework loading; use
+`CTH_MINIAUDIO_NO_RUNTIME_LINKING=ON` when an app-bundle/signing path requires
+explicit framework linkage.
 
-## Verified Commands
+## Useful Build Commands
 
-Useful verification commands:
+X11 with tests:
 
 ```sh
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
-tests/headers/check-headers.sh
-env -u DISPLAY build/src/xcthugha --help
-```
-
-Useful miniaudio verification commands from a clean build directory:
-
-```sh
-cmake -S . -B build-miniaudio-x11 -G Ninja \
+cmake -S . -B build -G Ninja \
   -DCTH_BUILD_X11=ON \
-  -DCTH_ENABLE_MINIAUDIO=ON \
   -DCTH_BUILD_TESTS=ON \
   -DCTH_BUILD_BENCHMARKS=OFF
-cmake --build build-miniaudio-x11
-ctest --test-dir build-miniaudio-x11 --output-on-failure
+cmake --build build --target xcthugha
+ctest --test-dir build --output-on-failure
 ```
 
+Miniaudio path without Pulse:
+
 ```sh
-cmake -S . -B build-miniaudio-no-pulse-oss -G Ninja \
+cmake -S . -B build-miniaudio-x11-no-pulse -G Ninja \
+  -DCTH_BUILD_X11=ON \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_ENABLE_PULSE=OFF \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build-miniaudio-x11-no-pulse --target xcthugha
+```
+
+Headless/unit-focused miniaudio build:
+
+```sh
+cmake -S . -B build-miniaudio-headless -G Ninja \
   -DCTH_BUILD_X11=OFF \
   -DCTH_ENABLE_MINIAUDIO=ON \
   -DCTH_ENABLE_PULSE=OFF \
@@ -131,135 +123,104 @@ cmake -S . -B build-miniaudio-no-pulse-oss -G Ninja \
   -DCTH_ENABLE_MIXER=OFF \
   -DCTH_BUILD_TESTS=ON \
   -DCTH_BUILD_BENCHMARKS=OFF
-cmake --build build-miniaudio-no-pulse-oss
-ctest --test-dir build-miniaudio-no-pulse-oss --output-on-failure
+cmake --build build-miniaudio-headless
+ctest --test-dir build-miniaudio-headless --output-on-failure
 ```
 
-Real-device miniaudio smoke tests are opt-in because they open playback and
-capture devices:
+Real-device miniaudio smoke tests:
 
 ```sh
 cmake -S . -B build-miniaudio-device-tests -G Ninja \
   -DCTH_ENABLE_MINIAUDIO=ON \
-  -DCTH_RUN_AUDIO_DEVICE_TESTS=ON
+  -DCTH_RUN_AUDIO_DEVICE_TESTS=ON \
+  -DCTH_BUILD_TESTS=ON
 cmake --build build-miniaudio-device-tests
 ctest --test-dir build-miniaudio-device-tests \
   -R 'miniaudio_.*_smoke' --output-on-failure
 ```
 
-Those smoke tests intentionally fail if miniaudio falls back to the Null
-backend, because passing them is evidence of a real audio device path.
+Those smoke tests are intentionally opt-in and should fail if miniaudio opens
+its Null backend instead of a real device.
 
-When the default device is not the target device, pass exact miniaudio device
-names at runtime:
+## Runtime Audio Selection
+
+Useful runtime switches:
 
 ```sh
-./build-miniaudio-x11/src/xcthugha \
-  --audio-output-driver=miniaudio \
-  --miniaudio-playback-device "Built-in Output"
+--audio-output-driver auto|null|pulse|oss|miniaudio
+--pulse-server SERVER
+--pulse-latency-ms N
+--miniaudio-target-latency-ms N
+--miniaudio-playback-device NAME
+--miniaudio-capture-device NAME
+--audio-output-dump FILE
 ```
 
-Live capture can similarly use `--miniaudio-capture-device NAME`.
+On platforms where automatic selection prefers miniaudio, miniaudio playback is
+tried before Pulse. On other platforms, Pulse is tried before miniaudio when
+both are available. OSS playback is only an automatic fallback when miniaudio is
+not compiled in.
 
-The help path should print usage before any X11 initialization. Normal runs now
-defer display startup until the display initialization section, after option
-parsing and core runtime setup.
+`AudioNullOutput` is non-realtime. It is useful for silent/null runs and dump
+paths, but it does not prove an audible backend opened.
 
-## Debugging Hooks
+## Diagnostics
 
-The graphical main loop exposes timing through:
-
-- `CTH_TRACE` logging in `src/Application.cc`, `AudioRuntime`, display code,
-  and related modules.
-
-Runtime verbosity is controlled with `--verbose` / `-v`; current code treats the
-value as a log level:
+Runtime verbosity is controlled by `--verbose` / `-v`. The common levels are:
 
 ```text
-0 error, 1 warn, 2 info, 5 debug, 10 trace
+0 error
+1 warn
+2 info
+5 debug
+10 trace
 ```
 
-Existing code uses `CTH_TRACE`, `CTH_DEBUG`, `CTH_INFO`, `CTH_WARN`,
-`CTH_ERROR`, `CTH_ERRNO`, and older `printfv(...)` style helpers. Follow the
-local logging path rather than adding a new one.
+Trace/debug logs are emitted through `LogSink` and legacy `CTH_*` macros. Useful
+trace contexts include `audio timing`, `audio runtime`, `frame timing`,
+`frame pacing`, `frame generator`, `frame filterchain`, and `display timing`.
 
-## Build-System Gotchas To Preserve
+The frame-filterchain add-stage diagnostic now includes a human-readable filter
+name and pointer, for example:
 
-- Startup configuration is built by `src/Configuration.cc`; do not reintroduce
-  per-frontend option parser wrappers.
-- `xwin_keys.cc` is still an X11 wrapper compile unit for key handling.
-- CMake generates `default.keymap.str` under `build/src/`; in-tree builds may
-  generate `src/default.keymap.str`.
-- Local object files in `src/` are not authoritative. Check source lists in
-  `CMakeLists.txt`.
+```text
+frame filterchain: added stage=3 filter=FlameFilter ptr=0x... owned=1 mode=0 size=3
+```
 
 ## Porting Strategy
 
-### Phase 1: Keep The Verified X11 Build Green
+### Keep X11 As The Reference
 
-The current stable slice is CMake plus `xcthugha`.
+`xcthugha` is the only wired graphical executable. Preserve its behavior while
+lifting dependencies behind `DisplaySystem`, `DisplayRuntime`, and
+`CthughaDisplay`.
 
-Recommended practice:
+### Prefer The Current Audio Seams
 
-- Use CMake for active development and CI.
-- Treat `xcthugha` as the behavioral reference when modernizing.
-- Keep generated build output under `build/` or another out-of-tree CMake build
-  directory.
+New audio inputs should be `PcmSource` implementations. New outputs should be
+`AudioOutput` implementations selected by `RuntimeFactory`. Keep decoded
+history and visual frame construction in `AudioIngest`.
 
-### Phase 2: Extend The Modern Audio Runtime
+### Preserve Indexed-Frame Presentation
 
-The audio seams are now the only playback/input model:
+The portable display seam is:
 
-- `RuntimeFactory`;
-- `PcmSourceFactory`;
-- `PcmSource`;
-- `AudioInput`;
-- `AudioOutput`;
-- `AudioBuffer`;
-- `AudioFrameBuilder`;
-- `AudioFrame`.
+```text
+IndexedFrame + FramePalette -> CthughaDisplay/PresentationComposer -> DisplayRuntime
+```
 
-Good next steps:
+A new frontend should present indexed pixels and palette-expanded output
+without pulling scene or audio ownership into the display backend.
 
-- Keep characterizing miniaudio against PulseAudio-compatible output on Linux
-  before changing Linux automatic output priority.
-- Add native sinks only if miniaudio fails a documented platform requirement.
-- Add more targeted tests for raw PCM, EOF/drain handling, and latency-driven
-  visual sample selection.
-- Keep visual code reading through `audioFrameRawData()` and
-  `audioFrameProcessedWaveData()`.
+### Isolate Remaining Display Globals
 
-### Phase 3: Continue The Video Filterchain Migration
+Before or during a new frontend, reduce direct dependence on X11-era display
+globals such as `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`,
+`text_size`, and `fontSize`.
 
-`VideoFilterchain` has explicit image, border, flame, translate, wave, text,
-frame-commit, palette, flashlight, and indexed-frame export filters.
-`VideoDirector` updates the current filter objects before each filterchain run.
+### Grow Tests Around Behavior
 
-The video filterchain path passes one `VideoFrame` through the filterchain. The
-frame contains the current `CthughaBuffer`, frame context, display palette, and
-a final `IndexedFrame` publication slot. `CthughaDisplay` receives that
-`IndexedFrame` for source pixels, geometry, pitch, and palette synchronization.
-
-Good next steps:
-
-- Allocate/reallocate display scratch buffers from incoming frame geometry.
-- Add tests around deterministic visual stages before changing artistic
-  behavior.
-
-### Phase 4: Add A Modern Display Target
-
-The cleanest future frontend is likely SDL2/SDL3 or a similarly thin texture
-presenter:
-
-- preserve the indexed 8-bit engine buffer plus palette first;
-- render the palette-expanded texture through the new frontend;
-- keep presentation size separate from `BUFF_WIDTH`/`BUFF_HEIGHT`;
-- preserve X11 behavior as a reference until a modern frontend is usable.
-
-### Phase 5: Add Focused Tests
-
-Highest-value tests:
-
-- `AudioProcessor` modes over fixed 1024-sample frames;
-- `AudioAnalyzer` and `AcousticContext` fire/intensity behavior;
-- palette loading, metadata, and set filtering;
+The current test tree already covers many small seams. Add focused tests for
+new runtime command behavior, audio timing, frame-generator filters, display
+presentation, or asset parsing before changing behavior that users can see or
+hear.

@@ -4,233 +4,164 @@
 
 ```text
 .
-|-- src/                 application source and frontend-specific source files
-|-- resources/           runtime resources loaded by the video filterchain
-|   |-- map/             256-color palette maps and PNG palette previews
-|   |-- img/             indexed image assets: PCX and indexed PNG
-|   `-- obj/             external 3D line object assets
-|-- doc/                 original Texinfo/manual/manpage documentation
-|-- tests/headers/       header/source self-containment check harness
-|-- tools/               small asset-generation helpers
-|-- external/minimp3/    embedded MP3 decoder used by the modern audio path
-|-- external/cthugha-js/ JavaScript port/reference implementation
-|-- build/               populated CMake build directory
-|-- precompiled/         old 32-bit Linux binaries
-|-- CMakeLists.txt       modern build entry point
-|-- cmake/config.h.in    CMake config header template
-`-- cthugha.ini.eg       example config file
+|-- src/                 application, runtime, visual engine, and X11 frontend
+|-- tests/               focused unit, smoke, fixture, and benchmark sources
+|-- resources/           runtime palettes, indexed images, and line objects
+|-- external/miniaudio/  vendored miniaudio single-header dependency
+|-- external/minimp3/    vendored MP3 decoder
+|-- external/cthugha-js/ JavaScript port/reference tree
+|-- cmake/               generated config and keymap helper scripts
+|-- doc/                 older user-facing manual/manpage material
+|-- tools/               small asset/helper scripts
+|-- CMakeLists.txt       root CMake entry point
+|-- src/CMakeLists.txt   application target source list
+`-- PROJECT_*.md         current repository notes
 ```
 
-`project-docs/` contains short compatibility pointers to the authoritative root
-`PROJECT_*.md` files.
+The root source tree currently contains 159 `.cc` files and 162 headers. The
+main application source list is `CTHUGHA_COMMON_SOURCES` in
+`src/CMakeLists.txt`; use that list, not build-directory object files, as the
+authoritative answer for what is compiled.
 
-The tree contains local build artifacts in `src/`, `doc/`, and
-`tests/headers/build/`. Some stale object files refer to code that is no longer
-present, such as old server/network objects; do not treat every `.o` as
-evidence of a current source module.
+## Entrypoints And Lifecycle
 
-## Source Layout
+- `src/main.cc`: constructs `Application`, calls `initialize()`, then `run()`.
+- `src/Application.*`: startup/shutdown orchestration, main loop, frame
+  scheduler, platform suspend/resume callbacks, and subsystem ownership.
+- `src/Configuration.*`, `src/StartupConfiguration.cc`: defaults, ini,
+  environment, command-line parsing, diagnostics, and startup config slices.
+- `src/ProcessServices.*`: logging runtime, log sinks, clocks, countdown
+  timers, sleepers, and random-source adapters.
+- `src/PlatformLifecycle.*`: frame-boundary platform suspend/resume service.
 
-The source tree is organized by subsystem rather than by namespace or library
-boundary.
+## Audio
 
-### Entrypoints
+- `src/AudioTypes.h`: shared PCM format, sample format, and driver ids.
+- `src/AudioSettings.*`: runtime-friendly view of startup audio settings.
+- `src/AudioOutputConfig.*`: output-driver latency/device/dump settings.
+- `src/RuntimeFactory.*`: startup-time selection of audio input and output.
+- `src/PcmSourceFactory.*`: source strategy selection for line-in, random, WAV,
+  MP3, raw PCM, and miniaudio capture.
+- `src/PcmSource.*`: base source plus WAV, raw PCM, random noise, and MP3
+  source implementations.
+- `src/DspPcmSource.cc`: OSS DSP capture source.
+- `src/MiniAudioCapturePcmSource.cc`: miniaudio capture source when enabled.
+- `src/AudioOutput.*`: output base class and non-realtime null backend.
+- `src/AudioPulseOutput.cc`: PulseAudio-compatible playback output.
+- `src/AudioDSPOutput.cc`: OSS DSP playback output.
+- `src/AudioMiniAudioOutput.cc`: miniaudio callback playback output.
+- `src/DecodedAudioHistory.*`: decoded PCM ring/history used by visuals and
+  passthrough.
+- `src/AudioPassthrough.*`: optional output drain and presentation clock.
+- `src/AudioIngest.*`: application-owned acquisition, history, passthrough, and
+  visual frame construction.
+- `src/AudioFrame.*`: raw/processed 1024-sample visual audio frame.
+- `src/AudioProcessing*`, `src/AudioProcessor.*`: selectable processing modes.
+- `src/AudioAnalyzer.*`, `src/AudioAnalysisSnapshot.*`: frame metrics and
+  rolling acoustic state.
+- `src/AudioFramePipeline.*`: per-frame processing and analysis port.
+- `src/Mixer.*`, `src/MixerControls.*`, `src/MixerInterfaceControls.cc`: OSS
+  mixer integration for live DSP input.
 
-- `src/main.cc`: graphical executable entry point.
-- `src/Application.*`: application lifecycle and shared per-frame scheduler.
-- `src/Configuration.*`: startup configuration sources, schema, diagnostics,
-  and immutable config slices.
-- `src/TranslateGenerator.cc`: built-in translation-table generators and catalog
-  entries.
+## Scene And Runtime Commands
 
-There is no current server-mode source entry point in `src/`.
+- `src/Scene.*`: scene settings, commands, cues, snapshots, and selection APIs.
+- `src/SceneRuntime.*`: owner for `Scene`, command target, serializer, visual
+  catalog factory result, effect-selection registry, and selection state.
+- `src/Scene*Catalog*`: typed image, palette, translation, wave-object, and
+  built-in choice catalogs/loaders.
+- `src/SceneVisual*`: visual selection sets and catalog-service factories.
+- `src/SceneChangeScheduler.*`: automatic scene-change policy driven by audio
+  metrics and `AcousticContext`.
+- `src/AutoChangeSettings.*`, `src/AutoChangeControls.*`: runtime settings and
+  controls for automatic scene changes.
+- `src/RuntimeCommand.*`, `src/RuntimeCommandSink.h`: typed live commands.
+- `src/RuntimeChangeMediator.*`: command dispatcher to scene, display, audio,
+  auto-change, persistence, palette metadata, and shutdown owners.
+- `src/RuntimeCommandTargets.*`: adapters for UI-originated option and
+  effect-control changes.
+- `src/RuntimeConfig*`, `src/RuntimePersistence.*`,
+  `src/LegacyRuntimeConfigContributor.cc`: runtime config snapshots and ini
+  persistence.
+- `src/RuntimeDisplayControls.*`, `src/RuntimeAudioControls.*`,
+  `src/RuntimeAutoChangeControls.*`, `src/RuntimeEffectControls.*`,
+  `src/RuntimeShutdown.*`: subsystem control ports used by the mediator.
 
-### Runtime and Composition
+## Frame Generation And Visual Effects
 
-- `src/cthugha.h`: global platform config, logging, and timing helpers.
-- `src/AudioSettings.*`: snapshots audio config for runtime composition.
-- `src/AudioIngest.*`: owns active audio acquisition, decoded history, visual
-  pacing, and current frame production.
-- `src/AudioPassthrough.*`: owns optional audio output passthrough and output
-  cursor state.
-- `src/RuntimeFactory.*`: chooses audio input/output strategy from settings and
-  detected environment.
-- `src/PcmSourceFactory.*`: maps current settings/file names to PCM sources.
-- `src/Audio.*`: modern PCM source/input/output/buffer/frame-builder classes.
-- `src/AudioFrame.*`: owned per-frame raw/processed audio data and metrics.
-- `src/AudioFramePipeline.*`: runs audio processing and analysis before visual
-  mutation.
-- `src/PlatformLifecycle.*`: platform pause/suspend hooks with application-owned
-  suspend/resume callbacks.
-- `src/VideoFilterchain.*`, `src/VideoFilterchainSequence.*`,
-  `src/VideoFilterchainFactory.*`, `src/VideoFilters.*`,
-  `src/VideoDirector.*`: visual-stage executor, stage ordering, filter
-  composition, concrete stage filters, and visual policy.
-- `src/IndexedFrame.h`: display-facing indexed frame descriptor published by
-  the final video filterchain stage.
-### Legacy Visual Core
+- `src/FrameGeneratorRuntime.*`: owner for geometry, storage, scene binding,
+  transition policy, and filterchain pipeline.
+- `src/FrameGeometry.*`: visible indexed-frame dimensions and scene-geometry
+  port.
+- `src/FrameStorageLayout.h`, `src/FrameStore.*`,
+  `src/FrameRenderTarget.*`: active/passive indexed storage, pitch, hidden
+  border rows, and render-target access.
+- `src/FrameGeneratorContext.*`, `src/FrameRenderContext.*`: per-frame audio,
+  scene, timing, and presentation context objects.
+- `src/FrameGeneratorPipeline.*`: filterchain ownership.
+- `src/FrameGeneratorSceneBinding.*`: observes `Scene` changes and binds
+  current scene settings/cues into concrete filter objects.
+- `src/FrameFilterchain.*`, `src/FrameFilterchainSequence.*`,
+  `src/FrameFilterchainFactory.*`, `src/FrameFilters.*`: filterchain runtime,
+  stage order, factory, and concrete visual filters.
+- `src/IndexedFrame.h`, `src/IndexedDisplayFrame.*`: frame descriptors used
+  between generator, composer, and display.
+- `src/FramePalette.*`, `src/ColorPalette.*`, `src/PaletteTransition.*`,
+  `src/PaletteRandomGenerator.*`, `src/palettes.cc`: palette data, palette
+  transitions, random palettes, map loading, and metadata.
+- `src/Image.*`, `src/pcx.*`, `src/png.*`: indexed image model and loaders.
+- `src/Flame.*`, `src/flames.*`: flame catalog and feedback implementations.
+- `src/Translate.*`, `src/TranslateGenerator.*`,
+  `src/TranslationOptions.*`: translation tables and generators.
+- `src/Wave.*`, `src/WaveObject.*`, `src/waves.*`, `src/sound_tables.cc`:
+  wave catalogs, optional line objects, wave drawing, and lookup tables.
+- `src/Border.*`, `src/Flashlight.*`, `src/DosVga9x14Font.cc`: supporting
+  visual stages.
 
-- `src/CthughaBuffer.*`: single classic visual buffer dimensions and raw indexed
-  active/passive pixel buffers. Per-frame flame/translate/wave/swap
-  choreography lives in video filterchain filters.
-- `src/EffectControl.*`, `src/EffectChoice.cc`: effect registry, history,
-  locks, hotkeys, and file loading helpers.
-- `src/Option.*`, `src/OptionInt.cc`: scalar option classes.
-- `src/AutoChanger.*`: automatic option changes based on silence, cumulative
-  fire level, and elapsed time. It reports quiet intervals to visual policy and
-  issues automatic change commands through `RuntimeCommandSink`.
-- `src/SilenceMessage.*`, `src/*MessagesProvider.*`, and
-  `src/MessageFormatValidator.*`: quiet-message selection, validated
-  CP437-compatible `--quiet-file`/default messages, and opt-in non-blocking
-  QOTD prefetch for text injection.
-- `src/imath.*`: integer math tables/helpers used by visual code.
-- `src/ProcessServices.*`: process clocks, logging runtime, log sinks, and
-  random-source adapters.
-- `src/LegacyLoggingAdapter.cc`: temporary compatibility adapter for legacy
-  `CTH_*` logging macros.
+## Display, Input, And Interface
 
-### Audio
+- `src/DisplaySystem.*`: display-driver registry, active driver components,
+  and display presentation settings.
+- `src/DisplayDevice.*`: abstract display device and text drawing base.
+- `src/DisplayBackend.h`, `src/DisplayPresentation.h`: backend presentation
+  contract.
+- `src/DisplayRuntime.*`: event processing and presentation wrapper over a
+  display backend.
+- `src/DisplayPresentationOptions.*`, `src/PresentationComposer.*`,
+  `src/ViewportPolicy.*`, `src/ViewportPresentation.h`,
+  `src/PixelTransfer.*`, `src/Screen*`: presentation-screen, viewport, overlay,
+  and pixel-transfer helpers.
+- `src/CthughaDisplay.*`, `src/CthughaDisplayX11.cc`: frame timing,
+  composition, overlay collection, viewport management, and X11 presentation
+  coordinator.
+- `src/DisplayDeviceX11.cc`, `src/DisplayDeviceX11-Panel.cc`: X11/Xt/Xaw
+  display device, MIT-SHM path, X events, palette handling, optional panel, and
+  palette metadata editing.
+- `src/display.cc`, `src/display.h`: classic presentation screen functions.
+- `src/CommandsInputRuntime.*`, `src/InputQueue.*`, `src/keymap.*`,
+  `src/default.keymap`, `src/keys.*`, `src/xwin_keys.cc`: input queue, command
+  registry, keymap loading, and X11 key wrapper.
+- `src/Interface.*`, `src/InterfaceRuntime.*`, `src/InterfaceHelp.cc`,
+  `src/InterfaceCredits.cc`, `src/InterfaceList.cc`, `src/OverlaySource.*`,
+  `src/FpsOverlay.*`: on-screen interface and overlays.
 
-- `src/AudioProcessor.*`: `sound-processing` option with `none`, `Filter1`,
-  `Filter2`, and `FFT`.
-- `src/AudioAnalyzer.*`: RMS-like frame analysis plus rolling
-  `AcousticContext` intensity/fire state.
-- `src/AudioTypes.h`: shared audio sample and input-mode definitions.
-- `src/AudioOptions.h`: audio option globals shared by option parsing and
-  runtime construction.
-- `src/AudioSystem.*`: sound lifecycle wrapper, input-mode defaults, raw-format
-  options, and suspend/resume entry points.
-- `src/Audio.*`: PCM sources, input, buffering, output, Pulse/OSS/null output,
-  and visual-frame construction.
-- `src/PcmSourceFactory.*`: maps settings and file names to line input, random
-  noise, WAV, MP3, or raw PCM sources.
-- `src/RuntimeFactory.*`: treats absent/failed live input as no PCM source, so
-  the `AudioFrame` facade exposes silence to visual policy.
-- `src/Mixer.*`: OSS mixer integration.
+## Assets
 
-Old analyzer/processor/server/network audio source files are not current source
-files.
+- `resources/map/`: 101 `.map` palette files. Loader: `src/palettes.cc`.
+- `resources/img/`: 7 indexed image assets (`.pcx` and indexed `.png`).
+  Loaders: `src/pcx.cc` and `src/png.cc`.
+- `resources/obj/`: 23 text `.obj` line-object files loaded by `src/waves.cc`.
 
-### 2D Visual Effects
+Runtime asset lookup checks the current directory, repository resource
+directories, installed `CTH_LIBDIR` resource directories, and `--path DIR`
+subdirectories as implemented by the loaders.
 
-- `src/flames.*`: decay/propagation feedback functions over the previous frame
-  plus the global flame selection option.
-- `src/Wave.*`: standalone wave domain catalog.
-- `src/waves.*`: waveform, beat, object, and geometry drawing functions plus
-  the global wave selection options.
-- `src/sound_tables.cc`: 10 built-in wave color lookup tables.
-- `src/translate.*`: translation-table loading and per-pixel remapping.
-- `src/Flashlight.*`: palette-brightening visual stage.
-- `src/Border.*`: hidden-row boundary stage for flame diffusion.
-- `src/display.cc`: 2D screen mapping functions such as mirrored, split,
-  heightfield, roll, bent, and plate.
-- `src/palettes.cc`: palette loading, metadata, filtering, random palettes, and
-  palette handling.
-- `src/Image.*`: indexed image domain objects, placement, and image option adapter.
-- `src/pcx.*`: PCX decode support for indexed images.
-- `src/png.*`: indexed PNG decode support for indexed images.
+## Build And Tests
 
-### Display Frontends
+The root CMake build defines common sources, optional miniaudio sources, the
+`xcthugha` X11 target, optional focused tests, and optional benchmarks. Tests
+are registered in `tests/CMakeLists.txt`; benchmark targets live under
+`tests/benchmarks/`.
 
-- `src/DisplayDevice.*`: abstract display device and text rendering base.
-- `src/DisplayDeviceX11.cc`: X11/Xt/Xaw display, window/root modes, MIT-SHM,
-  palette setup, resize handling, and X event loop.
-- `src/DisplayDeviceX11-Panel.cc`: optional Athena-widget X11 panel, including
-  palette preview/metadata editing helpers.
-- `src/CthughaDisplayX11.cc`: X11 display-buffer expansion, mirroring, and copy.
-
-The current tree only wires up the X11 frontend.
-
-### UI, Input, and Configuration
-
-- `src/Interface.*`: interface registry, screens, selectable option rows, and
-  error display.
-- `src/InterfaceHelp.cc`, `src/InterfaceCredits.cc`,
-  `src/InterfaceList.cc`: specific screens.
-- `src/keymap.*`: configurable keymaps and action dispatch.
-- `src/RuntimeCommand.*`, `src/RuntimeCommandSink.h`, and
-  `src/RuntimeChangeMediator.*`: live runtime command values, sink contract, and
-  mediator used by keymap, interface, X11 panel, credits, audio completion, and
-  AutoChanger actions before they touch
-  scene/audio/display/palette-metadata/lifecycle state.
-- `src/default.keymap`: default keymap source.
-- `src/default.keymap.str`: generated C string include in in-tree builds;
-  CMake generates its own copy under `build/src/`.
-- `src/keys.cc`: key symbol translation and X11 key polling.
-- `src/xwin_keys.cc`: X11 wrapper variant for key handling.
-- `src/Configuration.cc`: command-line, environment, and ini startup config
-  acquisition.
-- `src/IniFiles.cc`: generated `.cthugha.auto` and stop-and-continue
-  persistence from typed config/state snapshots.
-- `src/info_title_usage.cc`: title/help/usage output.
-
-## Build Targets and Source Groups
-
-### Modern CMake
-
-Current CMake targets:
-
-| Target | Purpose | Notes |
-| --- | --- | --- |
-| `xcthugha` | X11 visualizer | Built from `CTHUGHA_COMMON_SOURCES`, the X11 key wrapper, `display.cc`, and X11 display device/display classes. |
-
-The only remaining frontend wrapper in the active CMake target is
-`xwin_keys.cc`, which compiles key handling with X11-specific definitions.
-
-## Asset Directories
-
-### `resources/map/`
-
-Contains 100 `.map` palettes. Format: up to 256 RGB rows, with optional
-metadata lines before the RGB data. Supported metadata keys include `name`,
-`set`, and `energy`. Loader: `src/palettes.cc`.
-
-The panel draws palette previews directly from the active and target `.map`
-palettes; there is no separate palette-preview image directory.
-
-Search path:
-
-```text
-./
-./resources/map/
-CTH_LIBDIR/map/
---path DIR -> DIR/map/
-```
-
-### `resources/img/`
-
-Contains the classic indexed image assets. Existing content is 6 `.pcx` files
-and 1 `.png` image. The image option accepts uncompressed `.pcx` and indexed
-`.png` files from the same locations. PCX loading lives in `src/pcx.cc`;
-indexed PNG loading lives in `src/png.cc`.
-
-Search path:
-
-```text
-./
-./resources/img/
-CTH_LIBDIR/img/
---path DIR -> DIR/img/
-```
-
-### Translation Tables
-
-Built-in translation tables are generated by `src/TranslateGenerator.cc` during
-visual startup.
-
-### `resources/obj/`
-
-`src/waves.cc` can load `.obj` line objects from:
-
-```text
-./
-./resources/obj/
-CTH_LIBDIR/obj/
---path DIR -> DIR/obj/
-```
-
-Object format is text lines like:
-
-```text
-x1,y1,z1 - x2,y2,z2
-```
+Generated build files belong in out-of-tree CMake build directories. CMake also
+generates `default.keymap.str` under the build tree from `src/default.keymap`.

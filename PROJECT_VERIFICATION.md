@@ -1,82 +1,134 @@
 # Verification Notes
 
-This file records the checks used for the current cleanup and audio-backend
-removal work. It is intentionally current-state focused; old generated
-architecture notes have been reduced or updated so repository searches point at
-live code paths.
+This file records how to verify that the root project notes describe the
+current source tree rather than an older architecture.
 
-## Source Cleanup Checks
+## Documentation Inventory
 
-The current source/build files no longer contain references to removed audio
-backend classes, deleted backend headers, helper-decoder paths, stream-only file
-playback options, or old runtime context enums.
-
-The remaining audio model is:
+The root notes currently expected are:
 
 ```text
-PcmSource -> AudioInput -> AudioBuffer -> AudioOutput
-                         -> AudioFrameBuilder -> AudioFrame
+PROJECT_SUMMARY.md
+PROJECT_STRUCTURE.md
+PROJECT_RUNTIME_MAP.md
+PROJECT_MAIN_LOOP_EXPLAINED.md
+PROJECT_SEAMS_AND_RISKS.md
+PROJECT_BUILD_AND_PORTING.md
+PROJECT_VERIFICATION.md
 ```
 
-for file playback, and:
+Inventory command:
+
+```sh
+find . -maxdepth 1 -name 'PROJECT_*.md' -print | sort
+```
+
+There may be compatibility or older notes below subdirectories; they are not
+part of this root-doc inventory.
+
+## Source Evidence Used
+
+The most important source-of-truth files for these notes are:
 
 ```text
-PcmSource -> AudioInput -> AudioInputProcessor -> AudioFrame
+CMakeLists.txt
+src/CMakeLists.txt
+src/Application.cc
+src/Application.h
+src/AudioIngest.cc
+src/AudioFramePipeline.cc
+src/RuntimeFactory.cc
+src/PcmSourceFactory.cc
+src/AudioOutput.cc
+src/AudioMiniAudioOutput.cc
+src/MiniAudioCapturePcmSource.cc
+src/SceneRuntime.cc
+src/SceneChangeScheduler.cc
+src/FrameGeneratorRuntime.cc
+src/FrameGeneratorSceneBinding.cc
+src/FrameGeneratorPipeline.cc
+src/FrameFilterchain.cc
+src/FrameFilters.cc
+src/FrameStore.h
+src/FrameRenderTarget.h
+src/DisplaySystem.cc
+src/DisplayDeviceX11.cc
+src/CthughaDisplay.cc
+src/CthughaDisplayX11.cc
+src/RuntimeChangeMediator.cc
+tests/CMakeLists.txt
 ```
 
-for live/random input.
+The docs should use current class names from those files. In particular, the
+active architecture is centered on `AudioIngest`, `SceneRuntime`,
+`SceneChangeScheduler`, `FrameGeneratorRuntime`, `FrameFilterchain`, and
+`DisplaySystem`.
 
-Raw file playback is handled by `RawPcmSource` using `sound-format`,
-`sound-channels`, and `sound-sample-rate`. WAV and MP3 file playback use the
-same runtime path.
+## Staleness Checks
 
-## Build Checks
-
-These commands were run successfully after the source cleanup:
+Search root project docs for removed or superseded subsystem names before
+calling the refresh complete:
 
 ```sh
-git diff --check
-cmake -S /workspaces/cthughanix -B /workspaces/cthughanix/build -DCMAKE_BUILD_TYPE=Debug
-cmake --build /workspaces/cthughanix/build --parallel
+stale='Audio''Runtime|Audio''VisualBridge|Video''Filterchain|Video''Director|Video''Frame|Cthugha''Buffer|Auto''Changer|Audio''Buffer'
+rg -n "$stale" PROJECT_*.md
 ```
 
-The CMake build produced the X11 visualizer and helper tools.
+The shell concatenation keeps the removed names out of the docs as live prose.
+If the search reports hits, inspect whether each hit is intentionally
+historical. These notes should normally avoid historical names altogether and
+describe only the current system.
 
-## Display Presentation Checks
-
-`presentation_composer_test`, `cthugha_display_presentation_test`, and
-`screen_renderer_characterization_test` cover the screen rejection contract:
-renderers may reject incompatible geometry, while `PresentationComposer` owns
-frame-local fallback without mutating the selected display option.
-
-## Runtime Command Checks
-
-The runtime reconfiguration seam has focused tests for command construction,
-mediator routing including close/save-and-continue and palette metadata
-commands, and AutoChanger's command-sink consumer behavior:
+Also check that the current names appear where expected:
 
 ```sh
-ctest --test-dir build --output-on-failure -R 'runtime_command_test|runtime_change_mediator_test|auto_changer_command_sink_test'
+rg -n 'AudioIngest|SceneRuntime|SceneChangeScheduler|FrameGeneratorRuntime|FrameFilterchain|DisplaySystem' PROJECT_*.md
 ```
 
-The full local verification pass after adding those tests was:
+## Build And Test Checks
+
+A documentation-only change should not require a full rebuild, but build/test
+commands are still useful when documentation claims a target or test exists.
+
+Current focused checks for this worktree:
 
 ```sh
+cmake --build build-miniaudio-x11-no-pulse --target xcthugha
+ctest --test-dir build-miniaudio-x11-no-pulse -R frame_filterchain_diagnostics_test --output-on-failure
+```
+
+General project checks:
+
+```sh
+cmake -S . -B build
 cmake --build build
-tests/headers/check-headers.sh
 ctest --test-dir build --output-on-failure
 ```
 
-The full suite currently reports 32 passing tests.
+Real-device audio smoke tests are opt-in:
 
-## Documentation Sweep
+```sh
+cmake -S . -B build-miniaudio-device-tests -G Ninja \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_RUN_AUDIO_DEVICE_TESTS=ON \
+  -DCTH_BUILD_TESTS=ON
+cmake --build build-miniaudio-device-tests
+ctest --test-dir build-miniaudio-device-tests \
+  -R 'miniaudio_.*_smoke' --output-on-failure
+```
 
-The root project notes now describe the modern audio path, raw PCM support,
-single `AudioFrame` facade, and CMake-only build.
+## Documentation Completion Criteria
 
-## Remaining Risk Areas
+The root docs are current when:
 
-- Live input still depends on OSS-compatible `/dev/dsp` support.
-- Mixer controls still use old Unix/Linux ioctls.
-- Visual effects still rely heavily on global indexed-buffer state.
-- Compressed indexed-image loading can still spawn helper commands.
+- every root `PROJECT_*.md` file has been reviewed or replaced;
+- source names and build options match the current tree;
+- frame flow matches `Application::run()` and `Application::runFrame()`;
+- audio flow matches `AudioIngest`, `RuntimeFactory`, and `PcmSourceFactory`;
+- visual flow matches `FrameGeneratorRuntime`, `FrameGeneratorSceneBinding`,
+  and `FrameFilterchain`;
+- display flow matches `DisplaySystem` and the X11 factory;
+- runtime command flow matches `RuntimeChangeMediator`;
+- stale subsystem names do not remain as active architecture;
+- verification searches and relevant focused build/test commands have been run
+  or explicitly deferred.

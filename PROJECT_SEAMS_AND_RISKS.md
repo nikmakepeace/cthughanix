@@ -1,19 +1,17 @@
-# Seams and Risks
+# Seams And Risks
 
-## Best Extension Seams
+This file lists practical extension seams in the current codebase and the
+couplings that still deserve caution.
 
-### Add a Palette
+## Low-Risk Extension Seams
 
-Drop a `.map` file into `resources/map/`, the current directory, installed
+### Add A Palette
+
+Drop a `.map` file into `resources/map/`, the current directory, the installed
 `CTH_LIBDIR/map/`, or `--path DIR/map/`.
 
-Format is up to 256 RGB rows:
-
-```text
-R G B optional comment
-```
-
-The loader also accepts metadata lines before RGB data:
+The loader in `src/palettes.cc` accepts up to 256 RGB rows and optional
+metadata before the color data:
 
 ```text
 name: Human Name
@@ -21,47 +19,35 @@ set: classic bright
 energy: low medium high extreme
 ```
 
-Loader: `src/palettes.cc`.
+`--palette-set SET` filters palettes whose metadata contains the requested set.
+If no palette matches, the code warns and leaves palettes enabled.
 
-This is still the lowest-risk extension seam.
+### Add An Indexed Image
 
-### Add or Filter a Palette Set
+Drop uncompressed `.pcx` or indexed `.png` files into `resources/img/`, the
+current directory, installed `CTH_LIBDIR/img/`, or `--path DIR/img/`.
 
-Palette metadata can be used with:
+Loaders:
 
-```sh
---palette-set SET
-```
+- `src/pcx.cc`
+- `src/png.cc`
+- catalog path: `SceneImageCatalogLoader`
 
-`palette_set_filter()` enables palettes whose metadata `set` contains the
-requested value. If no palette matches, the code warns and leaves all palettes
-enabled.
+Images become scene visual choices. A scene image cue arms `ImageFilter` once;
+the filter clips and writes the selected `IndexedImage` into active pixels and,
+by default, mirrors it into passive pixels for immediate display.
 
-### Add an Indexed Image
+### Add A Translation Effect
 
-Drop uncompressed `.pcx` or indexed `.png` files into `resources/img/`, current
-directory, installed `CTH_LIBDIR/img/`, or `--path DIR/img/`.
+Add a `TranslateGenerator` and register it in `src/TranslateGenerator.cc`.
+Translation catalogs are generated during visual startup, so the frame loop uses
+ready `TranslationTable` data. `TranslateFilter` receives the selected table
+from `FrameGeneratorSceneBinding`.
 
-Loaders: `src/pcx.cc` and `src/png.cc`.
+### Add A Line Object
 
-Image files become entries in the image option owned by `VideoDirector`.
-PCX/PNG source palettes are retained with the image entry for future policy, but
-image display does not mutate the current frame palette. `ImageFilter`
-clips the selected `IndexedImage` into the active visual buffer when armed.
-
-### Add a Translation Effect
-
-Add a `TranslateGenerator` implementation and register it in
-`defaultTranslationCatalog()` in `src/TranslateGenerator.cc`. A catalog entry
-pairs an id, a display description, a generator, and per-entry options, so the
-same generator can appear multiple times with different names and parameters.
-
-`src/TranslationOptions.cc` eagerly generates these tables during visual startup so the
-running filterchain only executes ready maps.
-
-### Add a 3D Line Object
-
-External `.obj` line objects live under `resources/obj/`.
+External line objects live under `resources/obj/` and are loaded by
+`src/waves.cc`.
 
 Format:
 
@@ -69,299 +55,185 @@ Format:
 x1,y1,z1 - x2,y2,z2
 ```
 
-Loader: `read_object()` in `src/waves.cc`.
+### Add A Flame
 
-### Add a Compiled-In 2D Flame
-
-Add a function to `src/flames.cc`, then add a `Flame(...)` in
-`src/Flame.cc::flameCatalog`. Also add a matching `FlameEntry` adapter in
-`src/flames.cc::_flames` so the `FlameOption` can expose it to keymap/UI/config
-selection.
+Add the implementation in the flame domain and expose it through the flame
+catalog/scene selection path. The executed stage is `FlameFilter`, which calls
+the selected `Flame` against `FrameRenderTarget` and `FrameGeneratorContext`.
 
 Contract:
 
-- accept a `CthughaBuffer&` and read/write `activePixels()` /
-  `passivePixels()`;
-- respect `BUFF_WIDTH`, `BUFF_HEIGHT`, and the extra 3-line top/bottom border;
-- leave coordinate remapping to the dedicated translate stage;
-- expose execution through the `Flame` domain object, not through
-  `EffectChoice`.
+- operate on active/passive indexed pixels through `FrameRenderTarget`;
+- respect visible geometry, pitch, and hidden border rows;
+- leave coordinate remapping to `TranslateFilter`;
+- keep selection state in scene/catalog objects, not inside the filter.
 
-### Add a Compiled-In Wave
+### Add A Wave
 
-Add a drawing function to `src/waves.cc`, declare it in `src/Wave.cc`, and add
-it to `waveCatalog`. Add or adjust the corresponding `WaveEntry` adapter only
-if the UI/EffectControl list needs a different in-use flag.
-
-Wave functions should read sound through `audioFrameProcessedWaveData()` and rolling
-state from `audioMetrics` / `acousticContext`, read selected scale/table/object
-values from `WaveRuntime`, then draw directly into the buffer's active pixels.
-`WaveFilter` executes the selected `Wave` through
-`execute(buffer, context, runtime)`.
-
-### Add an Audio Processing Mode
-
-Add a `EffectChoice` subclass in `src/AudioProcessor.cc` and register it in
-`_audioProcessorOptionEntries`.
+Add the drawing function/catalog entry in the wave domain. `WaveFilter` receives
+the selected `Wave`, `WaveConfig`, random source, and frame context from
+`FrameGeneratorSceneBinding`.
 
 Contract:
 
-- read `audioFrameRawData()` or the active `AudioFrame`;
-- write all of `audioFrameProcessedWaveData()` or the frame's `processedWaveData` buffer;
-- keep output as 1024 signed 8-bit stereo sample pairs.
+- read raw/processed audio from `FrameGeneratorContext`;
+- use frame metrics and rolling acoustic values from the context;
+- write active indexed pixels through `FrameRenderTarget`;
+- keep per-wave persistent render state in `WaveState`/lookup tables owned by
+  the filter.
 
-### Add a PCM Source
+### Add An Audio Processing Mode
 
-Implement a `PcmSource` subclass in the modern audio model, then extend
-`PcmSourceFactory::selectAudioSourceStrategy()` and `PcmSourceFactory::create()`.
+Extend the audio-processing selector/processor path. The per-frame contract is
+`AudioFrame.raw` in, `AudioFrame.processedWaveData` out, then metrics analysis
+updates `AudioFrame.metrics` and `AcousticContext`.
 
-Contract:
+Keep the output shape as the existing 1024 stereo sample-pair window expected
+by visual code.
 
-- publish `PcmFormat`;
-- write raw PCM into the caller's buffer from `read()`;
-- report finishability through `canFinish()`/`isFinished()` when applicable.
+### Add A PCM Source
 
-This is the preferred audio-input extension seam.
-
-### Add an Audio Output
-
-Implement an `AudioOutput` subclass and extend `RuntimeFactory::createAudioOutput()`.
+Implement a `PcmSource` subclass and extend `PcmSourceFactory`.
 
 Contract:
 
-- implement `write()` and `isOpen()`;
-- call `configureTiming()` with sample rate, bytes per sample, and chunk size;
-- treat `targetDelaySamples()` as output-buffer sizing only. Visual frame
-  selection is driven by the runtime visual clock, not by output latency.
+- publish a valid `PcmFormat`;
+- write raw PCM frames from `read()`;
+- report finite input through `isFinished()` when applicable;
+- leave output playback and visual timing to `AudioIngest`/`AudioPassthrough`.
 
-### Add a Video Filter
+### Add An Audio Output
 
-Implement `VideoFilter` and add it through `VideoFilterchainFactory`.
+Implement an `AudioOutput` subclass and extend `RuntimeFactory`.
 
-Current reality: image, border, flame, translate, wave, text injection,
-frame-commit, palette smoothing, flashlight, and indexed-frame export are
-explicit filters. `VideoDirector` updates typed stage objects before each run;
-`FlameFilter` owns the current `Flame` and general-flame value.
-`VideoDirector` chooses a runnable `Wave`, configures it with wave
-scale/table/object, and binds only that `Wave` into `WaveFilter`. The
-filterchain passes a `VideoFrame` through each stage;
-that frame carries the current `CthughaBuffer`, frame context, display palette,
-and `IndexedFrame` publication slot.
+Contract:
 
-The next seam to improve is the remaining display compatibility layer. Stage
-entries receive an explicit `VideoFrame` and entry selection does not happen
-inside the stage filters. Display presentation now receives an explicit
-`IndexedFrame`, but scratch allocation and backend globals still assume the
-classic runtime shape.
+- implement `write()`, `isOpen()`, and realtime capability accurately;
+- call into `AudioOutput::configureTiming()` before passthrough begins;
+- provide a presentation delay/clock when the backend can support one;
+- reject fake/null hardware backends for real-device smoke tests.
 
-### Add a Display Mode
+### Add A Frame Filter
 
-2D: add a screen function in `src/display.cc` and register it in `_screens`.
+Implement `FrameFilter`, add it through `FrameFilterchainFactory`, and decide
+where `FrameGeneratorSceneBinding` should configure it.
 
-`ScreenEntry` declares an `xy size` that tells `CthughaDisplayX11`
-whether the display layer must mirror horizontally and/or vertically.
+Current concrete filters are:
 
-### Add a Display Frontend
+- `ImageFilter`
+- `BorderFilter`
+- `FlameFilter`
+- `TranslateFilter`
+- `WaveFilter`
+- `TextInjectionFilter`
+- `FrameCommitFilter`
+- `PaletteFilter`
+- `FlashlightFilter`
+- `IndexedFrameFilter`
 
-Implement a new `DisplayDevice` subclass and a matching `CthughaDisplay`
-subclass, or reuse the X11-style display layer if the frontend can accept the
-same 2D buffer contract.
+Stage execution receives one `FrameFilterFrame` carrying the render target,
+frame context, optional frame palette, indexed-frame publication slot, and log
+sink. Filters should not discover global scene state on their own.
 
-Required seam points:
+### Add A Display Frontend
 
-- `cth_init()`;
-- `newDisplayDevice()`;
-- `newCthughaDisplay()`;
-- display `processEvents()`;
-- `preDraw()`, `postDraw()`, `clearBox()`, `copyBox()`, and text drawing.
+Add a `DisplayDriverFactory` and register it with `DisplayDriverRegistry` during
+application display startup.
 
-This is still a large seam because many globals (`disp_size`, `bypp`,
-`bytes_per_line`, `draw_mode`, `text_size`, `fontSize`) are shared.
+The active driver must create:
 
-## Hidden Couplings
+```text
+DisplayDevice
+DisplayBackend
+DisplayRuntime
+CthughaDisplay or compatible coordinator
+```
 
-### Global State Is Still The Real Architecture
+The display contract is an `IndexedFrame` plus palette, presented through
+`DisplayRuntime`. A new frontend should preserve that contract and avoid
+reintroducing direct visual-engine dependencies into event handling.
 
-Subsystems communicate mainly through globals:
+## High-Risk Areas
 
-- `cthughaDisplay`, `displayDevice`, `autoChanger`;
-- `audioMetrics`, `acousticContext`;
-- `BUFF_WIDTH`, `BUFF_HEIGHT`;
-- `CthughaBuffer::current`;
-- `screen`;
-- many `Option` and `EffectControl` singletons.
+### X11 Is Still The Only Wired Graphical Frontend
 
-The new runtime/filterchain classes reduce some coupling, but most filters still
-assume initialization order rather than checking dependencies.
+The main target only registers the X11 display factory. `CTH_BUILD_SDL3` exists
+as a CMake option and display-driver enum support exists in config parsing, but
+there is no SDL3 source path in `src/CMakeLists.txt`.
 
-### Audio Has One Runtime Model
+### Display Globals Remain
 
-The current audio system can use:
+The display and presentation layer still has process-wide values such as
+`disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `text_size`, `fontSize`, and
+the global `screen` option. These are most visible in X11, classic presentation
+screens, and text rendering.
 
-- `AudioRuntime`/`PcmSource`/`AudioOutput` for file playback;
-- `AudioInputProcessor` for rolling live/random input.
+### Runtime Selection Is Explicit But Fallbacks Matter
 
-Visual code should use `audioFrameRawData()` and `audioFrameProcessedWaveData()` so
-file playback, live input, random input, and silence all present the same
-1024-sample frame contract.
+`RuntimeFactory` makes audio strategy selection explicit, but output fallback
+currently returns `AudioNullOutput` for failed explicit or automatic playback
+selection. `AudioNullOutput` is non-realtime; that is correct for deliberate
+silent/null output, but it is not a substitute for an opened real playback
+device when diagnosing sync.
 
-### Display Presentation Still Shares Backend Globals
+### Audio Timing Depends On Backend Semantics
 
-`VideoFilterchain` has explicit filters for image, border, flame, translate,
-wave, text injection, frame commit, palette smoothing, flashlight, and
-indexed-frame export. It
-creates one `VideoFrame` from the current buffer, context, display palette, and
-`IndexedFrame` publication slot, then passes that frame through enabled filters
-in stage order.
+Realtime backends can provide presentation clocks and delay estimates. Null
+output does not. miniaudio callback playback, Pulse writes, and OSS writes have
+different queue semantics, so latency fixes should be tested against trace logs
+and at least one real backend.
 
-Do not assume this is full inversion of control yet. The display path consumes
-`IndexedFrame`, but X11-era globals still own backend memory layout, frame
-scratch allocation, and event-loop handoff.
+### Scene Binding Owns Much Of The Visual Policy
 
-### Frontend Key Wrapper Includes `.cc`
+`FrameGeneratorSceneBinding` is the current policy bridge from `Scene` to
+filters. It handles pending scene changes, image cues, text cues, palette
+transitions, and stage enablement. New visual policy should usually live there
+or in scene/runtime command objects, not inside individual filters.
 
-`xwin_keys.cc` includes `keys.cc` with X11-specific definitions. Any
-build-system rewrite must preserve that compile unit until key handling no
-longer needs a macro-specialized wrapper.
+### Filter Order Is Semantically Significant
 
-### Buffer Size Affects Asset Semantics
+The default order is:
 
-`BUFF_WIDTH` and `BUFF_HEIGHT` affect:
+```text
+Image, Border, Flame, Translate, Wave, Text,
+FrameCommit, Palette, Flashlight, IndexedFrame
+```
 
-- amount of sound read or framed for visuals;
-- translation table dimensions;
-- hidden border row pitch;
-- display mirror and zoom assumptions;
-- table generator output.
+Moving stages changes visible behavior. For example, frame commit determines
+which buffer becomes display-facing, palette and flashlight happen after pixel
+commit, and indexed-frame publication must remain last.
 
-Changing buffer size is a system-wide operation.
+### Startup Order Is A Contract
 
-### Translation Is A Dedicated Stage
+Several modules assume startup has happened in the order used by
+`Application::initialize()`:
 
-Translation runs through `TranslateFilter`. Flames should not apply
-translation internally; coordinate remapping belongs in its own stage rather
-than inside `flames.cc`.
+- frame geometry before visual catalog loading;
+- visual catalogs before `SceneRuntime`;
+- scene/runtime command ports before display opening;
+- display opening before audio-frame pipeline quiet observer creation;
+- platform lifecycle hooks after audio/display state exists.
 
-### Display Functions May Self-Reject
+### Asset Loaders Are Still Format-Specific
 
-Some screen functions return nonzero when the buffer aspect ratio is unsuitable.
-That is only a render rejection, not a request to change the selected display
-option. `PresentationComposer` handles fallback frame-locally by trying the last
-successfully rendered screen and then the safe `Up` screen.
+Palette, PCX, indexed PNG, translation, and line-object loading have narrow
+format expectations. Validate new assets with focused tests or a trace-enabled
+run before assuming the renderer is wrong.
 
-### Palette Handling Depends on Frontend Color Mode
+### OSS Paths Are Legacy But Active
 
-`palettes.cc` maintains the `PaletteOption` adapter and loaded `PaletteEntry`
-objects. `ColorPalette`, `PaletteTransition`, and `FramePalette` own palette
-data, smoothing, and dirty display output, but frontend display code still
-decides whether to use true palette hardware, pseudo-colors, or expanded
-true-color lookup tables.
+OSS DSP and mixer support still compile when headers are available and options
+are enabled. The mixer path is only initialized for live DSP input. Be careful
+when changing audio config, because the old Unix device assumptions are still
+observable in runtime behavior.
 
-### Text Rendering Alters Palette/Copy Behavior
+## Practical Development Guidance
 
-`DisplayDevice::textOnScreen`, palette darkening, `copyText`, and
-`needsFullCopy` interact with palette updates and dirty copying. Text is not
-just an overlay; in 8-bit modes it changes palette strategy.
-
-## Modernization Seams
-
-### Build System
-
-CMake is now the verified path and should remain the reference for active work.
-The old autotools path has been removed; add new targets to CMake.
-
-### Sound
-
-OSS `/dev/dsp` and OSS mixer code remain obsolete runtime interfaces. The best
-replacement seam is the modern audio composition model:
-
-- `PcmSource` for input/decoding;
-- `AudioOutput` for playback;
-- `AudioFrame` for visual sampling.
-
-Keep new audio work inside these interfaces.
-
-### Display
-
-X11 is the current reference frontend. The old SVGAlib and OpenGL paths have
-been removed.
-
-A modern display replacement should preserve the indexed 8-bit core buffer
-first, then render it as a texture through SDL2/SDL3, GLFW, or similar.
-
-### Effects
-
-The effect code is mostly self-contained and should be preserved. The safest
-path is:
-
-1. keep `EffectControl`, `flames`, `waves`, `translate`, palettes, and indexed image behavior
-   stable;
-2. continue moving `CthughaBuffer::current` lookups behind explicit
-   display/provider objects;
-3. add tests around loaders and deterministic transforms before deep changes.
-
-### Configuration and UI
-
-The `Option` and `EffectControl` model is workable but stringly typed. A modern UI
-should treat current option entries as the domain model, then gradually wrap them
-with safer metadata.
-
-`RuntimeCommandSink` / `RuntimeChangeMediator` is the current small
-runtime-change seam. Keymap/interface code, X11 panel callbacks, and
-AutoChanger issue typed `RuntimeCommand` values through the sink; credits input
-and file-playback completion use it for close requests. X11 palette metadata
-save/revert callbacks use it for panel-local persistence and editor state. The
-mediator delegates to existing owners, handles save-and-continue persistence,
-and returns a `RuntimeChangeSet`. It is intentionally a boundary around today's
-globals rather than a complete ownership rewrite.
-
-## Risk Register
-
-### High Risk
-
-- X11/MIT-SHM startup and image paths are platform-sensitive, though X11
-  initialization is now deferred until display startup and command-line help
-  exits before X is touched.
-- Silence messages no longer execute `fortune`; opt-in QOTD input is public
-  network text and must stay strictly validated and bounded.
-- OSS audio and mixer paths are Linux-specific, obsolete, and hard to test on
-  modern systems.
-
-### Medium Risk
-
-- File playback has a single buffered runtime path; the riskiest edges are
-  playback latency accounting, EOF/drain behavior, and raw PCM option handling.
-- `VideoFilterchain` stage order is explicit, and stage execution uses
-  director-provided buffers. The remaining risk is non-filterchain code that still
-  consults `CthughaBuffer::current`.
-- Many fixed-size string buffers use `sprintf`, `strncpy`, and `strncat` with
-  longstanding assumptions.
-- Some code assumes little-endian behavior despite partial big-endian branches.
-- Palette metadata is stricter than old free-form comments; malformed metadata
-  is warned/ignored before RGB data begins.
-- Local build directories and object files can be stale relative to current
-  source.
-
-### Lower Risk
-
-- Palette/map loading is relatively isolated.
-- Indexed image loading is isolated. PNG support is intentionally limited to
-  non-interlaced indexed-color PNGs.
-- Keymap parsing is standalone and a good candidate for targeted tests.
-- Translation table generators are in-process domain objects and can be
-  tested without subprocess plumbing.
-- `AudioProcessor` and `AudioAnalyzer` are much easier to test than the old
-  monolithic sound path.
-
-## Places To Put Tests First
-
-- `AudioProcessor` modes against fixed input frames.
-- `AudioAnalyzer::analyze()` and `AcousticContext::update()`.
-- `PcmSourceFactory::selectAudioSourceStrategy()`.
-- `AudioBuffer` append/read/history behavior.
-- Palette loader metadata, short files, malformed lines, and set filtering.
-- Indexed image loading, placement, clipping, and source-palette retention.
-- built-in translation generator catalog entries and deterministic seeds.
-- `Keymap::parseBinding()` with `src/default.keymap` examples.
-- Flame, translate, and wave transforms through their domain-object `execute()`
-  paths, or all three through a small harness.
+- Prefer adding tests around the seam you touch before changing artistic
+  behavior.
+- Use `RuntimeCommand` for live UI/key/panel mutations.
+- Use `SceneCommandTarget` for scene selection changes.
+- Use `FrameGeneratorContext` for frame-local audio/time/scene data.
+- Use `FrameRenderTarget` instead of process-wide pixel aliases.
+- Use `DisplaySystem` and `DisplayDriverFactory` for frontend work.
+- Keep `xcthugha` green while adding portable paths.
