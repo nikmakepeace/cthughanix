@@ -401,16 +401,36 @@ static int audioMiniAudioBackendNameIsNull(const char* backendName) {
     return (backendName != NULL) && (strcmp(backendName, "Null") == 0);
 }
 
+static int audioMiniAudioRequestedPeriodMilliseconds(int targetLatencyMs) {
+    if (targetLatencyMs <= 0)
+        return 0;
+
+    int periodMs = targetLatencyMs / 4;
+    if (periodMs < 5)
+        periodMs = 5;
+    if (periodMs > 50)
+        periodMs = 50;
+
+    return periodMs;
+}
+
 static int audioMiniAudioPresentationDelaySamples(int sampleRate,
     int targetLatencyMs, int internalPeriodFrames, int internalPeriods) {
-    long long internalSamples
-        = (long long)internalPeriodFrames * (long long)internalPeriods;
-    if (internalSamples > 0)
-        return (int)internalSamples;
+    (void)internalPeriods;
+
+    // miniaudio/CoreAudio is callback driven: submitted samples are the period
+    // currently handed to the device, not an already-filled server queue like
+    // PulseAudio. Subtract one callback period so visual frame selection tracks
+    // the audible slice instead of lagging by the whole internal period queue.
+    if (internalPeriodFrames > 0)
+        return internalPeriodFrames;
 
     if ((sampleRate <= 0) || (targetLatencyMs <= 0))
         return 0;
-    return (sampleRate * targetLatencyMs) / 1000;
+
+    return (sampleRate
+               * audioMiniAudioRequestedPeriodMilliseconds(targetLatencyMs))
+        / 1000;
 }
 
 static void audioMiniAudioStoreBackendName(AudioMiniAudioOutputState* state) {
@@ -547,11 +567,7 @@ void AudioMiniAudioOutput::open(const PcmFormat& format) {
 
     int targetMs = state->outputConfigValue.miniAudioOutputTargetLatencyMs;
     if (targetMs > 0) {
-        int periodMs = targetMs / 4;
-        if (periodMs < 5)
-            periodMs = 5;
-        if (periodMs > 50)
-            periodMs = 50;
+        int periodMs = audioMiniAudioRequestedPeriodMilliseconds(targetMs);
         deviceConfig.periodSizeInMilliseconds = (ma_uint32)periodMs;
         deviceConfig.periods = 4;
         state->requestedPeriodMilliseconds = periodMs;
