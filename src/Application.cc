@@ -18,6 +18,9 @@
 #include "EffectChoiceLoader.h"
 #include "CthughaDisplay.h"
 #include "DisplayPresentationOptions.h"
+#ifdef CTH_SDL3
+#include "DisplayDeviceSDL3.h"
+#endif
 #include "FlashlightOption.h"
 #include "FrameGeneratorContext.h"
 #include "FrameGeometry.h"
@@ -639,6 +642,11 @@ int Application::initialize() {
         = newX11DisplayDriverFactory(*displayFrontendInitializer,
             startupConfigValue.x11);
     displayDrivers.add(*x11DisplayDriverFactory);
+#endif
+#ifdef CTH_SDL3
+    std::unique_ptr<DisplayDriverFactory> sdl3DisplayDriverFactory
+        = newSDL3DisplayDriverFactory(startupConfigValue.sdl3);
+    displayDrivers.add(*sdl3DisplayDriverFactory);
 #endif
     DisplayOpenRequest displayOpenRequest(scene(), *imageOptionValue,
         sceneRuntimeValue->visualSelections(), *runtimeChangeMediatorValue,

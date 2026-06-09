@@ -223,3 +223,49 @@ if(CTH_BUILD_X11)
 
     install(TARGETS xcthugha RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
+
+if(CTH_BUILD_SDL3)
+    add_executable(cthugha
+        ${CTHUGHA_COMMON_SOURCES}
+        keys.cc
+        display.cc
+        DisplayDeviceSDL3.cc
+        Sdl3Presentation.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/default.keymap.str
+    )
+
+    add_dependencies(cthugha default_keymap_str)
+
+    target_compile_definitions(cthugha PRIVATE
+        CTH_SDL3
+        CTH_LIBDIR="${CTH_DATA_DIR}"
+    )
+
+    target_include_directories(cthugha PRIVATE
+        ${CMAKE_BINARY_DIR}/src
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${PULSE_INCLUDE_DIRS}
+    )
+
+    target_compile_options(cthugha PRIVATE ${PULSE_CFLAGS_OTHER})
+
+    target_link_libraries(cthugha PRIVATE
+        SDL3::SDL3
+        Threads::Threads
+        ZLIB::ZLIB
+        m
+    )
+
+    if(WITH_PULSE)
+        target_link_libraries(cthugha PRIVATE ${PULSE_LIBRARIES})
+        target_link_directories(cthugha PRIVATE ${PULSE_LIBRARY_DIRS})
+    endif()
+
+    if(WITH_MINIAUDIO)
+        target_link_libraries(cthugha PRIVATE cthugha_miniaudio)
+    endif()
+
+    install(TARGETS cthugha RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
