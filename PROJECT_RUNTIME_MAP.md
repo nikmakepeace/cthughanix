@@ -43,7 +43,7 @@ install PlatformLifecycle hooks
 
 Important sequencing details:
 
-- Help and version output return before any X11 display work.
+- Help and version output return before any graphical display work.
 - `AudioIngest` starts before display creation.
 - Visual catalogs are loaded after frame geometry is configured, because image
   placement and generated translation tables depend on the logical frame size.
@@ -246,9 +246,20 @@ publishes the passive pixels, pitch, dimensions, and `FramePalette` into an
 
 ## Display Runtime
 
-`DisplaySystem` selects a `DisplayDriverFactory` from the registry. In the
-current build, the only registered graphical factory is X11 when `CTH_XWIN` is
-compiled.
+`DisplaySystem` selects a `DisplayDriverFactory` from the registry. The
+application registers the X11 factory when `CTH_XWIN` is compiled and the SDL3
+factory when `CTH_SDL3` is compiled. A typical development build registers SDL3
+alone; a compatibility build registers X11 alone. If both are compiled and the
+runtime driver is `auto`, registration order currently prefers X11.
+
+The SDL3 factory creates:
+
+```text
+DisplayDeviceSDL3
+DisplayBackendSDL3
+DisplayRuntime
+SDL3 presentation coordinator
+```
 
 The X11 factory creates:
 
@@ -260,28 +271,32 @@ CthughaDisplayX11
 ```
 
 `DisplayRuntime::processEvents()` drains platform events into the input queue.
-For X11 this means Xt/X event dispatch, key-release translation, expose/resize
-tracking, and optional panel callbacks.
+For SDL3 this means SDL events, close requests, key translation, and resize
+tracking. For X11 this means Xt/X event dispatch, key-release translation,
+expose/resize tracking, and optional panel callbacks.
 
 `CthughaDisplay::present()` receives the generated `IndexedFrame`, applies the
 frame palette to the display device, and calls the frontend-specific
-coordinator. `CthughaDisplayX11` then:
+coordinator. The coordinator then:
 
 ```text
 set global/frame palette
 compose presentation frame
-prepare backend draw memory
 choose viewport and border-clearing needs
 collect interface/error/FPS overlays
 transfer pixels through DisplayRuntime
-postDraw the display device
 ```
+
+X11 also prepares mapped draw memory and runs `postDraw()` around the runtime
+transfer. SDL3 presents through renderer texture upload/copy/present in its
+backend.
 
 ## Runtime Commands And Configuration
 
 Live changes flow through `RuntimeCommand` values. Producers include keymap
-actions, interface actions, X11 panel callbacks, credits/input screens,
-automatic scene changes, file-playback completion, and persistence commands.
+actions, interface actions, frontend panel callbacks where available,
+credits/input screens, automatic scene changes, file-playback completion, and
+persistence commands.
 
 `RuntimeChangeMediator` handles the command and delegates to:
 

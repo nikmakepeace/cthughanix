@@ -15,22 +15,35 @@ tests/CMakeLists.txt
 tests/benchmarks/CMakeLists.txt
 ```
 
-The normal local build is:
+The current development target is the SDL3 frontend with miniaudio. Build it
+into the normal `./build` directory with:
 
 ```sh
-cmake -S . -B build
-cmake --build build
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=ON \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_ENABLE_PULSE=OFF \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build --target cthugha
 ```
 
-The main executable target is `xcthugha` when `CTH_BUILD_X11=ON`.
+The SDL3 executable target is `cthugha`. The X11 executable target is
+`xcthugha` when `CTH_BUILD_X11=ON`.
+
+The bare CMake option defaults remain compatibility-biased toward X11. Use the
+explicit SDL3 command above for current development work.
 
 ## CMake Options
 
 Current root options:
 
-- `CTH_BUILD_X11`: build the X11 frontend. Default `ON`.
-- `CTH_BUILD_SDL3`: display option placeholder. Default `OFF`; not wired to a
-  target today.
+- `CTH_BUILD_X11`: build the X11 frontend and `xcthugha` compatibility target.
+  Default `ON`.
+- `CTH_BUILD_SDL3`: build the SDL3 frontend and `cthugha` development target.
+  Default `OFF`.
 - `CTH_BUILD_TESTS`: build and register focused tests. Default `ON`.
 - `CTH_BUILD_BENCHMARKS`: build Google Benchmark suites. Default `OFF`.
 - `CTH_RUN_AUDIO_DEVICE_TESTS`: register smoke tests that open real audio
@@ -65,6 +78,11 @@ Core build:
 - threads;
 - math library.
 
+SDL3 target:
+
+- SDL3;
+- Zlib.
+
 X11 target:
 
 - X11;
@@ -89,27 +107,48 @@ explicit framework linkage.
 
 ## Useful Build Commands
 
-X11 with tests:
+SDL3 development build:
 
 ```sh
 cmake -S . -B build -G Ninja \
-  -DCTH_BUILD_X11=ON \
-  -DCTH_BUILD_TESTS=ON \
-  -DCTH_BUILD_BENCHMARKS=OFF
-cmake --build build --target xcthugha
-ctest --test-dir build --output-on-failure
-```
-
-Miniaudio path without Pulse:
-
-```sh
-cmake -S . -B build-miniaudio-x11-no-pulse -G Ninja \
-  -DCTH_BUILD_X11=ON \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=ON \
   -DCTH_ENABLE_MINIAUDIO=ON \
   -DCTH_ENABLE_PULSE=OFF \
   -DCTH_BUILD_TESTS=ON \
   -DCTH_BUILD_BENCHMARKS=OFF
-cmake --build build-miniaudio-x11-no-pulse --target xcthugha
+cmake --build build --target cthugha
+ctest --test-dir build --output-on-failure
+```
+
+X11 compatibility build:
+
+```sh
+cmake -S . -B build-x11 -G Ninja \
+  -DCTH_BUILD_X11=ON \
+  -DCTH_BUILD_SDL3=OFF \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_ENABLE_PULSE=OFF \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build-x11 --target xcthugha
+ctest --test-dir build-x11 --output-on-failure
+```
+
+Legacy Unix compatibility build:
+
+```sh
+cmake -S . -B build-legacy-x11 -G Ninja \
+  -DCTH_BUILD_X11=ON \
+  -DCTH_BUILD_SDL3=OFF \
+  -DCTH_ENABLE_MINIAUDIO=OFF \
+  -DCTH_ENABLE_PULSE=ON \
+  -DCTH_ENABLE_DSP=ON \
+  -DCTH_ENABLE_MIXER=ON \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build-legacy-x11 --target xcthugha
+ctest --test-dir build-legacy-x11 --output-on-failure
 ```
 
 Headless/unit-focused miniaudio build:
@@ -131,6 +170,8 @@ Real-device miniaudio smoke tests:
 
 ```sh
 cmake -S . -B build-miniaudio-device-tests -G Ninja \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=OFF \
   -DCTH_ENABLE_MINIAUDIO=ON \
   -DCTH_RUN_AUDIO_DEVICE_TESTS=ON \
   -DCTH_BUILD_TESTS=ON
@@ -189,11 +230,25 @@ frame filterchain: added stage=3 filter=flame ptr=0x... owned=1 mode=0 size=3
 
 ## Porting Strategy
 
-### Keep X11 As The Reference
+### Keep SDL3 As The Development Target
 
-`xcthugha` is the only wired graphical executable. Preserve its behavior while
-lifting dependencies behind `DisplaySystem`, `DisplayRuntime`, and
-`CthughaDisplay`.
+`cthugha` is the active graphical executable for new frontend and performance
+work. Prefer SDL3/miniaudio builds for day-to-day development, timing traces,
+scene-script benchmarking, and macOS/Linux portability work.
+
+### Preserve X11 Compatibility
+
+`xcthugha` remains the X11 compatibility frontend. Keep it buildable and use it
+to guard behavior specific to the X11 path, especially the X11 panel,
+MIT-SHM/pixmap presentation details, and old Unix-window-manager behavior.
+
+### Preserve Legacy Unix Compatibility
+
+The legacy compatibility shape is X11 plus the traditional Unix audio surfaces:
+Pulse when available, OSS `/dev/dsp` and `/dev/mixer` when headers are present,
+and no SDL3 dependency. Use this build to check that portability work has not
+silently made the old deployment path depend on SDL3, miniaudio-only behavior,
+or platform APIs outside the historical Unix/X11 stack.
 
 ### Prefer The Current Audio Seams
 
@@ -214,9 +269,23 @@ without pulling scene or audio ownership into the display backend.
 
 ### Isolate Remaining Display Globals
 
-Before or during a new frontend, reduce direct dependence on X11-era display
-globals such as `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`,
-`text_size`, and `fontSize`.
+The new SDL3 frontend no longer depends on the old ambient display ownership
+globals such as a process-wide `DisplayDevice*`, `CthughaDisplay*`, or global
+framebuffer alias. `Application` opens a selected driver through
+`DisplaySystem`, and both frontends use `DisplayRuntime`/`CthughaDisplay` for
+presentation.
+
+There are still transitional compatibility globals in `DisplayDevice.h`:
+`disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `text_size`, and
+`fontSize`. X11 still uses them heavily for mapped image memory, font layout,
+and the Xaw panel. SDL3 initializes a subset of them so shared text rendering
+and legacy `DisplayDevice` helpers continue to work, but they should no longer
+be treated as the frontend boundary.
+
+Next display cleanup should move those values behind backend-owned geometry,
+pixel-format, and overlay-layout objects, leaving narrow X11-specific
+compatibility state in the X11 implementation. Palette globals in `display.h`
+(`bitmap_colors*` and `rev_byte_order`) are a separate remaining legacy seam.
 
 ### Grow Tests Around Behavior
 

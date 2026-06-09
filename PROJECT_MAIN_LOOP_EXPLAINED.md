@@ -4,7 +4,10 @@ This is a guided walk through the active graphical main loop. Keep
 `src/Application.cc`, `src/AudioIngest.cc`, `src/AudioFramePipeline.cc`,
 `src/FrameGeneratorRuntime.cc`, `src/FrameGeneratorSceneBinding.cc`,
 `src/FrameFilterchain.cc`, `src/CthughaDisplay.cc`, and
-`src/CthughaDisplayX11.cc` open while reading.
+the selected frontend implementation open while reading. For the current SDL3
+development target, that frontend is mainly `src/DisplayDeviceSDL3.cc` and
+`src/Sdl3Presentation.cc`; for X11 compatibility, use
+`src/CthughaDisplayX11.cc` and `src/DisplayDeviceX11.cc`.
 
 ## 1. Entry Point
 
@@ -30,7 +33,7 @@ loggingRuntimeValue.configure(...)
 ```
 
 Help and version exits are handled immediately. That matters because the help
-path can print usage without initializing X11.
+path can print usage without initializing a graphical frontend.
 
 After diagnostics and policy setup, the frame generator is configured with the
 startup buffer size, palette smoothing settings, quiet-message duration, and
@@ -76,8 +79,9 @@ Startup scene config is applied after those objects exist, and the interface
 and keymaps are initialized before display creation so early display events can
 route commands immediately.
 
-Display startup creates a `DisplayDriverRegistry`, registers the X11 factory
-when available, and opens `DisplaySystem`. The X11 factory constructs the
+Display startup creates a `DisplayDriverRegistry`, registers compiled frontend
+factories, and opens `DisplaySystem`. SDL3 builds register the SDL3 factory;
+X11 builds register the X11 factory. The selected factory constructs the
 device, backend, display runtime, and presentation coordinator.
 
 Finally the frame-generator pipeline and audio-frame pipeline are initialized,
@@ -240,22 +244,21 @@ CthughaDisplay::present(indexedFrame, presentationContext)
 `CthughaDisplay` records the source frame, applies the frame palette to the
 display device, and dispatches to the frontend coordinator.
 
-`CthughaDisplayX11::operator()()` performs the current X11 presentation:
+The selected frontend coordinator performs presentation. Shared work includes:
 
 ```text
 setGlobalPalette()
 composePresentationFrame()
-preDraw()
 checkZoom()
-clearBorder()
 collect interface/error/FPS overlays
 DisplayRuntime::present(...)
-postDraw()
 ```
 
 The presentation composer applies the selected screen effect and fills an
 `IndexedDisplayFrame`. The display runtime then transfers indexed pixels and
-overlays through the backend.
+overlays through the backend. SDL3 uploads/copies/presents through renderer
+textures. X11 additionally prepares mapped draw memory, clears the border, and
+posts the draw through the X11 device path.
 
 ## 12. Frame Boundary
 

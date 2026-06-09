@@ -52,6 +52,8 @@ src/FrameFilters.cc
 src/FrameStore.h
 src/FrameRenderTarget.h
 src/DisplaySystem.cc
+src/DisplayDeviceSDL3.cc
+src/Sdl3Presentation.cc
 src/DisplayDeviceX11.cc
 src/CthughaDisplay.cc
 src/CthughaDisplayX11.cc
@@ -85,6 +87,15 @@ Also check that the current names appear where expected:
 rg -n 'AudioIngest|SceneRuntime|SceneChangeScheduler|FrameGeneratorRuntime|FrameFilterchain|DisplaySystem' PROJECT_*.md
 ```
 
+Check that frontend docs describe the current dual-frontend state rather than
+the older single-frontend state:
+
+```sh
+stale_frontend='only.*X''11|SDL''3.*placeholder|not wir''ed|xcthugha.*ref''erence'
+rg -n "$stale_frontend" PROJECT_*.md
+rg -n 'SDL3|cthugha|xcthugha|DisplayDeviceSDL3|DisplayDeviceX11' PROJECT_*.md
+```
+
 ## Build And Test Checks
 
 A documentation-only change should not require a full rebuild, but build/test
@@ -93,14 +104,22 @@ commands are still useful when documentation claims a target or test exists.
 Current focused checks for this worktree:
 
 ```sh
-cmake --build build-miniaudio-x11-no-pulse --target xcthugha
-ctest --test-dir build-miniaudio-x11-no-pulse -R frame_filterchain_diagnostics_test --output-on-failure
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=ON \
+  -DCTH_ENABLE_MINIAUDIO=ON \
+  -DCTH_ENABLE_PULSE=OFF \
+  -DCTH_BUILD_TESTS=ON \
+  -DCTH_BUILD_BENCHMARKS=OFF
+cmake --build build --target cthugha scene_script_test frame_filterchain_diagnostics_test --parallel
+ctest --test-dir build -R '^(scene_script_test|frame_filterchain_diagnostics_test)$' --output-on-failure
 ```
 
 General project checks:
 
 ```sh
-cmake -S . -B build
+cmake -S . -B build -DCTH_BUILD_X11=OFF -DCTH_BUILD_SDL3=ON
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
@@ -109,6 +128,8 @@ Real-device audio smoke tests are opt-in:
 
 ```sh
 cmake -S . -B build-miniaudio-device-tests -G Ninja \
+  -DCTH_BUILD_X11=OFF \
+  -DCTH_BUILD_SDL3=OFF \
   -DCTH_ENABLE_MINIAUDIO=ON \
   -DCTH_RUN_AUDIO_DEVICE_TESTS=ON \
   -DCTH_BUILD_TESTS=ON
@@ -127,7 +148,7 @@ The root docs are current when:
 - audio flow matches `AudioIngest`, `RuntimeFactory`, and `PcmSourceFactory`;
 - visual flow matches `FrameGeneratorRuntime`, `FrameGeneratorSceneBinding`,
   and `FrameFilterchain`;
-- display flow matches `DisplaySystem` and the X11 factory;
+- display flow matches `DisplaySystem` and the SDL3/X11 factories;
 - runtime command flow matches `RuntimeChangeMediator`;
 - stale subsystem names do not remain as active architecture;
 - verification searches and relevant focused build/test commands have been run

@@ -4,7 +4,7 @@
 
 ```text
 .
-|-- src/                 application, runtime, visual engine, and X11 frontend
+|-- src/                 application, runtime, visual engine, and display frontends
 |-- tests/               focused unit, smoke, fixture, and benchmark sources
 |-- resources/           runtime palettes, indexed images, and line objects
 |-- external/miniaudio/  vendored miniaudio single-header dependency
@@ -131,16 +131,21 @@ authoritative answer for what is compiled.
   `src/ViewportPolicy.*`, `src/ViewportPresentation.h`,
   `src/PixelTransfer.*`, `src/Screen*`: presentation-screen, viewport, overlay,
   and pixel-transfer helpers.
-- `src/CthughaDisplay.*`, `src/CthughaDisplayX11.cc`: frame timing,
-  composition, overlay collection, viewport management, and X11 presentation
-  coordinator.
+- `src/CthughaDisplay.*`: frame timing, composition, viewport management, and
+  frontend presentation-coordinator base.
+- `src/DisplayOverlay.*`: shared interface/error/FPS overlay collection used
+  by display coordinators.
+- `src/CthughaDisplayX11.cc`: X11 presentation coordinator.
 - `src/DisplayDeviceX11.cc`, `src/DisplayDeviceX11-Panel.cc`: X11/Xt/Xaw
   display device, MIT-SHM path, X events, palette handling, optional panel, and
   palette metadata editing.
+- `src/DisplayDeviceSDL3.*`, `src/Sdl3Presentation.*`: SDL3 display device,
+  SDL event handling, renderer texture presentation, optional frame dumps, and
+  SDL3 presentation helpers.
 - `src/display.cc`, `src/display.h`: classic presentation screen functions.
 - `src/CommandsInputRuntime.*`, `src/InputQueue.*`, `src/keymap.*`,
   `src/default.keymap`, `src/keys.*`, `src/xwin_keys.cc`: input queue, command
-  registry, keymap loading, and X11 key wrapper.
+  registry, keymap loading, SDL-style key handling, and the X11 key wrapper.
 - `src/Interface.*`, `src/InterfaceRuntime.*`, `src/InterfaceHelp.cc`,
   `src/InterfaceCredits.cc`, `src/InterfaceList.cc`, `src/OverlaySource.*`,
   `src/FpsOverlay.*`: on-screen interface and overlays.
@@ -159,9 +164,9 @@ subdirectories as implemented by the loaders.
 ## Build And Tests
 
 The root CMake build defines common sources, optional miniaudio sources, the
-`xcthugha` X11 target, optional focused tests, and optional benchmarks. Tests
-are registered in `tests/CMakeLists.txt`; benchmark targets live under
-`tests/benchmarks/`.
+`cthugha` SDL3 target, the `xcthugha` X11 compatibility target, optional
+focused tests, and optional benchmarks. Tests are registered in
+`tests/CMakeLists.txt`; benchmark targets live under `tests/benchmarks/`.
 
 Generated build files belong in out-of-tree CMake build directories. CMake also
 generates `default.keymap.str` under the build tree from `src/default.keymap`.

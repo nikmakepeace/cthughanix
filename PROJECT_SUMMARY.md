@@ -1,14 +1,14 @@
-# CthughaNix Project Summary
+# Cthugha-X Project Summary
 
-This repository is the current C/C++ CthughaNix visualizer. It keeps the
+This repository is the current C/C++ Cthugha-X visualizer. It keeps the
 classic indexed-color Cthugha visual language, but the active runtime is now
 organized around explicit application-owned modules for audio ingest, scene
 state, frame generation, display presentation, runtime commands, and
 configuration persistence.
 
-The main executable target is `xcthugha`, the X11 frontend. CMake is the active
-build system. SDL3 appears as a build option and runtime display id, but no SDL3
-frontend is wired into `src/CMakeLists.txt` today.
+The current development executable target is `cthugha`, the SDL3 frontend.
+The X11 compatibility executable target is `xcthugha`. CMake is the active
+build system.
 
 The current one-frame mental model is:
 
@@ -66,11 +66,14 @@ and the `FrameGeneratorPipeline`. The default filterchain order is image,
 border, flame, translate, wave, text, frame commit, palette, flashlight, and
 indexed-frame publication.
 
-Display presentation lives in `DisplaySystem`. The currently wired factory is
-X11, which creates `DisplayDeviceX11`, `DisplayBackendX11`, `DisplayRuntime`,
-and `CthughaDisplayX11`. `CthughaDisplay` receives the generated
-`IndexedFrame`, composes the selected presentation screen and overlays, applies
-viewport policy, and asks the display runtime to present.
+Display presentation lives in `DisplaySystem`. The compiled frontend registers
+one or more `DisplayDriverFactory` implementations. SDL3 builds create
+`DisplayDeviceSDL3`, `DisplayBackendSDL3`, `DisplayRuntime`, and an SDL3
+presentation coordinator. X11 builds create `DisplayDeviceX11`,
+`DisplayBackendX11`, `DisplayRuntime`, and `CthughaDisplayX11`.
+`CthughaDisplay` receives the generated `IndexedFrame`, composes the selected
+presentation screen and overlays, applies viewport policy, and asks the display
+runtime to present.
 
 ## Important Current Boundaries
 
@@ -91,11 +94,12 @@ viewport policy, and asks the display runtime to present.
 ## Portability State
 
 The project is portable in a transitional sense. The active CMake build has
-clear audio, scene, frame-generator, command, and display seams, and miniaudio
-provides a cross-platform audio path. The only compiled graphical frontend in
-the main target is still X11/Xt/Xaw, and several display-era globals remain in
-the X11/presentation layer.
+clear audio, scene, frame-generator, command, and display seams; miniaudio
+provides a cross-platform audio path; and SDL3 is now the current frontend
+target for portable display work. X11/Xt/Xaw remains as a compatibility
+frontend, including the X11 panel and old Unix presentation behavior.
 
-Treat `xcthugha` as the behavioral reference while porting. Add new frontends
-by extending `DisplayDriverFactory`/`DisplaySystem` and preserving the
-`IndexedFrame` plus palette presentation contract.
+Treat `cthugha`/SDL3 as the development path and keep `xcthugha` green as the
+compatibility path. Additional frontends should extend
+`DisplayDriverFactory`/`DisplaySystem` and preserve the `IndexedFrame` plus
+palette presentation contract.

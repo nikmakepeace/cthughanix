@@ -155,18 +155,24 @@ reintroducing direct visual-engine dependencies into event handling.
 
 ## High-Risk Areas
 
-### X11 Is Still The Only Wired Graphical Frontend
+### Frontend Behavior Can Drift
 
-The main target only registers the X11 display factory. `CTH_BUILD_SDL3` exists
-as a CMake option and display-driver enum support exists in config parsing, but
-there is no SDL3 source path in `src/CMakeLists.txt`.
+SDL3 is now wired as the current development frontend and X11 remains wired as
+the compatibility frontend. Both use `DisplaySystem`, `DisplayRuntime`, and the
+`IndexedFrame` plus palette presentation contract, but they differ in event
+systems, resize behavior, presentation timing, and X11 panel support. Keep
+the SDL3 `cthugha` path fast and portable while keeping `xcthugha` buildable
+for compatibility.
 
 ### Display Globals Remain
 
-The display and presentation layer still has process-wide values such as
-`disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `text_size`, `fontSize`, and
-the global `screen` option. These are most visible in X11, classic presentation
-screens, and text rendering.
+The display and presentation layer still has process-wide compatibility values
+such as `disp_size`, `bypp`, `bytes_per_line`, `draw_mode`, `text_size`,
+`fontSize`, and the global `screen` option. X11 uses them heavily for mapped
+image memory, font layout, and the Xaw panel. SDL3 initializes a subset of them
+for shared text rendering and legacy `DisplayDevice` helpers, but new frontend
+work should prefer backend-owned geometry, pixel-format, and overlay-layout
+state.
 
 ### Runtime Selection Is Explicit But Fallbacks Matter
 
@@ -236,4 +242,5 @@ observable in runtime behavior.
 - Use `FrameGeneratorContext` for frame-local audio/time/scene data.
 - Use `FrameRenderTarget` instead of process-wide pixel aliases.
 - Use `DisplaySystem` and `DisplayDriverFactory` for frontend work.
-- Keep `xcthugha` green while adding portable paths.
+- Use SDL3/`cthugha` as the current development path.
+- Keep the X11 `xcthugha` target green as the compatibility path.
