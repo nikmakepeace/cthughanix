@@ -412,7 +412,11 @@ add_test(NAME frame_generator_context_test
 
 add_executable(frame_filterchain_diagnostics_test
     unit/FrameFilterchainDiagnosticsTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalysisSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/FrameFilterchain.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameGeneratorContext.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderTarget.cc
     ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
 )
 
