@@ -1653,8 +1653,8 @@ public:
             new DisplayBackendX11(deviceRef));
         std::unique_ptr<DisplayRuntime> runtime(new DisplayRuntime(*backend));
         std::unique_ptr<CthughaDisplay> coordinator = newCthughaDisplay(
-            deviceRef, *runtime, request.clock, request.interfaceRuntime,
-            request.errorMessages);
+            deviceRef, *runtime, request.clock, request.presentationSettings,
+            request.interfaceRuntime, request.errorMessages);
 
         return std::unique_ptr<DisplaySystemComponents>(
             new DisplaySystemComponents(std::move(device),

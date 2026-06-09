@@ -571,6 +571,7 @@ add_executable(cthugha_display_presentation_test
     unit/CthughaDisplayPresentationTest.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayPresentationOptions.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
     ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
     ${CMAKE_SOURCE_DIR}/src/FrameRenderContext.cc
@@ -686,6 +687,7 @@ add_test(NAME viewport_presentation_test COMMAND viewport_presentation_test)
 add_executable(cthugha_display_viewport_test
     unit/CthughaDisplayViewportTest.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayPresentationOptions.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
     ${CMAKE_SOURCE_DIR}/src/FrameClock.cc
     ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
@@ -758,6 +760,7 @@ add_test(NAME input_queue_test COMMAND input_queue_test)
 
 add_executable(display_ownership_test
     unit/DisplayOwnershipTest.cc
+    ${CMAKE_SOURCE_DIR}/src/DisplayPresentationOptions.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayRuntime.cc
     ${CMAKE_SOURCE_DIR}/src/DisplaySystem.cc
     ${CMAKE_SOURCE_DIR}/src/CthughaDisplay.cc

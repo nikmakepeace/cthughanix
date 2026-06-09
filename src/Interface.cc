@@ -509,14 +509,16 @@ public:
 
 class InterfaceOptions : public Interface {
 public:
-    explicit InterfaceOptions(Option& quietMessageOption)
+    InterfaceOptions(Option& quietMessageOption,
+        DisplayPresentationSettings& displaySettings)
         : Interface("Options", "Options", NULL) {
         nElements = 9;
         elements = new InterfaceElement*[nElements];
         elements[0] = new InterfaceElementOption(
-            "Maximal Frames/second    : %10s", &maxFramesPerSecond);
+            "Maximal Frames/second    : %10s",
+            &displaySettings.maxFramesPerSecond);
         elements[1] = new InterfaceElementOption(
-            "Zoom (0=max)             : %10s", &zoom);
+            "Zoom (0=max)             : %10s", &displaySettings.zoom);
         elements[2] = new InterfaceElementAutoChangeOption(
             "Minimal time btw. change : %10s",
             AutoChangeControlWaitMinMs, 100, 500, 1000);
@@ -574,11 +576,12 @@ void registerInterfaceKeyActions(CommandRegistry& registry) {
 }
 
 void registerDefaultInterfaces(InterfaceRuntime& runtime,
-    Option& quietMessageOption) {
+    Option& quietMessageOption, DisplayPresentationSettings& displaySettings) {
     runtime.registerOwnedInterface(new InterfaceMain());
     runtime.registerOwnedInterface(new Interface("Mixer", "Mixer", NULL));
     runtime.registerOwnedInterface(new InterfaceEffectControl());
-    runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption));
+    runtime.registerOwnedInterface(
+        new InterfaceOptions(quietMessageOption, displaySettings));
     registerAudioInterfaces(runtime);
     registerListInterfaces(runtime);
     registerHelpInterface(runtime);

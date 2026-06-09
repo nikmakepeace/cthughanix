@@ -85,6 +85,7 @@ set(CTHUGHA_COMMON_SOURCES
     info_title_usage.cc
     LegacyLoggingAdapter.cc
     DisplayDevice.cc
+    DisplayPresentationOptions.cc
     DisplayRuntime.cc
     DisplaySystem.cc
     SceneChangeScheduler.cc

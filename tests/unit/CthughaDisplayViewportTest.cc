@@ -1,5 +1,6 @@
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
+#include "DisplayPresentationOptions.h"
 #include "DisplayRuntime.h"
 #include "InputQueue.h"
 #include "ProcessServices.h"
@@ -91,8 +92,9 @@ static FakeSecondsClock displayClock(100.0);
 
 class ViewportDisplayHarness : public CthughaDisplay {
 public:
-    ViewportDisplayHarness(DisplayDevice& device, DisplayRuntime& runtime)
-        : CthughaDisplay(device, runtime, displayClock) {
+    ViewportDisplayHarness(DisplayDevice& device, DisplayRuntime& runtime,
+        DisplayPresentationSettings& settings)
+        : CthughaDisplay(device, runtime, displayClock, settings) {
     }
 
     void setDisplayFrameSize(int width, int height) {
@@ -147,13 +149,15 @@ public:
     RecordingDisplayDevice device;
     ResizableOutputBackend backend;
     DisplayRuntime runtime;
+    DisplayPresentationSettings settings;
     ViewportDisplayHarness display;
 
     DisplayStageFixture()
         : device()
         , backend()
         , runtime(backend)
-        , display(device, runtime) {
+        , settings()
+        , display(device, runtime, settings) {
     }
 };
 
@@ -162,7 +166,7 @@ static void prepareHarness(DisplayStageFixture& fixture, int frameWidth,
     ViewportDisplayHarness& display = fixture.display;
     display.setDisplayFrameSize(frameWidth, frameHeight);
     fixture.backend.outputSizeValue = PixelSize(windowWidth, windowHeight);
-    zoom.setValue(zoomValue);
+    fixture.settings.zoom.setValue(zoomValue);
     display.needsClear = 0;
 }
 
@@ -178,7 +182,7 @@ static void testCheckZoomPublishesFitViewportFromRuntimeOutputSize() {
     assert(viewport.scaleMode == SCALE_MODE_FIT_WINDOW);
     assert(viewport.drawSize == PixelSize(10, 9));
     assert(viewport.destination == PixelRect(0, 0, 10, 9));
-    assert(int(zoom) == 0);
+    assert(int(fixture.settings.zoom) == 0);
 }
 
 static void testCheckZoomPublishesFixedViewportAndOffsets() {
@@ -194,7 +198,7 @@ static void testCheckZoomPublishesFixedViewportAndOffsets() {
     assert(viewport.drawSize == PixelSize(4, 3));
     assert(viewport.destination == PixelRect(3, 3, 4, 3));
     assert(viewport.screenOffsetBytes(bytes_per_line, bypp) == 126);
-    assert(int(zoom) == 1);
+    assert(int(fixture.settings.zoom) == 1);
 }
 
 static void testCheckZoomReducesOversizedFixedZoom() {
@@ -208,7 +212,7 @@ static void testCheckZoomReducesOversizedFixedZoom() {
     assert(viewport.zoomWasReduced());
     assert(viewport.requestedZoom == 2);
     assert(viewport.effectiveZoom == 1);
-    assert(int(zoom) == 1);
+    assert(int(fixture.settings.zoom) == 1);
 }
 
 static void testCheckZoomMarksBorderClearWhenResizeMovesViewport() {

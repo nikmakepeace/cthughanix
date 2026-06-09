@@ -11,6 +11,7 @@
 
 class AutoChangeSettings;
 class AudioProcessingState;
+class DisplayPresentationSettings;
 class Option;
 
 /**
@@ -70,6 +71,7 @@ public:
 class LegacyRuntimeConfigContributor : public RuntimeConfigContributor {
     const AutoChangeSettings& autoChangeSettings;
     const AudioProcessingState& audioProcessingState;
+    const DisplayPresentationSettings& displaySettings;
     const Option& quietMessageOption;
 
 public:
@@ -78,10 +80,12 @@ public:
      *
      * @param autoChangeSettings_ Runtime-owned automatic scene-change settings.
      * @param audioProcessingState_ Runtime-owned audio processing state.
+     * @param displaySettings_ Display-owned presentation settings.
      * @param quietMessageOption_ Runtime quiet-message threshold option.
      */
     LegacyRuntimeConfigContributor(const AutoChangeSettings& autoChangeSettings_,
         const AudioProcessingState& audioProcessingState_,
+        const DisplayPresentationSettings& displaySettings_,
         const Option& quietMessageOption_);
 
     /**

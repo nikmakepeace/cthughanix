@@ -2,6 +2,7 @@
 #define __DISPLAY_SYSTEM_H
 
 #include "Configuration.h"
+#include "DisplayPresentationOptions.h"
 #include "DisplayRuntime.h"
 
 #include <memory>
@@ -33,6 +34,7 @@ public:
     RuntimeCommandTargetRouter& runtimeCommandRouter;
     RuntimeConfigRegistry& runtimeConfigRegistry;
     const DisplayConfig& config;
+    DisplayPresentationSettings& presentationSettings;
     SecondsClock& clock;
     InterfaceRuntime& interfaceRuntime;
     ErrorMessages& errorMessages;
@@ -51,9 +53,11 @@ public:
         RuntimeCommandSink& runtimeCommands_,
         RuntimeCommandTargetRouter& runtimeCommandRouter_,
         RuntimeConfigRegistry& runtimeConfigRegistry_,
-        const DisplayConfig& config_, SecondsClock& clock_,
-        InterfaceRuntime& interfaceRuntime_, ErrorMessages& errorMessages_,
-        LogSink& log_, int* argc_, char** argv_);
+        const DisplayConfig& config_,
+        DisplayPresentationSettings& presentationSettings_,
+        SecondsClock& clock_, InterfaceRuntime& interfaceRuntime_,
+        ErrorMessages& errorMessages_, LogSink& log_, int* argc_,
+        char** argv_);
 };
 
 /**
@@ -134,6 +138,7 @@ public:
 
 /** Display module root owning driver, runtime, and presentation coordinator. */
 class DisplaySystem {
+    DisplayPresentationSettings presentationSettingsValue;
     std::unique_ptr<DisplaySystemComponents> componentsValue;
     std::string activeDriverNameValue;
 
@@ -157,6 +162,9 @@ public:
 
     /** @return Active driver name, or an empty string when closed. */
     const char* activeDriverName() const;
+
+    /** @return Mutable display-owned presentation settings. */
+    DisplayPresentationSettings& settings();
 
     /** @return Active display device. */
     DisplayDevice& device();

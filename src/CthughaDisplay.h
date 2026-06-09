@@ -24,12 +24,14 @@ class ErrorMessages;
 class InterfaceRuntime;
 class SecondsClock;
 class FrameRenderContext;
+class DisplayPresentationSettings;
 struct DisplayConfig;
 
 class CthughaDisplay : public PresentationFrameObserver {
 protected:
     DisplayDevice& deviceValue;
     DisplayRuntime& runtimeValue;
+    DisplayPresentationSettings& presentationSettingsValue;
     const IndexedFrame* sourceFrame;
     const FrameRenderContext* presentationContextValue;
     IndexedDisplayFrame indexedDisplayFrameValue;
@@ -60,6 +62,7 @@ protected:
     void checkZoom();
     DisplayDevice& device();
     DisplayRuntime& runtime();
+    DisplayPresentationSettings& settings();
 
 public:
     // buffer points at the indexed presentation buffer. bufferWidth is measured
@@ -70,7 +73,7 @@ public:
     int needsClear; // border must be cleared before the next frame is shown
 
     CthughaDisplay(DisplayDevice& device, DisplayRuntime& runtime,
-        SecondsClock& clock);
+        SecondsClock& clock, DisplayPresentationSettings& settings);
 
     /**
      * Starts a new visual frame and updates owned frame timing.
@@ -147,8 +150,8 @@ class CthughaDisplayX11 : public CthughaDisplay {
 
 public:
     CthughaDisplayX11(DisplayDevice& device, DisplayRuntime& runtime,
-        SecondsClock& clock_, InterfaceRuntime& interfaceRuntime_,
-        ErrorMessages& errorMessages_);
+        SecondsClock& clock_, DisplayPresentationSettings& settings_,
+        InterfaceRuntime& interfaceRuntime_, ErrorMessages& errorMessages_);
     virtual ~CthughaDisplayX11();
     virtual void operator()();
 };
@@ -156,8 +159,7 @@ public:
 /** Allocates the frontend-specific display coordinator. */
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
     DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock,
-    InterfaceRuntime& interfaceRuntime, ErrorMessages& errorMessages);
-
-void configureCthughaDisplay(const DisplayConfig& config);
+    DisplayPresentationSettings& settings, InterfaceRuntime& interfaceRuntime,
+    ErrorMessages& errorMessages);
 
 #endif

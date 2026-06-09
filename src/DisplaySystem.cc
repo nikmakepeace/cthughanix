@@ -10,9 +10,11 @@ DisplayOpenRequest::DisplayOpenRequest(Scene& scene_, ImageOption& images_,
     RuntimeCommandSink& runtimeCommands_,
     RuntimeCommandTargetRouter& runtimeCommandRouter_,
     RuntimeConfigRegistry& runtimeConfigRegistry_,
-    const DisplayConfig& config_, SecondsClock& clock_,
-    InterfaceRuntime& interfaceRuntime_, ErrorMessages& errorMessages_,
-    LogSink& log_, int* argc_, char** argv_)
+    const DisplayConfig& config_,
+    DisplayPresentationSettings& presentationSettings_,
+    SecondsClock& clock_, InterfaceRuntime& interfaceRuntime_,
+    ErrorMessages& errorMessages_, LogSink& log_, int* argc_,
+    char** argv_)
     : scene(scene_)
     , images(images_)
     , sceneVisualSelections(sceneVisualSelections_)
@@ -20,6 +22,7 @@ DisplayOpenRequest::DisplayOpenRequest(Scene& scene_, ImageOption& images_,
     , runtimeCommandRouter(runtimeCommandRouter_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
     , config(config_)
+    , presentationSettings(presentationSettings_)
     , clock(clock_)
     , interfaceRuntime(interfaceRuntime_)
     , errorMessages(errorMessages_)
@@ -87,7 +90,8 @@ DisplayDriverFactory* DisplayDriverRegistry::select(
 }
 
 DisplaySystem::DisplaySystem()
-    : componentsValue()
+    : presentationSettingsValue()
+    , componentsValue()
     , activeDriverNameValue() {
 }
 
@@ -98,6 +102,7 @@ DisplaySystem::~DisplaySystem() {
 int DisplaySystem::open(DisplayDriverRegistry& registry,
     const DisplayOpenRequest& request) {
     close();
+    presentationSettingsValue.configure(request.config);
 
     DisplayDriverFactory* factory = registry.select(request.config.driver);
     if (factory == 0) {
@@ -126,6 +131,10 @@ bool DisplaySystem::isOpen() const {
 
 const char* DisplaySystem::activeDriverName() const {
     return activeDriverNameValue.c_str();
+}
+
+DisplayPresentationSettings& DisplaySystem::settings() {
+    return presentationSettingsValue;
 }
 
 DisplayDevice& DisplaySystem::device() {

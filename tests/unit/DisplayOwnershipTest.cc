@@ -1,4 +1,5 @@
 #include "CthughaDisplay.h"
+#include "DisplayPresentationOptions.h"
 #include "DisplaySystem.h"
 #include "InputQueue.h"
 #include "ProcessServices.h"
@@ -90,6 +91,7 @@ public:
 };
 
 static FakeSecondsClock clockValue;
+static DisplayPresentationSettings settingsValue;
 
 class RecordingDevice : public DisplayDevice {
     int id;
@@ -135,7 +137,7 @@ class RecordingCoordinator : public CthughaDisplay {
 public:
     RecordingCoordinator(int id_, DisplayDevice& device,
         DisplayRuntime& runtime)
-        : CthughaDisplay(device, runtime, clockValue)
+        : CthughaDisplay(device, runtime, clockValue, settingsValue)
         , id(id_) {
     }
 

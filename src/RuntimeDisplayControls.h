@@ -8,6 +8,7 @@
 #include "RuntimeCommandSink.h"
 
 class EffectControl;
+class DisplayPresentationSettings;
 class Option;
 class RandomSource;
 
@@ -112,6 +113,7 @@ public:
  */
 class DefaultRuntimeDisplayControls : public RuntimeDisplayControls {
     RandomSource& randomSource;
+    DisplayPresentationSettings& settings;
 
 public:
     /**
@@ -120,7 +122,8 @@ public:
      *
      * @param randomSource Random source owned by the application lifecycle.
      */
-    explicit DefaultRuntimeDisplayControls(RandomSource& randomSource);
+    DefaultRuntimeDisplayControls(RandomSource& randomSource,
+        DisplayPresentationSettings& settings);
 
     /**
      * Changes the selected screen/presentation by relative offset.

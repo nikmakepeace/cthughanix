@@ -81,6 +81,7 @@ static void applyDisplayPresentationStartupChoice(const SceneConfig& sceneConfig
 class FrameGeneratorQuietObserver : public AutoChangeQuietObserver {
     FrameGeneratorRuntime& frameGeneratorValue;
     CthughaDisplay& displayCoordinator;
+    DisplayPresentationSettings& displaySettings;
     const Option& quietMessageOptionValue;
 
 public:
@@ -92,14 +93,18 @@ public:
      * @param quietMessageOption_ Runtime threshold option owned by Application.
      */
     FrameGeneratorQuietObserver(FrameGeneratorRuntime& frameGenerator_,
-        CthughaDisplay& display_, const Option& quietMessageOption_)
+        CthughaDisplay& display_,
+        DisplayPresentationSettings& displaySettings_,
+        const Option& quietMessageOption_)
         : frameGeneratorValue(frameGenerator_)
         , displayCoordinator(display_)
+        , displaySettings(displaySettings_)
         , quietMessageOptionValue(quietMessageOption_) { }
 
     /** Reports an ongoing quiet period to the frame generator. */
     virtual int observeQuiet(int quietLength) {
-        int frameBudget = frameGenerationBudgetFramesPerSecond(int(maxFramesPerSecond),
+        int frameBudget = frameGenerationBudgetFramesPerSecond(
+            int(displaySettings.maxFramesPerSecond),
             displayCoordinator.rollingFps);
         return frameGeneratorValue.observeQuiet(quietLength,
             int(quietMessageOptionValue), frameBudget);
@@ -178,7 +183,7 @@ Application::Application(int argc, char* argv[])
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        *quietMessageOptionValue);
+        *quietMessageOptionValue, displaySystemValue.settings());
 }
 
 Application::Application(int argc, char* argv[],
@@ -203,7 +208,7 @@ Application::Application(int argc, char* argv[],
     interfaceRuntimeValue.reset(new InterfaceRuntime(millisecondClockValue));
     errorMessagesValue.reset(new ErrorMessages());
     registerDefaultInterfaces(*interfaceRuntimeValue,
-        *quietMessageOptionValue);
+        *quietMessageOptionValue, displaySystemValue.settings());
 }
 
 Application::~Application() {
@@ -290,14 +295,15 @@ void Application::initSceneRuntime() {
     runtimeConfigRegistryValue->addContributor(sceneRuntimeValue->serializer());
     runtimeConfigContributorValue.reset(
         new LegacyRuntimeConfigContributor(*autoChangeSettingsValue,
-            *audioProcessingStateValue,
+            *audioProcessingStateValue, displaySystemValue.settings(),
             *quietMessageOptionValue));
     runtimeConfigRegistryValue->addContributor(*runtimeConfigContributorValue);
     runtimePersistenceValue.reset(
         new IniRuntimePersistence(*runtimeConfigRegistryValue, logSinkValue));
     runtimeShutdownValue.reset(new RuntimeCloseState());
     runtimeDisplayControlsValue.reset(
-        new DefaultRuntimeDisplayControls(randomSourceValue));
+        new DefaultRuntimeDisplayControls(randomSourceValue,
+            displaySystemValue.settings()));
     runtimeAudioControlsValue.reset(
         new DefaultRuntimeAudioControls(*audioProcessingSelectorValue,
             mixerControlsValue.get()));
@@ -432,7 +438,8 @@ void Application::initAudioFramePipeline() {
     if (autoChangeQuietObserverValue.get() == NULL)
         autoChangeQuietObserverValue.reset(
             new FrameGeneratorQuietObserver(frameGeneratorValue,
-                displaySystemValue.coordinator(), *quietMessageOptionValue));
+                displaySystemValue.coordinator(), displaySystemValue.settings(),
+                *quietMessageOptionValue));
     if (sceneChangeSchedulerValue.get() == NULL
         && sceneRuntimeValue.get() != NULL
         && autoChangeSettingsValue.get() != NULL)
@@ -472,7 +479,8 @@ const IndexedFrame* Application::runFrameGenerator(
     FrameGeneratorContext context(&frame, frame.raw, frame.processedWaveData,
         audioAnalysis, &sceneSnapshot, display.currentFrameTimeSeconds(),
         display.currentFrameDeltaSeconds(),
-        frameGenerationBudgetFramesPerSecond(int(maxFramesPerSecond),
+        frameGenerationBudgetFramesPerSecond(
+            int(displaySystemValue.settings().maxFramesPerSecond),
             display.rollingFps));
 
     const IndexedFrame& indexedFrame = frameGeneratorValue.render(context);
@@ -530,7 +538,6 @@ int Application::initialize() {
     }
 
     inputQueueValue.configure(startupConfigValue.input);
-    configureCthughaDisplay(startupConfigValue.display);
     configureTranslationOptions(startupConfigValue.effectPolicy);
     configureWaveOptions(startupConfigValue.effectPolicy);
     configurePaletteOptions(startupConfigValue.effectPolicy);
@@ -628,8 +635,9 @@ int Application::initialize() {
     DisplayOpenRequest displayOpenRequest(scene(), *imageOptionValue,
         sceneRuntimeValue->visualSelections(), *runtimeChangeMediatorValue,
         *runtimeCommandRouterValue, *runtimeConfigRegistryValue,
-        startupConfigValue.display, secondsClockValue, *interfaceRuntimeValue,
-        *errorMessagesValue, logSinkValue, &displayArgc, displayArgv.data());
+        startupConfigValue.display, displaySystemValue.settings(),
+        secondsClockValue, *interfaceRuntimeValue, *errorMessagesValue,
+        logSinkValue, &displayArgc, displayArgv.data());
     if (displaySystemValue.open(displayDrivers, displayOpenRequest))
         return 0;
     initFrameGeneratorPipeline();
@@ -704,7 +712,8 @@ void Application::run() {
             if (traceDisplayTiming)
                 pacingStart = secondsClockValue.nowSeconds();
             FramePacingResult pacing = framePacerValue.paceFrameEnd(visualFrameStart,
-                secondsClockValue.nowSeconds(), int(maxFramesPerSecond));
+                secondsClockValue.nowSeconds(),
+                int(displaySystemValue.settings().maxFramesPerSecond));
             if (traceDisplayTiming) {
                 pacingEnd = secondsClockValue.nowSeconds();
                 logSinkValue.trace("frame pacing",
