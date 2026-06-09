@@ -3,8 +3,7 @@
 #include "InterfaceRuntime.h"
 #include "display.h"
 #include "keys.h"
-#include "CthughaDisplay.h"
-#include "DisplayDevice.h"
+#include "OverlaySource.h"
 #include "keymap.h"
 
 class InterfaceHelp : public Interface {
@@ -14,22 +13,22 @@ class InterfaceHelp : public Interface {
 public:
     InterfaceHelp()
         : Interface("help", "Cthugha Help", NULL) { };
-    virtual void display(InterfaceRuntime& runtime) {
-        Interface::display(runtime);
+    virtual void display(InterfaceRuntime& runtime,
+        OverlayRenderContext& overlay) {
+        Interface::display(runtime, overlay);
 
         if (runtime.helpScrolling()) {
-            const double frameDelta = (cthughaDisplay != NULL)
-                ? cthughaDisplay->currentFrameDeltaSeconds()
-                : 0.0;
-            runtime.advanceHelpScroll(frameDelta * 4.0);
+            runtime.advanceHelpScroll(
+                overlay.status().frameDeltaSeconds() * 4.0);
         }
 
         const double pos = runtime.helpScrollPosition();
-        for (int i = 0; i < (text_size.y - 2); i++) {
+        for (int i = 0; i < (overlay.textRows() - 2); i++) {
             int L = (int(pos) + i) % nLines;
             if (L < 0)
                 continue;
-            displayDevice->print(text[L] + 1, 3 - pos + int(pos) + i, 'l', text[L][0]);
+            overlay.printText(text[L] + 1, 3 - pos + int(pos) + i, 'l',
+                text[L][0]);
         }
     }
 

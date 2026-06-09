@@ -3,7 +3,7 @@
 #include "Interface.h"
 #include "InterfaceRuntime.h"
 #include "display.h"
-#include "DisplayDevice.h"
+#include "OverlaySource.h"
 #include "RuntimeCommandSink.h"
 #include "keymap.h"
 
@@ -25,17 +25,19 @@ public:
             sink->apply(RuntimeCommand::requestClose());
     }
 
-    virtual void display(InterfaceRuntime& runtime) {
+    virtual void display(InterfaceRuntime& runtime,
+        OverlayRenderContext& overlay) {
 
         const int currentTime = runtime.milliseconds();
         const double pos = runtime.updateCreditsPosition(currentTime,
-            text_size.y);
+            overlay.textRows());
 
-        for (int i = 1; i < text_size.y; i++) {
+        for (int i = 1; i < overlay.textRows(); i++) {
             int L = (int(pos) + i) % nCredits;
             if (L < 0)
                 continue;
-            displayDevice->print(credits[L] + 1, -pos + int(pos) + i, 'c', credits[L][0]);
+            overlay.printText(credits[L] + 1, -pos + int(pos) + i, 'c',
+                credits[L][0]);
         }
     }
 };

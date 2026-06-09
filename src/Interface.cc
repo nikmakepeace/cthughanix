@@ -6,8 +6,7 @@
 #include "InputQueue.h"
 #include "keys.h"
 #include "imath.h"
-#include "CthughaDisplay.h"
-#include "DisplayDevice.h"
+#include "OverlaySource.h"
 #include "AudioProcessing.h"
 #include "RuntimeConfigRegistry.h"
 #include "RuntimeConfigSelection.h"
@@ -99,22 +98,23 @@ ACTION(prevInterface) {
 }
 
 // default display handler
-void Interface::display(InterfaceRuntime& runtime) {
+void Interface::display(InterfaceRuntime& runtime,
+    OverlayRenderContext& overlay) {
     double line = 0.0;
 
     if (title) {
-        line = displayDevice->print(
+        line = overlay.printText(
             title, 0, 'l', (sel == -1) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
-        line = displayDevice->print(
+        line = overlay.printText(
             "---------------------------------------------", line, 'l', TEXT_COLOR_NORMAL);
     }
 
     if (text) {
-        line = displayDevice->print(text, line, 'l', TEXT_COLOR_NORMAL);
+        line = overlay.printText(text, line, 'l', TEXT_COLOR_NORMAL);
     }
 
     for (int i = 0; i < nElements; i++) {
-        line = displayDevice->print(elements[i]->text(runtime, sel == i), line, 'l',
+        line = overlay.printText(elements[i]->text(runtime, overlay, sel == i), line, 'l',
             (sel == i) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
     }
 
@@ -126,14 +126,16 @@ void Interface::display(InterfaceRuntime& runtime) {
         const char* autoChangeStatus = provider != NULL
             ? provider->sceneChangeStatus()
             : "";
-        snprintf(str, sizeof(str), "%s%s", (cthughaDisplay != NULL) ? cthughaDisplay->status() : "",
+        snprintf(str, sizeof(str), "%s%s", overlay.status().frameStatus(),
             autoChangeStatus);
 
-        displayDevice->print(str, text_size.y - 1, 'l', TEXT_COLOR_NORMAL, 1);
+        overlay.printText(str, overlay.textRows() - 1, 'l',
+            TEXT_COLOR_NORMAL, 1);
     }
 
     if (runtime.saveToPreset()) {
-        displayDevice->print("save to preset slot (press 0..9)", text_size.y - (showStatus ? 2 : 1), 'l',
+        overlay.printText("save to preset slot (press 0..9)",
+            overlay.textRows() - (showStatus ? 2 : 1), 'l',
             TEXT_COLOR_NORMAL);
     }
 
@@ -180,12 +182,13 @@ InterfaceElementOption::InterfaceElementOption(const char* t, Option* o, int i1,
     , inc3(i3) { }
 
 const char* InterfaceElementOption::text(InterfaceRuntime& /* runtime */,
-    int selected) {
+    const OverlayRenderContext& overlay, int selected) {
     static char strRet[512];
     char fmt[512];
     char in[512];
 
-    snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+    int width = min(max(overlay.textColumns() - 3, 0), 77);
+    snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", width);
     snprintf(in, sizeof(in), str, opt->text());
 
     // make format and include the > <
@@ -246,12 +249,14 @@ public:
         : InterfaceElementOption(t, o)
         , field(field_) { }
 
-    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+    virtual const char* text(InterfaceRuntime& runtime,
+        const OverlayRenderContext& overlay, int selected) {
         static char strRet[512];
         char fmt[512];
         char in[512];
 
-        snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+        int width = min(max(overlay.textColumns() - 3, 0), 77);
+        snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", width);
         snprintf(in, sizeof(in), str,
             runtimeConfigSelectionTextForInterface(field, opt, runtime));
         snprintf(strRet, sizeof(strRet), fmt, selected ? '>' : ' ', in, selected ? '<' : ' ');
@@ -274,9 +279,11 @@ public:
         RuntimeConfigSelectionField field_)
         : InterfaceElementRuntimeConfigOption(t, &optionDummy, field_) { }
 
-    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+    virtual const char* text(InterfaceRuntime& runtime,
+        const OverlayRenderContext& overlay, int selected) {
         updateOption(runtime);
-        return InterfaceElementRuntimeConfigOption::text(runtime, selected);
+        return InterfaceElementRuntimeConfigOption::text(runtime, overlay,
+            selected);
     }
 
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
@@ -302,9 +309,10 @@ public:
         : InterfaceElementOption(t, &optionDummy, i1, i2, i3)
         , field(field_) { }
 
-    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+    virtual const char* text(InterfaceRuntime& runtime,
+        const OverlayRenderContext& overlay, int selected) {
         updateOption(runtime);
-        return InterfaceElementOption::text(runtime, selected);
+        return InterfaceElementOption::text(runtime, overlay, selected);
     }
 
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
@@ -326,12 +334,14 @@ public:
         : InterfaceElementEffectControl(t, o)
         , field(field_) { }
 
-    virtual const char* text(InterfaceRuntime& runtime, int selected) {
+    virtual const char* text(InterfaceRuntime& runtime,
+        const OverlayRenderContext& overlay, int selected) {
         static char strRet[512];
         char fmt[512];
         char in[512];
 
-        snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", min(text_size.x - 3, 77));
+        int width = min(max(overlay.textColumns() - 3, 0), 77);
+        snprintf(fmt, sizeof(fmt), "%%c%%-%ds%%c", width);
         snprintf(in, sizeof(in), str,
             runtimeConfigSelectionTextForInterface(field, effectControl,
                 runtime));
@@ -371,11 +381,12 @@ void ErrorMessages::addMessage(const char* text, InterfaceRuntime& runtime) {
 
     nMsgs++;
 }
-void ErrorMessages::display(InterfaceRuntime& runtime) {
+void ErrorMessages::display(InterfaceRuntime& runtime,
+    OverlayRenderContext& overlay) {
 
     // bring messages to screen
     for (int i = 0; i < nMsgs; i++) {
-        displayDevice->print(msgs[i], -(nMsgs - i), 'r', TEXT_COLOR_ERROR);
+        overlay.printText(msgs[i], -(nMsgs - i), 'r', TEXT_COLOR_ERROR);
     }
 
     // remove old messages

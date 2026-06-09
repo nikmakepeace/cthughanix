@@ -144,7 +144,7 @@ void Interface::setElements(InterfaceElement** el, int nEl) {
     elements = el;
     nElements = nEl;
 }
-void Interface::display(InterfaceRuntime&) { }
+void Interface::display(InterfaceRuntime&, OverlayRenderContext&) { }
 void Interface::doKey(InterfaceRuntime&, KeymapRegistry&, CommandRegistry&,
     CommandDispatcher&, CommandContext&, int) { }
 void Interface::run(InterfaceRuntime& runtime, InputQueue&,
@@ -160,7 +160,8 @@ InterfaceElementOption::InterfaceElementOption(const char* t, Option* o,
     , inc1(i1)
     , inc2(i2)
     , inc3(i3) { }
-const char* InterfaceElementOption::text(InterfaceRuntime&, int) { return str; }
+const char* InterfaceElementOption::text(InterfaceRuntime&,
+    const OverlayRenderContext&, int) { return str; }
 int InterfaceElementOption::doKey(InterfaceRuntime&, KeymapRegistry&,
     CommandRegistry&, CommandDispatcher&, CommandContext&, int) {
     return 1;
