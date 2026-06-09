@@ -14,43 +14,17 @@
 
 #include <stdint.h>
 
-class RecordingOverlayDisplayDevice : public DisplayDevice {
-    OverlaySink& sink;
-
-public:
-    explicit RecordingOverlayDisplayDevice(OverlaySink& sink_)
-        : DisplayDevice()
-        , sink(sink_) {
-    }
-
-    virtual double print(const char* text, double y, int justification,
-        int color, int noDarken = 0) {
-        return sink.printText(text, y, justification, color, noDarken);
-    }
-};
-
-class ScopedOverlayDisplayDevice {
-    DisplayDevice* previous;
-    RecordingOverlayDisplayDevice recorder;
-
-public:
-    explicit ScopedOverlayDisplayDevice(OverlaySink& sink)
-        : previous(displayDevice)
-        , recorder(sink) {
-        displayDevice = &recorder;
-    }
-
-    ~ScopedOverlayDisplayDevice() {
-        displayDevice = previous;
-    }
-};
-
 class CurrentInterfaceOverlayProducer : public OverlayProducer {
     InterfaceRuntime& runtime;
+    OverlayLayout layout;
+    DisplayStatusSnapshot status;
 
 public:
-    explicit CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_)
-        : runtime(runtime_) {
+    CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_,
+        const OverlayLayout& layout_, const DisplayStatusSnapshot& status_)
+        : runtime(runtime_)
+        , layout(layout_)
+        , status(status_) {
     }
 
     virtual void produceOverlay(OverlaySink& sink) {
@@ -58,32 +32,39 @@ public:
         if (currentInterface == 0)
             return;
 
-        ScopedOverlayDisplayDevice scope(sink);
-        currentInterface->display(runtime);
+        OverlayRenderContext overlay(sink, layout, status);
+        currentInterface->display(runtime, overlay);
     }
 };
 
 class ErrorMessagesOverlayProducer : public OverlayProducer {
     ErrorMessages& errorMessages;
     InterfaceRuntime& runtime;
+    OverlayLayout layout;
+    DisplayStatusSnapshot status;
 
 public:
     ErrorMessagesOverlayProducer(ErrorMessages& errorMessages_,
-        InterfaceRuntime& runtime_)
+        InterfaceRuntime& runtime_, const OverlayLayout& layout_,
+        const DisplayStatusSnapshot& status_)
         : errorMessages(errorMessages_)
-        , runtime(runtime_) {
+        , runtime(runtime_)
+        , layout(layout_)
+        , status(status_) {
     }
 
     virtual void produceOverlay(OverlaySink& sink) {
-        ScopedOverlayDisplayDevice scope(sink);
-        errorMessages.display(runtime);
+        OverlayRenderContext overlay(sink, layout, status);
+        errorMessages.display(runtime, overlay);
     }
 };
 
 static OverlayCommands collectDisplayOverlays(double framesPerSecond,
-    InterfaceRuntime& runtime, ErrorMessages& errorMessages) {
-    CurrentInterfaceOverlayProducer interfaceProducer(runtime);
-    ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime);
+    InterfaceRuntime& runtime, ErrorMessages& errorMessages,
+    const OverlayLayout& layout, const DisplayStatusSnapshot& status) {
+    CurrentInterfaceOverlayProducer interfaceProducer(runtime, layout, status);
+    ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime, layout,
+        status);
     OverlaySource source(&interfaceProducer, &errorProducer);
     OverlayCommands overlays = source.collect();
     FpsOverlay::append(overlays, framesPerSecond, int(showFPS));
@@ -155,8 +136,11 @@ void CthughaDisplayX11::operator()() {
     int borderClearRequested = target.textOnScreen || needsClear;
     clearBorder();
 
+    OverlayLayout overlayLayout(text_size.x, text_size.y, fontSize.x,
+        fontSize.y);
+    DisplayStatusSnapshot overlayStatus(status(), currentFrameDeltaSeconds());
     OverlayCommands overlays = collectDisplayOverlays(fps, interfaceRuntime,
-        errorMessages);
+        errorMessages, overlayLayout, overlayStatus);
     if (traceDisplayTiming)
         displayTiming[5] = clock.nowSeconds();
 

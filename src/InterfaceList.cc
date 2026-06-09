@@ -2,7 +2,7 @@
 #include "Interface.h"
 #include "InterfaceRuntime.h"
 #include "imath.h"
-#include "DisplayDevice.h"
+#include "OverlaySource.h"
 #include "Scene.h"
 #include "SceneChoiceSelection.h"
 #include "Screen.h"
@@ -79,9 +79,10 @@ public:
                                        : "no";
     }
 
-    virtual void display(InterfaceRuntime& runtime) {
+    virtual void display(InterfaceRuntime& runtime,
+        OverlayRenderContext& overlay) {
 
-        Interface::display(runtime);
+        Interface::display(runtime, overlay);
 
         SceneOptionSelection* selection = sceneSelection(runtime);
         int n = entryCount(runtime);
@@ -113,9 +114,9 @@ public:
             char str3[128];
             snprintf(str3, sizeof(str3), "%40s", str2);
 
-            displayDevice->print(
+            overlay.printText(
                 str3, (i + 2), 'l', (s == sel) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
-            displayDevice->print(
+            overlay.printText(
                 str1, (i + 2), 'l', (s == sel) ? TEXT_COLOR_HIGHLIGHT : TEXT_COLOR_NORMAL);
         }
     }

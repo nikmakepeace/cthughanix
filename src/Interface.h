@@ -15,6 +15,7 @@ class InputQueue;
 class InterfaceRuntime;
 class KeymapRegistry;
 class Option;
+class OverlayRenderContext;
 class RuntimeConfigRegistry;
 
 class InterfaceElement {
@@ -26,7 +27,8 @@ public:
         : str(t) { }
     virtual ~InterfaceElement() { }
 
-    virtual const char* text(InterfaceRuntime& /* runtime */, int /* selected */) {
+    virtual const char* text(InterfaceRuntime& /* runtime */,
+        const OverlayRenderContext& /* overlay */, int /* selected */) {
         return str;
     }
     virtual int doKey(InterfaceRuntime& /* runtime */,
@@ -53,7 +55,8 @@ public:
     void setElements(InterfaceElement** el, int nEl);
 
     virtual void preRun() { }
-    virtual void display(InterfaceRuntime& runtime);
+    virtual void display(InterfaceRuntime& runtime,
+        OverlayRenderContext& overlay);
     virtual void doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
         CommandRegistry& commands, CommandDispatcher& dispatcher,
         CommandContext& context, int key);
@@ -81,7 +84,8 @@ public:
 
     InterfaceElementOption(const char* t, Option* o, int i1 = 1, int i2 = 10, int i3 = 100);
 
-    virtual const char* text(InterfaceRuntime& runtime, int selected);
+    virtual const char* text(InterfaceRuntime& runtime,
+        const OverlayRenderContext& overlay, int selected);
     virtual int doKey(InterfaceRuntime& runtime, KeymapRegistry& keymaps,
         CommandRegistry& commands, CommandDispatcher& dispatcher,
         CommandContext& context, int key);
@@ -108,7 +112,7 @@ public:
         : nMsgs(0) { }
 
     void addMessage(const char* text, InterfaceRuntime& runtime);
-    void display(InterfaceRuntime& runtime);
+    void display(InterfaceRuntime& runtime, OverlayRenderContext& overlay);
 };
 
 /**

@@ -4,6 +4,7 @@
 #define __DISPLAY_DEVICE_H
 
 #include "display.h"
+#include "OverlaySource.h"
 
 #include <memory>
 
@@ -18,13 +19,6 @@ class SceneVisualSelections;
 class SecondsClock;
 class DisplayRuntimeOwnership;
 struct DisplayConfig;
-
-//
-//  Stuff about text-display
-//
-#define TEXT_COLOR_NORMAL 0
-#define TEXT_COLOR_ERROR 1
-#define TEXT_COLOR_HIGHLIGHT 2
 
 extern int display_text_time; // how long text is kept on the screen
 

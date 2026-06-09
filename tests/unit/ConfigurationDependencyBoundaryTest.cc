@@ -2541,11 +2541,17 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Interface.cc",
         "dispatcher.dispatchKeymap(keymaps, commands");
     assertSourceContains("src/CthughaDisplayX11.cc",
-        "CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_)");
+        "CurrentInterfaceOverlayProducer(InterfaceRuntime& runtime_,");
     assertSourceContains("src/CthughaDisplayX11.cc",
-        "currentInterface->display(runtime)");
+        "OverlayRenderContext overlay(sink, layout, status)");
     assertSourceContains("src/CthughaDisplayX11.cc",
-        "ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime)");
+        "currentInterface->display(runtime, overlay)");
+    assertSourceContains("src/CthughaDisplayX11.cc",
+        "ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime, layout,");
+    assertSourceDoesNotContain("src/CthughaDisplayX11.cc",
+        "ScopedOverlayDisplayDevice");
+    assertSourceDoesNotContain("src/CthughaDisplayX11.cc",
+        "displayDevice = &recorder");
     assertSourceDoesNotContain("src/Interface.h", "extern ErrorMessages");
     assertSourceDoesNotContain("src/Interface.cc", "ErrorMessages errors");
     assertSourceDoesNotContain("src/CthughaDisplayX11.cc",
