@@ -47,6 +47,7 @@ class ImageFilter : public FrameFilter {
 
 public:
     ImageFilter();
+    virtual const char* name() const;
 
     /**
      * Selects the image to draw.
@@ -86,6 +87,7 @@ class FlameFilter : public FrameFilter {
 
 public:
     FlameFilter();
+    virtual const char* name() const;
 
     /**
      * Selects the flame feedback implementation.
@@ -116,6 +118,7 @@ class TranslateFilter : public FrameFilter {
 
 public:
     TranslateFilter();
+    virtual const char* name() const;
 
     /**
      * Replaces the coordinate translation table used by this stage.
@@ -145,6 +148,7 @@ class WaveFilter : public FrameFilter {
 
 public:
     WaveFilter();
+    virtual const char* name() const;
 
     /**
      * Selects the wave renderer and its per-scene configuration.
@@ -183,6 +187,7 @@ class TextInjectionFilter : public FrameFilter {
 
 public:
     TextInjectionFilter();
+    virtual const char* name() const;
 
     /**
      * Arms or clears the text cue.
@@ -229,6 +234,7 @@ class FrameCommitFilter : public FrameFilter {
 
 public:
     FrameCommitFilter();
+    virtual const char* name() const;
 
     /**
      * Sets borrowed scene names for frame diagnostics.
@@ -254,6 +260,7 @@ public:
 class FlashlightFilter : public FrameFilter {
 public:
     FlashlightFilter();
+    virtual const char* name() const;
 
     /**
      * Applies the acoustic flashlight effect to the frame palette.
@@ -270,6 +277,7 @@ class BorderFilter : public FrameFilter {
 
 public:
     BorderFilter();
+    virtual const char* name() const;
 
     /**
      * Selects the hidden-border drawing mode.
@@ -294,6 +302,7 @@ class PaletteFilter : public FrameFilter {
 
 public:
     PaletteFilter();
+    virtual const char* name() const;
 
     /** @return Owned frame palette supplied to the filterchain. */
     FramePalette& framePalette();
@@ -339,6 +348,7 @@ public:
 class IndexedFrameFilter : public FrameFilter {
 public:
     IndexedFrameFilter();
+    virtual const char* name() const;
 
     /**
      * Publishes the passive indexed pixels as the display-facing frame.
