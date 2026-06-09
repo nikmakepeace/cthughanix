@@ -11,6 +11,7 @@ class AudioProcessingSelector;
 class CommandContext;
 class CommandDispatcher;
 class CommandRegistry;
+class DisplayPresentationSettings;
 class InputQueue;
 class InterfaceRuntime;
 class KeymapRegistry;
@@ -121,7 +122,7 @@ public:
  * @param runtime Interface runtime that will own selection/adapter state.
  */
 void registerDefaultInterfaces(InterfaceRuntime& runtime,
-    Option& quietMessageOption);
+    Option& quietMessageOption, DisplayPresentationSettings& displaySettings);
 void registerInterfaceKeyActions(CommandRegistry& registry);
 
 #endif

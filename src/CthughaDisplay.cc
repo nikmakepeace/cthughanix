@@ -17,17 +17,6 @@
 
 CthughaDisplay::~CthughaDisplay() { }
 
-OptionInt maxFramesPerSecond("maxFPS", 0);
-OptionOnOff showFPS("show-fps", 0);
-
-OptionInt zoom("zoom", 0, ZOOM_MODE_MAX_EXCLUSIVE);
-
-void configureCthughaDisplay(const DisplayConfig& config) {
-    maxFramesPerSecond.setValue(config.maxFramesPerSecond);
-    showFPS.setValue(config.showFpsEnabled);
-    zoom.setValue(config.zoomMode);
-}
-
 class GlobalPresentationScreenSelection : public PresentationScreenSelection {
 public:
     virtual ScreenEntry* current() {
@@ -36,9 +25,10 @@ public:
 };
 
 CthughaDisplay::CthughaDisplay(DisplayDevice& device, DisplayRuntime& runtime,
-    SecondsClock& clock)
+    SecondsClock& clock, DisplayPresentationSettings& settings)
     : deviceValue(device)
     , runtimeValue(runtime)
+    , presentationSettingsValue(settings)
     , sourceFrame(0)
     , presentationContextValue(0)
     , indexedDisplayFrameValue()
@@ -207,13 +197,13 @@ void CthughaDisplay::checkZoom() {
     DisplayViewport previous = displayViewportValue;
     displayViewportValue = policy.viewportFor(
         PixelSize(displayFrameWidth(), displayFrameHeight()),
-        runtime().outputSize(), int(zoom));
+        runtime().outputSize(), int(settings().zoom));
 
     for (int i = 0; i < displayViewportValue.reductionCount; ++i)
         CTH_ERROR("Zoom factor is set too high for current display size. reducing.\n");
 
-    if (displayViewportValue.effectiveZoom != int(zoom))
-        zoom.setValue(displayViewportValue.effectiveZoom);
+    if (displayViewportValue.effectiveZoom != int(settings().zoom))
+        settings().zoom.setValue(displayViewportValue.effectiveZoom);
 
     if (displayViewportValue.requiresBorderClearFrom(previous))
         needsClear = 1;
@@ -225,6 +215,10 @@ DisplayDevice& CthughaDisplay::device() {
 
 DisplayRuntime& CthughaDisplay::runtime() {
     return runtimeValue;
+}
+
+DisplayPresentationSettings& CthughaDisplay::settings() {
+    return presentationSettingsValue;
 }
 
 void CthughaDisplay::updateFPS() {

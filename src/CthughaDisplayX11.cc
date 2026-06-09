@@ -61,28 +61,31 @@ public:
 
 static OverlayCommands collectDisplayOverlays(double framesPerSecond,
     InterfaceRuntime& runtime, ErrorMessages& errorMessages,
-    const OverlayLayout& layout, const DisplayStatusSnapshot& status) {
+    const OverlayLayout& layout, const DisplayStatusSnapshot& status,
+    DisplayPresentationSettings& settings) {
     CurrentInterfaceOverlayProducer interfaceProducer(runtime, layout, status);
     ErrorMessagesOverlayProducer errorProducer(errorMessages, runtime, layout,
         status);
     OverlaySource source(&interfaceProducer, &errorProducer);
     OverlayCommands overlays = source.collect();
-    FpsOverlay::append(overlays, framesPerSecond, int(showFPS));
+    FpsOverlay::append(overlays, framesPerSecond, int(settings.showFPS));
     return overlays;
 }
 
 std::unique_ptr<CthughaDisplay> newCthughaDisplay(
     DisplayDevice& device, DisplayRuntime& runtime, SecondsClock& clock,
-    InterfaceRuntime& interfaceRuntime, ErrorMessages& errorMessages) {
+    DisplayPresentationSettings& settings, InterfaceRuntime& interfaceRuntime,
+    ErrorMessages& errorMessages) {
     return std::unique_ptr<CthughaDisplay>(
-        new CthughaDisplayX11(device, runtime, clock, interfaceRuntime,
-            errorMessages));
+        new CthughaDisplayX11(device, runtime, clock, settings,
+            interfaceRuntime, errorMessages));
 }
 
 CthughaDisplayX11::CthughaDisplayX11(DisplayDevice& device,
     DisplayRuntime& runtime, SecondsClock& clock_,
-    InterfaceRuntime& interfaceRuntime_, ErrorMessages& errorMessages_)
-    : CthughaDisplay(device, runtime, clock_)
+    DisplayPresentationSettings& settings_, InterfaceRuntime& interfaceRuntime_,
+    ErrorMessages& errorMessages_)
+    : CthughaDisplay(device, runtime, clock_, settings_)
     , clock(clock_)
     , interfaceRuntime(interfaceRuntime_)
     , errorMessages(errorMessages_) {
@@ -140,7 +143,7 @@ void CthughaDisplayX11::operator()() {
         fontSize.y);
     DisplayStatusSnapshot overlayStatus(status(), currentFrameDeltaSeconds());
     OverlayCommands overlays = collectDisplayOverlays(fps, interfaceRuntime,
-        errorMessages, overlayLayout, overlayStatus);
+        errorMessages, overlayLayout, overlayStatus, settings());
     if (traceDisplayTiming)
         displayTiming[5] = clock.nowSeconds();
 

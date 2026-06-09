@@ -3,14 +3,26 @@
 
 #include "Option.h"
 
+struct DisplayConfig;
+
 /**
  * Transitional presentation options owned by the Display module.
  *
- * These globals are kept behind a narrow display header while the remaining
- * Option-based runtime controls move to object-owned DisplaySystem settings.
+ * The values are still Option-backed so existing interface and command
+ * behavior remains compatible, but ownership is now explicit through
+ * DisplaySystem instead of process-wide globals.
  */
-extern OptionInt zoom;
-extern OptionInt maxFramesPerSecond;
-extern OptionOnOff showFPS;
+class DisplayPresentationSettings {
+public:
+    OptionInt maxFramesPerSecond;
+    OptionOnOff showFPS;
+    OptionInt zoom;
+
+    /** Creates presentation settings with default option names and values. */
+    DisplayPresentationSettings();
+
+    /** Applies startup display configuration to the live presentation state. */
+    void configure(const DisplayConfig& config);
+};
 
 #endif

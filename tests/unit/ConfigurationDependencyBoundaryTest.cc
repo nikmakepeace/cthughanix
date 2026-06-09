@@ -1104,7 +1104,9 @@ static void testApplicationProvidesStartupConfigSlices() {
     assertSourceContains("src/Application.cc",
         "remove_continuation_ini(startupConfigValue.paths, logSinkValue)");
     assertSourceContains("src/Application.cc", "initMixerRuntime()");
-    assertSourceContains("src/Application.cc", "configureCthughaDisplay(startupConfigValue.display)");
+    assertSourceDoesNotContain("src/Application.cc", "configureCthughaDisplay");
+    assertSourceContains("src/DisplaySystem.cc",
+        "presentationSettingsValue.configure(request.config)");
     assertSourceContains("src/Application.cc",
         "new OwnedAutoChangeSettings(startupConfigValue.autoChange)");
     assertSourceContains("src/Application.cc",
@@ -1856,7 +1858,8 @@ static void testRuntimeLifecycleRequestsUseMediator() {
     assertSourceContains("src/Application.cc",
         "new InterfaceRuntime(millisecondClockValue)");
     assertSourceContains("src/Application.cc",
-        "startupConfigValue.display, secondsClockValue");
+        "startupConfigValue.display, displaySystemValue.settings(),\n"
+        "        secondsClockValue");
     assertSourceContains("src/Application.cc",
         "displaySystemValue.runtime().processEvents(inputQueueValue)");
     assertSourceDoesNotContain("src/Application.cc", "getTime()");
@@ -1896,9 +1899,12 @@ static void testRuntimeLifecycleRequestsUseMediator() {
 
 static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Application.cc",
-        "new DefaultRuntimeDisplayControls(randomSourceValue)");
+        "new DefaultRuntimeDisplayControls(randomSourceValue,\n"
+        "            displaySystemValue.settings())");
     assertSourceContains("src/RuntimeDisplayControls.h",
         "RandomSource& randomSource");
+    assertSourceContains("src/RuntimeDisplayControls.h",
+        "DisplayPresentationSettings& settings");
     assertSourceContains("src/RuntimeDisplayControls.cc",
         "screen.change(to, randomSource, 0)");
     assertSourceContains("src/Application.cc",
@@ -2294,6 +2300,10 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "screen.change");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc",
         "zoom.change");
+    assertSourceContains("src/RuntimeDisplayControls.cc",
+        "settings.showFPS.change");
+    assertSourceContains("src/RuntimeDisplayControls.cc",
+        "settings.zoom.change");
     assertSourceDoesNotContain("src/RuntimeChangeMediator.cc", "&screen");
 }
 
@@ -2413,7 +2423,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
         "std::unique_ptr<ErrorMessages> errorMessagesValue");
     assertSourceContains("src/Application.cc",
         "registerDefaultInterfaces(*interfaceRuntimeValue,\n"
-        "        *quietMessageOptionValue)");
+        "        *quietMessageOptionValue, displaySystemValue.settings())");
     assertSourceContains("src/Application.cc",
         "quietMessageOptionValue->setValue(startupConfigValue.messages.quietMessageMs)");
     assertSourceDoesNotContain("src/FrameGeneratorRuntime.h",
@@ -2440,7 +2450,7 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceContains("src/Interface.cc",
         "runtime.registerOwnedInterface(new InterfaceEffectControl())");
     assertSourceContains("src/Interface.cc",
-        "runtime.registerOwnedInterface(new InterfaceOptions(quietMessageOption))");
+        "new InterfaceOptions(quietMessageOption, displaySettings)");
     assertSourceDoesNotContain("src/Interface.h", "ImageOption");
     assertSourceDoesNotContain("src/Interface.cc", "#include \"Image.h\"");
     assertSourceDoesNotContain("src/Interface.cc", "ImageOption& images");

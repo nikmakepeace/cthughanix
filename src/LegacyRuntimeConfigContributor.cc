@@ -28,18 +28,20 @@ static std::string persistedName(const char* name) {
 LegacyRuntimeConfigContributor::LegacyRuntimeConfigContributor(
     const AutoChangeSettings& autoChangeSettings_,
     const AudioProcessingState& audioProcessingState_,
+    const DisplayPresentationSettings& displaySettings_,
     const Option& quietMessageOption_)
     : autoChangeSettings(autoChangeSettings_)
     , audioProcessingState(audioProcessingState_)
+    , displaySettings(displaySettings_)
     , quietMessageOption(quietMessageOption_) { }
 
 void LegacyRuntimeConfigContributor::contribute(Config& config) const {
     config.scene.presentation = persistedName(screen.currentName());
     config.scene.audioProcessing = persistedName(audioProcessingState.text());
 
-    config.display.maxFramesPerSecond = int(maxFramesPerSecond);
-    config.display.showFpsEnabled = int(showFPS);
-    config.display.zoomMode = int(zoom);
+    config.display.maxFramesPerSecond = int(displaySettings.maxFramesPerSecond);
+    config.display.showFpsEnabled = int(displaySettings.showFPS);
+    config.display.zoomMode = int(displaySettings.zoom);
 
     config.autoChange = autoChangeSettings.config();
 

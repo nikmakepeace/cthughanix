@@ -86,6 +86,21 @@ static void testDisplayHeadersDoNotExportMutableAliases() {
     assertSourceDoesNotContain("src/DisplayRuntime.h", "DisplayRuntimeOwnership");
 }
 
+static void testPresentationSettingsAreDisplaySystemOwned() {
+    assertSourceContains("src/DisplaySystem.h",
+        "DisplayPresentationSettings presentationSettingsValue");
+    assertSourceContains("src/DisplaySystem.cc",
+        "presentationSettingsValue.configure(request.config)");
+    assertSourceDoesNotContain("src/DisplayPresentationOptions.h",
+        "extern OptionInt zoom");
+    assertSourceDoesNotContain("src/DisplayPresentationOptions.h",
+        "extern OptionOnOff showFPS");
+    assertSourceDoesNotContain("src/CthughaDisplay.cc",
+        "OptionInt zoom");
+    assertSourceDoesNotContain("src/CthughaDisplay.cc",
+        "OptionOnOff showFPS");
+}
+
 static void testInterfaceDoesNotRenderThroughDisplayGlobals() {
     assertSourceDoesNotContain("src/Interface.cc", "#include \"DisplayDevice.h\"");
     assertSourceDoesNotContain("src/Interface.cc", "#include \"CthughaDisplay.h\"");
@@ -108,6 +123,7 @@ int main() {
     testGenericDisplayCoordinatorUsesOwnedDisplayStage();
     testApplicationOwnsDisplaySystemRoot();
     testDisplayHeadersDoNotExportMutableAliases();
+    testPresentationSettingsAreDisplaySystemOwned();
     testInterfaceDoesNotRenderThroughDisplayGlobals();
     testDisplayDoesNotIncludeGlobalFrameBuffer();
     return 0;

@@ -1,6 +1,7 @@
 #include "AudioFrame.h"
 #include "CthughaDisplay.h"
 #include "DisplayDevice.h"
+#include "DisplayPresentationOptions.h"
 #include "DisplayRuntime.h"
 #include "FramePalette.h"
 #include "IndexedFrameTestFixtures.h"
@@ -129,6 +130,7 @@ public:
 };
 
 static FakeSecondsClock displayClock(100.0);
+static DisplayPresentationSettings displaySettings;
 
 class StaticSelection : public PresentationScreenSelection {
     ScreenEntry* currentValue;
@@ -155,7 +157,7 @@ public:
 
     DisplayConsumerHarness(PresentationScreenSelection& selection_,
         DisplayDevice& device, DisplayRuntime& runtime)
-        : CthughaDisplay(device, runtime, displayClock)
+        : CthughaDisplay(device, runtime, displayClock, displaySettings)
         , selection(selection_)
         , presented(0) {
         fps = 60.0;
