@@ -36,6 +36,7 @@ enum RuntimeCommandType {
     RuntimeCommandChangeScreenTo,
     RuntimeCommandChangeZoomBy,
     RuntimeCommandChangeZoomTo,
+    RuntimeCommandChangeMaxFpsTo,
     RuntimeCommandChangeSoundProcessingBy,
     RuntimeCommandChangeSoundProcessingTo,
     RuntimeCommandToggleAutoChangeLock,
@@ -177,6 +178,14 @@ struct RuntimeCommand {
      * @return Runtime command.
      */
     static RuntimeCommand changeZoomTo(const char* to);
+
+    /**
+     * Creates an absolute max-FPS change command.
+     *
+     * @param to Max frames per second; 0 disables pacing.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changeMaxFpsTo(int to);
 
     /**
      * Creates a relative sound-processing change command.

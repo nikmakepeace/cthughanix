@@ -51,6 +51,10 @@ static void testRuntimeCommandFactoriesCaptureIntent() {
     assert(sceneLock.type == RuntimeCommandToggleSceneLock);
     assert(sceneLock.sceneTarget == RuntimeSceneWave);
 
+    RuntimeCommand maxFps = RuntimeCommand::changeMaxFpsTo(60);
+    assert(maxFps.type == RuntimeCommandChangeMaxFpsTo);
+    assert(maxFps.value == 60);
+
     RuntimeCommand sceneChoiceUse
         = RuntimeCommand::toggleSceneChoiceUse(RuntimeScenePalette, 2);
     assert(sceneChoiceUse.type == RuntimeCommandToggleSceneChoiceUse);

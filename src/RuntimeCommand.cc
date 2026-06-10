@@ -77,6 +77,12 @@ RuntimeCommand RuntimeCommand::changeZoomTo(const char* to) {
     return command;
 }
 
+RuntimeCommand RuntimeCommand::changeMaxFpsTo(int to) {
+    RuntimeCommand command(RuntimeCommandChangeMaxFpsTo);
+    command.value = to;
+    return command;
+}
+
 RuntimeCommand RuntimeCommand::changeSoundProcessingBy(int by) {
     RuntimeCommand command(RuntimeCommandChangeSoundProcessingBy);
     command.value = by;

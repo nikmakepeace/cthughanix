@@ -320,6 +320,8 @@ public:
     int lastZoomBy;
     int zoomToCalls;
     const char* lastZoomTo;
+    int maxFpsToCalls;
+    int lastMaxFpsTo;
     int fpsToggles;
     int displayEffectByCalls;
     int displayEffectToCalls;
@@ -343,6 +345,8 @@ public:
         , lastZoomBy(0)
         , zoomToCalls(0)
         , lastZoomTo(0)
+        , maxFpsToCalls(0)
+        , lastMaxFpsTo(0)
         , fpsToggles(0)
         , displayEffectByCalls(0)
         , displayEffectToCalls(0)
@@ -375,6 +379,11 @@ public:
     virtual void changeZoomTo(const char* to) {
         zoomToCalls++;
         lastZoomTo = to;
+    }
+
+    virtual void changeMaxFpsTo(int to) {
+        maxFpsToCalls++;
+        lastMaxFpsTo = to;
     }
 
     virtual void toggleFpsOverlay() {
@@ -704,6 +713,12 @@ static void testRoutesDisplayCommandsThroughDisplayControls() {
     RuntimeChangeSet fps = harness.mediator.apply(RuntimeCommand::toggleShowFps());
     assert(fps.fpsChanged == 1);
     assert(harness.displayControls.fpsToggles == 1);
+
+    RuntimeChangeSet maxFps
+        = harness.mediator.apply(RuntimeCommand::changeMaxFpsTo(72));
+    assert(maxFps.fpsChanged == 1);
+    assert(harness.displayControls.maxFpsToCalls == 1);
+    assert(harness.displayControls.lastMaxFpsTo == 72);
 }
 
 static void testReportsNonSceneRuntimeChanges() {

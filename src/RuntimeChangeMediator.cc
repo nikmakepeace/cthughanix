@@ -122,6 +122,10 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         displayControls.changeZoomTo(command.text);
         changes.displayChanged = 1;
         break;
+    case RuntimeCommandChangeMaxFpsTo:
+        displayControls.changeMaxFpsTo(command.value);
+        changes.fpsChanged = 1;
+        break;
     case RuntimeCommandChangeSoundProcessingBy:
         audioControls.changeSoundProcessingBy(command.value);
         changes.audioProcessingChanged = 1;

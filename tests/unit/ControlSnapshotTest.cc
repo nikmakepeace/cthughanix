@@ -1,0 +1,165 @@
+/** @file
+ * Unit coverage for control state and catalog snapshots.
+ */
+
+#include "ControlSnapshot.h"
+
+#include "RuntimeConfigRegistry.h"
+#include "SceneChoiceSelection.h"
+
+#include <assert.h>
+#include <string>
+#include <vector>
+
+int cth_log_enabled(int) {
+    return 0;
+}
+
+int cth_log(int, const char*, ...) {
+    return 0;
+}
+
+int cth_log_error(const char*, ...) {
+    return 0;
+}
+
+class FakeChoice : public SceneChoice {
+    std::string nameValue;
+    int inUseValue;
+
+public:
+    FakeChoice(const char* name_, int inUse_)
+        : nameValue(name_)
+        , inUseValue(inUse_) { }
+
+    virtual const char* name() const { return nameValue.c_str(); }
+    virtual int sameName(const char* other) const {
+        return nameValue == (other != 0 ? other : "");
+    }
+    virtual int inUse() const { return inUseValue; }
+    virtual void setUse(int inUse) { inUseValue = inUse; }
+};
+
+class FakeSelection : public SceneFlameSelection,
+                      public SceneGeneralFlameSelection,
+                      public SceneWaveSelection,
+                      public SceneWaveObjectSelection,
+                      public SceneTranslationSelection,
+                      public ScenePaletteSelection,
+                      public SceneImageSelection {
+    std::vector<FakeChoice> choices;
+    int currentValueValue;
+
+public:
+    FakeSelection()
+        : choices()
+        , currentValueValue(0) {
+        choices.push_back(FakeChoice("first", 1));
+        choices.push_back(FakeChoice("second", 0));
+    }
+
+    virtual const char* currentName() const {
+        return choices[currentValueValue].name();
+    }
+    virtual int currentValue() const { return currentValueValue; }
+    virtual int entryCount() const { return int(choices.size()); }
+    virtual int choiceCount() const { return int(choices.size()); }
+    virtual SceneChoice* choiceAt(int index) {
+        if (index < 0 || index >= int(choices.size()))
+            return 0;
+        return &choices[index];
+    }
+    virtual const SceneChoice* choiceAt(int index) const {
+        if (index < 0 || index >= int(choices.size()))
+            return 0;
+        return &choices[index];
+    }
+    virtual void change(int by) {
+        currentValueValue = (currentValueValue + by) % int(choices.size());
+    }
+    virtual void change(const char*, RandomSource&) { currentValueValue = 1; }
+    virtual int changeRandom(RandomSource&) { currentValueValue = 0; return 1; }
+    virtual void setValue(int index) { currentValueValue = index; }
+    virtual const Flame* currentFlame() { return 0; }
+    virtual int encodedValue() const { return currentValueValue; }
+    virtual const char* selectionText() const { return currentName(); }
+    virtual Wave* currentWave() { return 0; }
+    virtual WObject* currentObject() { return 0; }
+    virtual TranslationTable currentTranslationTable() {
+        return TranslationTable();
+    }
+    virtual PaletteEntry* currentPaletteEntry() { return 0; }
+    virtual const IndexedImage* currentImage() { return 0; }
+};
+
+class FakeSelections : public SceneVisualSelections {
+    FakeSelection selection;
+
+public:
+    virtual SceneFlameSelection& flame() { return selection; }
+    virtual SceneGeneralFlameSelection& generalFlame() { return selection; }
+    virtual SceneWaveSelection& wave() { return selection; }
+    virtual SceneOptionSelection& waveScale() { return selection; }
+    virtual SceneOptionSelection& table() { return selection; }
+    virtual SceneOptionSelection& object() { return selection; }
+    virtual SceneTranslationSelection& translation() { return selection; }
+    virtual ScenePaletteSelection& palette() { return selection; }
+    virtual SceneOptionSelection& border() { return selection; }
+    virtual SceneOptionSelection& flashlight() { return selection; }
+    virtual SceneImageSelection& images() { return selection; }
+};
+
+static Config sampleConfig() {
+    Config config;
+    config.scene.flame = "fire";
+    config.scene.translation = "plasma";
+    config.scene.image = "cthugha";
+    config.scene.object = "torus";
+    config.scene.table = "cos";
+    config.scene.waveScale = "wide";
+    config.scene.palette = "volcano";
+    config.scene.flashlight = "on";
+    config.scene.audioProcessing = "FFT";
+    config.display.maxFramesPerSecond = 60;
+    config.display.showFpsEnabled = 1;
+    config.display.zoomMode = 2;
+    config.autoChange.locked = 1;
+    config.autoChange.changeLittle = 0;
+    return config;
+}
+
+static void testStateSnapshotUsesRuntimeConfig() {
+    RuntimeConfigRegistry registry(sampleConfig());
+    ControlJsonValue state = buildControlStateSnapshot(registry, 42);
+
+    assert(state.member("type")->asString() == "state");
+    assert(state.member("rev")->asNumber() == 42);
+    assert(state.member("scene")->member("flame")->asString() == "fire");
+    assert(state.member("scene")->member("palette")->asString() == "volcano");
+    assert(state.member("display")->member("maxFps")->asNumber() == 60);
+    assert(state.member("display")->member("showFps")->asBool() == true);
+    assert(state.member("audio")->member("processing")->asString() == "FFT");
+    assert(state.member("autoChange")->member("locked")->asBool() == true);
+}
+
+static void testCatalogSnapshotUsesSelections() {
+    FakeSelections selections;
+    ControlJsonValue catalogs = buildControlCatalogSnapshot(selections);
+
+    assert(catalogs.member("type")->asString() == "catalogs");
+    const ControlJsonValue* targets = catalogs.member("targets");
+    assert(targets != 0);
+    const ControlJsonValue* flames = targets->member("scene.flame");
+    assert(flames != 0);
+    assert(flames->asArray().size() == 2);
+    assert(flames->asArray()[0].member("name")->asString() == "first");
+    assert(flames->asArray()[0].member("current")->asBool() == true);
+    assert(flames->asArray()[1].member("inUse")->asBool() == false);
+    assert(targets->member("audio.processing")->asArray().size() == 4);
+}
+
+int main() {
+    testStateSnapshotUsesRuntimeConfig();
+    testCatalogSnapshotUsesSelections();
+    return 0;
+}
