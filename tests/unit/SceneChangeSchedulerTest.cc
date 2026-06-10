@@ -1,7 +1,6 @@
 #include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
 #include "ProcessServices.h"
-#include "Scene.h"
 #include "SceneChangeScheduler.h"
 
 #include <assert.h>
@@ -56,27 +55,22 @@ int AcousticContext::fire() const { return 0; }
 int AcousticContext::cumulativeFireLevel() const { return 0; }
 void AcousticContext::resetCumulativeFireLevel() { }
 
-class RecordingSceneCommands : public SceneCommandTarget {
+class RecordingAutoChangeTarget : public AutoChangeTarget {
 public:
     int changeOneCalls;
     int changeAllCalls;
+    RandomSource* lastRandomSource;
 
-    RecordingSceneCommands()
+    RecordingAutoChangeTarget()
         : changeOneCalls(0)
-        , changeAllCalls(0) { }
+        , changeAllCalls(0)
+        , lastRandomSource(0) { }
 
-    virtual void changeOne() { changeOneCalls++; }
     virtual void changeAll() { changeAllCalls++; }
-    virtual void restore() { }
-    virtual void restorePreset(int) { }
-    virtual void savePreset(int) { }
-    virtual void randomPalette() { }
-    virtual void addRandomPalette() { }
-    virtual void change(SceneSelectionTarget, int) { }
-    virtual void change(SceneSelectionTarget, const char*) { }
-    virtual void activate(SceneSelectionTarget, int) { }
-    virtual void toggleLock(SceneSelectionTarget) { }
-    virtual void toggleChoiceUse(SceneSelectionTarget, int) { }
+    virtual void changeOne(RandomSource& randomSource) {
+        changeOneCalls++;
+        lastRandomSource = &randomSource;
+    }
 };
 
 class RecordingQuietObserver : public AutoChangeQuietObserver {
@@ -140,35 +134,37 @@ static AutoChangeConfig autoChangeConfigWithLittle(int changeLittle) {
 static void testSceneChangeSchedulerRequestsChangeOneForLittleChanges() {
     OwnedAutoChangeSettings settings(autoChangeConfigWithLittle(1));
 
-    RecordingSceneCommands sceneCommands;
+    RecordingAutoChangeTarget changeTarget;
     AcousticContext acousticContext;
     FakeClock clock;
     FakeRandomSource randomSource;
     NullLogSink log;
     RecordingQuietObserver quietObserver;
-    SceneChangeScheduler scheduler(sceneCommands, settings, acousticContext,
+    SceneChangeScheduler scheduler(changeTarget, settings, acousticContext,
         clock, randomSource, quietObserver, log);
     scheduler.change();
 
-    assert(sceneCommands.changeOneCalls == 1);
-    assert(sceneCommands.changeAllCalls == 0);
+    assert(changeTarget.changeOneCalls == 1);
+    assert(changeTarget.changeAllCalls == 0);
+    assert(changeTarget.lastRandomSource == &randomSource);
 }
 
 static void testSceneChangeSchedulerRequestsChangeAllForFullChanges() {
     OwnedAutoChangeSettings settings(autoChangeConfigWithLittle(0));
 
-    RecordingSceneCommands sceneCommands;
+    RecordingAutoChangeTarget changeTarget;
     AcousticContext acousticContext;
     FakeClock clock;
     FakeRandomSource randomSource;
     NullLogSink log;
     RecordingQuietObserver quietObserver;
-    SceneChangeScheduler scheduler(sceneCommands, settings, acousticContext,
+    SceneChangeScheduler scheduler(changeTarget, settings, acousticContext,
         clock, randomSource, quietObserver, log);
     scheduler.change();
 
-    assert(sceneCommands.changeOneCalls == 0);
-    assert(sceneCommands.changeAllCalls == 1);
+    assert(changeTarget.changeOneCalls == 0);
+    assert(changeTarget.changeAllCalls == 1);
+    assert(changeTarget.lastRandomSource == 0);
 }
 
 static AutoChangeConfig autoChangeConfigWithWait() {
@@ -180,7 +176,7 @@ static AutoChangeConfig autoChangeConfigWithWait() {
 
 static void testSceneChangeSchedulerUsesInjectedClockAndRandomForWaitChanges() {
     OwnedAutoChangeSettings settings(autoChangeConfigWithWait());
-    RecordingSceneCommands sceneCommands;
+    RecordingAutoChangeTarget changeTarget;
     AcousticContext acousticContext;
     FakeClock clock;
     FakeRandomSource randomSource;
@@ -189,19 +185,19 @@ static void testSceneChangeSchedulerUsesInjectedClockAndRandomForWaitChanges() {
     RecordingQuietObserver quietObserver;
 
     randomSource.value = 3;
-    SceneChangeScheduler scheduler(sceneCommands, settings, acousticContext,
+    SceneChangeScheduler scheduler(changeTarget, settings, acousticContext,
         clock, randomSource, quietObserver, log);
     assert(randomSource.calls == 1);
 
     clock.value = 1013;
     scheduler(metrics);
-    assert(sceneCommands.changeOneCalls == 0);
-    assert(sceneCommands.changeAllCalls == 0);
+    assert(changeTarget.changeOneCalls == 0);
+    assert(changeTarget.changeAllCalls == 0);
 
     clock.value = 1014;
     scheduler(metrics);
-    assert(sceneCommands.changeOneCalls == 1);
-    assert(sceneCommands.changeAllCalls == 0);
+    assert(changeTarget.changeOneCalls == 1);
+    assert(changeTarget.changeAllCalls == 0);
     assert(randomSource.calls == 2);
 }
 
@@ -209,7 +205,7 @@ static void testSceneChangeSchedulerUsesInjectedQuietObserver() {
     AutoChangeConfig config = autoChangeConfigWithLittle(1);
     config.locked = 1;
     OwnedAutoChangeSettings settings(config);
-    RecordingSceneCommands sceneCommands;
+    RecordingAutoChangeTarget changeTarget;
     AcousticContext acousticContext;
     FakeClock clock;
     FakeRandomSource randomSource;
@@ -217,7 +213,7 @@ static void testSceneChangeSchedulerUsesInjectedQuietObserver() {
     AudioMetrics metrics;
     NullLogSink log;
 
-    SceneChangeScheduler scheduler(sceneCommands, settings, acousticContext,
+    SceneChangeScheduler scheduler(changeTarget, settings, acousticContext,
         clock, randomSource, quietObserver, log);
     clock.value = 1250;
     quietObserver.consumeQuietPeriod = 1;
@@ -226,16 +222,16 @@ static void testSceneChangeSchedulerUsesInjectedQuietObserver() {
 
     assert(quietObserver.calls == 1);
     assert(quietObserver.lastQuietLength == 250);
-    assert(sceneCommands.changeOneCalls == 0);
-    assert(sceneCommands.changeAllCalls == 0);
+    assert(changeTarget.changeOneCalls == 0);
+    assert(changeTarget.changeAllCalls == 0);
 }
 
 static void testSceneChangeSchedulerStatusTextIsInstanceLocal() {
     AutoChangeConfig config = autoChangeConfigWithLittle(1);
     config.locked = 1;
     OwnedAutoChangeSettings settings(config);
-    RecordingSceneCommands firstSceneCommands;
-    RecordingSceneCommands secondSceneCommands;
+    RecordingAutoChangeTarget firstChangeTarget;
+    RecordingAutoChangeTarget secondChangeTarget;
     AcousticContext firstAcousticContext;
     AcousticContext secondAcousticContext;
     FakeClock firstClock;
@@ -245,9 +241,9 @@ static void testSceneChangeSchedulerStatusTextIsInstanceLocal() {
     RecordingQuietObserver firstQuietObserver;
     RecordingQuietObserver secondQuietObserver;
     NullLogSink log;
-    SceneChangeScheduler first(firstSceneCommands, settings, firstAcousticContext,
+    SceneChangeScheduler first(firstChangeTarget, settings, firstAcousticContext,
         firstClock, firstRandomSource, firstQuietObserver, log);
-    SceneChangeScheduler second(secondSceneCommands, settings,
+    SceneChangeScheduler second(secondChangeTarget, settings,
         secondAcousticContext, secondClock, secondRandomSource,
         secondQuietObserver, log);
 

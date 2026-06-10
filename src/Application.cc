@@ -82,6 +82,40 @@ static void emitStartupConfigDiagnostics(
 static void applyDisplayPresentationStartupChoice(const SceneConfig& sceneConfig,
     RandomSource& randomSource);
 
+class ApplicationAutoChangeTarget : public AutoChangeTarget {
+    SceneCommandTarget& sceneCommands;
+    RuntimeDisplayControls& displayControls;
+    RuntimeAudioControls& audioControls;
+
+public:
+    ApplicationAutoChangeTarget(SceneCommandTarget& sceneCommands_,
+        RuntimeDisplayControls& displayControls_,
+        RuntimeAudioControls& audioControls_)
+        : sceneCommands(sceneCommands_)
+        , displayControls(displayControls_)
+        , audioControls(audioControls_) { }
+
+    virtual void changeAll() {
+        sceneCommands.changeAll();
+        displayControls.changePresentationTo("");
+        audioControls.changeSoundProcessingTo("");
+    }
+
+    virtual void changeOne(RandomSource& randomSource) {
+        switch (randomSource.uniformInt(3)) {
+        case 0:
+            sceneCommands.changeOne();
+            break;
+        case 1:
+            displayControls.changePresentationTo("");
+            break;
+        default:
+            audioControls.changeSoundProcessingTo("");
+            break;
+        }
+    }
+};
+
 class FrameGeneratorQuietObserver : public AutoChangeQuietObserver {
     FrameGeneratorRuntime& frameGeneratorValue;
     CthughaDisplay& displayCoordinator;
@@ -319,6 +353,9 @@ void Application::initSceneRuntime() {
             *quietMessageOptionValue));
     runtimeEffectControlsValue.reset(
         new DefaultRuntimeEffectControls(randomSourceValue));
+    autoChangeTargetValue.reset(new ApplicationAutoChangeTarget(
+        sceneRuntimeValue->commandTarget(), *runtimeDisplayControlsValue,
+        *runtimeAudioControlsValue));
     commandsInputValue->interfaceRuntime().setRuntimeConfigRegistry(
         runtimeConfigRegistryValue.get());
     commandsInputValue->interfaceRuntime().setAudioProcessingSelector(
@@ -344,6 +381,7 @@ void Application::shutdownSceneRuntime() {
     commandsInputValue->interfaceRuntime().setRuntimeConfigRegistry(NULL);
     runtimeCommandRouterValue.reset();
     runtimeChangeMediatorValue.reset();
+    autoChangeTargetValue.reset();
     runtimeEffectControlsValue.reset();
     runtimeAutoChangeControlsValue.reset();
     runtimeAudioControlsValue.reset();
@@ -455,8 +493,9 @@ void Application::initAudioFramePipeline() {
                 *quietMessageOptionValue));
     if (sceneChangeSchedulerValue.get() == NULL
         && sceneRuntimeValue.get() != NULL
-        && autoChangeSettingsValue.get() != NULL)
-        sceneChangeSchedulerValue.reset(new SceneChangeScheduler(sceneRuntimeValue->commandTarget(),
+        && autoChangeSettingsValue.get() != NULL
+        && autoChangeTargetValue.get() != NULL)
+        sceneChangeSchedulerValue.reset(new SceneChangeScheduler(*autoChangeTargetValue,
             *autoChangeSettingsValue, acousticContextValue,
             millisecondClockValue, randomSourceValue,
             *autoChangeQuietObserverValue, logSinkValue));

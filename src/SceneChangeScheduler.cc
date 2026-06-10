@@ -6,14 +6,13 @@
 #include "AutoChangeSettings.h"
 #include "AudioAnalyzer.h"
 #include "ProcessServices.h"
-#include "Scene.h"
 
-SceneChangeScheduler::SceneChangeScheduler(SceneCommandTarget& sceneCommands_,
+SceneChangeScheduler::SceneChangeScheduler(AutoChangeTarget& changeTarget_,
     const AutoChangeSettings& settings_,
     AcousticContext& acousticContext_, MillisecondClock& clock_,
     RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,
     LogSink& log_)
-    : sceneCommands(sceneCommands_)
+    : changeTarget(changeTarget_)
     , settings(settings_)
     , acousticContextValue(acousticContext_)
     , clock(clock_)
@@ -85,9 +84,9 @@ void SceneChangeScheduler::operator()(const AudioMetrics& metrics) {
 void SceneChangeScheduler::change() {
 
     if (settings.changeLittle()) {
-        sceneCommands.changeOne();
+        changeTarget.changeOne(randomSource);
     } else {
-        sceneCommands.changeAll();
+        changeTarget.changeAll();
     }
 }
 

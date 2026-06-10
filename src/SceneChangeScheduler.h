@@ -12,8 +12,30 @@ class AutoChangeSettings;
 class LogSink;
 class MillisecondClock;
 class RandomSource;
-class SceneCommandTarget;
 struct AudioMetrics;
+
+/**
+ * Mutation target for automatic changes.
+ *
+ * Automatic changes are broader than Scene-owned visual selections: they also
+ * include presentation-screen and audio-processing choices, which live behind
+ * display/audio runtime controls.
+ */
+class AutoChangeTarget {
+public:
+    /** Destroys the automatic-change target interface. */
+    virtual ~AutoChangeTarget() { }
+
+    /** Changes every eligible automatic-change subsystem. */
+    virtual void changeAll() = 0;
+
+    /**
+     * Changes one eligible automatic-change subsystem.
+     *
+     * @param randomSource Random source used to choose the subsystem.
+     */
+    virtual void changeOne(RandomSource& randomSource) = 0;
+};
 
 /**
  * Observer for quiet-audio notifications emitted by automatic scene changes.
@@ -33,7 +55,7 @@ public:
 };
 
 class SceneChangeScheduler : public SceneChangeStatusProvider {
-    SceneCommandTarget& sceneCommands;
+    AutoChangeTarget& changeTarget;
     const AutoChangeSettings& settings;
     AcousticContext& acousticContextValue;
     MillisecondClock& clock;
@@ -52,8 +74,8 @@ public:
     /**
      * Creates the automatic scene changer.
      *
-     * @param sceneCommands_ Scene command target used for automatic scene
-     *        mutations. The referenced object must outlive this scheduler.
+     * @param changeTarget_ Target used for automatic runtime mutations. The
+     *        referenced object must outlive this scheduler.
      * @param settings_ Automatic scene-change settings. The referenced object
      *        must outlive this scheduler.
      * @param acousticContext_ Rolling acoustic state used for fire-triggered
@@ -67,7 +89,7 @@ public:
      * @param log_ Diagnostic sink. The referenced object must outlive this
      *        scheduler.
      */
-    SceneChangeScheduler(SceneCommandTarget& sceneCommands_,
+    SceneChangeScheduler(AutoChangeTarget& changeTarget_,
         const AutoChangeSettings& settings_,
         AcousticContext& acousticContext_, MillisecondClock& clock_,
         RandomSource& randomSource_, AutoChangeQuietObserver& quietObserver_,

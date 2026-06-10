@@ -705,7 +705,7 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceContains("src/SceneChangeScheduler.h",
         "class SceneChangeScheduler : public SceneChangeStatusProvider");
     assertSourceContains("src/SceneChangeScheduler.h",
-        "SceneCommandTarget& sceneCommands");
+        "AutoChangeTarget& changeTarget");
     assertSourceContains("src/Scene.h", "enum SceneSelectionTarget");
     assertSourceContains("src/Scene.h",
         "void change(SceneSelectionTarget target, int by)");
@@ -798,9 +798,9 @@ static void testAudioFrameOwnsPerFrameMetrics() {
     assertSourceDoesNotContain("src/Application.cc",
         "sceneRuntimeValue->effectControlTarget()");
     assertSourceContains("src/SceneChangeScheduler.cc",
-        "sceneCommands.changeOne()");
+        "changeTarget.changeOne(randomSource)");
     assertSourceContains("src/SceneChangeScheduler.cc",
-        "sceneCommands.changeAll()");
+        "changeTarget.changeAll()");
     assertSourceDoesNotContain("src/SceneChangeScheduler.h",
         "RuntimeCommandSink");
     assertSourceDoesNotContain("src/SceneChangeScheduler.cc",
@@ -901,7 +901,9 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/Application.cc",
         "sceneRuntimeValue->commandTarget()");
     assertSourceContains("src/Application.cc",
-        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler(sceneRuntimeValue->commandTarget()");
+        "autoChangeTargetValue.reset(new ApplicationAutoChangeTarget(");
+    assertSourceContains("src/Application.cc",
+        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler(*autoChangeTargetValue");
     assertSourceContains("src/Application.cc",
         "millisecondClockValue, randomSourceValue");
     assertSourceContains("src/Application.h",

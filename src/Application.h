@@ -29,6 +29,7 @@ class AudioProcessor;
 class AutoChangeControls;
 class AutoChangeQuietObserver;
 class AutoChangeSettings;
+class AutoChangeTarget;
 class ErrorMessages;
 class IndexedFrame;
 class ImageOption;
@@ -97,6 +98,7 @@ class Application {
     std::unique_ptr<AudioIngest> audioIngestValue;
     std::unique_ptr<AutoChangeSettings> autoChangeSettingsValue;
     std::unique_ptr<AutoChangeControls> autoChangeControlsValue;
+    std::unique_ptr<AutoChangeTarget> autoChangeTargetValue;
     std::unique_ptr<AutoChangeQuietObserver> autoChangeQuietObserverValue;
     std::unique_ptr<SceneChangeScheduler> sceneChangeSchedulerValue;
     std::unique_ptr<SceneScriptPlayback> sceneScriptPlaybackValue;
