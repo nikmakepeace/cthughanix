@@ -31,7 +31,7 @@
         "args": [
             "--build",
             "${workspaceFolder}/build",
-            "--parallel"
+            "--parallel 8"
         ],
         "options": {
             "cwd": "${workspaceFolder}"
