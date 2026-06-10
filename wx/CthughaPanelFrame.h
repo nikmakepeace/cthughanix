@@ -22,6 +22,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
     int receivedState;
     int updatingControls;
 
+    void repairGeneratedLayout();
     void bindControlEvents();
     void setControlsEnabled(int enabled);
     void updateEnabledState();
