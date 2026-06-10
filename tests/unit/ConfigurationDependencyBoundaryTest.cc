@@ -901,15 +901,17 @@ static void testAutoChangeSettingsAreApplicationOwned() {
     assertSourceContains("src/Application.cc",
         "sceneRuntimeValue->commandTarget()");
     assertSourceContains("src/Application.cc",
-        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler(sceneRuntimeValue->commandTarget()");
+        "SceneCommandTarget* sceneCommands = &sceneRuntimeValue->commandTarget()");
     assertSourceContains("src/Application.cc",
-        "millisecondClockValue, randomSourceValue");
+        "sceneChangeSchedulerValue.reset(new SceneChangeScheduler(*sceneCommands,");
+    assertSourceContains("src/Application.cc",
+        "millisecondClockValue,\n            randomSourceValue");
     assertSourceContains("src/Application.h",
         "SystemMillisecondClock millisecondClockValue");
     assertSourceContains("src/Application.h",
         "CStdRandomSource randomSourceValue");
     assertSourceContains("src/Application.cc",
-        "millisecondClockValue, randomSourceValue");
+        "millisecondClockValue,\n            randomSourceValue");
     assertSourceContains("src/ProcessServices.h", "unsigned int stateValue");
     assertSourceContains("src/ProcessServices.cc",
         "CStdRandomSource::CStdRandomSource(unsigned int seed_)");
@@ -2306,7 +2308,8 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
     assertSourceContains("src/Application.cc",
         "CommandContext commandContext(commandsInputValue->interfaceRuntime(),");
     assertSourceContains("src/Application.cc",
-        "runtimeCommandRouterValue.get())");
+        "runtimeCommandSink, runtimeCommandRouterValue.get(),\n"
+        "            controlPanelLauncher)");
     assertSourceDoesNotContain("src/Application.cc",
         "interfaceRuntimeValue->setCommandRouter");
     assertSourceDoesNotContain("src/InterfaceRuntime.h", "commandRouterValue");
@@ -2733,7 +2736,8 @@ static void testRemainingSharedRuntimeStateWasRemoved() {
     assertSourceDoesNotContain("src/InterfaceCredits.cc",
         "    double pos;");
     assertSourceContains("src/Application.cc",
-        "runtimeChangeMediatorValue.get(), runtimeCommandRouterValue.get())");
+        "runtimeCommandSink, runtimeCommandRouterValue.get(),\n"
+        "            controlPanelLauncher)");
     assertSourceDoesNotContain("src/Application.cc",
         "interfaceRuntimeValue->setRuntimeCommandSink");
     assertSourceDoesNotContain("src/keymap.h", "setRuntimeCommandSink");
@@ -3860,6 +3864,108 @@ static void testConfigDefaultsAreNotConsumedAsLegacyDefaults() {
     assertSourceContains("src/configuration_defaults.h", "INPUT_CONFIG_DEFAULT_ESCAPE_KEY_ENABLED");
 }
 
+static int lineStartsWith(const std::string& line, const char* prefix) {
+    std::string needle = prefix;
+    return line.compare(0, needle.size(), needle) == 0;
+}
+
+static std::string trimLeft(const std::string& line) {
+    size_t index = 0;
+    while (index < line.size()
+        && (line[index] == ' ' || line[index] == '\t'))
+        index++;
+    return line.substr(index);
+}
+
+static int lineMentionsControlRuntimeState(const std::string& line) {
+    const char* tokens[] = {
+        "ControlService",
+        "ControlPanelClient",
+        "ControlListener",
+        "ControlStream",
+        "ControlEndpoint",
+        "std::deque",
+        "std::mutex",
+        "std::thread",
+        "endpoint",
+        "outbound",
+        "inbound",
+        "connected",
+        "launchPending"
+    };
+    for (int i = 0; i < int(sizeof(tokens) / sizeof(tokens[0])); i++) {
+        if (line.find(tokens[i]) != std::string::npos)
+            return 1;
+    }
+    return 0;
+}
+
+static void assertNoMutableControlGlobalsInFile(const char* relativePath) {
+    std::string contents = readSourceFile(relativePath);
+    std::istringstream lines(contents);
+    std::string line;
+    int lineNumber = 0;
+
+    while (std::getline(lines, line)) {
+        lineNumber++;
+        std::string trimmed = trimLeft(line);
+        int startsStatic = lineStartsWith(trimmed, "static ");
+        int startsExtern = lineStartsWith(trimmed, "extern ");
+        if (!startsStatic && !startsExtern)
+            continue;
+        if (lineStartsWith(trimmed, "static const ")
+            || lineStartsWith(trimmed, "static constexpr "))
+            continue;
+        if (trimmed.find("(") != std::string::npos)
+            continue;
+        if (!lineMentionsControlRuntimeState(trimmed))
+            continue;
+
+        fprintf(stderr, "%s:%d looks like mutable control global: %s\n",
+            relativePath, lineNumber, trimmed.c_str());
+        assert(0);
+    }
+}
+
+static void testControlPanelIntroducesNoMutableGlobals() {
+    const char* files[] = {
+        "src/ControlCommandMapper.cc",
+        "src/ControlCommandMapper.h",
+        "src/ControlPanelClient.cc",
+        "src/ControlPanelClient.h",
+        "src/ControlPanelLauncher.h",
+        "src/ControlProtocol.cc",
+        "src/ControlProtocol.h",
+        "src/ControlRuntimeObserver.cc",
+        "src/ControlRuntimeObserver.h",
+        "src/ControlService.cc",
+        "src/ControlService.h",
+        "src/ControlSnapshot.cc",
+        "src/ControlSnapshot.h",
+        "src/ControlTransport.cc",
+        "src/ControlTransport.h",
+        "wx/CthughaPanelApp.cc",
+        "wx/CthughaPanelFrame.cpp",
+        "wx/CthughaPanelFrame.h"
+    };
+    for (int i = 0; i < int(sizeof(files) / sizeof(files[0])); i++)
+        assertNoMutableControlGlobalsInFile(files[i]);
+
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<ControlService> controlServiceValue");
+    assertSourceContains("src/ControlService.h", "std::thread workerThread");
+    assertSourceContains("src/ControlService.h",
+        "std::deque<InboundItem> inbound");
+    assertSourceContains("src/ControlService.h",
+        "std::deque<ControlJsonValue> outbound");
+    assertSourceContains("src/ControlPanelClient.h",
+        "std::deque<ControlJsonValue> outbound");
+    assertSourceContains("wx/CthughaPanelFrame.h",
+        "std::unique_ptr<ControlPanelClient> client");
+    assertSourceDoesNotContain("src/Application.cc", "#include \"CthughaPanel");
+    assertSourceDoesNotContain("src/CMakeLists.txt", "wx/");
+}
+
 int main() {
     testAudioIngestUsesAudioConfig();
     testAudioDeviceSettingsAreStartupOnly();
@@ -3896,5 +4002,6 @@ int main() {
     testEffectControlUsesInjectedRandomSource();
     testQotdTimingUsesApplicationCountdownTimers();
     testConfigDefaultsAreNotConsumedAsLegacyDefaults();
+    testControlPanelIntroducesNoMutableGlobals();
     return 0;
 }

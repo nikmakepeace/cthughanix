@@ -1153,6 +1153,36 @@ target_link_libraries(control_snapshot_test PRIVATE m)
 
 add_test(NAME control_snapshot_test COMMAND control_snapshot_test)
 
+add_executable(control_service_integration_test
+    unit/ControlServiceIntegrationTest.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlCommandMapper.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlPanelClient.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlProtocol.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlService.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlSnapshot.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlTransport.cc
+    ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeCommand.cc
+    ${CMAKE_SOURCE_DIR}/src/RuntimeConfigRegistry.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
+    ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
+)
+
+target_include_directories(control_service_integration_test PRIVATE
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(control_service_integration_test PRIVATE
+    Threads::Threads
+    m
+)
+
+add_test(NAME control_service_integration_test
+    COMMAND control_service_integration_test)
+
 add_executable(scene_choice_list_catalog_test
     unit/SceneChoiceListCatalogTest.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceListCatalog.cc
