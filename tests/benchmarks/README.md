@@ -13,6 +13,7 @@ Configure and build:
 cmake -S . -B build -DCTH_BUILD_BENCHMARKS=ON
 cmake --build build --target audio_pipeline_bench
 cmake --build build --target visual_effects_bench
+cmake --build build --target display_screens_bench
 ```
 
 ## Scene Script Macro Benchmark
@@ -196,3 +197,71 @@ Each report directory contains Google Benchmark JSON, console output,
 `summary.md`. The visual `summary.md` includes the requested buffer size, the
 selected fixture name, and a fixture-file table showing the decoded image size
 and whether it matched the buffer.
+
+## Display Screens
+
+`display_screens_bench` focuses on the classic screen/display renderers that
+map a source indexed buffer into the displayed indexed frame. It measures each
+`ScreenEntry` directly, without opening X11 or SDL.
+
+The benchmark has built-in synthetic source patterns:
+
+- `zero`
+- `gradient`
+- `checker`
+- `noise`
+
+Run the default 1600x1200 source-buffer suite:
+
+```sh
+build/tests/benchmarks/display_screens_bench
+```
+
+Run selected patterns:
+
+```sh
+build/tests/benchmarks/display_screens_bench --cth-patterns=gradient,noise
+```
+
+Run a different source-buffer size:
+
+```sh
+build/tests/benchmarks/display_screens_bench --cth-buffer-size=640x480
+```
+
+Filter to one screen:
+
+```sh
+build/tests/benchmarks/display_screens_bench --benchmark_filter='Screen/Source'
+```
+
+Write a timestamped report:
+
+```sh
+cmake --build build --target display_screens_benchmark_report
+```
+
+The report runner defaults to:
+
+- 20 benchmark repetitions;
+- 20 ms minimum time per measured repetition;
+- microsecond timing units;
+- spread metrics over all measured repetitions;
+- `1600x1200` benchmark buffers unless a different size is passed to the
+  runner;
+- `zero`, `gradient`, and `noise` source patterns.
+
+Run the report runner directly:
+
+```sh
+tools/run_display_screens_benchmarks.py --build-dir build
+```
+
+Reports are written under:
+
+```text
+build/test-results/display-screens/
+```
+
+Each report directory contains `summary.md`, `trace.log`,
+`google-benchmark.json`, and `spread-metrics.json`.
