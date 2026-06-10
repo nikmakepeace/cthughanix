@@ -20,11 +20,21 @@ static unsigned char patternValue(int x, int y) {
     return (unsigned char)((x * 17 + y * 43 + 29) & 0xff);
 }
 
-static void fillPassive(FrameRenderTarget& target) {
+static void fillActiveSource(FrameRenderTarget& target) {
+    for (int y = 0; y < target.height(); y++) {
+        unsigned char* row = target.activeRow(y);
+        for (int x = 0; x < target.width(); x++)
+            row[x] = patternValue(x, y);
+        for (int x = target.width(); x < target.pitch(); x++)
+            row[x] = 0xdd;
+    }
+}
+
+static void fillPassiveDestination(FrameRenderTarget& target) {
     for (int y = 0; y < target.height(); y++) {
         unsigned char* row = target.passiveRow(y);
         for (int x = 0; x < target.width(); x++)
-            row[x] = patternValue(x, y);
+            row[x] = 0;
         for (int x = target.width(); x < target.pitch(); x++)
             row[x] = 0xee;
     }
@@ -48,6 +58,19 @@ static void assertActivePaddingUntouched(const FrameRenderTarget& target) {
     }
 }
 
+static void assertMirrorYResult(const FrameRenderTarget& target) {
+    for (int y = 0; y < target.height(); y++) {
+        const unsigned char* row = target.activeRow(y);
+        int sourceY = target.height() - 1 - y;
+        for (int x = 0; x < target.width(); x++) {
+            unsigned char expected = (x == 0 && sourceY == 0)
+                ? 0
+                : patternValue(x, sourceY);
+            assert(row[x] == expected);
+        }
+    }
+}
+
 static std::vector<int> makeMirrorYTable(int width, int height) {
     std::vector<int> table(width * height);
     for (int y = 0; y < height; y++) {
@@ -65,8 +88,10 @@ static void testTranslateUsesPitchedRows() {
 
     FrameRenderTarget& packed = packedStore.renderTarget();
     FrameRenderTarget& padded = paddedStore.renderTarget();
-    fillPassive(packed);
-    fillPassive(padded);
+    fillActiveSource(packed);
+    fillActiveSource(padded);
+    fillPassiveDestination(packed);
+    fillPassiveDestination(padded);
 
     std::vector<int> table = makeMirrorYTable(packed.width(), packed.height());
     TranslationTable translationTable("mirror-y", table.data(),
@@ -77,6 +102,8 @@ static void testTranslateUsesPitchedRows() {
     translate.execute(packed, context);
     translate.execute(padded, context);
 
+    assertMirrorYResult(packed);
+    assertMirrorYResult(padded);
     assertVisibleMatches(packed, padded);
     assertActivePaddingUntouched(padded);
 }

@@ -19,7 +19,7 @@ static void loadsPerfSceneScript() {
     SceneScriptLoadResult result = loadSceneScript(config);
 
     assert(result.ok());
-    assert(result.events.size() == 5);
+    assert(result.events.size() == 16);
 
     assert(result.events[0].step == 0);
     assert(result.events[0].elapsedMs == 0);
@@ -30,7 +30,7 @@ static void loadsPerfSceneScript() {
     assert(result.events[0].scene.presentation == "0");
     assert(result.events[0].scene.audioProcessing == "0");
 
-    assert(result.events[3].step == 2);
+    assert(result.events[3].step == 3);
     assert(result.events[3].elapsedMs == 6000);
     assert(result.events[3].fileName == "03.ini");
     assert(result.events[3].scene.flame == "3");
@@ -38,9 +38,17 @@ static void loadsPerfSceneScript() {
     assert(result.events[3].scene.presentation == "3");
     assert(result.events[3].scene.audioProcessing == "3");
 
-    assert(result.events[4].step == 3);
-    assert(result.events[4].elapsedMs == 8000);
-    assert(result.events[4].stop);
+    assert(result.events[14].step == 14);
+    assert(result.events[14].elapsedMs == 28000);
+    assert(result.events[14].fileName == "14.ini");
+    assert(result.events[14].scene.flame == "14");
+    assert(result.events[14].scene.translation == "2");
+    assert(result.events[14].scene.presentation == "14");
+    assert(result.events[14].scene.audioProcessing == "2");
+
+    assert(result.events[15].step == 15);
+    assert(result.events[15].elapsedMs == 30000);
+    assert(result.events[15].stop);
 }
 
 static void playbackReturnsDueEventsInOrder() {

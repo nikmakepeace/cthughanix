@@ -22,6 +22,38 @@ void flame_down(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     FlameRuntime& runtime);
 void flame_upslow(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     FlameRuntime& runtime);
+void flame_upsubtle(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_upfast(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_leftslow(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_leftsubtle(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_leftfast(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_rightslow(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_rightsubtle(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_rightfast(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_water(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_watersubtle(FrameRenderTarget& buffer,
+    const FrameGeneratorContext& context, FlameRuntime& runtime);
+void flame_skyline(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_weird(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_zzz(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_fade(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
+    FlameRuntime& runtime);
+void flame_general_subtle(FrameRenderTarget& buffer,
+    const FrameGeneratorContext& context, FlameRuntime& runtime);
+void flame_general_slow(FrameRenderTarget& buffer,
+    const FrameGeneratorContext& context, FlameRuntime& runtime);
 
 static unsigned char patternValue(int linearOffset, int salt) {
     return (unsigned char)((linearOffset * 37 + salt * 19 + 251) & 0xff);
@@ -42,6 +74,14 @@ static void fillVisibleStream(FrameRenderTarget& target) {
 static void poisonActivePadding(FrameRenderTarget& target) {
     for (int y = 0; y < target.height(); y++) {
         unsigned char* row = target.activeRow(y);
+        for (int x = target.width(); x < target.pitch(); x++)
+            row[x] = 0xee;
+    }
+}
+
+static void poisonPassivePadding(FrameRenderTarget& target) {
+    for (int y = 0; y < target.height(); y++) {
+        unsigned char* row = target.passiveRow(y);
         for (int x = target.width(); x < target.pitch(); x++)
             row[x] = 0xee;
     }
@@ -82,6 +122,7 @@ static void runKernelOnPackedAndPaddedStores(FlameKernel kernel) {
     fillVisibleStream(packed);
     fillVisibleStream(padded);
     poisonActivePadding(padded);
+    poisonPassivePadding(padded);
 
     FrameGeneratorContext context;
     FlameLookupTables tables;
@@ -91,6 +132,7 @@ static void runKernelOnPackedAndPaddedStores(FlameKernel kernel) {
     kernel(padded, context, runtime);
 
     assertVisibleMatches(packed, padded);
+    assertActivePaddingUntouched(padded);
 }
 
 static void testFlameClearSkipsPadding() {
@@ -113,17 +155,34 @@ static void testFlameClearSkipsPadding() {
     assertActivePaddingUntouched(target);
 }
 
-static void testFlameDownUsesPitchedHiddenRows() {
-    runKernelOnPackedAndPaddedStores(flame_down);
-}
+static void testFlameKernelsUseVisibleStreamNotPadding() {
+    static FlameKernel kernels[] = {
+        flame_down,
+        flame_upslow,
+        flame_upsubtle,
+        flame_upfast,
+        flame_leftslow,
+        flame_leftsubtle,
+        flame_leftfast,
+        flame_rightslow,
+        flame_rightsubtle,
+        flame_rightfast,
+        flame_water,
+        flame_watersubtle,
+        flame_skyline,
+        flame_weird,
+        flame_zzz,
+        flame_fade,
+        flame_general_subtle,
+        flame_general_slow,
+    };
 
-static void testFlameFeedbackUsesVisibleStreamNotPadding() {
-    runKernelOnPackedAndPaddedStores(flame_upslow);
+    for (unsigned int i = 0; i < sizeof(kernels) / sizeof(kernels[0]); i++)
+        runKernelOnPackedAndPaddedStores(kernels[i]);
 }
 
 int main() {
     testFlameClearSkipsPadding();
-    testFlameDownUsesPitchedHiddenRows();
-    testFlameFeedbackUsesVisibleStreamNotPadding();
+    testFlameKernelsUseVisibleStreamNotPadding();
     return 0;
 }

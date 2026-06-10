@@ -19,7 +19,8 @@ DEFAULT_SCENE_SCRIPT_DIR = "tests/fixtures/ini/perf"
 DEFAULT_SCENE_SCRIPT = "perf.scenescript"
 DEFAULT_AUDIO_FILE = "tests/fixtures/audio/sine-100-1600-doubling-10s.wav"
 DEFAULT_BUFFER_SIZE = "1600x1200"
-DEFAULT_TIMEOUT_SECONDS = 30.0
+DEFAULT_MIN_TIMEOUT_SECONDS = 30.0
+DEFAULT_TIMEOUT_GRACE_SECONDS = 10.0
 DEFAULT_SOURCE_DIR = Path(__file__).resolve().parents[1]
 
 
@@ -375,6 +376,7 @@ def write_summary(path, manifest, metrics):
         f.write(f"- Audio file: `{manifest['audio_file']}`\n")
         f.write(f"- Buffer size: `{manifest['buffer_size']}`\n")
         f.write(f"- Autochange locked by runner: `{manifest['autochange_locked']}`\n")
+        f.write(f"- Timeout: `{manifest['timeout_seconds']:.1f}s`\n")
         f.write(f"- Build dir: `{manifest['build_dir']}`\n")
         f.write(f"- Binary: `{manifest['binary']}`\n")
         f.write(f"- Trace: `{manifest['trace_log']}`\n\n")
@@ -408,6 +410,51 @@ def parse_env_assignment(text):
     if not key:
         raise SystemExit(f"--env expects NAME=VALUE, got {text!r}")
     return key, value
+
+
+def strip_scene_script_comment(line):
+    comment_positions = [
+        position for position in (line.find("#"), line.find("!")) if position != -1
+    ]
+    if not comment_positions:
+        return line
+    return line[: min(comment_positions)]
+
+
+def scene_script_duration_seconds(path):
+    if not path.exists():
+        return 0.0
+
+    max_elapsed_ms = 0
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            tokens = strip_scene_script_comment(line).split()
+            i = 0
+            while i < len(tokens):
+                token = tokens[i]
+                value = None
+                if token.startswith("elapsed-ms="):
+                    value = token.split("=", 1)[1]
+                elif token == "elapsed-ms" and i + 1 < len(tokens):
+                    i += 1
+                    value = tokens[i]
+
+                if value is not None:
+                    try:
+                        max_elapsed_ms = max(max_elapsed_ms, int(value))
+                    except ValueError:
+                        pass
+                i += 1
+
+    return max_elapsed_ms / 1000.0
+
+
+def default_timeout_seconds(scene_script_path):
+    script_seconds = scene_script_duration_seconds(scene_script_path)
+    return max(
+        DEFAULT_MIN_TIMEOUT_SECONDS,
+        script_seconds + DEFAULT_TIMEOUT_GRACE_SECONDS,
+    )
 
 
 def build_command(args, binary, source_dir):
@@ -448,7 +495,16 @@ def main():
     parser.add_argument("--scene-script", default=DEFAULT_SCENE_SCRIPT)
     parser.add_argument("--audio-file", default=DEFAULT_AUDIO_FILE)
     parser.add_argument("--buffer-size", default=DEFAULT_BUFFER_SIZE)
-    parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        help=(
+            "Process timeout in seconds. Defaults to the scene script duration "
+            f"plus {DEFAULT_TIMEOUT_GRACE_SECONDS:.0f}s, with a "
+            f"{DEFAULT_MIN_TIMEOUT_SECONDS:.0f}s minimum."
+        ),
+    )
     parser.add_argument("--app-arg", action="append", default=[])
     parser.add_argument("--env", action="append", default=[])
     parser.add_argument("--allow-autochange", action="store_true")
@@ -464,6 +520,12 @@ def main():
     if not audio_file.exists():
         raise SystemExit(f"audio fixture was not found: {audio_file}")
     args.audio_file = str(audio_file)
+    scene_script_dir = Path(args.scene_script_dir)
+    if not scene_script_dir.is_absolute():
+        scene_script_dir = source_dir / scene_script_dir
+    script_path = scene_script_dir / args.scene_script
+    if args.timeout is None:
+        args.timeout = default_timeout_seconds(script_path)
 
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     git_commit = git_value(["rev-parse", "--short=12", "HEAD"], source_dir) or "unknown"
@@ -513,10 +575,6 @@ def main():
         raise SystemExit(result.returncode)
 
     metrics = parse_trace(trace_text)
-    scene_script_dir = Path(args.scene_script_dir)
-    if not scene_script_dir.is_absolute():
-        scene_script_dir = source_dir / scene_script_dir
-    script_path = scene_script_dir / args.scene_script
     fixture_files = []
     if script_path.exists():
         fixture_files.append(file_metadata(script_path, source_dir))

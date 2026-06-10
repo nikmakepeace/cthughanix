@@ -8,6 +8,8 @@
 #include "FrameRenderTarget.h"
 #include "flames.h"
 
+#include <string.h>
+
 static EffectChoiceList flameEntries;
 static EffectChoiceList generalFlameEntries;
 static const int generalFlameStates = 9 * 9 * 9 * 9 * 9;
@@ -239,6 +241,10 @@ static int passiveSignedLinearPixel(FrameRenderTarget& buffer, int offset) {
     return signedByteFromUnsigned(passiveLinearPixel(buffer, offset));
 }
 
+static int signedPackedPixel(const unsigned char* pixels, int offset) {
+    return signedByteFromUnsigned(pixels[offset]);
+}
+
 static void setActiveLinearPixel(FrameRenderTarget& buffer, int offset,
     unsigned char value) {
     buffer.activePixels()[buffer.visibleLinearOffset(offset)] = value;
@@ -280,7 +286,26 @@ void flame_upslow(FrameRenderTarget& buffer, const FrameGeneratorContext& contex
     unsigned int tmp;
     unsigned int tmp2;
     buffer.swapBuffers();
-    int ptr = buffer.width();
+    int width = buffer.width();
+    int ptr = width;
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        ptr++;
+        tmp = (unsigned int)pixels[ptr - 2 - 1]
+            + (unsigned int)pixels[ptr - 1 - 1]
+            + (unsigned int)pixels[ptr - 1];
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = tmp - (unsigned int)pixels[ptr - 2 - 1]
+                + (unsigned int)pixels[ptr + 1 - 1];
+            tmp2 = tmp + (unsigned int)pixels[ptr + width - 1];
+            pixels[ptr - width - 1] = divsub[tmp2];
+            ptr++;
+        }
+        return;
+    }
 
     ptr++;
     tmp = (unsigned int)activeLinearPixel(buffer, ptr - 2 - 1)
@@ -289,8 +314,8 @@ void flame_upslow(FrameRenderTarget& buffer, const FrameGeneratorContext& contex
     for (i = buffer.size(); i != 0; i--) {
         tmp = tmp - (unsigned int)activeLinearPixel(buffer, ptr - 2 - 1)
             + (unsigned int)activeLinearPixel(buffer, ptr + 1 - 1);
-        tmp2 = tmp + (unsigned int)activeLinearPixel(buffer, ptr + buffer.width() - 1);
-        setActiveLinearPixel(buffer, ptr - buffer.width() - 1,
+        tmp2 = tmp + (unsigned int)activeLinearPixel(buffer, ptr + width - 1);
+        setActiveLinearPixel(buffer, ptr - width - 1,
             runtime.lookupTables.divsub[tmp2]);
         ptr++;
     }
@@ -322,13 +347,29 @@ void flame_upfast(FrameRenderTarget& buffer, const FrameGeneratorContext& contex
     int i;
     int tmp;
     buffer.swapBuffers();
+    int width = buffer.width();
     int ptr = buffer.size();
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)pixels[ptr]
+                + (int)pixels[ptr + width - 1]
+                + (int)pixels[ptr + width + 1]
+                + (int)pixels[ptr + width];
+            pixels[ptr] = divsub[tmp];
+            ptr--;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = (int)activeLinearPixel(buffer, ptr)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() - 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() + 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width());
+            + (int)activeLinearPixel(buffer, ptr + width - 1)
+            + (int)activeLinearPixel(buffer, ptr + width + 1)
+            + (int)activeLinearPixel(buffer, ptr + width);
         setActiveLinearPixel(buffer, ptr, runtime.lookupTables.divsub[tmp]);
         ptr--;
     }
@@ -350,14 +391,30 @@ void flame_leftslow(FrameRenderTarget& buffer, const FrameGeneratorContext& cont
     int i;
     int tmp;
     buffer.swapBuffers();
-    int ptr = buffer.width();
+    int width = buffer.width();
+    int ptr = width;
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)pixels[ptr - width + 1]
+                + (int)pixels[ptr]
+                + (int)pixels[ptr + 1]
+                + (int)pixels[ptr + width];
+            pixels[ptr - width] = divsub[tmp];
+            ptr++;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
-        tmp = (int)activeLinearPixel(buffer, ptr - buffer.width() + 1)
+        tmp = (int)activeLinearPixel(buffer, ptr - width + 1)
             + (int)activeLinearPixel(buffer, ptr)
             + (int)activeLinearPixel(buffer, ptr + 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width());
-        setActiveLinearPixel(buffer, ptr - buffer.width(),
+            + (int)activeLinearPixel(buffer, ptr + width);
+        setActiveLinearPixel(buffer, ptr - width,
             runtime.lookupTables.divsub[tmp]);
         ptr++;
     }
@@ -389,13 +446,29 @@ void flame_leftfast(FrameRenderTarget& buffer, const FrameGeneratorContext& cont
     int i;
     int tmp;
     buffer.swapBuffers();
+    int width = buffer.width();
     int ptr = buffer.size();
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)pixels[ptr]
+                + (int)pixels[ptr + width + 1]
+                + (int)pixels[ptr + width + 1]
+                + (int)pixels[ptr + width];
+            pixels[ptr] = divsub[tmp];
+            ptr--;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = (int)activeLinearPixel(buffer, ptr)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() + 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() + 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width());
+            + (int)activeLinearPixel(buffer, ptr + width + 1)
+            + (int)activeLinearPixel(buffer, ptr + width + 1)
+            + (int)activeLinearPixel(buffer, ptr + width);
         setActiveLinearPixel(buffer, ptr, runtime.lookupTables.divsub[tmp]);
         ptr--;
     }
@@ -416,14 +489,32 @@ void flame_leftfast(FrameRenderTarget& buffer, const FrameGeneratorContext& cont
 void flame_rightslow(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     int tmp;
-    int src = buffer.width() + 1;
+    int width = buffer.width();
+    int src = width + 1;
     int dst = 1;
 
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* srcPixels = buffer.passivePixels();
+        unsigned char* dstPixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)srcPixels[src - width - 1]
+                + (int)srcPixels[src]
+                + (int)srcPixels[src - 1]
+                + (int)srcPixels[src + width];
+            dstPixels[dst] = divsub[tmp];
+            dst++;
+            src++;
+        }
+        return;
+    }
+
     for (i = buffer.size(); i != 0; i--) {
-        tmp = (int)passiveLinearPixel(buffer, src - buffer.width() - 1)
+        tmp = (int)passiveLinearPixel(buffer, src - width - 1)
             + (int)passiveLinearPixel(buffer, src)
             + (int)passiveLinearPixel(buffer, src - 1)
-            + (int)passiveLinearPixel(buffer, src + buffer.width());
+            + (int)passiveLinearPixel(buffer, src + width);
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst++;
         src++;
@@ -456,13 +547,29 @@ void flame_rightfast(FrameRenderTarget& buffer, const FrameGeneratorContext& con
     int i;
     int tmp;
     buffer.swapBuffers();
+    int width = buffer.width();
     int ptr = buffer.size();
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)pixels[ptr]
+                + (int)pixels[ptr + width - 1]
+                + (int)pixels[ptr + width - 1]
+                + (int)pixels[ptr + width];
+            pixels[ptr] = divsub[tmp];
+            ptr--;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = (int)activeLinearPixel(buffer, ptr)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() - 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width() - 1)
-            + (int)activeLinearPixel(buffer, ptr + buffer.width());
+            + (int)activeLinearPixel(buffer, ptr + width - 1)
+            + (int)activeLinearPixel(buffer, ptr + width - 1)
+            + (int)activeLinearPixel(buffer, ptr + width);
         setActiveLinearPixel(buffer, ptr, runtime.lookupTables.divsub[tmp]);
         ptr--;
     }
@@ -484,26 +591,57 @@ void flame_rightfast(FrameRenderTarget& buffer, const FrameGeneratorContext& con
 void flame_water(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     int tmp;
-    int src = buffer.width();
+    int width = buffer.width();
+    int size = buffer.size();
+    int src = width;
     int dst = 0;
 
-    for (i = buffer.size() / 2 + buffer.width(); i != 0; i--) {
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* srcPixels = buffer.passivePixels();
+        unsigned char* dstPixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = size / 2 + width; i != 0; i--) {
+            tmp = (int)srcPixels[src - 1]
+                + (int)srcPixels[src]
+                + (int)srcPixels[src + 1]
+                + (int)srcPixels[src + width];
+            dstPixels[dst] = divsub[tmp];
+            dst++;
+            src++;
+        }
+
+        src = width * (buffer.height() - 1);
+        dst = width * buffer.height();
+        for (i = size / 2; i != 0; i--) {
+            tmp = (int)srcPixels[src - width + 1]
+                + (int)srcPixels[src]
+                + (int)srcPixels[src + 1]
+                + (int)srcPixels[src - width];
+            dstPixels[dst] = divsub[tmp];
+            dst--;
+            src--;
+        }
+        return;
+    }
+
+    for (i = size / 2 + width; i != 0; i--) {
         tmp = (int)passiveLinearPixel(buffer, src - 1)
             + (int)passiveLinearPixel(buffer, src)
             + (int)passiveLinearPixel(buffer, src + 1)
-            + (int)passiveLinearPixel(buffer, src + buffer.width());
+            + (int)passiveLinearPixel(buffer, src + width);
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst++;
         src++;
     }
 
-    src = buffer.width() * (buffer.height() - 1);
-    dst = buffer.width() * (buffer.height() - 0);
-    for (i = buffer.size() / 2; i != 0; i--) {
-        tmp = (int)passiveLinearPixel(buffer, src - buffer.width() + 1)
+    src = width * (buffer.height() - 1);
+    dst = width * buffer.height();
+    for (i = size / 2; i != 0; i--) {
+        tmp = (int)passiveLinearPixel(buffer, src - width + 1)
             + (int)passiveLinearPixel(buffer, src)
             + (int)passiveLinearPixel(buffer, src + 1)
-            + (int)passiveLinearPixel(buffer, src - buffer.width());
+            + (int)passiveLinearPixel(buffer, src - width);
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst--;
         src--;
@@ -520,26 +658,57 @@ void flame_water(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 void flame_watersubtle(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     unsigned char tmp;
-    int src = buffer.width();
+    int width = buffer.width();
+    int size = buffer.size();
+    int src = width;
     int dst = 0;
 
-    for (i = buffer.size() / 2 + buffer.width(); i != 0; i--) {
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* srcPixels = buffer.passivePixels();
+        unsigned char* dstPixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = size / 2 + width; i != 0; i--) {
+            tmp = (unsigned char)(signedPackedPixel(srcPixels, src - 1)
+                + signedPackedPixel(srcPixels, src)
+                + signedPackedPixel(srcPixels, src + 1)
+                + signedPackedPixel(srcPixels, src + width));
+            dstPixels[dst] = divsub[tmp];
+            dst++;
+            src++;
+        }
+
+        src = width * (buffer.height() - 1);
+        dst = width * buffer.height();
+        for (i = size / 2; i != 0; i--) {
+            tmp = (unsigned char)(signedPackedPixel(srcPixels, src - width + 1)
+                + signedPackedPixel(srcPixels, src)
+                + signedPackedPixel(srcPixels, src + 1)
+                + signedPackedPixel(srcPixels, src - width));
+            dstPixels[dst] = divsub[tmp];
+            dst--;
+            src--;
+        }
+        return;
+    }
+
+    for (i = size / 2 + width; i != 0; i--) {
         tmp = (unsigned char)(passiveSignedLinearPixel(buffer, src - 1)
             + passiveSignedLinearPixel(buffer, src)
             + passiveSignedLinearPixel(buffer, src + 1)
-            + passiveSignedLinearPixel(buffer, src + buffer.width()));
+            + passiveSignedLinearPixel(buffer, src + width));
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst++;
         src++;
     }
 
-    src = buffer.width() * (buffer.height() - 1);
-    dst = buffer.width() * (buffer.height() - 0);
-    for (i = buffer.size() / 2; i != 0; i--) {
-        tmp = (unsigned char)(passiveSignedLinearPixel(buffer, src - buffer.width() + 1)
+    src = width * (buffer.height() - 1);
+    dst = width * buffer.height();
+    for (i = size / 2; i != 0; i--) {
+        tmp = (unsigned char)(passiveSignedLinearPixel(buffer, src - width + 1)
             + passiveSignedLinearPixel(buffer, src)
             + passiveSignedLinearPixel(buffer, src + 1)
-            + passiveSignedLinearPixel(buffer, src - buffer.width()));
+            + passiveSignedLinearPixel(buffer, src - width));
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst--;
         src--;
@@ -560,8 +729,26 @@ void flame_watersubtle(FrameRenderTarget& buffer, const FrameGeneratorContext& c
 void flame_skyline(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     int tmp;
-    int src = buffer.width() + 1;
+    int width = buffer.width();
+    int src = width + 1;
     int dst = 0;
+
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* srcPixels = buffer.passivePixels();
+        unsigned char* dstPixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (int)srcPixels[src - 1]
+                + (int)srcPixels[src]
+                + (int)srcPixels[src + 1]
+                + (int)srcPixels[src];
+            dstPixels[dst] = divsub[tmp];
+            dst++;
+            src++;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = (int)passiveLinearPixel(buffer, src - 1)
@@ -585,14 +772,32 @@ void flame_skyline(FrameRenderTarget& buffer, const FrameGeneratorContext& conte
 void flame_weird(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     unsigned char tmp;
-    int src = buffer.width() + 1;
+    int width = buffer.width();
+    int src = width + 1;
     int dst = 1;
+
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* srcPixels = buffer.passivePixels();
+        unsigned char* dstPixels = buffer.activePixels();
+        const unsigned char* divsub = runtime.lookupTables.divsub;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = (unsigned char)(signedPackedPixel(srcPixels, src - 1)
+                | signedPackedPixel(srcPixels, src)
+                | signedPackedPixel(srcPixels, src + 1)
+                | signedPackedPixel(srcPixels, src + width));
+            dstPixels[dst] = divsub[tmp];
+            dst++;
+            src++;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = (unsigned char)(passiveSignedLinearPixel(buffer, src - 1)
             | passiveSignedLinearPixel(buffer, src)
             | passiveSignedLinearPixel(buffer, src + 1)
-            | passiveSignedLinearPixel(buffer, src + buffer.width()));
+            | passiveSignedLinearPixel(buffer, src + width));
         setActiveLinearPixel(buffer, dst, runtime.lookupTables.divsub[tmp]);
         dst++;
         src++;
@@ -614,12 +819,25 @@ void flame_zzz(FrameRenderTarget& buffer, const FrameGeneratorContext& context, 
     int i;
     unsigned char tmp;
     buffer.swapBuffers();
-    int ptr = buffer.width();
+    int width = buffer.width();
+    int ptr = width;
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned char* divsub2 = runtime.lookupTables.divsub2;
+
+        for (i = buffer.size(); i != 0; i--) {
+            tmp = pixels[ptr - 1] + pixels[ptr + width];
+            pixels[ptr - width] = divsub2[tmp];
+            ptr++;
+        }
+        return;
+    }
 
     for (i = buffer.size(); i != 0; i--) {
         tmp = activeLinearPixel(buffer, ptr - 1)
-            + activeLinearPixel(buffer, ptr + buffer.width());
-        setActiveLinearPixel(buffer, ptr - buffer.width(),
+            + activeLinearPixel(buffer, ptr + width);
+        setActiveLinearPixel(buffer, ptr - width,
             runtime.lookupTables.divsub2[tmp]);
         ptr++;
     }
@@ -635,6 +853,16 @@ void flame_zzz(FrameRenderTarget& buffer, const FrameGeneratorContext& context, 
 void flame_fade(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
     int i;
     buffer.swapBuffers();
+
+    if (buffer.visibleRowsArePacked()) {
+        unsigned char* pixels = buffer.activePixels();
+        const unsigned int* divsub4 = runtime.lookupTables.divsub4;
+        int limit = (buffer.size() / 4) * 4;
+
+        for (i = 0; i < limit; i++)
+            pixels[i] = (unsigned char)divsub4[pixels[i]];
+        return;
+    }
 
     for (i = buffer.size() / 4; i != 0; i--) {
         int offset = (buffer.size() / 4 - i) * 4;
@@ -685,6 +913,23 @@ void flame_general_subtle_filter(FrameRenderTarget& buffer,
     int i;
     unsigned char tmp;
 
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* src = buffer.passivePixels();
+        unsigned char* dst = buffer.activePixels();
+        const unsigned char* divsub = tables.divsub;
+        const int offset0 = offsets.value[0];
+        const int offset1 = offsets.value[1];
+        const int offset2 = offsets.value[2];
+        const int offset3 = offsets.value[3];
+
+        for (i = 0; i < buffer.size(); i++) {
+            tmp = src[i + offset0] + src[i + offset1]
+                + src[i + offset2] + src[i + offset3];
+            dst[i] = divsub[tmp];
+        }
+        return;
+    }
+
     for (i = 0; i < buffer.size(); i++) {
         tmp = passiveLinearPixel(buffer, i + offsets.value[0])
             + passiveLinearPixel(buffer, i + offsets.value[1])
@@ -727,6 +972,23 @@ void flame_general_slow_filter(FrameRenderTarget& buffer,
     int i;
     int tmp;
 
+    if (buffer.visibleRowsArePacked()) {
+        const unsigned char* src = buffer.passivePixels();
+        unsigned char* dst = buffer.activePixels();
+        const unsigned char* divsub = tables.divsub;
+        const int offset0 = offsets.value[0];
+        const int offset1 = offsets.value[1];
+        const int offset2 = offsets.value[2];
+        const int offset3 = offsets.value[3];
+
+        for (i = 0; i < buffer.size(); i++) {
+            tmp = (int)src[i + offset0] + (int)src[i + offset1]
+                + (int)src[i + offset2] + (int)src[i + offset3];
+            dst[i] = divsub[tmp];
+        }
+        return;
+    }
+
     for (i = 0; i < buffer.size(); i++) {
         tmp = (int)passiveLinearPixel(buffer, i + offsets.value[0])
             + (int)passiveLinearPixel(buffer, i + offsets.value[1])
@@ -745,6 +1007,12 @@ void flame_general_slow_filter(FrameRenderTarget& buffer,
  * border mode has a direct visible effect here.
  */
 void flame_down(FrameRenderTarget& buffer, const FrameGeneratorContext& context, FlameRuntime& runtime) {
+    if (buffer.visibleRowsArePacked()) {
+        memcpy(buffer.activePixels(), buffer.passivePixels() - buffer.width(),
+            buffer.size());
+        return;
+    }
+
     for (int y = 0; y < buffer.height(); y++) {
         unsigned char* dst = buffer.activeRow(y);
         int src = -buffer.width() + y * buffer.width();

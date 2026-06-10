@@ -1,5 +1,16 @@
 step=0 file=00.ini elapsed-ms=0
 step=1 file=01.ini elapsed-ms=2000
 step=2 file=02.ini elapsed-ms=4000
-step=2 file=03.ini elapsed-ms=6000
-step 3 stop elapsed-ms=8000
+step=3 file=03.ini elapsed-ms=6000
+step=4 file=04.ini elapsed-ms=8000
+step=5 file=05.ini elapsed-ms=10000
+step=6 file=06.ini elapsed-ms=12000
+step=7 file=07.ini elapsed-ms=14000
+step=8 file=08.ini elapsed-ms=16000
+step=9 file=09.ini elapsed-ms=18000
+step=10 file=10.ini elapsed-ms=20000
+step=11 file=11.ini elapsed-ms=22000
+step=12 file=12.ini elapsed-ms=24000
+step=13 file=13.ini elapsed-ms=26000
+step=14 file=14.ini elapsed-ms=28000
+step 15 stop elapsed-ms=30000

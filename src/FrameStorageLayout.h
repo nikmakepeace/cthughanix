@@ -121,6 +121,9 @@ public:
      * @return Storage offset from the visible image start.
      */
     int visibleLinearOffset(int linearOffset) const {
+        if (rowPitchValue == visibleSizeValue.width)
+            return linearOffset;
+
         int row = linearOffset / width();
         int x = linearOffset % width();
         if (x < 0) {

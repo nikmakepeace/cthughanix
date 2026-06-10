@@ -23,24 +23,31 @@ void Translate::execute(FrameRenderTarget& buffer, const FrameGeneratorContext& 
     if (!ready())
         return;
 
-    if (buffer.width() != tableValue.width() || buffer.height() != tableValue.height()
-        || buffer.size() != tableValue.size())
+    const int width = buffer.width();
+    const int height = buffer.height();
+    const int size = buffer.size();
+
+    if (width != tableValue.width() || height != tableValue.height()
+        || size != tableValue.size())
         return;
 
     const int* trans = tableValue.data();
 
     buffer.swapBuffers();
     unsigned char* src = buffer.passivePixels();
+    unsigned char* dst = buffer.activePixels();
 
     src[0] = 0;
 
-    for (int y = 0; y < buffer.height(); y++) {
-        unsigned char* dst = buffer.activeRow(y);
-        for (int x = 0; x < buffer.width(); x++) {
-            int sourceIndex = *trans++;
-            int sourceX = sourceIndex % buffer.width();
-            int sourceY = sourceIndex / buffer.width();
-            dst[x] = src[buffer.visibleOffset(sourceX, sourceY)];
-        }
+    if (buffer.visibleRowsArePacked()) {
+        for (int i = 0; i < size; i++)
+            dst[i] = src[trans[i]];
+        return;
+    }
+
+    for (int y = 0; y < height; y++) {
+        unsigned char* row = buffer.activeRow(y);
+        for (int x = 0; x < width; x++)
+            row[x] = src[buffer.visibleLinearOffset(*trans++)];
     }
 }
