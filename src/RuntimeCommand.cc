@@ -95,6 +95,12 @@ RuntimeCommand RuntimeCommand::changeSoundProcessingTo(const char* to) {
     return command;
 }
 
+RuntimeCommand RuntimeCommand::changeFireSensitivityTo(int sensitivity) {
+    RuntimeCommand command(RuntimeCommandChangeFireSensitivityTo);
+    command.value = sensitivity;
+    return command;
+}
+
 RuntimeCommand RuntimeCommand::toggleAutoChangeLock() {
     return RuntimeCommand(RuntimeCommandToggleAutoChangeLock);
 }
@@ -102,6 +108,14 @@ RuntimeCommand RuntimeCommand::toggleAutoChangeLock() {
 RuntimeCommand RuntimeCommand::changeAutoChangeLockTo(int locked) {
     RuntimeCommand command(RuntimeCommandChangeAutoChangeLockTo);
     command.value = locked;
+    return command;
+}
+
+RuntimeCommand RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(
+    int threshold) {
+    RuntimeCommand command(
+        RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
+    command.value = threshold;
     return command;
 }
 

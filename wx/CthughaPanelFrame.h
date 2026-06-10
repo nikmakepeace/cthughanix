@@ -31,6 +31,8 @@ class CthughaPanelFrame : public CthughaPanelBase {
     void onChoiceChanged(wxCommandEvent& event);
     void onFlashlightChanged(wxCommandEvent& event);
     void onAutoChangeChanged(wxCommandEvent& event);
+    void onFireThresholdChanged(wxCommandEvent& event);
+    void onFireSensitivityChanged(wxCommandEvent& event);
     void onMaxFpsSpin(wxSpinEvent& event);
     void onMaxFpsText(wxCommandEvent& event);
 
@@ -43,6 +45,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
         const ControlJsonValue& targets);
     void selectChoiceValue(const char* target, wxChoice* choice,
         const std::string& value);
+    void updateFireLevel(int cumulativeFireLevel, int threshold);
     std::string currentChoiceValue(const char* target, wxChoice* choice) const;
     std::string targetForChoice(wxChoice* choice) const;
     void sendChoiceValue(const char* target, wxChoice* choice);

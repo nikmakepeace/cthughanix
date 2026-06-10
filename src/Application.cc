@@ -18,6 +18,7 @@
 #include "ControlPanelLauncher.h"
 #ifdef CTH_CONTROL_IPC
 #include "ControlDisplayCatalogs.h"
+#include "ControlRuntimeMetrics.h"
 #include "ControlRuntimeObserver.h"
 #include "ControlService.h"
 #endif
@@ -289,6 +290,8 @@ void Application::initSceneRuntime() {
 
     frameGeneratorValue.bindScene(sceneRuntimeValue->scene());
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
+    acousticContextValue.setFireSensitivity(
+        startupConfigValue.audioAnalysis.fireSensitivity);
     audioProcessorValue.reset(new AudioProcessor());
     audioProcessingStateValue.reset(new AudioProcessingState(randomSourceValue));
     audioProcessingSelectorValue.reset(
@@ -307,7 +310,7 @@ void Application::initSceneRuntime() {
     runtimeConfigRegistryValue->addContributor(*audioConfigContributorValue);
     appConfigContributorValue.reset(
         new ApplicationRuntimeConfigContributor(*autoChangeSettingsValue,
-            *quietMessageOptionValue));
+            acousticContextValue, *quietMessageOptionValue));
     runtimeConfigRegistryValue->addContributor(*appConfigContributorValue);
     legacyConfigContributorValue.reset(new LegacyRuntimeConfigContributor());
     runtimeConfigRegistryValue->addContributor(*legacyConfigContributorValue);
@@ -319,7 +322,7 @@ void Application::initSceneRuntime() {
             displaySystemValue.settings()));
     runtimeAudioControlsValue.reset(
         new DefaultRuntimeAudioControls(*audioProcessingSelectorValue,
-            mixerControlsValue.get()));
+            acousticContextValue, mixerControlsValue.get()));
     runtimeAutoChangeControlsValue.reset(
         new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue,
             *quietMessageOptionValue));
@@ -336,9 +339,12 @@ void Application::initSceneRuntime() {
         *runtimeEffectControlsValue));
 #ifdef CTH_CONTROL_IPC
     controlDisplayCatalogsValue.reset(new BuiltInControlDisplayCatalogs());
+    controlRuntimeMetricsValue.reset(
+        new AcousticControlRuntimeMetrics(acousticContextValue));
     controlServiceValue.reset(new ControlService(*runtimeChangeMediatorValue,
         *runtimeConfigRegistryValue, *sceneRuntimeValue->visualSelections(),
-        *controlDisplayCatalogsValue, logSinkValue));
+        *controlDisplayCatalogsValue, *controlRuntimeMetricsValue,
+        logSinkValue));
     std::string controlError;
     if (!controlServiceValue->start("", &controlError))
         logSinkValue.warn("Control IPC unavailable: %s\n",
@@ -374,6 +380,7 @@ void Application::shutdownSceneRuntime() {
     controlSceneCommandTargetValue.reset();
     controlRuntimeCommandSinkValue.reset();
     controlServiceValue.reset();
+    controlRuntimeMetricsValue.reset();
     controlDisplayCatalogsValue.reset();
 #endif
     runtimeChangeMediatorValue.reset();

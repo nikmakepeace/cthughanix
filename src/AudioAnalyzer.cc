@@ -7,7 +7,20 @@ AcousticContext::AcousticContext(LogSink* log_)
     , lastAmplitudeValue(0)
     , attackLevelValue(0)
     , fireValue(0)
-    , cumulativeFireLevelValue(0) { }
+    , cumulativeFireLevelValue(0)
+    , fireSensitivityValue(100) { }
+
+static int clampFireSensitivity(int sensitivity) {
+    if (sensitivity < 0)
+        return 0;
+    if (sensitivity > 100)
+        return 100;
+    return sensitivity;
+}
+
+static int minimumFireForSensitivity(int sensitivity) {
+    return (100 - clampFireSensitivity(sensitivity)) * 2;
+}
 
 void AcousticContext::update(const AudioMetrics& metrics) {
     /* Rolling acoustic state lives here rather than in the frame metrics.
@@ -25,6 +38,8 @@ void AcousticContext::update(const AudioMetrics& metrics) {
     if (amplitude < lastAmplitudeValue) {
         fireValue = attackLevelValue;
         attackLevelValue = 0;
+        if (fireValue <= minimumFireForSensitivity(fireSensitivityValue))
+            fireValue = 0;
 
         if ((fireValue > 0) && (log != NULL))
             log->trace("sound fire", "fire=%d amplitude=%d lastamp=%d\n",
@@ -35,6 +50,14 @@ void AcousticContext::update(const AudioMetrics& metrics) {
     lastAmplitudeValue = amplitude;
     intensityValue = intensityValue * 0.95 + (metrics.amplitude / 128.0) * 0.05;
     cumulativeFireLevelValue += fireValue;
+}
+
+void AcousticContext::setFireSensitivity(int sensitivity) {
+    fireSensitivityValue = clampFireSensitivity(sensitivity);
+}
+
+int AcousticContext::fireSensitivity() const {
+    return fireSensitivityValue;
 }
 
 double AcousticContext::intensity() const {

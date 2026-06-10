@@ -19,6 +19,7 @@ class AcousticContext {
     int attackLevelValue;
     int fireValue;
     int cumulativeFireLevelValue;
+    int fireSensitivityValue;
 
 public:
     /**
@@ -37,6 +38,17 @@ public:
      *        Amplitudes are signed 8-bit RMS units.
      */
     void update(const AudioMetrics& metrics);
+
+    /**
+     * Sets fire detection sensitivity.
+     *
+     * @param sensitivity 0..100, where 100 preserves the historical behavior
+     *        and lower values suppress smaller attack bursts.
+     */
+    void setFireSensitivity(int sensitivity);
+
+    /** @return Fire detection sensitivity in the range 0..100. */
+    int fireSensitivity() const;
 
     /**
      * @return Smoothed audio intensity, roughly normalized against 8-bit samples.

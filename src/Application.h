@@ -33,6 +33,7 @@ class AutoChangeSettings;
 class ControlDisplayCatalogs;
 class ControlObservedRuntimeCommandSink;
 class ControlObservedSceneCommandTarget;
+class ControlRuntimeMetrics;
 class ControlService;
 #endif
 class ErrorMessages;
@@ -126,6 +127,7 @@ class Application {
     std::unique_ptr<RuntimeChangeMediator> runtimeChangeMediatorValue;
 #ifdef CTH_CONTROL_IPC
     std::unique_ptr<ControlDisplayCatalogs> controlDisplayCatalogsValue;
+    std::unique_ptr<ControlRuntimeMetrics> controlRuntimeMetricsValue;
     std::unique_ptr<ControlService> controlServiceValue;
     std::unique_ptr<ControlObservedRuntimeCommandSink>
         controlRuntimeCommandSinkValue;

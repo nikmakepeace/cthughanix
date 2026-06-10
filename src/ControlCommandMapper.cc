@@ -208,6 +208,14 @@ bool controlCommandFromJson(const ControlJsonValue& message,
         return true;
     }
 
+    if (targetName == "audio.fireSensitivity") {
+        int value = 0;
+        if (!readIntValue(message, &value, errorCode, errorMessage))
+            return false;
+        command->command = RuntimeCommand::changeFireSensitivityTo(value);
+        return true;
+    }
+
     if (targetName == "display.maxFps") {
         int value = 0;
         if (!readIntValue(message, &value, errorCode, errorMessage))
@@ -231,6 +239,15 @@ bool controlCommandFromJson(const ControlJsonValue& message,
             return false;
         command->command = RuntimeCommand::changeAutoChangeLockTo(
             enabled ? 0 : 1);
+        return true;
+    }
+
+    if (targetName == "autoChange.cumulativeFireLevel") {
+        int value = 0;
+        if (!readIntValue(message, &value, errorCode, errorMessage))
+            return false;
+        command->command
+            = RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(value);
         return true;
     }
 

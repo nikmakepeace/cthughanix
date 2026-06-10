@@ -5,6 +5,7 @@
 #include "ControlService.h"
 
 #include "ControlCommandMapper.h"
+#include "ControlRuntimeMetrics.h"
 #include "ControlSnapshot.h"
 #include "ControlTransport.h"
 #include "ProcessServices.h"
@@ -14,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <chrono>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -37,6 +39,13 @@ namespace {
 static int controlMessageId(const ControlJsonValue& message) {
     const ControlJsonValue* id = message.member("id");
     return id != 0 ? int(id->asNumber(0)) : 0;
+}
+
+static long long steadyMilliseconds() {
+    std::chrono::steady_clock::duration elapsed
+        = std::chrono::steady_clock::now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        elapsed).count();
 }
 
 static std::string processInstanceId() {
@@ -321,11 +330,13 @@ ControlService::InboundItem::InboundItem(const ControlJsonValue& message_)
 ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     RuntimeConfigRegistry& runtimeConfigRegistry_,
     SceneVisualSelections& sceneVisualSelections_,
-    ControlDisplayCatalogs& displayCatalogs_, LogSink& log_)
+    ControlDisplayCatalogs& displayCatalogs_,
+    ControlRuntimeMetrics& runtimeMetrics_, LogSink& log_)
     : runtimeCommands(runtimeCommands_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
     , sceneVisualSelections(sceneVisualSelections_)
     , displayCatalogs(displayCatalogs_)
+    , runtimeMetrics(runtimeMetrics_)
     , log(log_)
     , ownedProcessLauncher(new SystemControlPanelProcessLauncher())
     , processLauncher(*ownedProcessLauncher)
@@ -340,17 +351,24 @@ ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     , launchedPanelValue(0)
     , dirtyValue(0)
     , revisionValue(0)
+    , metricsSnapshotKnown(0)
+    , lastCumulativeFireLevel(0)
+    , lastFireSensitivity(0)
+    , lastMetricsPublishMs(0)
+    , metricsPublishIntervalMs(100)
     , maxOutboundMessages(32) { }
 
 ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     RuntimeConfigRegistry& runtimeConfigRegistry_,
     SceneVisualSelections& sceneVisualSelections_,
-    ControlDisplayCatalogs& displayCatalogs_, LogSink& log_,
+    ControlDisplayCatalogs& displayCatalogs_,
+    ControlRuntimeMetrics& runtimeMetrics_, LogSink& log_,
     ControlPanelProcessLauncher& processLauncher_)
     : runtimeCommands(runtimeCommands_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
     , sceneVisualSelections(sceneVisualSelections_)
     , displayCatalogs(displayCatalogs_)
+    , runtimeMetrics(runtimeMetrics_)
     , log(log_)
     , ownedProcessLauncher()
     , processLauncher(processLauncher_)
@@ -365,6 +383,11 @@ ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     , launchedPanelValue(0)
     , dirtyValue(0)
     , revisionValue(0)
+    , metricsSnapshotKnown(0)
+    , lastCumulativeFireLevel(0)
+    , lastFireSensitivity(0)
+    , lastMetricsPublishMs(0)
+    , metricsPublishIntervalMs(100)
     , maxOutboundMessages(32) { }
 
 ControlService::~ControlService() {
@@ -473,9 +496,33 @@ void ControlService::publishCatalogs() {
 }
 
 void ControlService::publishState() {
+    ControlRuntimeMetricsSnapshot metrics = runtimeMetrics.snapshot();
     revisionValue++;
     enqueueOutbound(buildControlStateSnapshot(
-        runtimeConfigRegistry, revisionValue));
+        runtimeConfigRegistry, metrics, revisionValue));
+    metricsSnapshotKnown = 1;
+    lastCumulativeFireLevel = metrics.cumulativeFireLevel;
+    lastFireSensitivity = metrics.fireSensitivity;
+    lastMetricsPublishMs = steadyMilliseconds();
+}
+
+int ControlService::liveMetricsShouldPublish(long long nowMs) {
+    if (!clientConnected())
+        return 0;
+    if (metricsPublishIntervalMs <= 0)
+        return 0;
+    if (lastMetricsPublishMs != 0
+        && (nowMs - lastMetricsPublishMs) < metricsPublishIntervalMs)
+        return 0;
+
+    ControlRuntimeMetricsSnapshot metrics = runtimeMetrics.snapshot();
+    if (!metricsSnapshotKnown
+        || metrics.cumulativeFireLevel != lastCumulativeFireLevel
+        || metrics.fireSensitivity != lastFireSensitivity)
+        return 1;
+
+    lastMetricsPublishMs = nowMs;
+    return 0;
 }
 
 void ControlService::processMessage(const ControlJsonValue& message) {
@@ -508,6 +555,7 @@ void ControlService::serviceFrame(int maxCommands) {
     for (std::deque<InboundItem>::const_iterator it = localInbound.begin();
          it != localInbound.end(); ++it) {
         if (it->type == InboundConnected) {
+            metricsSnapshotKnown = 0;
             publishCatalogs();
             publishState();
             continue;
@@ -525,6 +573,9 @@ void ControlService::serviceFrame(int maxCommands) {
         commandsApplied++;
         publishDirty = 1;
     }
+
+    if (!publishDirty && liveMetricsShouldPublish(steadyMilliseconds()))
+        publishDirty = 1;
 
     if (publishDirty && clientConnected())
         publishState();

@@ -292,6 +292,8 @@ struct AudioConfig {
 struct AudioAnalysisConfig {
     /** Noise floor used to decide whether a frame is noisy. */
     int minNoise;
+    /** Fire detection sensitivity; lower values suppress smaller bursts. */
+    int fireSensitivity;
 
     /** Creates audio-analysis configuration with default values. */
     AudioAnalysisConfig();

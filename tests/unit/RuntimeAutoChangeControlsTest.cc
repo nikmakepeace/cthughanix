@@ -129,6 +129,18 @@ static void testChangeLockToMutatesSettingsAbsolutely() {
     assert(settings.lockedValue == 0);
 }
 
+static void testChangeCumulativeFireThresholdMutatesSettings() {
+    RecordingLogSink log;
+    FakeAutoChangeSettings settings;
+    AutoChangeControls controls(settings, log);
+    OptionTime quietMessageOption("message-time", 0);
+    DefaultRuntimeAutoChangeControls runtimeControls(controls,
+        quietMessageOption);
+
+    runtimeControls.changeCumulativeFireLevelTo(420);
+    assert(settings.cumulativeFireLevelValue == 420);
+}
+
 static void testGenericAutoChangeOptionsMutateSettings() {
     RecordingLogSink log;
     FakeAutoChangeSettings settings;
@@ -205,6 +217,7 @@ static void testInvalidAutoChangeOptionValueUsesInjectedLogSink() {
 int main() {
     testToggleLockMutatesSettings();
     testChangeLockToMutatesSettingsAbsolutely();
+    testChangeCumulativeFireThresholdMutatesSettings();
     testGenericAutoChangeOptionsMutateSettings();
     testUnrelatedOptionsAreNotChanged();
     testInvalidAutoChangeOptionValueUsesInjectedLogSink();

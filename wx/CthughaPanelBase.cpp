@@ -17,7 +17,7 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	bSizer3 = new wxBoxSizer( wxVERTICAL );
 
 	m_scrolledWindow1 = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL|wxVSCROLL );
-	m_scrolledWindow1->SetMinSize( wxSize( 380,520 ) );
+	m_scrolledWindow1->SetMinSize( wxSize( 420,680 ) );
 
 	m_scrolledWindow1->SetScrollRate( 5, 5 );
 	wxFlexGridSizer* fgSizer2;
@@ -149,6 +149,37 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 
 	m_autoChange_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_autoChange_checkBox, 0, wxALL|wxEXPAND, 5 );
+
+	wxStaticText* m_staticText18;
+	m_staticText18 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire level"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText18->Wrap( -1 );
+	fgSizer2->Add( m_staticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	m_fireLevel_gauge = new wxGauge( m_scrolledWindow1, wxID_ANY, 1000, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL );
+	m_fireLevel_gauge->SetValue( 0 );
+	m_fireLevel_gauge->SetMinSize( wxSize( 180,-1 ) );
+
+	fgSizer2->Add( m_fireLevel_gauge, 0, wxALL|wxEXPAND, 5 );
+
+	wxStaticText* m_staticText19;
+	m_staticText19 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire threshold"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText19->Wrap( -1 );
+	fgSizer2->Add( m_staticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	m_fireThreshold_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 1000, 0, 5000, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL );
+	m_fireThreshold_slider->SetMinSize( wxSize( 180,-1 ) );
+
+	fgSizer2->Add( m_fireThreshold_slider, 0, wxALL|wxEXPAND, 5 );
+
+	wxStaticText* m_staticText20;
+	m_staticText20 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire sensitivity"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText20->Wrap( -1 );
+	fgSizer2->Add( m_staticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	m_fireSensitivity_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL );
+	m_fireSensitivity_slider->SetMinSize( wxSize( 180,-1 ) );
+
+	fgSizer2->Add( m_fireSensitivity_slider, 0, wxALL|wxEXPAND, 5 );
 
 	wxStaticText* m_staticText15;
 	m_staticText15 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Max FPS"), wxDefaultPosition, wxDefaultSize, 0 );

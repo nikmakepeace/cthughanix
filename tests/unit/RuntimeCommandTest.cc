@@ -63,6 +63,17 @@ static void testRuntimeCommandFactoriesCaptureIntent() {
     assert(autoChangeLock.type == RuntimeCommandChangeAutoChangeLockTo);
     assert(autoChangeLock.value == 1);
 
+    RuntimeCommand fireSensitivity
+        = RuntimeCommand::changeFireSensitivityTo(37);
+    assert(fireSensitivity.type == RuntimeCommandChangeFireSensitivityTo);
+    assert(fireSensitivity.value == 37);
+
+    RuntimeCommand cumulativeFire
+        = RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(420);
+    assert(cumulativeFire.type
+        == RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
+    assert(cumulativeFire.value == 420);
+
     RuntimeCommand sceneChoiceUse
         = RuntimeCommand::toggleSceneChoiceUse(RuntimeScenePalette, 2);
     assert(sceneChoiceUse.type == RuntimeCommandToggleSceneChoiceUse);

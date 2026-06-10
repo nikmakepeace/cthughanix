@@ -166,6 +166,7 @@ if(CTH_ENABLE_CONTROL_IPC)
         ControlCommandMapper.cc
         ControlDisplayCatalogs.cc
         ControlProtocol.cc
+        ControlRuntimeMetrics.cc
         ControlRuntimeObserver.cc
         ControlService.cc
         ControlSnapshot.cc

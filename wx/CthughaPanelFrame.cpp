@@ -6,6 +6,8 @@
 
 #include <wx/choice.h>
 #include <wx/checkbox.h>
+#include <wx/gauge.h>
+#include <wx/slider.h>
 #include <wx/spinctrl.h>
 #include <wx/string.h>
 
@@ -65,6 +67,14 @@ static int intMember(
     if (member->type() == ControlJsonValue::NumberType)
         return int(member->asNumber());
     return fallback;
+}
+
+static int clampInt(int value, int minimum, int maximum) {
+    if (value < minimum)
+        return minimum;
+    if (value > maximum)
+        return maximum;
+    return value;
 }
 
 static const char* messageType(const ControlJsonValue& message) {
@@ -134,6 +144,10 @@ void CthughaPanelFrame::bindControlEvents() {
         &CthughaPanelFrame::onFlashlightChanged, this);
     m_autoChange_checkBox->Bind(wxEVT_CHECKBOX,
         &CthughaPanelFrame::onAutoChangeChanged, this);
+    m_fireThreshold_slider->Bind(wxEVT_SLIDER,
+        &CthughaPanelFrame::onFireThresholdChanged, this);
+    m_fireSensitivity_slider->Bind(wxEVT_SLIDER,
+        &CthughaPanelFrame::onFireSensitivityChanged, this);
     m_maxFps_spinCtrl->Bind(wxEVT_SPINCTRL,
         &CthughaPanelFrame::onMaxFpsSpin, this);
     m_maxFps_spinCtrl->Bind(wxEVT_TEXT,
@@ -152,6 +166,9 @@ void CthughaPanelFrame::setControlsEnabled(int enabled) {
     m_palette_choice->Enable(enabled != 0);
     m_flashlight_checkBox->Enable(enabled != 0);
     m_autoChange_checkBox->Enable(enabled != 0);
+    m_fireLevel_gauge->Enable(enabled != 0);
+    m_fireThreshold_slider->Enable(enabled != 0);
+    m_fireSensitivity_slider->Enable(enabled != 0);
     m_maxFps_spinCtrl->Enable(enabled != 0);
 }
 
@@ -188,6 +205,20 @@ void CthughaPanelFrame::onAutoChangeChanged(wxCommandEvent&) {
         return;
     client->sendSetBool("autoChange.enabled",
         m_autoChange_checkBox->IsChecked());
+}
+
+void CthughaPanelFrame::onFireThresholdChanged(wxCommandEvent&) {
+    if (updatingControls)
+        return;
+    client->sendSetNumber("autoChange.cumulativeFireLevel",
+        m_fireThreshold_slider->GetValue());
+}
+
+void CthughaPanelFrame::onFireSensitivityChanged(wxCommandEvent&) {
+    if (updatingControls)
+        return;
+    client->sendSetNumber("audio.fireSensitivity",
+        m_fireSensitivity_slider->GetValue());
 }
 
 void CthughaPanelFrame::onMaxFpsSpin(wxSpinEvent&) {
@@ -288,6 +319,18 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
         boolLikeMember(scene, "flashlight") != 0);
     m_autoChange_checkBox->SetValue(
         boolLikeMember(autoChange, "enabled") != 0);
+    int fireThreshold = intMember(autoChange, "cumulativeFireLevel",
+        m_fireThreshold_slider->GetValue());
+    int cumulativeFireLevel = intMember(audio, "cumulativeFireLevel", 0);
+    updateFireLevel(cumulativeFireLevel, fireThreshold);
+    int thresholdMaximum = fireThreshold > 5000 ? fireThreshold : 5000;
+    m_fireThreshold_slider->SetMax(thresholdMaximum);
+    m_fireThreshold_slider->SetValue(
+        clampInt(fireThreshold, 0, thresholdMaximum));
+    m_fireSensitivity_slider->SetValue(clampInt(
+        intMember(audio, "fireSensitivity",
+            m_fireSensitivity_slider->GetValue()),
+        0, 100));
     m_maxFps_spinCtrl->SetValue(
         intMember(display, "maxFps", m_maxFps_spinCtrl->GetValue()));
     updatingControls = 0;
@@ -341,6 +384,13 @@ void CthughaPanelFrame::selectChoiceValue(
         selection = int(names.size() - 1);
     }
     choice->SetSelection(selection);
+}
+
+void CthughaPanelFrame::updateFireLevel(
+    int cumulativeFireLevel, int threshold) {
+    int range = threshold > 0 ? threshold : 1;
+    m_fireLevel_gauge->SetRange(range);
+    m_fireLevel_gauge->SetValue(clampInt(cumulativeFireLevel, 0, range));
 }
 
 std::string CthughaPanelFrame::currentChoiceValue(

@@ -8,6 +8,7 @@
 #include "RuntimeCommandSink.h"
 
 class AudioProcessingSelector;
+class AcousticContext;
 class MixerControls;
 class Option;
 
@@ -30,6 +31,13 @@ public:
      * @param to Choice text to select.
      */
     virtual void changeSoundProcessingTo(const char* to) = 0;
+
+    /**
+     * Sets fire detection sensitivity.
+     *
+     * @param sensitivity 0..100, where lower values suppress smaller bursts.
+     */
+    virtual void changeFireSensitivityTo(int sensitivity) = 0;
 
     /**
      * Attempts to change an audio-processing option by relative offset.
@@ -57,6 +65,7 @@ public:
 /** RuntimeAudioControls implementation backed by owned audio-processing state. */
 class DefaultRuntimeAudioControls : public RuntimeAudioControls {
     AudioProcessingSelector& audioProcessingSelector;
+    AcousticContext& acousticContext;
     MixerControls* mixerControls;
 
 public:
@@ -65,10 +74,13 @@ public:
      *
      * @param audioProcessingSelector_ Selector to mutate. The referenced object
      *        must outlive these controls.
+     * @param acousticContext_ Acoustic context to mutate. The referenced object
+     *        must outlive these controls.
      * @param mixerControls_ Optional mixer controls for OSS mixer panel rows.
      */
     explicit DefaultRuntimeAudioControls(
         AudioProcessingSelector& audioProcessingSelector_,
+        AcousticContext& acousticContext_,
         MixerControls* mixerControls_ = 0);
 
     /**
@@ -84,6 +96,13 @@ public:
      * @param to Choice text to select.
      */
     virtual void changeSoundProcessingTo(const char* to);
+
+    /**
+     * Sets fire detection sensitivity.
+     *
+     * @param sensitivity 0..100, where lower values suppress smaller bursts.
+     */
+    virtual void changeFireSensitivityTo(int sensitivity);
 
     /**
      * Attempts to change an audio-processing option by relative offset.

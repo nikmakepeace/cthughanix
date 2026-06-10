@@ -116,6 +116,8 @@ static const char* KEY_AUTO_CHANGE_CUMULATIVE_FIRE_LEVEL
 static const char* KEY_AUTO_CHANGE_LOCKED = "auto_change.locked";
 static const char* KEY_AUTO_CHANGE_CHANGE_LITTLE = "auto_change.change_little";
 static const char* KEY_AUDIO_ANALYSIS_MIN_NOISE = "audio_analysis.min_noise";
+static const char* KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY
+    = "audio_analysis.fire_sensitivity";
 static const char* KEY_MESSAGES_QUIET_MESSAGE_MS
     = "messages.quiet_message_ms";
 static const char* KEY_MESSAGES_QUIET_MESSAGE_DURATION_MS
@@ -679,6 +681,8 @@ static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
         patch.set(KEY_AUTO_CHANGE_CUMULATIVE_FIRE_LEVEL, cleanedValue, source);
     } else if (key == "min-noise" || key == "minnoise") {
         patch.set(KEY_AUDIO_ANALYSIS_MIN_NOISE, cleanedValue, source);
+    } else if (key == "fire-sensitivity") {
+        patch.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, cleanedValue, source);
     } else if (key == "msg-time" || key == "change-msg-time") {
         patch.set(KEY_MESSAGES_QUIET_MESSAGE_MS, cleanedValue, source);
     } else if (key == "quiet-file") {
@@ -1207,6 +1211,14 @@ static void applyCommandLineOption(ConfigPatch& patch,
             patch.set(KEY_AUDIO_ANALYSIS_MIN_NOISE, value, "command line");
     } else if (startsWith(arg, "--min-noise=")) {
         patch.set(KEY_AUDIO_ANALYSIS_MIN_NOISE, arg.substr(12), "command line");
+    } else if (arg == "--fire-sensitivity") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, value,
+                "command line");
+    } else if (startsWith(arg, "--fire-sensitivity=")) {
+        patch.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, arg.substr(19),
+            "command line");
     } else if (arg == "--msg-time") {
         std::string value;
         if (readOptionValue(args, index, arg, &value, diagnostics))
@@ -2297,7 +2309,8 @@ AutoChangeConfig::AutoChangeConfig()
     , changeLittle(AUTO_CHANGE_CONFIG_DEFAULT_CHANGE_LITTLE) { }
 
 AudioAnalysisConfig::AudioAnalysisConfig()
-    : minNoise(AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE) { }
+    : minNoise(AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE)
+    , fireSensitivity(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SENSITIVITY) { }
 
 EffectChoicePolicy::EffectChoicePolicy()
     : catalogEntryKey()
@@ -2597,6 +2610,9 @@ Config ConfigSchema::build(const ConfigPatch& patch,
         &config.autoChange.changeLittle);
     applyClampedIntEntry(patch, diagnostics, KEY_AUDIO_ANALYSIS_MIN_NOISE, 0,
         SOUND_MINNOISE_MAX_EXCLUSIVE - 1, &config.audioAnalysis.minNoise);
+    applyClampedIntEntry(patch, diagnostics,
+        KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, 0, 100,
+        &config.audioAnalysis.fireSensitivity);
 
     applyMinimumIntEntry(patch, diagnostics, KEY_MESSAGES_QUIET_MESSAGE_MS,
         0, &config.messages.quietMessageMs);
@@ -2897,6 +2913,9 @@ ConfigPatch hardcodedDefaultConfigPatch() {
         booleanText(AUTO_CHANGE_CONFIG_DEFAULT_CHANGE_LITTLE), "defaults");
     defaults.set(KEY_AUDIO_ANALYSIS_MIN_NOISE,
         integerText(AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE), "defaults");
+    defaults.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY,
+        integerText(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SENSITIVITY),
+        "defaults");
     defaults.set(KEY_MESSAGES_QUIET_MESSAGE_MS,
         integerText(MESSAGES_CONFIG_DEFAULT_QUIET_MESSAGE_MS), "defaults");
     defaults.set(KEY_MESSAGES_QUIET_MESSAGE_DURATION_MS,

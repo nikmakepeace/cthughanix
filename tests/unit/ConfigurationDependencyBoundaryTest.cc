@@ -1985,7 +1985,7 @@ static void testIniPersistenceUsesRuntimePersistenceAdapter() {
         "new AudioRuntimeConfigContributor(*audioProcessingStateValue)");
     assertSourceContains("src/Application.cc",
         "new ApplicationRuntimeConfigContributor(*autoChangeSettingsValue,\n"
-        "            *quietMessageOptionValue)");
+        "            acousticContextValue, *quietMessageOptionValue)");
     assertSourceContains("src/Application.cc",
         "new LegacyRuntimeConfigContributor()");
     assertSourceDoesNotContain("src/Application.h",
@@ -2478,7 +2478,7 @@ static void testRuntimeCommandsUseSubsystemControlPorts() {
         "RuntimeEffectControls.cc");
     assertSourceContains("src/CMakeLists.txt",
         "RuntimeCommandTargets.cc");
-    assertSourceDoesNotContain("src/RuntimeAudioControls.cc",
+    assertSourceContains("src/RuntimeAudioControls.cc",
         "#include \"AudioAnalyzer.h\"");
     assertSourceDoesNotContain("src/RuntimeAudioControls.cc",
         "#include \"AudioFrame.h\"");
@@ -3938,6 +3938,8 @@ static void testControlPanelIntroducesNoMutableGlobals() {
         "src/ControlPanelLauncher.h",
         "src/ControlProtocol.cc",
         "src/ControlProtocol.h",
+        "src/ControlRuntimeMetrics.cc",
+        "src/ControlRuntimeMetrics.h",
         "src/ControlRuntimeObserver.cc",
         "src/ControlRuntimeObserver.h",
         "src/ControlService.cc",
@@ -3955,6 +3957,8 @@ static void testControlPanelIntroducesNoMutableGlobals() {
 
     assertSourceContains("src/Application.h",
         "std::unique_ptr<ControlService> controlServiceValue");
+    assertSourceContains("src/Application.h",
+        "std::unique_ptr<ControlRuntimeMetrics> controlRuntimeMetricsValue");
     assertSourceContains("src/ControlService.h", "std::thread workerThread");
     assertSourceContains("src/ControlService.h",
         "std::deque<InboundItem> inbound");

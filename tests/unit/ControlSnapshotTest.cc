@@ -137,14 +137,17 @@ static Config sampleConfig() {
     config.display.maxFramesPerSecond = 60;
     config.display.showFpsEnabled = 1;
     config.display.zoomMode = 2;
+    config.audioAnalysis.fireSensitivity = 73;
     config.autoChange.locked = 1;
     config.autoChange.changeLittle = 0;
+    config.autoChange.cumulativeFireLevel = 500;
     return config;
 }
 
 static void testStateSnapshotUsesRuntimeConfig() {
     RuntimeConfigRegistry registry(sampleConfig());
-    ControlJsonValue state = buildControlStateSnapshot(registry, 42);
+    ControlRuntimeMetricsSnapshot metrics(9, 123, 73);
+    ControlJsonValue state = buildControlStateSnapshot(registry, metrics, 42);
 
     assert(state.member("type")->asString() == "state");
     assert(state.member("rev")->asNumber() == 42);
@@ -154,8 +157,12 @@ static void testStateSnapshotUsesRuntimeConfig() {
     assert(state.member("display")->member("screen")->asString() == "Source");
     assert(state.member("display")->member("showFps")->asBool() == true);
     assert(state.member("audio")->member("processing")->asString() == "FFT");
+    assert(state.member("audio")->member("fire")->asNumber() == 9);
+    assert(state.member("audio")->member("cumulativeFireLevel")->asNumber() == 123);
+    assert(state.member("audio")->member("fireSensitivity")->asNumber() == 73);
     assert(state.member("autoChange")->member("locked")->asBool() == true);
     assert(state.member("autoChange")->member("enabled")->asBool() == false);
+    assert(state.member("autoChange")->member("cumulativeFireLevel")->asNumber() == 500);
 }
 
 static void testCatalogSnapshotUsesSelections() {

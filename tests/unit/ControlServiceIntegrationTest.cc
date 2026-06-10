@@ -5,6 +5,7 @@
 #include "ControlPanelClient.h"
 #include "ControlDisplayCatalogs.h"
 #include "ControlService.h"
+#include "ControlRuntimeMetrics.h"
 #include "ControlTransport.h"
 #include "ProcessServices.h"
 #include "RuntimeConfigRegistry.h"
@@ -170,6 +171,18 @@ public:
     virtual int screenChoiceInUseAt(int) const { return 1; }
 };
 
+class FakeRuntimeMetrics : public ControlRuntimeMetrics {
+public:
+    ControlRuntimeMetricsSnapshot snapshotValue;
+
+    FakeRuntimeMetrics()
+        : snapshotValue(0, 0, 100) { }
+
+    virtual ControlRuntimeMetricsSnapshot snapshot() const {
+        return snapshotValue;
+    }
+};
+
 static Config sampleConfig() {
     Config config;
     config.scene.flame = "first";
@@ -183,6 +196,8 @@ static Config sampleConfig() {
     config.scene.presentation = "Up";
     config.scene.audioProcessing = "none";
     config.display.maxFramesPerSecond = 25;
+    config.audioAnalysis.fireSensitivity = 100;
+    config.autoChange.cumulativeFireLevel = 1000;
     return config;
 }
 
@@ -225,12 +240,21 @@ public:
             configValue.scene.audioProcessing = lastText;
             registry.setBaseline(configValue);
             changes.audioProcessingChanged = 1;
+        } else if (command.type == RuntimeCommandChangeFireSensitivityTo) {
+            configValue.audioAnalysis.fireSensitivity = command.value;
+            registry.setBaseline(configValue);
+            changes.audioProcessingChanged = 1;
         } else if (command.type == RuntimeCommandChangeScreenTo) {
             configValue.scene.presentation = lastText;
             registry.setBaseline(configValue);
             changes.displayChanged = 1;
         } else if (command.type == RuntimeCommandChangeAutoChangeLockTo) {
             configValue.autoChange.locked = command.value;
+            registry.setBaseline(configValue);
+            changes.autoChangeChanged = 1;
+        } else if (command.type
+            == RuntimeCommandChangeAutoChangeCumulativeFireLevelTo) {
+            configValue.autoChange.cumulativeFireLevel = command.value;
             registry.setBaseline(configValue);
             changes.autoChangeChanged = 1;
         }
@@ -311,6 +335,25 @@ static int latestStateAutoChangeEnabled(
     return enabled != 0 ? (enabled->asBool() ? 1 : 0) : fallback;
 }
 
+static int latestStateAutoChangeCumulativeFire(
+    const ObservedMessages& observed, int fallback) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* autoChange
+        = state != 0 ? state->member("autoChange") : 0;
+    const ControlJsonValue* threshold
+        = autoChange != 0 ? autoChange->member("cumulativeFireLevel") : 0;
+    return threshold != 0 ? int(threshold->asNumber(fallback)) : fallback;
+}
+
+static int latestStateAudioFireSensitivity(
+    const ObservedMessages& observed, int fallback) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* audio = state != 0 ? state->member("audio") : 0;
+    const ControlJsonValue* sensitivity
+        = audio != 0 ? audio->member("fireSensitivity") : 0;
+    return sensitivity != 0 ? int(sensitivity->asNumber(fallback)) : fallback;
+}
+
 static int latestAckId(const ObservedMessages& observed) {
     const ControlJsonValue* ack = latestMessageOfType(observed, "ack");
     const ControlJsonValue* id = ack != 0 ? ack->member("id") : 0;
@@ -348,6 +391,15 @@ static std::string uniqueInstanceId() {
     return out.str();
 }
 
+static void assertServiceStarted(ControlService& service, const std::string& id) {
+    std::string error;
+    if (!service.start(id, &error)) {
+        fprintf(stderr, "control service start failed: %s\n",
+            error.c_str());
+        assert(0);
+    }
+}
+
 static void testServiceClientSynchronizesBothDirections() {
 #ifndef _WIN32
     setenv("XDG_RUNTIME_DIR", "/tmp", 1);
@@ -357,13 +409,13 @@ static void testServiceClientSynchronizesBothDirections() {
     UpdatingRuntimeSink runtimeSink(registry, config);
     FakeSelections selections;
     FakeDisplayCatalogs displayCatalogs;
+    FakeRuntimeMetrics runtimeMetrics;
     QuietLogSink log;
     RecordingLauncher launcher;
     ControlService service(runtimeSink, registry, selections, displayCatalogs,
-        log, launcher);
+        runtimeMetrics, log, launcher);
 
-    std::string error;
-    assert(service.start(uniqueInstanceId(), &error));
+    assertServiceStarted(service, uniqueInstanceId());
 
     service.launchControlPanel();
     service.launchControlPanel();
@@ -407,6 +459,23 @@ static void testServiceClientSynchronizesBothDirections() {
     assert(latestAckId(observed) == id);
     assert(latestStateAutoChangeEnabled(observed, -1) == 0);
 
+    id = client.sendSetNumber("autoChange.cumulativeFireLevel", 420);
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 4);
+    assert(runtimeSink.lastType
+        == RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
+    assert(runtimeSink.lastValue == 420);
+    assert(latestAckId(observed) == id);
+    assert(latestStateAutoChangeCumulativeFire(observed, -1) == 420);
+
+    id = client.sendSetNumber("audio.fireSensitivity", 37);
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 5);
+    assert(runtimeSink.lastType == RuntimeCommandChangeFireSensitivityTo);
+    assert(runtimeSink.lastValue == 37);
+    assert(latestAckId(observed) == id);
+    assert(latestStateAudioFireSensitivity(observed, -1) == 37);
+
     runtimeSink.setAppFlame("second");
     service.runtimeStateChanged();
     pump(service, client, observed, 500);
@@ -426,13 +495,14 @@ static void testServiceFrameIsBoundedWithStalledClient() {
     UpdatingRuntimeSink runtimeSink(registry, config);
     FakeSelections selections;
     FakeDisplayCatalogs displayCatalogs;
+    FakeRuntimeMetrics runtimeMetrics;
     QuietLogSink log;
     RecordingLauncher launcher;
     ControlService service(runtimeSink, registry, selections, displayCatalogs,
-        log, launcher);
+        runtimeMetrics, log, launcher);
 
     std::string error;
-    assert(service.start(uniqueInstanceId(), &error));
+    assertServiceStarted(service, uniqueInstanceId());
     std::unique_ptr<ControlStream> stalled = connectControlEndpoint(
         service.endpoint(), 1000, &error);
     assert(stalled.get() != 0);

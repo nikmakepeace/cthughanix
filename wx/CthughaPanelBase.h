@@ -18,6 +18,8 @@
 #include <wx/settings.h>
 #include <wx/choice.h>
 #include <wx/checkbox.h>
+#include <wx/gauge.h>
+#include <wx/slider.h>
 #include <wx/spinctrl.h>
 #include <wx/sizer.h>
 #include <wx/scrolwin.h>
@@ -45,11 +47,14 @@ class CthughaPanelBase : public wxFrame
 		wxChoice* m_palette_choice;
 		wxCheckBox* m_flashlight_checkBox;
 		wxCheckBox* m_autoChange_checkBox;
+		wxGauge* m_fireLevel_gauge;
+		wxSlider* m_fireThreshold_slider;
+		wxSlider* m_fireSensitivity_slider;
 		wxSpinCtrl* m_maxFps_spinCtrl;
 
 	public:
 
-		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 420,600 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
+		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 460,760 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
 
 		~CthughaPanelBase();
 

@@ -39,8 +39,10 @@ enum RuntimeCommandType {
     RuntimeCommandChangeMaxFpsTo,
     RuntimeCommandChangeSoundProcessingBy,
     RuntimeCommandChangeSoundProcessingTo,
+    RuntimeCommandChangeFireSensitivityTo,
     RuntimeCommandToggleAutoChangeLock,
     RuntimeCommandChangeAutoChangeLockTo,
+    RuntimeCommandChangeAutoChangeCumulativeFireLevelTo,
     RuntimeCommandWriteIni,
     RuntimeCommandStopAndContinue,
     RuntimeCommandToggleShowFps,
@@ -205,6 +207,14 @@ struct RuntimeCommand {
     static RuntimeCommand changeSoundProcessingTo(const char* to);
 
     /**
+     * Creates an absolute fire-sensitivity change command.
+     *
+     * @param sensitivity 0..100, where lower values suppress smaller bursts.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changeFireSensitivityTo(int sensitivity);
+
+    /**
      * Creates an auto-change lock toggle command.
      *
      * @return Runtime command.
@@ -218,6 +228,15 @@ struct RuntimeCommand {
      * @return Runtime command.
      */
     static RuntimeCommand changeAutoChangeLockTo(int locked);
+
+    /**
+     * Creates an absolute cumulative-fire threshold command.
+     *
+     * @param threshold Fire accumulation threshold; 0 disables this trigger.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changeAutoChangeCumulativeFireLevelTo(
+        int threshold);
 
     /**
      * Creates a command that persists the current runtime configuration.

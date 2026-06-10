@@ -4,13 +4,16 @@
 
 #include "RuntimeAudioControls.h"
 
+#include "AudioAnalyzer.h"
 #include "AudioProcessing.h"
 #include "Mixer.h"
 
 DefaultRuntimeAudioControls::DefaultRuntimeAudioControls(
     AudioProcessingSelector& audioProcessingSelector_,
+    AcousticContext& acousticContext_,
     MixerControls* mixerControls_)
     : audioProcessingSelector(audioProcessingSelector_)
+    , acousticContext(acousticContext_)
     , mixerControls(mixerControls_) { }
 
 void DefaultRuntimeAudioControls::changeSoundProcessingBy(int by) {
@@ -19,6 +22,10 @@ void DefaultRuntimeAudioControls::changeSoundProcessingBy(int by) {
 
 void DefaultRuntimeAudioControls::changeSoundProcessingTo(const char* to) {
     audioProcessingSelector.changeTo(to);
+}
+
+void DefaultRuntimeAudioControls::changeFireSensitivityTo(int sensitivity) {
+    acousticContext.setFireSensitivity(sensitivity);
 }
 
 int DefaultRuntimeAudioControls::changeAudioOptionBy(

@@ -17,6 +17,7 @@
 
 class ControlListener;
 class ControlDisplayCatalogs;
+class ControlRuntimeMetrics;
 class ControlStream;
 class LogSink;
 class RuntimeCommandSink;
@@ -65,6 +66,7 @@ class ControlService : public ControlPanelLauncher,
     RuntimeConfigRegistry& runtimeConfigRegistry;
     SceneVisualSelections& sceneVisualSelections;
     ControlDisplayCatalogs& displayCatalogs;
+    ControlRuntimeMetrics& runtimeMetrics;
     LogSink& log;
     std::unique_ptr<ControlPanelProcessLauncher> ownedProcessLauncher;
     ControlPanelProcessLauncher& processLauncher;
@@ -80,6 +82,11 @@ class ControlService : public ControlPanelLauncher,
     int launchedPanelValue;
     int dirtyValue;
     int revisionValue;
+    int metricsSnapshotKnown;
+    int lastCumulativeFireLevel;
+    int lastFireSensitivity;
+    long long lastMetricsPublishMs;
+    int metricsPublishIntervalMs;
     size_t maxOutboundMessages;
 
     void workerMain();
@@ -89,17 +96,20 @@ class ControlService : public ControlPanelLauncher,
     void enqueueOutbound(const ControlJsonValue& message);
     void publishCatalogs();
     void publishState();
+    int liveMetricsShouldPublish(long long nowMs);
     void processMessage(const ControlJsonValue& message);
 
 public:
     ControlService(RuntimeCommandSink& runtimeCommands_,
         RuntimeConfigRegistry& runtimeConfigRegistry_,
         SceneVisualSelections& sceneVisualSelections_,
-        ControlDisplayCatalogs& displayCatalogs_, LogSink& log_);
+        ControlDisplayCatalogs& displayCatalogs_,
+        ControlRuntimeMetrics& runtimeMetrics_, LogSink& log_);
     ControlService(RuntimeCommandSink& runtimeCommands_,
         RuntimeConfigRegistry& runtimeConfigRegistry_,
         SceneVisualSelections& sceneVisualSelections_,
-        ControlDisplayCatalogs& displayCatalogs_, LogSink& log_,
+        ControlDisplayCatalogs& displayCatalogs_,
+        ControlRuntimeMetrics& runtimeMetrics_, LogSink& log_,
         ControlPanelProcessLauncher& processLauncher_);
     ~ControlService();
 

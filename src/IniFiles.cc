@@ -190,6 +190,7 @@ static void write_audio_analysis_config_ini(IniWriter& writer,
         "# Audio Analysis\n"
         "#\n");
     putini_int(writer, "min-noise", audioAnalysis.minNoise);
+    putini_int(writer, "fire-sensitivity", audioAnalysis.fireSensitivity);
 }
 
 static void write_auto_change_config_ini(IniWriter& writer,

@@ -45,6 +45,20 @@ static void testMapsAudioProcessingCommand() {
     assert(strcmp(mapped.command.text, "FFT") == 0);
 }
 
+static void testMapsFireSensitivityCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\",\"target\":\"audio.fireSensitivity\","
+        "\"value\":37}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type == RuntimeCommandChangeFireSensitivityTo);
+    assert(mapped.command.value == 37);
+}
+
 static void testMapsMaxFpsCommand() {
     ControlMappedCommand mapped;
     std::string code;
@@ -87,6 +101,21 @@ static void testMapsAutoChangeEnabledCommand() {
     assert(mapped.command.value == 1);
 }
 
+static void testMapsCumulativeFireThresholdCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\","
+        "\"target\":\"autoChange.cumulativeFireLevel\",\"value\":420}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type
+        == RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
+    assert(mapped.command.value == 420);
+}
+
 static void testRejectsUnknownTargets() {
     ControlMappedCommand mapped;
     std::string code;
@@ -117,9 +146,11 @@ static void testRejectsUnsupportedVersion() {
 int main() {
     testMapsSceneSetCommand();
     testMapsAudioProcessingCommand();
+    testMapsFireSensitivityCommand();
     testMapsMaxFpsCommand();
     testMapsScreenCommand();
     testMapsAutoChangeEnabledCommand();
+    testMapsCumulativeFireThresholdCommand();
     testRejectsUnknownTargets();
     testRejectsUnsupportedVersion();
     return 0;

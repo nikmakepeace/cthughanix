@@ -1135,9 +1135,12 @@ add_test(NAME control_runtime_observer_test
 
 add_executable(control_snapshot_test
     unit/ControlSnapshotTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/ControlProtocol.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlRuntimeMetrics.cc
     ${CMAKE_SOURCE_DIR}/src/ControlSnapshot.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeConfigRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/SceneChoiceSelection.cc
     ${CMAKE_SOURCE_DIR}/src/SceneVisualSelections.cc
@@ -1155,9 +1158,11 @@ add_test(NAME control_snapshot_test COMMAND control_snapshot_test)
 
 add_executable(control_service_integration_test
     unit/ControlServiceIntegrationTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/ControlCommandMapper.cc
     ${CMAKE_SOURCE_DIR}/src/ControlPanelClient.cc
     ${CMAKE_SOURCE_DIR}/src/ControlProtocol.cc
+    ${CMAKE_SOURCE_DIR}/src/ControlRuntimeMetrics.cc
     ${CMAKE_SOURCE_DIR}/src/ControlService.cc
     ${CMAKE_SOURCE_DIR}/src/ControlSnapshot.cc
     ${CMAKE_SOURCE_DIR}/src/ControlTransport.cc
@@ -1997,6 +2002,7 @@ add_test(NAME runtime_auto_change_controls_test
 
 add_executable(runtime_audio_controls_test
     unit/RuntimeAudioControlsTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFftProcessor.cc
     ${CMAKE_SOURCE_DIR}/src/AudioFrame.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessingState.cc
@@ -2037,12 +2043,14 @@ add_test(NAME runtime_config_selection_test
 
 add_executable(runtime_config_contributors_test
     unit/RuntimeConfigContributorsTest.cc
+    ${CMAKE_SOURCE_DIR}/src/AudioAnalyzer.cc
     ${CMAKE_SOURCE_DIR}/src/AudioProcessingState.cc
     ${CMAKE_SOURCE_DIR}/src/AutoChangeSettings.cc
     ${CMAKE_SOURCE_DIR}/src/Configuration.cc
     ${CMAKE_SOURCE_DIR}/src/DisplayPresentationOptions.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
+    ${CMAKE_SOURCE_DIR}/src/ProcessServices.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeConfigContributors.cc
     ${CMAKE_SOURCE_DIR}/src/RuntimeConfigRegistry.cc
     ${CMAKE_SOURCE_DIR}/src/imath.cc

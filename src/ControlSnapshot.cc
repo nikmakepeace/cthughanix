@@ -104,7 +104,8 @@ static ControlJsonValue screenCatalog(
 }
 
 ControlJsonValue buildControlStateSnapshot(
-    const RuntimeConfigRegistry& registry, int revision) {
+    const RuntimeConfigRegistry& registry,
+    const ControlRuntimeMetricsSnapshot& metrics, int revision) {
     Config config = registry.currentConfig();
 
     ControlJsonValue scene = ControlJsonValue::objectValueOf();
@@ -123,6 +124,11 @@ ControlJsonValue buildControlStateSnapshot(
     ControlJsonValue audio = ControlJsonValue::objectValueOf();
     audio.set("processing",
         ControlJsonValue::stringValueOf(config.scene.audioProcessing));
+    audio.set("fire", ControlJsonValue::numberValueOf(metrics.fire));
+    audio.set("cumulativeFireLevel",
+        ControlJsonValue::numberValueOf(metrics.cumulativeFireLevel));
+    audio.set("fireSensitivity",
+        ControlJsonValue::numberValueOf(config.audioAnalysis.fireSensitivity));
 
     ControlJsonValue autoChange = ControlJsonValue::objectValueOf();
     autoChange.set("enabled",
@@ -131,6 +137,8 @@ ControlJsonValue buildControlStateSnapshot(
         ControlJsonValue::boolValueOf(config.autoChange.locked != 0));
     autoChange.set("changeLittle",
         ControlJsonValue::boolValueOf(config.autoChange.changeLittle != 0));
+    autoChange.set("cumulativeFireLevel",
+        ControlJsonValue::numberValueOf(config.autoChange.cumulativeFireLevel));
 
     ControlJsonValue state = ControlJsonValue::objectValueOf();
     state.set("v", ControlJsonValue::numberValueOf(1));
