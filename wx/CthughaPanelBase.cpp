@@ -17,7 +17,7 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	bSizer3 = new wxBoxSizer( wxVERTICAL );
 
 	m_scrolledWindow1 = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL|wxVSCROLL );
-	m_scrolledWindow1->SetMinSize( wxSize( 320,320 ) );
+	m_scrolledWindow1->SetMinSize( wxSize( 360,400 ) );
 
 	m_scrolledWindow1->SetScrollRate( 5, 5 );
 	wxFlexGridSizer* fgSizer2;
@@ -98,6 +98,18 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_waveScale_choice->SetSelection( 0 );
 	fgSizer2->Add( m_waveScale_choice, 0, wxALL|wxEXPAND, 5 );
 
+	wxStaticText* m_staticText16;
+	m_staticText16 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Screen"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText16->Wrap( -1 );
+	fgSizer2->Add( m_staticText16, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	wxArrayString m_screen_choiceChoices;
+	m_screen_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_screen_choiceChoices, 0 );
+	m_screen_choice->SetMinSize( wxSize( 180,-1 ) );
+
+	m_screen_choice->SetSelection( 0 );
+	fgSizer2->Add( m_screen_choice, 0, wxALL|wxEXPAND, 5 );
+
 	wxStaticText* m_staticText11;
 	m_staticText11 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Sound processing"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText11->Wrap( -1 );
@@ -129,6 +141,14 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 
 	m_flashlight_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_flashlight_checkBox, 0, wxALL|wxEXPAND, 5 );
+
+	wxStaticText* m_staticText17;
+	m_staticText17 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Autochange"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText17->Wrap( -1 );
+	fgSizer2->Add( m_staticText17, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	m_autoChange_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	fgSizer2->Add( m_autoChange_checkBox, 0, wxALL|wxEXPAND, 5 );
 
 	wxStaticText* m_staticText15;
 	m_staticText15 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Max FPS"), wxDefaultPosition, wxDefaultSize, 0 );

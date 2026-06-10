@@ -7,6 +7,7 @@
 
 #include "ControlProtocol.h"
 
+class ControlDisplayCatalogs;
 class RuntimeConfigRegistry;
 class SceneVisualSelections;
 
@@ -14,6 +15,7 @@ ControlJsonValue buildControlStateSnapshot(
     const RuntimeConfigRegistry& registry, int revision);
 
 ControlJsonValue buildControlCatalogSnapshot(
-    SceneVisualSelections& selections);
+    SceneVisualSelections& selections,
+    const ControlDisplayCatalogs& displayCatalogs);
 
 #endif

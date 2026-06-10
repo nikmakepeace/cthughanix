@@ -82,6 +82,7 @@ CthughaPanelFrame::CthughaPanelFrame(const std::string& endpoint)
     , pollTimer(this)
     , catalogNames()
     , receivedState(0)
+    , everConnected(0)
     , updatingControls(0) {
     CreateStatusBar();
     repairGeneratedLayout();
@@ -123,12 +124,16 @@ void CthughaPanelFrame::bindControlEvents() {
         &CthughaPanelFrame::onChoiceChanged, this);
     m_waveScale_choice->Bind(wxEVT_CHOICE,
         &CthughaPanelFrame::onChoiceChanged, this);
+    m_screen_choice->Bind(wxEVT_CHOICE,
+        &CthughaPanelFrame::onChoiceChanged, this);
     m_soundProcessing_choice->Bind(wxEVT_CHOICE,
         &CthughaPanelFrame::onChoiceChanged, this);
     m_palette_choice->Bind(wxEVT_CHOICE,
         &CthughaPanelFrame::onChoiceChanged, this);
     m_flashlight_checkBox->Bind(wxEVT_CHECKBOX,
         &CthughaPanelFrame::onFlashlightChanged, this);
+    m_autoChange_checkBox->Bind(wxEVT_CHECKBOX,
+        &CthughaPanelFrame::onAutoChangeChanged, this);
     m_maxFps_spinCtrl->Bind(wxEVT_SPINCTRL,
         &CthughaPanelFrame::onMaxFpsSpin, this);
     m_maxFps_spinCtrl->Bind(wxEVT_TEXT,
@@ -142,9 +147,11 @@ void CthughaPanelFrame::setControlsEnabled(int enabled) {
     m_object_choice->Enable(enabled != 0);
     m_waveTable_choice->Enable(enabled != 0);
     m_waveScale_choice->Enable(enabled != 0);
+    m_screen_choice->Enable(enabled != 0);
     m_soundProcessing_choice->Enable(enabled != 0);
     m_palette_choice->Enable(enabled != 0);
     m_flashlight_checkBox->Enable(enabled != 0);
+    m_autoChange_checkBox->Enable(enabled != 0);
     m_maxFps_spinCtrl->Enable(enabled != 0);
 }
 
@@ -176,6 +183,13 @@ void CthughaPanelFrame::onFlashlightChanged(wxCommandEvent&) {
         m_flashlight_checkBox->IsChecked());
 }
 
+void CthughaPanelFrame::onAutoChangeChanged(wxCommandEvent&) {
+    if (updatingControls)
+        return;
+    client->sendSetBool("autoChange.enabled",
+        m_autoChange_checkBox->IsChecked());
+}
+
 void CthughaPanelFrame::onMaxFpsSpin(wxSpinEvent&) {
     sendMaxFps();
 }
@@ -188,10 +202,15 @@ void CthughaPanelFrame::handleClientEvent(
     const ControlPanelClientEvent& event) {
     switch (event.type) {
     case ControlPanelClientEvent::Connected:
+        everConnected = 1;
         SetStatusText(wxT("Connected"));
         updateEnabledState();
         break;
     case ControlPanelClientEvent::Disconnected:
+        if (everConnected) {
+            Close();
+            return;
+        }
         SetStatusText(wxT("Disconnected"));
         receivedState = 0;
         updateEnabledState();
@@ -233,6 +252,7 @@ void CthughaPanelFrame::applyCatalogs(const ControlJsonValue& message) {
     updateCatalogForTarget("scene.object", m_object_choice, *targets);
     updateCatalogForTarget("scene.table", m_waveTable_choice, *targets);
     updateCatalogForTarget("scene.waveScale", m_waveScale_choice, *targets);
+    updateCatalogForTarget("display.screen", m_screen_choice, *targets);
     updateCatalogForTarget("audio.processing", m_soundProcessing_choice,
         *targets);
     updateCatalogForTarget("scene.palette", m_palette_choice, *targets);
@@ -243,6 +263,7 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
     const ControlJsonValue* scene = message.member("scene");
     const ControlJsonValue* display = message.member("display");
     const ControlJsonValue* audio = message.member("audio");
+    const ControlJsonValue* autoChange = message.member("autoChange");
 
     updatingControls = 1;
     selectChoiceValue("scene.flame", m_flame_choice,
@@ -257,12 +278,16 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
         stringMember(scene, "table"));
     selectChoiceValue("scene.waveScale", m_waveScale_choice,
         stringMember(scene, "waveScale"));
+    selectChoiceValue("display.screen", m_screen_choice,
+        stringMember(display, "screen"));
     selectChoiceValue("audio.processing", m_soundProcessing_choice,
         stringMember(audio, "processing"));
     selectChoiceValue("scene.palette", m_palette_choice,
         stringMember(scene, "palette"));
     m_flashlight_checkBox->SetValue(
         boolLikeMember(scene, "flashlight") != 0);
+    m_autoChange_checkBox->SetValue(
+        boolLikeMember(autoChange, "enabled") != 0);
     m_maxFps_spinCtrl->SetValue(
         intMember(display, "maxFps", m_maxFps_spinCtrl->GetValue()));
     updatingControls = 0;
@@ -346,6 +371,8 @@ std::string CthughaPanelFrame::targetForChoice(wxChoice* choice) const {
         return "scene.table";
     if (choice == m_waveScale_choice)
         return "scene.waveScale";
+    if (choice == m_screen_choice)
+        return "display.screen";
     if (choice == m_soundProcessing_choice)
         return "audio.processing";
     if (choice == m_palette_choice)

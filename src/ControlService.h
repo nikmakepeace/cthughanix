@@ -16,6 +16,7 @@
 #include <thread>
 
 class ControlListener;
+class ControlDisplayCatalogs;
 class ControlStream;
 class LogSink;
 class RuntimeCommandSink;
@@ -28,12 +29,20 @@ public:
 
     virtual bool launchPanel(
         const std::string& endpoint, std::string* error) = 0;
+    virtual void terminatePanel() { }
 };
 
 class SystemControlPanelProcessLauncher : public ControlPanelProcessLauncher {
+    void* panelProcessHandle;
+    long panelProcessId;
+
 public:
+    SystemControlPanelProcessLauncher();
+    virtual ~SystemControlPanelProcessLauncher();
+
     virtual bool launchPanel(
         const std::string& endpoint, std::string* error);
+    virtual void terminatePanel();
 };
 
 class ControlService : public ControlPanelLauncher,
@@ -55,6 +64,7 @@ class ControlService : public ControlPanelLauncher,
     RuntimeCommandSink& runtimeCommands;
     RuntimeConfigRegistry& runtimeConfigRegistry;
     SceneVisualSelections& sceneVisualSelections;
+    ControlDisplayCatalogs& displayCatalogs;
     LogSink& log;
     std::unique_ptr<ControlPanelProcessLauncher> ownedProcessLauncher;
     ControlPanelProcessLauncher& processLauncher;
@@ -67,6 +77,7 @@ class ControlService : public ControlPanelLauncher,
     int stopRequested;
     int clientConnectedValue;
     int launchPending;
+    int launchedPanelValue;
     int dirtyValue;
     int revisionValue;
     size_t maxOutboundMessages;
@@ -83,10 +94,12 @@ class ControlService : public ControlPanelLauncher,
 public:
     ControlService(RuntimeCommandSink& runtimeCommands_,
         RuntimeConfigRegistry& runtimeConfigRegistry_,
-        SceneVisualSelections& sceneVisualSelections_, LogSink& log_);
+        SceneVisualSelections& sceneVisualSelections_,
+        ControlDisplayCatalogs& displayCatalogs_, LogSink& log_);
     ControlService(RuntimeCommandSink& runtimeCommands_,
         RuntimeConfigRegistry& runtimeConfigRegistry_,
-        SceneVisualSelections& sceneVisualSelections_, LogSink& log_,
+        SceneVisualSelections& sceneVisualSelections_,
+        ControlDisplayCatalogs& displayCatalogs_, LogSink& log_,
         ControlPanelProcessLauncher& processLauncher_);
     ~ControlService();
 

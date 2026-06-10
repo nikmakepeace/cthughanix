@@ -164,6 +164,7 @@ endif()
 if(CTH_ENABLE_CONTROL_IPC)
     list(APPEND CTHUGHA_COMMON_SOURCES
         ControlCommandMapper.cc
+        ControlDisplayCatalogs.cc
         ControlProtocol.cc
         ControlRuntimeObserver.cc
         ControlService.cc

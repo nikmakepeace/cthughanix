@@ -40,6 +40,7 @@ enum RuntimeCommandType {
     RuntimeCommandChangeSoundProcessingBy,
     RuntimeCommandChangeSoundProcessingTo,
     RuntimeCommandToggleAutoChangeLock,
+    RuntimeCommandChangeAutoChangeLockTo,
     RuntimeCommandWriteIni,
     RuntimeCommandStopAndContinue,
     RuntimeCommandToggleShowFps,
@@ -209,6 +210,14 @@ struct RuntimeCommand {
      * @return Runtime command.
      */
     static RuntimeCommand toggleAutoChangeLock();
+
+    /**
+     * Creates an absolute auto-change lock command.
+     *
+     * @param locked Nonzero to lock/disable automatic scene changes.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changeAutoChangeLockTo(int locked);
 
     /**
      * Creates a command that persists the current runtime configuration.

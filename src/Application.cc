@@ -17,6 +17,7 @@
 #include "BorderOption.h"
 #include "ControlPanelLauncher.h"
 #ifdef CTH_CONTROL_IPC
+#include "ControlDisplayCatalogs.h"
 #include "ControlRuntimeObserver.h"
 #include "ControlService.h"
 #endif
@@ -334,9 +335,10 @@ void Application::initSceneRuntime() {
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
         *runtimeEffectControlsValue));
 #ifdef CTH_CONTROL_IPC
+    controlDisplayCatalogsValue.reset(new BuiltInControlDisplayCatalogs());
     controlServiceValue.reset(new ControlService(*runtimeChangeMediatorValue,
         *runtimeConfigRegistryValue, *sceneRuntimeValue->visualSelections(),
-        logSinkValue));
+        *controlDisplayCatalogsValue, logSinkValue));
     std::string controlError;
     if (!controlServiceValue->start("", &controlError))
         logSinkValue.warn("Control IPC unavailable: %s\n",
@@ -372,6 +374,7 @@ void Application::shutdownSceneRuntime() {
     controlSceneCommandTargetValue.reset();
     controlRuntimeCommandSinkValue.reset();
     controlServiceValue.reset();
+    controlDisplayCatalogsValue.reset();
 #endif
     runtimeChangeMediatorValue.reset();
     runtimeEffectControlsValue.reset();

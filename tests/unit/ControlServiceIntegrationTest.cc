@@ -3,6 +3,7 @@
  */
 
 #include "ControlPanelClient.h"
+#include "ControlDisplayCatalogs.h"
 #include "ControlService.h"
 #include "ControlTransport.h"
 #include "ProcessServices.h"
@@ -51,10 +52,12 @@ protected:
 class RecordingLauncher : public ControlPanelProcessLauncher {
 public:
     int calls;
+    int terminateCalls;
     std::string endpointValue;
 
     RecordingLauncher()
         : calls(0)
+        , terminateCalls(0)
         , endpointValue() { }
 
     virtual bool launchPanel(
@@ -62,6 +65,10 @@ public:
         calls++;
         endpointValue = endpoint;
         return true;
+    }
+
+    virtual void terminatePanel() {
+        terminateCalls++;
     }
 };
 
@@ -151,6 +158,18 @@ public:
     virtual SceneImageSelection& images() { return selection; }
 };
 
+class FakeDisplayCatalogs : public ControlDisplayCatalogs {
+public:
+    virtual int screenChoiceCount() const { return 2; }
+    virtual const char* screenChoiceNameAt(int index) const {
+        return index == 0 ? "Up" : "Source";
+    }
+    virtual const char* screenChoiceLabelAt(int index) const {
+        return index == 0 ? "Up Display" : "Source size";
+    }
+    virtual int screenChoiceInUseAt(int) const { return 1; }
+};
+
 static Config sampleConfig() {
     Config config;
     config.scene.flame = "first";
@@ -161,6 +180,7 @@ static Config sampleConfig() {
     config.scene.waveScale = "first";
     config.scene.palette = "first";
     config.scene.flashlight = "off";
+    config.scene.presentation = "Up";
     config.scene.audioProcessing = "none";
     config.display.maxFramesPerSecond = 25;
     return config;
@@ -205,6 +225,14 @@ public:
             configValue.scene.audioProcessing = lastText;
             registry.setBaseline(configValue);
             changes.audioProcessingChanged = 1;
+        } else if (command.type == RuntimeCommandChangeScreenTo) {
+            configValue.scene.presentation = lastText;
+            registry.setBaseline(configValue);
+            changes.displayChanged = 1;
+        } else if (command.type == RuntimeCommandChangeAutoChangeLockTo) {
+            configValue.autoChange.locked = command.value;
+            registry.setBaseline(configValue);
+            changes.autoChangeChanged = 1;
         }
 
         return changes;
@@ -264,6 +292,25 @@ static std::string latestStateFlame(const ObservedMessages& observed) {
     return flame != 0 ? flame->asString() : "";
 }
 
+static std::string latestStateScreen(const ObservedMessages& observed) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* display
+        = state != 0 ? state->member("display") : 0;
+    const ControlJsonValue* screen
+        = display != 0 ? display->member("screen") : 0;
+    return screen != 0 ? screen->asString() : "";
+}
+
+static int latestStateAutoChangeEnabled(
+    const ObservedMessages& observed, int fallback) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* autoChange
+        = state != 0 ? state->member("autoChange") : 0;
+    const ControlJsonValue* enabled
+        = autoChange != 0 ? autoChange->member("enabled") : 0;
+    return enabled != 0 ? (enabled->asBool() ? 1 : 0) : fallback;
+}
+
 static int latestAckId(const ObservedMessages& observed) {
     const ControlJsonValue* ack = latestMessageOfType(observed, "ack");
     const ControlJsonValue* id = ack != 0 ? ack->member("id") : 0;
@@ -309,9 +356,11 @@ static void testServiceClientSynchronizesBothDirections() {
     RuntimeConfigRegistry registry(config);
     UpdatingRuntimeSink runtimeSink(registry, config);
     FakeSelections selections;
+    FakeDisplayCatalogs displayCatalogs;
     QuietLogSink log;
     RecordingLauncher launcher;
-    ControlService service(runtimeSink, registry, selections, log, launcher);
+    ControlService service(runtimeSink, registry, selections, displayCatalogs,
+        log, launcher);
 
     std::string error;
     assert(service.start(uniqueInstanceId(), &error));
@@ -342,6 +391,22 @@ static void testServiceClientSynchronizesBothDirections() {
     assert(latestAckId(observed) == id);
     assert(latestStateMaxFps(observed, -1) == 72);
 
+    id = client.sendSet("display.screen", "Source");
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 2);
+    assert(runtimeSink.lastType == RuntimeCommandChangeScreenTo);
+    assert(runtimeSink.lastText == "Source");
+    assert(latestAckId(observed) == id);
+    assert(latestStateScreen(observed) == "Source");
+
+    id = client.sendSetBool("autoChange.enabled", false);
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 3);
+    assert(runtimeSink.lastType == RuntimeCommandChangeAutoChangeLockTo);
+    assert(runtimeSink.lastValue == 1);
+    assert(latestAckId(observed) == id);
+    assert(latestStateAutoChangeEnabled(observed, -1) == 0);
+
     runtimeSink.setAppFlame("second");
     service.runtimeStateChanged();
     pump(service, client, observed, 500);
@@ -349,6 +414,7 @@ static void testServiceClientSynchronizesBothDirections() {
 
     client.stop();
     service.stop();
+    assert(launcher.terminateCalls == 1);
 }
 
 static void testServiceFrameIsBoundedWithStalledClient() {
@@ -359,9 +425,11 @@ static void testServiceFrameIsBoundedWithStalledClient() {
     RuntimeConfigRegistry registry(config);
     UpdatingRuntimeSink runtimeSink(registry, config);
     FakeSelections selections;
+    FakeDisplayCatalogs displayCatalogs;
     QuietLogSink log;
     RecordingLauncher launcher;
-    ControlService service(runtimeSink, registry, selections, log, launcher);
+    ControlService service(runtimeSink, registry, selections, displayCatalogs,
+        log, launcher);
 
     std::string error;
     assert(service.start(uniqueInstanceId(), &error));

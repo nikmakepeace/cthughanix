@@ -5,6 +5,7 @@
 #include "ControlSnapshot.h"
 
 #include "Configuration.h"
+#include "ControlDisplayCatalogs.h"
 #include "RuntimeConfigRegistry.h"
 #include "SceneChoiceSelection.h"
 #include "SceneVisualSelections.h"
@@ -77,6 +78,29 @@ static ControlJsonValue audioProcessingCatalog() {
     return entries;
 }
 
+static ControlJsonValue screenCatalog(
+    const ControlDisplayCatalogs& displayCatalogs) {
+    ControlJsonValue entries = ControlJsonValue::arrayValueOf();
+    int count = displayCatalogs.screenChoiceCount();
+    for (int i = 0; i < count; i++) {
+        const char* name = displayCatalogs.screenChoiceNameAt(i);
+        const char* label = displayCatalogs.screenChoiceLabelAt(i);
+        if (name == 0)
+            name = "";
+        if (label == 0 || label[0] == '\0')
+            label = name;
+
+        ControlJsonValue entry = ControlJsonValue::objectValueOf();
+        entry.set("index", ControlJsonValue::numberValueOf(i));
+        entry.set("name", ControlJsonValue::stringValueOf(name));
+        entry.set("label", ControlJsonValue::stringValueOf(label));
+        entry.set("inUse", ControlJsonValue::boolValueOf(
+            displayCatalogs.screenChoiceInUseAt(i) != 0));
+        entries.append(entry);
+    }
+    return entries;
+}
+
 }
 
 ControlJsonValue buildControlStateSnapshot(
@@ -87,6 +111,8 @@ ControlJsonValue buildControlStateSnapshot(
     addSceneState(scene, config);
 
     ControlJsonValue display = ControlJsonValue::objectValueOf();
+    display.set("screen",
+        ControlJsonValue::stringValueOf(config.scene.presentation));
     display.set("maxFps",
         ControlJsonValue::numberValueOf(config.display.maxFramesPerSecond));
     display.set("showFps",
@@ -99,6 +125,8 @@ ControlJsonValue buildControlStateSnapshot(
         ControlJsonValue::stringValueOf(config.scene.audioProcessing));
 
     ControlJsonValue autoChange = ControlJsonValue::objectValueOf();
+    autoChange.set("enabled",
+        ControlJsonValue::boolValueOf(config.autoChange.locked == 0));
     autoChange.set("locked",
         ControlJsonValue::boolValueOf(config.autoChange.locked != 0));
     autoChange.set("changeLittle",
@@ -116,7 +144,8 @@ ControlJsonValue buildControlStateSnapshot(
 }
 
 ControlJsonValue buildControlCatalogSnapshot(
-    SceneVisualSelections& selections) {
+    SceneVisualSelections& selections,
+    const ControlDisplayCatalogs& displayCatalogs) {
     ControlJsonValue targets = ControlJsonValue::objectValueOf();
     addCatalog(targets, "scene.flame", selections.flame());
     addCatalog(targets, "scene.translation", selections.translation());
@@ -127,6 +156,7 @@ ControlJsonValue buildControlCatalogSnapshot(
     addCatalog(targets, "scene.palette", selections.palette());
     addCatalog(targets, "scene.flashlight", selections.flashlight());
     targets.set("audio.processing", audioProcessingCatalog());
+    targets.set("display.screen", screenCatalog(displayCatalogs));
 
     ControlJsonValue message = ControlJsonValue::objectValueOf();
     message.set("v", ControlJsonValue::numberValueOf(1));

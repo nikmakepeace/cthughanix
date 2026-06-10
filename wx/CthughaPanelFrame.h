@@ -20,6 +20,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
     wxTimer pollTimer;
     std::map<std::string, std::vector<std::string> > catalogNames;
     int receivedState;
+    int everConnected;
     int updatingControls;
 
     void repairGeneratedLayout();
@@ -29,6 +30,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
     void onPollTimer(wxTimerEvent& event);
     void onChoiceChanged(wxCommandEvent& event);
     void onFlashlightChanged(wxCommandEvent& event);
+    void onAutoChangeChanged(wxCommandEvent& event);
     void onMaxFpsSpin(wxSpinEvent& event);
     void onMaxFpsText(wxCommandEvent& event);
 

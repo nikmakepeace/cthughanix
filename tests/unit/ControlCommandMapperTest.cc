@@ -59,6 +59,34 @@ static void testMapsMaxFpsCommand() {
     assert(mapped.command.value == 72);
 }
 
+static void testMapsScreenCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\",\"target\":\"display.screen\","
+        "\"value\":\"Source\"}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type == RuntimeCommandChangeScreenTo);
+    assert(strcmp(mapped.command.text, "Source") == 0);
+}
+
+static void testMapsAutoChangeEnabledCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\",\"target\":\"autoChange.enabled\","
+        "\"value\":false}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type == RuntimeCommandChangeAutoChangeLockTo);
+    assert(mapped.command.value == 1);
+}
+
 static void testRejectsUnknownTargets() {
     ControlMappedCommand mapped;
     std::string code;
@@ -90,6 +118,8 @@ int main() {
     testMapsSceneSetCommand();
     testMapsAudioProcessingCommand();
     testMapsMaxFpsCommand();
+    testMapsScreenCommand();
+    testMapsAutoChangeEnabledCommand();
     testRejectsUnknownTargets();
     testRejectsUnsupportedVersion();
     return 0;

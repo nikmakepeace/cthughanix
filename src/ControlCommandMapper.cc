@@ -87,6 +87,39 @@ static bool readIntValue(const ControlJsonValue& message, int* value,
     return false;
 }
 
+static bool readBoolValue(const ControlJsonValue& message, bool* value,
+    std::string* errorCode, std::string* errorMessage) {
+    const ControlJsonValue* member = message.member("value");
+    if (member == 0) {
+        fail(errorCode, errorMessage, "bad-command", "missing value");
+        return false;
+    }
+    if (member->type() == ControlJsonValue::BoolType) {
+        *value = member->asBool();
+        return true;
+    }
+    if (member->type() == ControlJsonValue::NumberType) {
+        *value = member->asNumber() != 0.0;
+        return true;
+    }
+    if (member->type() == ControlJsonValue::StringType) {
+        std::string text = member->asString();
+        if (text == "on" || text == "yes" || text == "true"
+            || text == "1") {
+            *value = true;
+            return true;
+        }
+        if (text == "off" || text == "no" || text == "false"
+            || text == "0") {
+            *value = false;
+            return true;
+        }
+    }
+
+    fail(errorCode, errorMessage, "bad-command", "expected boolean value");
+    return false;
+}
+
 static bool sceneTargetForName(
     const std::string& name, RuntimeSceneTarget* target) {
     if (name == "scene.flame") {
@@ -180,6 +213,24 @@ bool controlCommandFromJson(const ControlJsonValue& message,
         if (!readIntValue(message, &value, errorCode, errorMessage))
             return false;
         command->command = RuntimeCommand::changeMaxFpsTo(value);
+        return true;
+    }
+
+    if (targetName == "display.screen") {
+        if (!readTextValue(message, &command->textStorage, errorCode,
+                errorMessage))
+            return false;
+        command->command = RuntimeCommand::changeScreenTo(
+            command->textStorage.c_str());
+        return true;
+    }
+
+    if (targetName == "autoChange.enabled") {
+        bool enabled = false;
+        if (!readBoolValue(message, &enabled, errorCode, errorMessage))
+            return false;
+        command->command = RuntimeCommand::changeAutoChangeLockTo(
+            enabled ? 0 : 1);
         return true;
     }
 

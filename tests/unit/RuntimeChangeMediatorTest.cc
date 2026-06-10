@@ -509,6 +509,8 @@ public:
 class RecordingRuntimeAutoChangeControls : public RuntimeAutoChangeControls {
 public:
     int lockToggles;
+    int lockToCalls;
+    int lastLockValue;
     int autoChangeOptionByCalls;
     int autoChangeOptionToCalls;
     int handlesAutoChangeOption;
@@ -519,6 +521,8 @@ public:
 
     RecordingRuntimeAutoChangeControls()
         : lockToggles(0)
+        , lockToCalls(0)
+        , lastLockValue(0)
         , autoChangeOptionByCalls(0)
         , autoChangeOptionToCalls(0)
         , handlesAutoChangeOption(0)
@@ -529,6 +533,11 @@ public:
 
     virtual void toggleLock() {
         lockToggles++;
+    }
+
+    virtual void changeLockTo(int locked) {
+        lockToCalls++;
+        lastLockValue = locked;
     }
 
     virtual int changeAutoChangeOptionBy(
@@ -744,6 +753,12 @@ static void testReportsNonSceneRuntimeChanges() {
         = harness.mediator.apply(RuntimeCommand::toggleAutoChangeLock());
     assert(autoChange.autoChangeChanged == 1);
     assert(harness.autoChangeControls.lockToggles == 1);
+
+    RuntimeChangeSet autoChangeTo
+        = harness.mediator.apply(RuntimeCommand::changeAutoChangeLockTo(1));
+    assert(autoChangeTo.autoChangeChanged == 1);
+    assert(harness.autoChangeControls.lockToCalls == 1);
+    assert(harness.autoChangeControls.lastLockValue == 1);
 
     RuntimeChangeSet persist = harness.mediator.apply(RuntimeCommand::writeIni());
     assert(persist.persistenceRequested == 1);

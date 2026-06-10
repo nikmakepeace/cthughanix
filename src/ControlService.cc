@@ -23,6 +23,7 @@
 #else
 #include <fcntl.h>
 #include <limits.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -124,7 +125,7 @@ static std::string currentExecutablePath() {
 }
 
 static bool launchUnixPanelCandidate(const std::string& program,
-    const std::string& endpoint, std::string* error) {
+    const std::string& endpoint, std::string* error, long* pidOut) {
     int execStatusPipe[2];
     if (pipe(execStatusPipe) != 0) {
         if (error != 0)
@@ -164,8 +165,11 @@ static bool launchUnixPanelCandidate(const std::string& program,
     int childErrno = 0;
     ssize_t bytes = read(execStatusPipe[0], &childErrno, sizeof(childErrno));
     close(execStatusPipe[0]);
-    if (bytes == 0)
+    if (bytes == 0) {
+        if (pidOut != 0)
+            *pidOut = long(pid);
         return true;
+    }
 
     int status = 0;
     waitpid(pid, &status, 0);
@@ -173,6 +177,16 @@ static bool launchUnixPanelCandidate(const std::string& program,
         *error = std::string("exec failed for ") + program + ": "
             + strerror(childErrno);
     return false;
+}
+
+#endif
+
+#ifndef _WIN32
+
+static int reapUnixChild(pid_t pid) {
+    int status = 0;
+    pid_t waited = waitpid(pid, &status, WNOHANG);
+    return waited == pid || (waited < 0 && errno == ECHILD);
 }
 
 #endif
@@ -205,8 +219,19 @@ static std::vector<std::string> controlPanelExecutableCandidates() {
 
 }
 
+SystemControlPanelProcessLauncher::SystemControlPanelProcessLauncher()
+    : panelProcessHandle(0)
+    , panelProcessId(0) {
+}
+
+SystemControlPanelProcessLauncher::~SystemControlPanelProcessLauncher() {
+    terminatePanel();
+}
+
 bool SystemControlPanelProcessLauncher::launchPanel(
     const std::string& endpoint, std::string* error) {
+    terminatePanel();
+
 #ifdef _WIN32
     std::vector<std::string> candidates = controlPanelExecutableCandidates();
     for (std::vector<std::string>::const_iterator it = candidates.begin();
@@ -222,12 +247,15 @@ bool SystemControlPanelProcessLauncher::launchPanel(
         mutableCommand.push_back('\0');
         if (!CreateProcessA(NULL, mutableCommand.data(), NULL, NULL, FALSE, 0,
                 NULL, NULL, &startupInfo, &processInfo)) {
+            DWORD errorCode = GetLastError();
             if (error != 0)
-                *error = "CreateProcess failed for " + *it;
+                *error = "CreateProcess failed for " + *it
+                    + " error=" + std::to_string(unsigned long(errorCode));
             continue;
         }
         CloseHandle(processInfo.hThread);
-        CloseHandle(processInfo.hProcess);
+        panelProcessHandle = processInfo.hProcess;
+        panelProcessId = long(processInfo.dwProcessId);
         return true;
     }
     return false;
@@ -237,14 +265,48 @@ bool SystemControlPanelProcessLauncher::launchPanel(
     for (std::vector<std::string>::const_iterator it = candidates.begin();
          it != candidates.end(); ++it) {
         std::string candidateError;
-        if (launchUnixPanelCandidate(*it, endpoint, &candidateError))
+        long pid = 0;
+        if (launchUnixPanelCandidate(*it, endpoint, &candidateError, &pid)) {
+            panelProcessId = pid;
             return true;
+        }
         lastError = candidateError;
     }
     if (error != 0)
         *error = lastError.empty() ? "could not launch cthugha-panel"
                                    : lastError;
     return false;
+#endif
+}
+
+void SystemControlPanelProcessLauncher::terminatePanel() {
+#ifdef _WIN32
+    if (panelProcessHandle != 0) {
+        HANDLE handle = (HANDLE)panelProcessHandle;
+        DWORD exitCode = 0;
+        if (GetExitCodeProcess(handle, &exitCode)
+            && exitCode == STILL_ACTIVE)
+            TerminateProcess(handle, 0);
+        CloseHandle(handle);
+    }
+    panelProcessHandle = 0;
+    panelProcessId = 0;
+#else
+    if (panelProcessId > 0) {
+        pid_t pid = pid_t(panelProcessId);
+        if (!reapUnixChild(pid)) {
+            if (kill(pid, SIGTERM) == 0 || errno != ESRCH) {
+                for (int i = 0; i < 20 && !reapUnixChild(pid); i++)
+                    usleep(10000);
+                if (!reapUnixChild(pid)) {
+                    kill(pid, SIGKILL);
+                    waitpid(pid, 0, 0);
+                }
+            }
+        }
+    }
+    panelProcessHandle = 0;
+    panelProcessId = 0;
 #endif
 }
 
@@ -258,10 +320,12 @@ ControlService::InboundItem::InboundItem(const ControlJsonValue& message_)
 
 ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     RuntimeConfigRegistry& runtimeConfigRegistry_,
-    SceneVisualSelections& sceneVisualSelections_, LogSink& log_)
+    SceneVisualSelections& sceneVisualSelections_,
+    ControlDisplayCatalogs& displayCatalogs_, LogSink& log_)
     : runtimeCommands(runtimeCommands_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
     , sceneVisualSelections(sceneVisualSelections_)
+    , displayCatalogs(displayCatalogs_)
     , log(log_)
     , ownedProcessLauncher(new SystemControlPanelProcessLauncher())
     , processLauncher(*ownedProcessLauncher)
@@ -273,17 +337,20 @@ ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     , stopRequested(0)
     , clientConnectedValue(0)
     , launchPending(0)
+    , launchedPanelValue(0)
     , dirtyValue(0)
     , revisionValue(0)
     , maxOutboundMessages(32) { }
 
 ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     RuntimeConfigRegistry& runtimeConfigRegistry_,
-    SceneVisualSelections& sceneVisualSelections_, LogSink& log_,
+    SceneVisualSelections& sceneVisualSelections_,
+    ControlDisplayCatalogs& displayCatalogs_, LogSink& log_,
     ControlPanelProcessLauncher& processLauncher_)
     : runtimeCommands(runtimeCommands_)
     , runtimeConfigRegistry(runtimeConfigRegistry_)
     , sceneVisualSelections(sceneVisualSelections_)
+    , displayCatalogs(displayCatalogs_)
     , log(log_)
     , ownedProcessLauncher()
     , processLauncher(processLauncher_)
@@ -295,6 +362,7 @@ ControlService::ControlService(RuntimeCommandSink& runtimeCommands_,
     , stopRequested(0)
     , clientConnectedValue(0)
     , launchPending(0)
+    , launchedPanelValue(0)
     , dirtyValue(0)
     , revisionValue(0)
     , maxOutboundMessages(32) { }
@@ -319,15 +387,21 @@ bool ControlService::start(const std::string& instanceId, std::string* error) {
 }
 
 void ControlService::stop() {
+    int shouldTerminatePanel = 0;
     {
         std::lock_guard<std::mutex> lock(mutex);
         stopRequested = 1;
+        shouldTerminatePanel = launchedPanelValue;
+        launchedPanelValue = 0;
+        launchPending = 0;
     }
     if (listenerValue.get() != 0)
         listenerValue->close();
     if (workerThread.joinable())
         workerThread.join();
     listenerValue.reset();
+    if (shouldTerminatePanel)
+        processLauncher.terminatePanel();
 }
 
 std::string ControlService::endpoint() const {
@@ -363,6 +437,9 @@ void ControlService::launchControlPanel() {
         log.warn("Could not launch control panel: %s\n", error.c_str());
         std::lock_guard<std::mutex> lock(mutex);
         launchPending = 0;
+    } else {
+        std::lock_guard<std::mutex> lock(mutex);
+        launchedPanelValue = 1;
     }
 }
 
@@ -391,7 +468,8 @@ void ControlService::enqueueOutbound(const ControlJsonValue& message) {
 }
 
 void ControlService::publishCatalogs() {
-    enqueueOutbound(buildControlCatalogSnapshot(sceneVisualSelections));
+    enqueueOutbound(buildControlCatalogSnapshot(
+        sceneVisualSelections, displayCatalogs));
 }
 
 void ControlService::publishState() {

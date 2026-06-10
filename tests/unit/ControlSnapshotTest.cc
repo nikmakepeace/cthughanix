@@ -4,6 +4,7 @@
 
 #include "ControlSnapshot.h"
 
+#include "ControlDisplayCatalogs.h"
 #include "RuntimeConfigRegistry.h"
 #include "SceneChoiceSelection.h"
 
@@ -109,6 +110,18 @@ public:
     virtual SceneImageSelection& images() { return selection; }
 };
 
+class FakeDisplayCatalogs : public ControlDisplayCatalogs {
+public:
+    virtual int screenChoiceCount() const { return 2; }
+    virtual const char* screenChoiceNameAt(int index) const {
+        return index == 0 ? "Up" : "Source";
+    }
+    virtual const char* screenChoiceLabelAt(int index) const {
+        return index == 0 ? "Up Display" : "Source size";
+    }
+    virtual int screenChoiceInUseAt(int) const { return 1; }
+};
+
 static Config sampleConfig() {
     Config config;
     config.scene.flame = "fire";
@@ -119,6 +132,7 @@ static Config sampleConfig() {
     config.scene.waveScale = "wide";
     config.scene.palette = "volcano";
     config.scene.flashlight = "on";
+    config.scene.presentation = "Source";
     config.scene.audioProcessing = "FFT";
     config.display.maxFramesPerSecond = 60;
     config.display.showFpsEnabled = 1;
@@ -137,14 +151,18 @@ static void testStateSnapshotUsesRuntimeConfig() {
     assert(state.member("scene")->member("flame")->asString() == "fire");
     assert(state.member("scene")->member("palette")->asString() == "volcano");
     assert(state.member("display")->member("maxFps")->asNumber() == 60);
+    assert(state.member("display")->member("screen")->asString() == "Source");
     assert(state.member("display")->member("showFps")->asBool() == true);
     assert(state.member("audio")->member("processing")->asString() == "FFT");
     assert(state.member("autoChange")->member("locked")->asBool() == true);
+    assert(state.member("autoChange")->member("enabled")->asBool() == false);
 }
 
 static void testCatalogSnapshotUsesSelections() {
     FakeSelections selections;
-    ControlJsonValue catalogs = buildControlCatalogSnapshot(selections);
+    FakeDisplayCatalogs displayCatalogs;
+    ControlJsonValue catalogs = buildControlCatalogSnapshot(
+        selections, displayCatalogs);
 
     assert(catalogs.member("type")->asString() == "catalogs");
     const ControlJsonValue* targets = catalogs.member("targets");
@@ -156,6 +174,10 @@ static void testCatalogSnapshotUsesSelections() {
     assert(flames->asArray()[0].member("current")->asBool() == true);
     assert(flames->asArray()[1].member("inUse")->asBool() == false);
     assert(targets->member("audio.processing")->asArray().size() == 4);
+    assert(targets->member("display.screen")->asArray().size() == 2);
+    assert(targets->member("display.screen")->asArray()[1]
+        .member("name")->asString()
+        == "Source");
 }
 
 int main() {

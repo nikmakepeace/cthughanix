@@ -99,6 +99,12 @@ RuntimeCommand RuntimeCommand::toggleAutoChangeLock() {
     return RuntimeCommand(RuntimeCommandToggleAutoChangeLock);
 }
 
+RuntimeCommand RuntimeCommand::changeAutoChangeLockTo(int locked) {
+    RuntimeCommand command(RuntimeCommandChangeAutoChangeLockTo);
+    command.value = locked;
+    return command;
+}
+
 RuntimeCommand RuntimeCommand::writeIni() {
     return RuntimeCommand(RuntimeCommandWriteIni);
 }

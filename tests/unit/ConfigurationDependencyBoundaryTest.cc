@@ -3931,6 +3931,8 @@ static void testControlPanelIntroducesNoMutableGlobals() {
     const char* files[] = {
         "src/ControlCommandMapper.cc",
         "src/ControlCommandMapper.h",
+        "src/ControlDisplayCatalogs.cc",
+        "src/ControlDisplayCatalogs.h",
         "src/ControlPanelClient.cc",
         "src/ControlPanelClient.h",
         "src/ControlPanelLauncher.h",

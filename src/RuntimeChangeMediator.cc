@@ -138,6 +138,10 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         autoChangeControls.toggleLock();
         changes.autoChangeChanged = 1;
         break;
+    case RuntimeCommandChangeAutoChangeLockTo:
+        autoChangeControls.changeLockTo(command.value);
+        changes.autoChangeChanged = 1;
+        break;
     case RuntimeCommandWriteIni:
         runtimePersistence.writeCurrentConfig();
         changes.persistenceRequested = 1;

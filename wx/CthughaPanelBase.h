@@ -40,14 +40,16 @@ class CthughaPanelBase : public wxFrame
 		wxChoice* m_object_choice;
 		wxChoice* m_waveTable_choice;
 		wxChoice* m_waveScale_choice;
+		wxChoice* m_screen_choice;
 		wxChoice* m_soundProcessing_choice;
 		wxChoice* m_palette_choice;
 		wxCheckBox* m_flashlight_checkBox;
+		wxCheckBox* m_autoChange_checkBox;
 		wxSpinCtrl* m_maxFps_spinCtrl;
 
 	public:
 
-		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 360,399 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
+		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 400,470 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
 
 		~CthughaPanelBase();
 

@@ -23,6 +23,10 @@ void DefaultRuntimeAutoChangeControls::toggleLock() {
     autoChangeControls.toggleLock();
 }
 
+void DefaultRuntimeAutoChangeControls::changeLockTo(int locked) {
+    autoChangeControls.lockedOption().setValue(locked ? 1 : 0);
+}
+
 int DefaultRuntimeAutoChangeControls::changeAutoChangeOptionBy(
     Option& option, int by, RuntimeChangeSet& changes) {
     if (autoChangeControls.changeOptionBy(option, by)) {

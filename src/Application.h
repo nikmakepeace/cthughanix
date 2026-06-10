@@ -30,6 +30,7 @@ class AutoChangeControls;
 class AutoChangeQuietObserver;
 class AutoChangeSettings;
 #ifdef CTH_CONTROL_IPC
+class ControlDisplayCatalogs;
 class ControlObservedRuntimeCommandSink;
 class ControlObservedSceneCommandTarget;
 class ControlService;
@@ -124,6 +125,7 @@ class Application {
     std::unique_ptr<RuntimeEffectControls> runtimeEffectControlsValue;
     std::unique_ptr<RuntimeChangeMediator> runtimeChangeMediatorValue;
 #ifdef CTH_CONTROL_IPC
+    std::unique_ptr<ControlDisplayCatalogs> controlDisplayCatalogsValue;
     std::unique_ptr<ControlService> controlServiceValue;
     std::unique_ptr<ControlObservedRuntimeCommandSink>
         controlRuntimeCommandSinkValue;
