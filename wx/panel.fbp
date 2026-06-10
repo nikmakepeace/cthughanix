@@ -50,7 +50,7 @@
       <property name="minimum_size"></property>
       <property name="name">CthughaPanelBase</property>
       <property name="pos"></property>
-      <property name="size">300,399</property>
+      <property name="size">360,399</property>
       <property name="style">wxDEFAULT_FRAME_STYLE</property>
       <property name="subclass">; ; forward_declare</property>
       <property name="title"></property>
@@ -63,8 +63,8 @@
       <object class="wxFlexGridSizer" expanded="true">
         <property name="cols">2</property>
         <property name="flexible_direction">wxBOTH</property>
-        <property name="growablecols"></property>
-        <property name="growablerows"></property>
+        <property name="growablecols">0</property>
+        <property name="growablerows">0</property>
         <property name="hgap">0</property>
         <property name="minimum_size"></property>
         <property name="name">fgSizer1</property>
@@ -117,7 +117,7 @@
                 <property name="max_size"></property>
                 <property name="maximize_button">0</property>
                 <property name="maximum_size"></property>
-                <property name="min_size"></property>
+                <property name="min_size">320,320</property>
                 <property name="minimize_button">0</property>
                 <property name="minimum_size"></property>
                 <property name="moveable">1</property>
@@ -142,7 +142,7 @@
                 <object class="wxFlexGridSizer" expanded="true">
                   <property name="cols">2</property>
                   <property name="flexible_direction">wxBOTH</property>
-                  <property name="growablecols"></property>
+                  <property name="growablecols">1</property>
                   <property name="growablerows"></property>
                   <property name="hgap">0</property>
                   <property name="minimum_size"></property>
@@ -153,7 +153,7 @@
                   <property name="vgap">0</property>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -215,7 +215,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -280,7 +280,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -342,7 +342,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -407,7 +407,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -469,7 +469,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -534,7 +534,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -596,7 +596,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -661,7 +661,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -723,7 +723,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -788,7 +788,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -850,7 +850,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -915,7 +915,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -977,7 +977,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1042,7 +1042,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1104,7 +1104,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxChoice" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1169,7 +1169,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1231,7 +1231,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxCheckBox" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1296,7 +1296,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxStaticText" expanded="true">
                       <property name="BottomDockable">1</property>
@@ -1358,7 +1358,7 @@
                   </object>
                   <object class="sizeritem" expanded="true">
                     <property name="border">5</property>
-                    <property name="flag">wxALL</property>
+                    <property name="flag">wxALL|wxEXPAND</property>
                     <property name="proportion">0</property>
                     <object class="wxSpinCtrl" expanded="true">
                       <property name="BottomDockable">1</property>

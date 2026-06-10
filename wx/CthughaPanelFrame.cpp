@@ -6,7 +6,6 @@
 
 #include <wx/choice.h>
 #include <wx/checkbox.h>
-#include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/string.h>
 
@@ -18,10 +17,6 @@ static std::string wxToUtf8(const wxString& value) {
 
 static wxString utf8ToWx(const std::string& value) {
     return wxString::FromUTF8(value.c_str());
-}
-
-static void setChoiceMinWidth(wxChoice* choice) {
-    choice->SetMinSize(wxSize(150, -1));
 }
 
 static const ControlJsonValue* objectMember(
@@ -111,23 +106,6 @@ CthughaPanelFrame::~CthughaPanelFrame() {
 }
 
 void CthughaPanelFrame::repairGeneratedLayout() {
-    wxFlexGridSizer* frameGrid
-        = dynamic_cast<wxFlexGridSizer*>(GetSizer());
-    if (frameGrid != 0) {
-        frameGrid->AddGrowableRow(0, 1);
-        frameGrid->AddGrowableCol(0, 1);
-    }
-
-    setChoiceMinWidth(m_flame_choice);
-    setChoiceMinWidth(m_translation_choice);
-    setChoiceMinWidth(m_image_choice);
-    setChoiceMinWidth(m_object_choice);
-    setChoiceMinWidth(m_waveTable_choice);
-    setChoiceMinWidth(m_waveScale_choice);
-    setChoiceMinWidth(m_soundProcessing_choice);
-    setChoiceMinWidth(m_palette_choice);
-    m_maxFps_spinCtrl->SetMinSize(wxSize(90, -1));
-    m_scrolledWindow1->SetMinSize(wxSize(260, 320));
     m_scrolledWindow1->FitInside();
     Layout();
 }
