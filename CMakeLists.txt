@@ -157,6 +157,38 @@ configure_file(
 
 add_subdirectory(src)
 
+if(CTH_BUILD_WX_PANEL)
+    find_package(wxWidgets REQUIRED COMPONENTS core base)
+    include(${wxWidgets_USE_FILE})
+
+    add_executable(cthugha-panel
+        wx/CthughaPanelApp.cc
+        wx/CthughaPanelBase.cpp
+        wx/CthughaPanelFrame.cpp
+        src/ControlPanelClient.cc
+        src/ControlProtocol.cc
+        src/ControlTransport.cc
+    )
+
+    target_include_directories(cthugha-panel PRIVATE
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_BINARY_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/wx
+    )
+
+    target_link_libraries(cthugha-panel PRIVATE
+        ${wxWidgets_LIBRARIES}
+        Threads::Threads
+    )
+
+    if(NOT MSVC)
+        target_link_libraries(cthugha-panel PRIVATE m)
+    endif()
+
+    install(TARGETS cthugha-panel RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
 if(CTH_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
