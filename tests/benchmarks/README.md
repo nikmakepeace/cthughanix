@@ -438,6 +438,12 @@ Run selected patterns:
 build/tests/benchmarks/display_screens_bench --cth-patterns=gradient,noise
 ```
 
+Model real-audio scale for heightfield/plate screens:
+
+```sh
+build/tests/benchmarks/display_screens_bench --cth-buffer-size=1280x960 --cth-intensity=0.13 --benchmark_filter='Screen/(hfield|bent|plate)/gradient'
+```
+
 Run a different source-buffer size:
 
 ```sh

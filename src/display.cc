@@ -343,7 +343,10 @@ static double intensityFactor = 10.0; /* how much the sound intensity affects th
 static const double minScaleFactor = 0.8;
 static const double maxScaleFactor = 2.0;
 static int splatSize = 1;
+static int splatSampleStep = 1;
 static const int maxSplatSize = 4;
+static const int highResolutionSplatPixelThreshold = 1280 * 960;
+static const int highResolutionMaxSplatSize = 3;
 
 /*
  * rotate vektor p around x/y/z axis (by rot[i])
@@ -368,19 +371,89 @@ void rotate(float p[3], float rot[3], float r[3]) {
 }
 inline float sqr(float a) { return a * a; }
 
-inline void put_3d_pixel(ScreenRenderContext& context, unsigned char* dst, int x,
-    int y, unsigned char color) {
-    if ((x >= -visualBuffer(context).width()) && (x < visualBuffer(context).width()) && (y >= -visualBuffer(context).height()) && (y < visualBuffer(context).height()))
-        dst[y * destinationPitch(context) + x] = color;
+struct SplatTarget {
+    unsigned char* center;
+    int halfWidth;
+    int halfHeight;
+    int pitch;
+    int size;
+    int offset;
+
+    SplatTarget(unsigned char* center_, int halfWidth_, int halfHeight_,
+        int pitch_, int size_)
+        : center(center_)
+        , halfWidth(halfWidth_)
+        , halfHeight(halfHeight_)
+        , pitch(pitch_)
+        , size(size_)
+        , offset((size_ - 1) / 2) {
+    }
+};
+
+inline void write_3d_splat_row(unsigned char* dst, int count,
+    unsigned char color) {
+    switch (count) {
+    case 4:
+        dst[3] = color;
+        /* fall through */
+    case 3:
+        dst[2] = color;
+        /* fall through */
+    case 2:
+        dst[1] = color;
+        /* fall through */
+    case 1:
+        dst[0] = color;
+        break;
+    default:
+        break;
+    }
 }
 
-inline void put_3d_splat(ScreenRenderContext& context, unsigned char* dst, int x,
+inline void put_3d_splat(const SplatTarget& target, int x,
     int y, unsigned char color) {
-    int offset = (splatSize - 1) / 2;
+    if (target.size == 1) {
+        if ((x >= -target.halfWidth) && (x < target.halfWidth)
+            && (y >= -target.halfHeight) && (y < target.halfHeight))
+            target.center[y * target.pitch + x] = color;
+        return;
+    }
 
-    for (int yy = 0; yy < splatSize; yy++)
-        for (int xx = 0; xx < splatSize; xx++)
-            put_3d_pixel(context, dst, x + xx - offset, y + yy - offset, color);
+    int left = x - target.offset;
+    int top = y - target.offset;
+    int right = left + target.size;
+    int bottom = top + target.size;
+
+    if (right <= -target.halfWidth || left >= target.halfWidth
+        || bottom <= -target.halfHeight || top >= target.halfHeight)
+        return;
+
+    if (left >= -target.halfWidth && right <= target.halfWidth
+        && top >= -target.halfHeight && bottom <= target.halfHeight) {
+        unsigned char* row = target.center + top * target.pitch + left;
+        for (int yy = 0; yy < target.size; yy++) {
+            write_3d_splat_row(row, target.size, color);
+            row += target.pitch;
+        }
+        return;
+    }
+
+    if (left < -target.halfWidth)
+        left = -target.halfWidth;
+    if (right > target.halfWidth)
+        right = target.halfWidth;
+    if (top < -target.halfHeight)
+        top = -target.halfHeight;
+    if (bottom > target.halfHeight)
+        bottom = target.halfHeight;
+
+    int count = right - left;
+    unsigned char* row = target.center + top * target.pitch + left;
+
+    for (int yy = top; yy < bottom; yy++) {
+        write_3d_splat_row(row, count, color);
+        row += target.pitch;
+    }
 }
 
 void update_3d_scale_factor(ScreenRenderContext& context) {
@@ -405,9 +478,17 @@ void update_3d_scale_factor(ScreenRenderContext& context) {
     if (splatSize > maxSplatSize)
         splatSize = maxSplatSize;
 
-    CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f\n", "display",
+    int sourcePixels = visualBuffer(context).width() * visualBuffer(context).height();
+    splatSampleStep = 1;
+    if (sourcePixels >= highResolutionSplatPixelThreshold && splatSize >= 3) {
+        splatSampleStep = 2;
+        if (splatSize > highResolutionMaxSplatSize)
+            splatSize = highResolutionMaxSplatSize;
+    }
+
+    CTH_TRACE("update_3d_scale_factor: dt=%.3f, phase=%.3f, scaleFactor=%.3f splat=%d step=%d\n", "display",
         dt, scaleFactorPhase,
-        scaleFactor);
+        scaleFactor, splatSize, splatSampleStep);
     CTH_TRACE("intensity: %.3f\n", "display", intensity);
 }
 
@@ -475,22 +556,29 @@ int screen_hfield(ScreenRenderContext& context) {
     const unsigned char* src = sourcePixels(context);
     unsigned char* dst
         = destinationPixels(context) + visualBuffer(context).width() + destinationPitch(context) * visualBuffer(context).height();
-    int i, j;
+    int width = visualBuffer(context).width();
+    int height = visualBuffer(context).height();
+    int pitch = visualBuffer(context).pitch();
+    int step;
 
     prepare_3d(context, 256);
 
-    for (i = visualBuffer(context).height(); i != 0; i--) {
-        xy t = p;
-        for (j = visualBuffer(context).width(); j != 0; j--) {
-            put_3d_splat(context, dst, (p.x + height_offset[*src].x) >> 16,
-                (p.y + height_offset[*src].y) >> 16, *src | 128);
-            src++;
-            p.x += s1.x;
-            p.y += s1.y;
+    SplatTarget target(dst, width, height, destinationPitch(context), splatSize);
+    step = splatSampleStep;
+
+    xy rowPoint = p;
+    for (int y = 0; y < height; y += step) {
+        xy point = rowPoint;
+        const unsigned char* row = src + y * pitch;
+        for (int x = 0; x < width; x += step) {
+            unsigned char color = row[x];
+            put_3d_splat(target, (point.x + height_offset[color].x) >> 16,
+                (point.y + height_offset[color].y) >> 16, color | 128);
+            point.x += s1.x * step;
+            point.y += s1.y * step;
         }
-        src += visualBuffer(context).pitch() - visualBuffer(context).width();
-        p.x = t.x + s2.x;
-        p.y = t.y + s2.y;
+        rowPoint.x += s2.x * step;
+        rowPoint.y += s2.y * step;
     }
 
     return 0;
@@ -503,8 +591,11 @@ int screen_bent(ScreenRenderContext& context) {
     const unsigned char* src = sourcePixels(context);
     unsigned char* dst
         = destinationPixels(context) + visualBuffer(context).width() + destinationPitch(context) * visualBuffer(context).height();
-    int i, j;
-    static std::vector<int> height;
+    int width = visualBuffer(context).width();
+    int sourceHeight = visualBuffer(context).height();
+    int pitch = visualBuffer(context).pitch();
+    int step;
+    static std::vector<int> bendHeight;
     static float t = 0;
     static float h = 0.0;
     static float stp = 0.0;
@@ -513,25 +604,30 @@ int screen_bent(ScreenRenderContext& context) {
 
     h = h * 0.95 + (min((2 * audioAmplitude(context)), 120)) * 0.05;
 
-    height.resize(visualBuffer(context).width() + 1);
-    for (i = visualBuffer(context).width(); i != 0; i--) {
-        height[i] = (int)(h * sin(t) * sin((double)(i) / (double)visualBuffer(context).width() * 3.0 * M_PI)) + 128;
+    bendHeight.resize(width + 1);
+    for (int i = width; i != 0; i--) {
+        bendHeight[i] = (int)(h * sin(t) * sin((double)(i) / (double)width * 3.0 * M_PI)) + 128;
     }
     stp = stp * 0.95 + max(int(visualFramesPerSecond(context) * 2), 1) * 0.05;
     t += 4.0 / stp;
 
-    for (i = visualBuffer(context).height(); i != 0; i--) {
-        xy t = p;
-        for (j = visualBuffer(context).width(); j != 0; j--) {
-            put_3d_splat(context, dst, (p.x + height_offset[height[j]].x) >> 16,
-                (p.y + height_offset[height[j]].y) >> 16, *src | 128);
-            src++;
-            p.x += s1.x;
-            p.y += s1.y;
+    SplatTarget target(dst, width, sourceHeight, destinationPitch(context), splatSize);
+    step = splatSampleStep;
+
+    xy rowPoint = p;
+    for (int y = 0; y < sourceHeight; y += step) {
+        xy point = rowPoint;
+        const unsigned char* row = src + y * pitch;
+        for (int x = 0; x < width; x += step) {
+            int heightIndex = width - x;
+            unsigned char color = row[x];
+            put_3d_splat(target, (point.x + height_offset[bendHeight[heightIndex]].x) >> 16,
+                (point.y + height_offset[bendHeight[heightIndex]].y) >> 16, color | 128);
+            point.x += s1.x * step;
+            point.y += s1.y * step;
         }
-        src += visualBuffer(context).pitch() - visualBuffer(context).width();
-        p.x = t.x + s2.x;
-        p.y = t.y + s2.y;
+        rowPoint.x += s2.x * step;
+        rowPoint.y += s2.y * step;
     }
 
     return 0;
@@ -544,21 +640,27 @@ int screen_plate(ScreenRenderContext& context) {
     const unsigned char* src = sourcePixels(context);
     unsigned char* dst
         = destinationPixels(context) + visualBuffer(context).width() + destinationPitch(context) * visualBuffer(context).height();
-    int i, j;
+    int width = visualBuffer(context).width();
+    int height = visualBuffer(context).height();
+    int pitch = visualBuffer(context).pitch();
+    int step;
 
     prepare_3d(context, 1);
 
-    for (i = visualBuffer(context).height(); i != 0; i--) {
-        xy t = p;
-        for (j = visualBuffer(context).width(); j != 0; j--) {
-            put_3d_splat(context, dst, p.x >> 16, p.y >> 16, *src | 128);
-            src++;
-            p.x += s1.x;
-            p.y += s1.y;
+    SplatTarget target(dst, width, height, destinationPitch(context), splatSize);
+    step = splatSampleStep;
+
+    xy rowPoint = p;
+    for (int y = 0; y < height; y += step) {
+        xy point = rowPoint;
+        const unsigned char* row = src + y * pitch;
+        for (int x = 0; x < width; x += step) {
+            put_3d_splat(target, point.x >> 16, point.y >> 16, row[x] | 128);
+            point.x += s1.x * step;
+            point.y += s1.y * step;
         }
-        src += visualBuffer(context).pitch() - visualBuffer(context).width();
-        p.x = t.x + s2.x;
-        p.y = t.y + s2.y;
+        rowPoint.x += s2.x * step;
+        rowPoint.y += s2.y * step;
     }
 
     return 0;

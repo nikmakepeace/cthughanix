@@ -1,4 +1,5 @@
 #include "AudioAnalyzer.h"
+#include "FrameRenderContext.h"
 #include "IndexedDisplayFrame.h"
 #include "IndexedFrame.h"
 #include "Screen.h"
@@ -24,11 +25,13 @@ const int kMaxBenchmarkDimension = 4096;
 struct DisplayScreensBenchConfig {
     int width;
     int height;
+    double acousticIntensity;
     std::string patternList;
 
     DisplayScreensBenchConfig()
         : width(kDefaultWidth)
         , height(kDefaultHeight)
+        , acousticIntensity(0.0)
         , patternList("zero,gradient,noise") { }
 };
 
@@ -67,6 +70,16 @@ int parseSize(const char* value, int& width, int& height) {
     return 1;
 }
 
+int parseDouble(const char* value, double& parsed) {
+    char* end = NULL;
+    double result = strtod(value, &end);
+    if (end == value || *end != '\0')
+        return 0;
+
+    parsed = result;
+    return 1;
+}
+
 void parseDisplayScreensArgs(int* argc, char** argv) {
     int output = 1;
 
@@ -82,6 +95,11 @@ void parseDisplayScreensArgs(int* argc, char** argv) {
             config().height = height;
         } else if (strncmp(arg, "--cth-patterns=", 15) == 0) {
             config().patternList = arg + 15;
+        } else if (strncmp(arg, "--cth-intensity=", 16) == 0) {
+            double intensity = 0.0;
+            if (!parseDouble(arg + 16, intensity) || intensity < 0.0)
+                failConfiguration("expected --cth-intensity=NON_NEGATIVE_VALUE");
+            config().acousticIntensity = intensity;
         } else {
             argv[output++] = argv[i];
         }
@@ -200,13 +218,16 @@ static void BM_Screen(benchmark::State& state, ScreenEntry* entry,
     initializeDestination(destination, *entry);
 
     IndexedFrame source = fixture->frame();
+    AcousticContext acousticContext;
+    FrameRenderContext frameContext;
+    frameContext.acousticContext = &acousticContext;
     double frameTime = 0.0;
     const double deltaTime = 1.0 / 60.0;
     int result = 0;
 
     for (auto _ : state) {
         ScreenRenderContext context(source, destination, frameTime, deltaTime,
-            60.0);
+            60.0, frameContext);
         result = entry->render(context);
         benchmark::DoNotOptimize(result);
         benchmark::DoNotOptimize(destination.pixels()[0]);
@@ -288,7 +309,7 @@ void AcousticContext::update(const AudioMetrics&) {
 }
 
 double AcousticContext::intensity() const {
-    return 0.0;
+    return config().acousticIntensity;
 }
 
 int AcousticContext::fire() const {

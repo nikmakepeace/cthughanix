@@ -100,6 +100,7 @@ add_executable(display_screens_bench
     DisplayScreensBench.cc
     ${CMAKE_SOURCE_DIR}/src/EffectChoice.cc
     ${CMAKE_SOURCE_DIR}/src/EffectControl.cc
+    ${CMAKE_SOURCE_DIR}/src/FrameRenderContext.cc
     ${CMAKE_SOURCE_DIR}/src/IndexedDisplayFrame.cc
     ${CMAKE_SOURCE_DIR}/src/Option.cc
     ${CMAKE_SOURCE_DIR}/src/OptionInt.cc
