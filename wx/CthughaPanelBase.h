@@ -48,13 +48,14 @@ class CthughaPanelBase : public wxFrame
 		wxCheckBox* m_flashlight_checkBox;
 		wxCheckBox* m_autoChange_checkBox;
 		wxGauge* m_fireLevel_gauge;
+		wxChoice* m_fireSource_choice;
 		wxSlider* m_fireThreshold_slider;
 		wxSlider* m_fireSensitivity_slider;
 		wxSpinCtrl* m_maxFps_spinCtrl;
 
 	public:
 
-		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 460,760 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
+		CthughaPanelBase( wxWindow* parent, wxWindowID id = wxID_ANY, const wxString& title = wxEmptyString, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxSize( 460,800 ), long style = wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL );
 
 		~CthughaPanelBase();
 

@@ -64,6 +64,7 @@ static void testApplicationContributorSnapshotsApplicationOwnedSettings() {
     OwnedAutoChangeSettings autoChangeSettings(autoChange);
     AcousticContext acousticContext;
     acousticContext.setFireSensitivity(42);
+    acousticContext.setFireSource("low-pass-150hz-amplitude");
     OptionTime quietMessageOption("quiet-message", 0);
     quietMessageOption.setValue(1234);
     ApplicationRuntimeConfigContributor contributor(
@@ -78,6 +79,7 @@ static void testApplicationContributorSnapshotsApplicationOwnedSettings() {
     assert(config.autoChange.locked == 1);
     assert(config.autoChange.changeLittle == 1);
     assert(config.audioAnalysis.fireSensitivity == 42);
+    assert(config.audioAnalysis.fireSource == "low-pass-150hz-amplitude");
     assert(config.messages.quietMessageMs == 1234);
 }
 
@@ -105,6 +107,7 @@ static void testRegistryComposesModuleContributors() {
     OwnedAutoChangeSettings autoChangeSettings(autoChange);
     AcousticContext acousticContext;
     acousticContext.setFireSensitivity(54);
+    acousticContext.setFireSource("low-pass-150hz-amplitude");
     OptionTime quietMessageOption("quiet-message", 0);
     quietMessageOption.setValue(750);
     ApplicationRuntimeConfigContributor appContributor(
@@ -119,6 +122,7 @@ static void testRegistryComposesModuleContributors() {
     assert(current.scene.audioProcessing == "FFT");
     assert(current.autoChange.quietMs == 1500);
     assert(current.audioAnalysis.fireSensitivity == 54);
+    assert(current.audioAnalysis.fireSource == "low-pass-150hz-amplitude");
     assert(current.messages.quietMessageMs == 750);
 }
 

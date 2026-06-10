@@ -40,6 +40,13 @@ public:
     virtual void changeFireSensitivityTo(int sensitivity) = 0;
 
     /**
+     * Sets the fire detection source.
+     *
+     * @param to Stable fire source name.
+     */
+    virtual void changeFireSourceTo(const char* to) = 0;
+
+    /**
      * Attempts to change an audio-processing option by relative offset.
      *
      * @param option Option to inspect and possibly change.
@@ -103,6 +110,13 @@ public:
      * @param sensitivity 0..100, where lower values suppress smaller bursts.
      */
     virtual void changeFireSensitivityTo(int sensitivity);
+
+    /**
+     * Sets the fire detection source.
+     *
+     * @param to Stable fire source name.
+     */
+    virtual void changeFireSourceTo(const char* to);
 
     /**
      * Attempts to change an audio-processing option by relative offset.

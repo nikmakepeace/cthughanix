@@ -11,6 +11,11 @@
 
 class LogSink;
 
+enum AcousticFireSource {
+    AcousticFireSourceRawAmplitude,
+    AcousticFireSourceLowPass150HzAmplitude
+};
+
 /** Rolling acoustic state derived from consecutive AudioFrame metrics. */
 class AcousticContext {
     LogSink* log;
@@ -20,6 +25,7 @@ class AcousticContext {
     int fireValue;
     int cumulativeFireLevelValue;
     int fireSensitivityValue;
+    AcousticFireSource fireSourceValue;
 
 public:
     /**
@@ -49,6 +55,27 @@ public:
 
     /** @return Fire detection sensitivity in the range 0..100. */
     int fireSensitivity() const;
+
+    /**
+     * Sets the metric source used by fire detection.
+     *
+     * @param source Source enum value.
+     */
+    void setFireSource(AcousticFireSource source);
+
+    /**
+     * Sets the metric source used by fire detection by stable config name.
+     *
+     * @param sourceName Stable source name.
+     * @return Nonzero when sourceName selected a known source.
+     */
+    int setFireSource(const char* sourceName);
+
+    /** @return Source used by fire detection. */
+    AcousticFireSource fireSource() const;
+
+    /** @return Stable config/protocol name for fireSource(). */
+    const char* fireSourceName() const;
 
     /**
      * @return Smoothed audio intensity, roughly normalized against 8-bit samples.

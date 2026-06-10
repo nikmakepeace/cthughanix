@@ -5,6 +5,7 @@
 #include "ControlSnapshot.h"
 
 #include "Configuration.h"
+#include "configuration_defaults.h"
 #include "ControlDisplayCatalogs.h"
 #include "RuntimeConfigRegistry.h"
 #include "SceneChoiceSelection.h"
@@ -78,6 +79,27 @@ static ControlJsonValue audioProcessingCatalog() {
     return entries;
 }
 
+static ControlJsonValue fireSourceCatalog() {
+    ControlJsonValue entries = ControlJsonValue::arrayValueOf();
+    const char* names[] = {
+        AUDIO_ANALYSIS_FIRE_SOURCE_RAW_AMPLITUDE_TEXT,
+        AUDIO_ANALYSIS_FIRE_SOURCE_LOW_PASS_150HZ_AMPLITUDE_TEXT
+    };
+    const char* labels[] = {
+        "Raw amplitude",
+        "150 Hz low-pass amplitude"
+    };
+    for (int i = 0; i < int(sizeof(names) / sizeof(names[0])); i++) {
+        ControlJsonValue entry = ControlJsonValue::objectValueOf();
+        entry.set("index", ControlJsonValue::numberValueOf(i));
+        entry.set("name", ControlJsonValue::stringValueOf(names[i]));
+        entry.set("label", ControlJsonValue::stringValueOf(labels[i]));
+        entry.set("inUse", ControlJsonValue::boolValueOf(true));
+        entries.append(entry);
+    }
+    return entries;
+}
+
 static ControlJsonValue screenCatalog(
     const ControlDisplayCatalogs& displayCatalogs) {
     ControlJsonValue entries = ControlJsonValue::arrayValueOf();
@@ -129,6 +151,8 @@ ControlJsonValue buildControlStateSnapshot(
         ControlJsonValue::numberValueOf(metrics.cumulativeFireLevel));
     audio.set("fireSensitivity",
         ControlJsonValue::numberValueOf(config.audioAnalysis.fireSensitivity));
+    audio.set("fireSource",
+        ControlJsonValue::stringValueOf(config.audioAnalysis.fireSource));
 
     ControlJsonValue autoChange = ControlJsonValue::objectValueOf();
     autoChange.set("enabled",
@@ -164,6 +188,7 @@ ControlJsonValue buildControlCatalogSnapshot(
     addCatalog(targets, "scene.palette", selections.palette());
     addCatalog(targets, "scene.flashlight", selections.flashlight());
     targets.set("audio.processing", audioProcessingCatalog());
+    targets.set("audio.fireSource", fireSourceCatalog());
     targets.set("display.screen", screenCatalog(displayCatalogs));
 
     ControlJsonValue message = ControlJsonValue::objectValueOf();

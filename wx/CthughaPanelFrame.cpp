@@ -138,6 +138,8 @@ void CthughaPanelFrame::bindControlEvents() {
         &CthughaPanelFrame::onChoiceChanged, this);
     m_soundProcessing_choice->Bind(wxEVT_CHOICE,
         &CthughaPanelFrame::onChoiceChanged, this);
+    m_fireSource_choice->Bind(wxEVT_CHOICE,
+        &CthughaPanelFrame::onChoiceChanged, this);
     m_palette_choice->Bind(wxEVT_CHOICE,
         &CthughaPanelFrame::onChoiceChanged, this);
     m_flashlight_checkBox->Bind(wxEVT_CHECKBOX,
@@ -163,6 +165,7 @@ void CthughaPanelFrame::setControlsEnabled(int enabled) {
     m_waveScale_choice->Enable(enabled != 0);
     m_screen_choice->Enable(enabled != 0);
     m_soundProcessing_choice->Enable(enabled != 0);
+    m_fireSource_choice->Enable(enabled != 0);
     m_palette_choice->Enable(enabled != 0);
     m_flashlight_checkBox->Enable(enabled != 0);
     m_autoChange_checkBox->Enable(enabled != 0);
@@ -286,6 +289,7 @@ void CthughaPanelFrame::applyCatalogs(const ControlJsonValue& message) {
     updateCatalogForTarget("display.screen", m_screen_choice, *targets);
     updateCatalogForTarget("audio.processing", m_soundProcessing_choice,
         *targets);
+    updateCatalogForTarget("audio.fireSource", m_fireSource_choice, *targets);
     updateCatalogForTarget("scene.palette", m_palette_choice, *targets);
     updatingControls = 0;
 }
@@ -313,6 +317,8 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
         stringMember(display, "screen"));
     selectChoiceValue("audio.processing", m_soundProcessing_choice,
         stringMember(audio, "processing"));
+    selectChoiceValue("audio.fireSource", m_fireSource_choice,
+        stringMember(audio, "fireSource"));
     selectChoiceValue("scene.palette", m_palette_choice,
         stringMember(scene, "palette"));
     m_flashlight_checkBox->SetValue(
@@ -425,6 +431,8 @@ std::string CthughaPanelFrame::targetForChoice(wxChoice* choice) const {
         return "display.screen";
     if (choice == m_soundProcessing_choice)
         return "audio.processing";
+    if (choice == m_fireSource_choice)
+        return "audio.fireSource";
     if (choice == m_palette_choice)
         return "scene.palette";
     return "";

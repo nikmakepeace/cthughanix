@@ -52,5 +52,6 @@ ApplicationRuntimeConfigContributor::ApplicationRuntimeConfigContributor(
 void ApplicationRuntimeConfigContributor::contribute(Config& config) const {
     config.autoChange = autoChangeSettings.config();
     config.audioAnalysis.fireSensitivity = acousticContext.fireSensitivity();
+    config.audioAnalysis.fireSource = acousticContext.fireSourceName();
     config.messages.quietMessageMs = int(quietMessageOption);
 }

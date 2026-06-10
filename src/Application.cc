@@ -292,7 +292,10 @@ void Application::initSceneRuntime() {
     runtimeConfigRegistryValue.reset(new RuntimeConfigRegistry(startupConfigValue));
     acousticContextValue.setFireSensitivity(
         startupConfigValue.audioAnalysis.fireSensitivity);
-    audioProcessorValue.reset(new AudioProcessor());
+    acousticContextValue.setFireSource(
+        startupConfigValue.audioAnalysis.fireSource.c_str());
+    audioProcessorValue.reset(
+        new AudioProcessor(startupConfigValue.audio.sampleRateHz));
     audioProcessingStateValue.reset(new AudioProcessingState(randomSourceValue));
     audioProcessingSelectorValue.reset(
         new AudioProcessingSelector(*audioProcessingStateValue,

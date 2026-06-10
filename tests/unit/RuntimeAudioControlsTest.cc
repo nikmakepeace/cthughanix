@@ -221,11 +221,38 @@ static void testFireSensitivityMutatesAcousticContext() {
     assert(acousticContext.fireSensitivity() == 0);
 }
 
+static void testFireSourceMutatesAcousticContextAndFireInput() {
+    AudioProcessor processor;
+    FakeRandomSource randomSource;
+    FakeLogSink log;
+    AudioProcessingState state(randomSource);
+    AudioProcessingSelector selector(state, processor, log);
+    AcousticContext acousticContext;
+    DefaultRuntimeAudioControls controls(selector, acousticContext);
+    AudioMetrics metrics;
+
+    assert(strcmp(acousticContext.fireSourceName(), "raw-amplitude") == 0);
+    controls.changeFireSourceTo("low-pass-150hz-amplitude");
+    assert(strcmp(acousticContext.fireSourceName(),
+        "low-pass-150hz-amplitude") == 0);
+
+    metrics.amplitude = 0;
+    metrics.lowPass150HzAmplitude = 12;
+    acousticContext.update(metrics);
+    metrics.lowPass150HzAmplitude = 6;
+    acousticContext.update(metrics);
+    assert(acousticContext.fire() == 12);
+
+    controls.changeFireSourceTo("raw-amplitude");
+    assert(strcmp(acousticContext.fireSourceName(), "raw-amplitude") == 0);
+}
+
 int main() {
     testDirectCommandsChangeOnlyAudioProcessing();
     testGenericOptionRoutingClaimsOnlyAudioProcessing();
     testGenericOptionRoutingClaimsMixerOptionsAsUiChanges();
     testUnknownAudioProcessingSelectionUsesInjectedRandomSource();
     testFireSensitivityMutatesAcousticContext();
+    testFireSourceMutatesAcousticContextAndFireInput();
     return 0;
 }

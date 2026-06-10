@@ -197,6 +197,7 @@ static Config sampleConfig() {
     config.scene.audioProcessing = "none";
     config.display.maxFramesPerSecond = 25;
     config.audioAnalysis.fireSensitivity = 100;
+    config.audioAnalysis.fireSource = "raw-amplitude";
     config.autoChange.cumulativeFireLevel = 1000;
     return config;
 }
@@ -242,6 +243,10 @@ public:
             changes.audioProcessingChanged = 1;
         } else if (command.type == RuntimeCommandChangeFireSensitivityTo) {
             configValue.audioAnalysis.fireSensitivity = command.value;
+            registry.setBaseline(configValue);
+            changes.audioProcessingChanged = 1;
+        } else if (command.type == RuntimeCommandChangeFireSourceTo) {
+            configValue.audioAnalysis.fireSource = lastText;
             registry.setBaseline(configValue);
             changes.audioProcessingChanged = 1;
         } else if (command.type == RuntimeCommandChangeScreenTo) {
@@ -352,6 +357,15 @@ static int latestStateAudioFireSensitivity(
     const ControlJsonValue* sensitivity
         = audio != 0 ? audio->member("fireSensitivity") : 0;
     return sensitivity != 0 ? int(sensitivity->asNumber(fallback)) : fallback;
+}
+
+static std::string latestStateAudioFireSource(
+    const ObservedMessages& observed) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* audio = state != 0 ? state->member("audio") : 0;
+    const ControlJsonValue* source
+        = audio != 0 ? audio->member("fireSource") : 0;
+    return source != 0 ? source->asString() : "";
 }
 
 static int latestAckId(const ObservedMessages& observed) {
@@ -475,6 +489,15 @@ static void testServiceClientSynchronizesBothDirections() {
     assert(runtimeSink.lastValue == 37);
     assert(latestAckId(observed) == id);
     assert(latestStateAudioFireSensitivity(observed, -1) == 37);
+
+    id = client.sendSet("audio.fireSource", "low-pass-150hz-amplitude");
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 6);
+    assert(runtimeSink.lastType == RuntimeCommandChangeFireSourceTo);
+    assert(runtimeSink.lastText == "low-pass-150hz-amplitude");
+    assert(latestAckId(observed) == id);
+    assert(latestStateAudioFireSource(observed)
+        == "low-pass-150hz-amplitude");
 
     runtimeSink.setAppFlame("second");
     service.runtimeStateChanged();

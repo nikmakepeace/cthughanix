@@ -118,6 +118,8 @@ static const char* KEY_AUTO_CHANGE_CHANGE_LITTLE = "auto_change.change_little";
 static const char* KEY_AUDIO_ANALYSIS_MIN_NOISE = "audio_analysis.min_noise";
 static const char* KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY
     = "audio_analysis.fire_sensitivity";
+static const char* KEY_AUDIO_ANALYSIS_FIRE_SOURCE
+    = "audio_analysis.fire_source";
 static const char* KEY_MESSAGES_QUIET_MESSAGE_MS
     = "messages.quiet_message_ms";
 static const char* KEY_MESSAGES_QUIET_MESSAGE_DURATION_MS
@@ -207,6 +209,24 @@ static bool parseDisplayDriverId(const std::string& text,
     }
     if (cleaned == "sdl3") {
         *driver = DisplayDriverSDL3;
+        return true;
+    }
+
+    return false;
+}
+
+static bool normalizeFireSourceName(
+    const std::string& text, std::string* normalized) {
+    std::string cleaned = lowercase(trim(text));
+    if (cleaned == AUDIO_ANALYSIS_FIRE_SOURCE_RAW_AMPLITUDE_TEXT
+        || cleaned == "raw" || cleaned == "amplitude") {
+        *normalized = AUDIO_ANALYSIS_FIRE_SOURCE_RAW_AMPLITUDE_TEXT;
+        return true;
+    }
+    if (cleaned == AUDIO_ANALYSIS_FIRE_SOURCE_LOW_PASS_150HZ_AMPLITUDE_TEXT
+        || cleaned == "low-pass-150hz" || cleaned == "lowpass150hz"
+        || cleaned == "150hz-low-pass") {
+        *normalized = AUDIO_ANALYSIS_FIRE_SOURCE_LOW_PASS_150HZ_AMPLITUDE_TEXT;
         return true;
     }
 
@@ -683,6 +703,8 @@ static void applyIniOption(ConfigPatch& patch, DeferredLogBuffer& diagnostics,
         patch.set(KEY_AUDIO_ANALYSIS_MIN_NOISE, cleanedValue, source);
     } else if (key == "fire-sensitivity") {
         patch.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, cleanedValue, source);
+    } else if (key == "fire-source") {
+        patch.set(KEY_AUDIO_ANALYSIS_FIRE_SOURCE, cleanedValue, source);
     } else if (key == "msg-time" || key == "change-msg-time") {
         patch.set(KEY_MESSAGES_QUIET_MESSAGE_MS, cleanedValue, source);
     } else if (key == "quiet-file") {
@@ -1218,6 +1240,14 @@ static void applyCommandLineOption(ConfigPatch& patch,
                 "command line");
     } else if (startsWith(arg, "--fire-sensitivity=")) {
         patch.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, arg.substr(19),
+            "command line");
+    } else if (arg == "--fire-source") {
+        std::string value;
+        if (readOptionValue(args, index, arg, &value, diagnostics))
+            patch.set(KEY_AUDIO_ANALYSIS_FIRE_SOURCE, value,
+                "command line");
+    } else if (startsWith(arg, "--fire-source=")) {
+        patch.set(KEY_AUDIO_ANALYSIS_FIRE_SOURCE, arg.substr(14),
             "command line");
     } else if (arg == "--msg-time") {
         std::string value;
@@ -2310,7 +2340,8 @@ AutoChangeConfig::AutoChangeConfig()
 
 AudioAnalysisConfig::AudioAnalysisConfig()
     : minNoise(AUDIO_ANALYSIS_CONFIG_DEFAULT_MIN_NOISE)
-    , fireSensitivity(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SENSITIVITY) { }
+    , fireSensitivity(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SENSITIVITY)
+    , fireSource(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SOURCE_TEXT) { }
 
 EffectChoicePolicy::EffectChoicePolicy()
     : catalogEntryKey()
@@ -2613,6 +2644,15 @@ Config ConfigSchema::build(const ConfigPatch& patch,
     applyClampedIntEntry(patch, diagnostics,
         KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY, 0, 100,
         &config.audioAnalysis.fireSensitivity);
+    if (const ConfigEntry* entry = patch.entry(KEY_AUDIO_ANALYSIS_FIRE_SOURCE)) {
+        std::string fireSource;
+        if (normalizeFireSourceName(entry->value, &fireSource)) {
+            config.audioAnalysis.fireSource = fireSource;
+        } else {
+            diagnostics.error(entry->source, entry->key,
+                "expected one of: raw-amplitude, low-pass-150hz-amplitude");
+        }
+    }
 
     applyMinimumIntEntry(patch, diagnostics, KEY_MESSAGES_QUIET_MESSAGE_MS,
         0, &config.messages.quietMessageMs);
@@ -2916,6 +2956,8 @@ ConfigPatch hardcodedDefaultConfigPatch() {
     defaults.set(KEY_AUDIO_ANALYSIS_FIRE_SENSITIVITY,
         integerText(AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SENSITIVITY),
         "defaults");
+    defaults.set(KEY_AUDIO_ANALYSIS_FIRE_SOURCE,
+        AUDIO_ANALYSIS_CONFIG_DEFAULT_FIRE_SOURCE_TEXT, "defaults");
     defaults.set(KEY_MESSAGES_QUIET_MESSAGE_MS,
         integerText(MESSAGES_CONFIG_DEFAULT_QUIET_MESSAGE_MS), "defaults");
     defaults.set(KEY_MESSAGES_QUIET_MESSAGE_DURATION_MS,

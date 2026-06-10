@@ -17,7 +17,7 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	bSizer3 = new wxBoxSizer( wxVERTICAL );
 
 	m_scrolledWindow1 = new wxScrolledWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL|wxVSCROLL );
-	m_scrolledWindow1->SetMinSize( wxSize( 420,680 ) );
+	m_scrolledWindow1->SetMinSize( wxSize( 420,720 ) );
 
 	m_scrolledWindow1->SetScrollRate( 5, 5 );
 	wxFlexGridSizer* fgSizer2;
@@ -160,6 +160,18 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_fireLevel_gauge->SetMinSize( wxSize( 180,-1 ) );
 
 	fgSizer2->Add( m_fireLevel_gauge, 0, wxALL|wxEXPAND, 5 );
+
+	wxStaticText* m_staticText21;
+	m_staticText21 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire source"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_staticText21->Wrap( -1 );
+	fgSizer2->Add( m_staticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+
+	wxArrayString m_fireSource_choiceChoices;
+	m_fireSource_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_fireSource_choiceChoices, 0 );
+	m_fireSource_choice->SetMinSize( wxSize( 180,-1 ) );
+
+	m_fireSource_choice->SetSelection( 0 );
+	fgSizer2->Add( m_fireSource_choice, 0, wxALL|wxEXPAND, 5 );
 
 	wxStaticText* m_staticText19;
 	m_staticText19 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire threshold"), wxDefaultPosition, wxDefaultSize, 0 );

@@ -294,6 +294,8 @@ struct AudioAnalysisConfig {
     int minNoise;
     /** Fire detection sensitivity; lower values suppress smaller bursts. */
     int fireSensitivity;
+    /** Fire detection metric source. */
+    std::string fireSource;
 
     /** Creates audio-analysis configuration with default values. */
     AudioAnalysisConfig();

@@ -68,6 +68,11 @@ static void testRuntimeCommandFactoriesCaptureIntent() {
     assert(fireSensitivity.type == RuntimeCommandChangeFireSensitivityTo);
     assert(fireSensitivity.value == 37);
 
+    RuntimeCommand fireSource
+        = RuntimeCommand::changeFireSourceTo("low-pass-150hz-amplitude");
+    assert(fireSource.type == RuntimeCommandChangeFireSourceTo);
+    assert(strcmp(fireSource.text, "low-pass-150hz-amplitude") == 0);
+
     RuntimeCommand cumulativeFire
         = RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(420);
     assert(cumulativeFire.type

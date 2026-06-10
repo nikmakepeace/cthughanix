@@ -28,6 +28,10 @@ void DefaultRuntimeAudioControls::changeFireSensitivityTo(int sensitivity) {
     acousticContext.setFireSensitivity(sensitivity);
 }
 
+void DefaultRuntimeAudioControls::changeFireSourceTo(const char* to) {
+    acousticContext.setFireSource(to);
+}
+
 int DefaultRuntimeAudioControls::changeAudioOptionBy(
     Option& option, int by, RuntimeChangeSet& changes) {
     if (&option != &audioProcessingSelector.option())

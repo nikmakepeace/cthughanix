@@ -59,6 +59,21 @@ static void testMapsFireSensitivityCommand() {
     assert(mapped.command.value == 37);
 }
 
+static void testMapsFireSourceCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\",\"target\":\"audio.fireSource\","
+        "\"value\":\"low-pass-150hz-amplitude\"}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type == RuntimeCommandChangeFireSourceTo);
+    assert(strcmp(mapped.command.text, "low-pass-150hz-amplitude") == 0);
+    assert(mapped.textStorage == "low-pass-150hz-amplitude");
+}
+
 static void testMapsMaxFpsCommand() {
     ControlMappedCommand mapped;
     std::string code;
@@ -147,6 +162,7 @@ int main() {
     testMapsSceneSetCommand();
     testMapsAudioProcessingCommand();
     testMapsFireSensitivityCommand();
+    testMapsFireSourceCommand();
     testMapsMaxFpsCommand();
     testMapsScreenCommand();
     testMapsAutoChangeEnabledCommand();

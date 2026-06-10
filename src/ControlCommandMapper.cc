@@ -216,6 +216,15 @@ bool controlCommandFromJson(const ControlJsonValue& message,
         return true;
     }
 
+    if (targetName == "audio.fireSource") {
+        if (!readTextValue(message, &command->textStorage, errorCode,
+                errorMessage))
+            return false;
+        command->command = RuntimeCommand::changeFireSourceTo(
+            command->textStorage.c_str());
+        return true;
+    }
+
     if (targetName == "display.maxFps") {
         int value = 0;
         if (!readIntValue(message, &value, errorCode, errorMessage))

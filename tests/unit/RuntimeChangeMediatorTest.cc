@@ -454,6 +454,8 @@ public:
     const char* lastSoundTo;
     int fireSensitivityToCalls;
     int lastFireSensitivity;
+    int fireSourceToCalls;
+    const char* lastFireSource;
     int audioOptionByCalls;
     int audioOptionToCalls;
     int handlesAudioOption;
@@ -469,6 +471,8 @@ public:
         , lastSoundTo(0)
         , fireSensitivityToCalls(0)
         , lastFireSensitivity(0)
+        , fireSourceToCalls(0)
+        , lastFireSource(0)
         , audioOptionByCalls(0)
         , audioOptionToCalls(0)
         , handlesAudioOption(0)
@@ -490,6 +494,11 @@ public:
     virtual void changeFireSensitivityTo(int sensitivity) {
         fireSensitivityToCalls++;
         lastFireSensitivity = sensitivity;
+    }
+
+    virtual void changeFireSourceTo(const char* to) {
+        fireSourceToCalls++;
+        lastFireSource = to;
     }
 
     virtual int changeAudioOptionBy(
@@ -772,6 +781,14 @@ static void testReportsNonSceneRuntimeChanges() {
     assert(fireSensitivity.audioProcessingChanged == 1);
     assert(harness.audioControls.fireSensitivityToCalls == 1);
     assert(harness.audioControls.lastFireSensitivity == 37);
+
+    RuntimeChangeSet fireSource
+        = harness.mediator.apply(RuntimeCommand::changeFireSourceTo(
+            "low-pass-150hz-amplitude"));
+    assert(fireSource.audioProcessingChanged == 1);
+    assert(harness.audioControls.fireSourceToCalls == 1);
+    assert(strcmp(harness.audioControls.lastFireSource,
+        "low-pass-150hz-amplitude") == 0);
 
     RuntimeChangeSet autoChange
         = harness.mediator.apply(RuntimeCommand::toggleAutoChangeLock());

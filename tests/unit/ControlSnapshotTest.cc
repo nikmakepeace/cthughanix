@@ -138,6 +138,7 @@ static Config sampleConfig() {
     config.display.showFpsEnabled = 1;
     config.display.zoomMode = 2;
     config.audioAnalysis.fireSensitivity = 73;
+    config.audioAnalysis.fireSource = "low-pass-150hz-amplitude";
     config.autoChange.locked = 1;
     config.autoChange.changeLittle = 0;
     config.autoChange.cumulativeFireLevel = 500;
@@ -160,6 +161,8 @@ static void testStateSnapshotUsesRuntimeConfig() {
     assert(state.member("audio")->member("fire")->asNumber() == 9);
     assert(state.member("audio")->member("cumulativeFireLevel")->asNumber() == 123);
     assert(state.member("audio")->member("fireSensitivity")->asNumber() == 73);
+    assert(state.member("audio")->member("fireSource")->asString()
+        == "low-pass-150hz-amplitude");
     assert(state.member("autoChange")->member("locked")->asBool() == true);
     assert(state.member("autoChange")->member("enabled")->asBool() == false);
     assert(state.member("autoChange")->member("cumulativeFireLevel")->asNumber() == 500);
@@ -181,6 +184,10 @@ static void testCatalogSnapshotUsesSelections() {
     assert(flames->asArray()[0].member("current")->asBool() == true);
     assert(flames->asArray()[1].member("inUse")->asBool() == false);
     assert(targets->member("audio.processing")->asArray().size() == 4);
+    assert(targets->member("audio.fireSource")->asArray().size() == 2);
+    assert(targets->member("audio.fireSource")->asArray()[1]
+        .member("name")->asString()
+        == "low-pass-150hz-amplitude");
     assert(targets->member("display.screen")->asArray().size() == 2);
     assert(targets->member("display.screen")->asArray()[1]
         .member("name")->asString()

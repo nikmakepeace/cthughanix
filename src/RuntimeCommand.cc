@@ -101,6 +101,12 @@ RuntimeCommand RuntimeCommand::changeFireSensitivityTo(int sensitivity) {
     return command;
 }
 
+RuntimeCommand RuntimeCommand::changeFireSourceTo(const char* to) {
+    RuntimeCommand command(RuntimeCommandChangeFireSourceTo);
+    command.text = to;
+    return command;
+}
+
 RuntimeCommand RuntimeCommand::toggleAutoChangeLock() {
     return RuntimeCommand(RuntimeCommandToggleAutoChangeLock);
 }

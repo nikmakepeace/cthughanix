@@ -40,6 +40,7 @@ enum RuntimeCommandType {
     RuntimeCommandChangeSoundProcessingBy,
     RuntimeCommandChangeSoundProcessingTo,
     RuntimeCommandChangeFireSensitivityTo,
+    RuntimeCommandChangeFireSourceTo,
     RuntimeCommandToggleAutoChangeLock,
     RuntimeCommandChangeAutoChangeLockTo,
     RuntimeCommandChangeAutoChangeCumulativeFireLevelTo,
@@ -213,6 +214,14 @@ struct RuntimeCommand {
      * @return Runtime command.
      */
     static RuntimeCommand changeFireSensitivityTo(int sensitivity);
+
+    /**
+     * Creates an absolute fire-source change command.
+     *
+     * @param to Stable fire source name.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changeFireSourceTo(const char* to);
 
     /**
      * Creates an auto-change lock toggle command.

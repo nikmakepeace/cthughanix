@@ -138,6 +138,10 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
         audioControls.changeFireSensitivityTo(command.value);
         changes.audioProcessingChanged = 1;
         break;
+    case RuntimeCommandChangeFireSourceTo:
+        audioControls.changeFireSourceTo(command.text);
+        changes.audioProcessingChanged = 1;
+        break;
     case RuntimeCommandToggleAutoChangeLock:
         autoChangeControls.toggleLock();
         changes.autoChangeChanged = 1;
