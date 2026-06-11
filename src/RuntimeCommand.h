@@ -45,6 +45,7 @@ enum RuntimeCommandType {
     RuntimeCommandChangeAutoChangeLockTo,
     RuntimeCommandChangeAutoChangeChangeLittleTo,
     RuntimeCommandChangeAutoChangeCumulativeFireLevelTo,
+    RuntimeCommandChangePaletteSmoothingChanceTo,
     RuntimeCommandChangeSceneLockTo,
     RuntimeCommandChangeScreenLockTo,
     RuntimeCommandChangeSoundProcessingLockTo,
@@ -91,6 +92,7 @@ struct RuntimeCommand {
     RuntimeCommandType type;
     RuntimeSceneTarget sceneTarget;
     int value;
+    double number;
     const char* text;
     RuntimeEffectControlTarget* effectControlTarget;
     RuntimeOptionTarget* optionTarget;
@@ -258,6 +260,14 @@ struct RuntimeCommand {
      */
     static RuntimeCommand changeAutoChangeCumulativeFireLevelTo(
         int threshold);
+
+    /**
+     * Creates an absolute palette-smoothing chance command.
+     *
+     * @param chance Probability in the range 0..1.
+     * @return Runtime command.
+     */
+    static RuntimeCommand changePaletteSmoothingChanceTo(double chance);
 
     /**
      * Creates an absolute scene-selection lock command.

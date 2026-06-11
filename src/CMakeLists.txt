@@ -53,6 +53,7 @@ set(CTHUGHA_COMMON_SOURCES
     RuntimeDisplayControls.cc
     RuntimeAudioControls.cc
     RuntimeAutoChangeControls.cc
+    RuntimeFrameGeneratorControls.cc
     RuntimeEffectControls.cc
     RuntimeCommandTargets.cc
     RuntimePersistence.cc
@@ -78,6 +79,7 @@ set(CTHUGHA_COMMON_SOURCES
     StartupConfiguration.cc
     RuntimeConfigRegistry.cc
     RuntimeConfigContributors.cc
+    FrameGeneratorRuntimeConfigContributor.cc
     RuntimeConfigSelection.cc
     LegacyRuntimeConfigContributor.cc
     IniFiles.cc

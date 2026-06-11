@@ -9,6 +9,7 @@
 #include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
+#include "RuntimeFrameGeneratorControls.h"
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
@@ -51,6 +52,7 @@ RuntimeChangeMediator::RuntimeChangeMediator(SceneCommandTarget& sceneCommands_,
     RuntimePersistence& runtimePersistence_, RuntimeShutdown& runtimeShutdown_,
     RuntimeDisplayControls& displayControls_, RuntimeAudioControls& audioControls_,
     RuntimeAutoChangeControls& autoChangeControls_,
+    RuntimeFrameGeneratorControls& frameGeneratorControls_,
     RuntimeEffectControls& effectControls_)
     : sceneCommands(sceneCommands_)
     , runtimePersistence(runtimePersistence_)
@@ -58,6 +60,7 @@ RuntimeChangeMediator::RuntimeChangeMediator(SceneCommandTarget& sceneCommands_,
     , displayControls(displayControls_)
     , audioControls(audioControls_)
     , autoChangeControls(autoChangeControls_)
+    , frameGeneratorControls(frameGeneratorControls_)
     , effectControls(effectControls_) { }
 
 RuntimeChangeSet RuntimeChangeMediator::applySceneBy(RuntimeSceneTarget target, int by) {
@@ -157,6 +160,10 @@ RuntimeChangeSet RuntimeChangeMediator::apply(const RuntimeCommand& command) {
     case RuntimeCommandChangeAutoChangeCumulativeFireLevelTo:
         autoChangeControls.changeCumulativeFireLevelTo(command.value);
         changes.autoChangeChanged = 1;
+        break;
+    case RuntimeCommandChangePaletteSmoothingChanceTo:
+        frameGeneratorControls.changePaletteSmoothingChanceTo(command.number);
+        changes.uiChanged = 1;
         break;
     case RuntimeCommandChangeSceneLockTo:
         sceneCommands.setLock(

@@ -13,6 +13,7 @@ class AutoChangeSettings;
 class AcousticContext;
 class AudioProcessingState;
 class DisplayPresentationSettings;
+class FrameGeneratorRuntime;
 class Option;
 
 /**
@@ -108,6 +109,30 @@ public:
 
     /**
      * Overlays Audio-owned runtime processing state.
+     *
+     * @param config Snapshot being prepared for persistence.
+     */
+    virtual void contribute(Config& config) const;
+};
+
+/**
+ * Contributes FrameGenerator-owned runtime transition policy.
+ */
+class FrameGeneratorRuntimeConfigContributor
+    : public RuntimeConfigContributor {
+    const FrameGeneratorRuntime& frameGenerator;
+
+public:
+    /**
+     * Creates a contributor over the owned frame generator.
+     *
+     * @param frameGenerator_ Runtime frame generator to read from.
+     */
+    explicit FrameGeneratorRuntimeConfigContributor(
+        const FrameGeneratorRuntime& frameGenerator_);
+
+    /**
+     * Overlays FrameGenerator-owned runtime transition policy.
      *
      * @param config Snapshot being prepared for persistence.
      */

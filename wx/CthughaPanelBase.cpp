@@ -190,6 +190,17 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_staticline12 = new wxStaticLine( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
 	fgSizer2->Add( m_staticline12, 0, wxEXPAND | wxALL, 5 );
 
+	m_paletteSmoothing_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Palette smoothing"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_paletteSmoothing_staticText->Wrap( -1 );
+	fgSizer2->Add( m_paletteSmoothing_staticText, 0, wxALL, 5 );
+
+	m_paletteSmoothing_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 50, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL );
+	fgSizer2->Add( m_paletteSmoothing_slider, 0, wxALL|wxEXPAND, 5 );
+
+	m_paletteSmoothing_text = new wxStaticText( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
+	m_paletteSmoothing_text->Wrap( -1 );
+	fgSizer2->Add( m_paletteSmoothing_text, 0, wxALL, 5 );
+
 	wxStaticText* m_autochange_staticText;
 	m_autochange_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Autochange"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_autochange_staticText->Wrap( -1 );

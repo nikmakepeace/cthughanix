@@ -46,6 +46,7 @@
 #include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
+#include "RuntimeFrameGeneratorControls.h"
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
@@ -367,6 +368,10 @@ void Application::initSceneRuntime() {
     audioConfigContributorValue.reset(
         new AudioRuntimeConfigContributor(*audioProcessingStateValue));
     runtimeConfigRegistryValue->addContributor(*audioConfigContributorValue);
+    frameGeneratorConfigContributorValue.reset(
+        new FrameGeneratorRuntimeConfigContributor(frameGeneratorValue));
+    runtimeConfigRegistryValue->addContributor(
+        *frameGeneratorConfigContributorValue);
     appConfigContributorValue.reset(
         new ApplicationRuntimeConfigContributor(*autoChangeSettingsValue,
             acousticContextValue, *quietMessageOptionValue));
@@ -385,6 +390,8 @@ void Application::initSceneRuntime() {
     runtimeAutoChangeControlsValue.reset(
         new DefaultRuntimeAutoChangeControls(*autoChangeControlsValue,
             *quietMessageOptionValue));
+    runtimeFrameGeneratorControlsValue.reset(
+        new DefaultRuntimeFrameGeneratorControls(frameGeneratorValue));
     runtimeEffectControlsValue.reset(
         new DefaultRuntimeEffectControls(randomSourceValue));
     commandsInputValue->interfaceRuntime().setRuntimeConfigRegistry(
@@ -395,6 +402,7 @@ void Application::initSceneRuntime() {
         sceneRuntimeValue->commandTarget(), *runtimePersistenceValue,
         *runtimeShutdownValue, *runtimeDisplayControlsValue,
         *runtimeAudioControlsValue, *runtimeAutoChangeControlsValue,
+        *runtimeFrameGeneratorControlsValue,
         *runtimeEffectControlsValue));
 #ifdef CTH_CONTROL_IPC
     controlDisplayCatalogsValue.reset(new BuiltInControlDisplayCatalogs());

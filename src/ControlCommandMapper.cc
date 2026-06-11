@@ -87,6 +87,30 @@ static bool readIntValue(const ControlJsonValue& message, int* value,
     return false;
 }
 
+static bool readDoubleValue(const ControlJsonValue& message, double* value,
+    std::string* errorCode, std::string* errorMessage) {
+    const ControlJsonValue* member = message.member("value");
+    if (member == 0) {
+        fail(errorCode, errorMessage, "bad-command", "missing value");
+        return false;
+    }
+    if (member->type() == ControlJsonValue::NumberType) {
+        *value = member->asNumber();
+        return true;
+    }
+    if (member->type() == ControlJsonValue::StringType) {
+        char* end = 0;
+        double parsed = strtod(member->asString().c_str(), &end);
+        if (end != member->asString().c_str() && *end == '\0') {
+            *value = parsed;
+            return true;
+        }
+    }
+
+    fail(errorCode, errorMessage, "bad-command", "expected numeric value");
+    return false;
+}
+
 static bool readBoolValue(const ControlJsonValue& message, bool* value,
     std::string* errorCode, std::string* errorMessage) {
     const ControlJsonValue* member = message.member("value");
@@ -310,6 +334,15 @@ bool controlCommandFromJson(const ControlJsonValue& message,
             return false;
         command->command
             = RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(value);
+        return true;
+    }
+
+    if (targetName == "sceneTransition.paletteSmoothingChance") {
+        double value = 0.0;
+        if (!readDoubleValue(message, &value, errorCode, errorMessage))
+            return false;
+        command->command
+            = RuntimeCommand::changePaletteSmoothingChanceTo(value);
         return true;
     }
 

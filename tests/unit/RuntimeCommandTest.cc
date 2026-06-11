@@ -100,6 +100,12 @@ static void testRuntimeCommandFactoriesCaptureIntent() {
         == RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
     assert(cumulativeFire.value == 420);
 
+    RuntimeCommand paletteSmoothing
+        = RuntimeCommand::changePaletteSmoothingChanceTo(0.75);
+    assert(paletteSmoothing.type
+        == RuntimeCommandChangePaletteSmoothingChanceTo);
+    assert(paletteSmoothing.number == 0.75);
+
     RuntimeCommand sceneChoiceUse
         = RuntimeCommand::toggleSceneChoiceUse(RuntimeScenePalette, 2);
     assert(sceneChoiceUse.type == RuntimeCommandToggleSceneChoiceUse);

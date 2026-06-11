@@ -38,7 +38,19 @@ static void testPaletteSnapUsesConfiguredProbability() {
     controller.configureTransitions(0.0, 5);
     FixedRandomSource random(0);
 
+    assert(controller.paletteSmoothingChance() == 0.0);
+    assert(controller.paletteSmoothSeconds() == 5);
     assert(controller.paletteChangeFrameBudget(random, 30) == 0);
+}
+
+static void testPaletteSmoothingChanceSetterClamps() {
+    FrameTransitionController controller;
+
+    controller.setPaletteSmoothingChance(1.5);
+    assert(controller.paletteSmoothingChance() == 1.0);
+
+    controller.setPaletteSmoothingChance(-0.5);
+    assert(controller.paletteSmoothingChance() == 0.0);
 }
 
 static void testQuietMessageDurationUsesExplicitThreshold() {
@@ -52,6 +64,7 @@ static void testQuietMessageDurationUsesExplicitThreshold() {
 int main() {
     testPaletteSmoothingUsesExplicitFrameBudget();
     testPaletteSnapUsesConfiguredProbability();
+    testPaletteSmoothingChanceSetterClamps();
     testQuietMessageDurationUsesExplicitThreshold();
     return 0;
 }

@@ -194,6 +194,14 @@ ControlJsonValue buildControlStateSnapshot(
     autoChange.set("cumulativeFireLevel",
         ControlJsonValue::numberValueOf(config.autoChange.cumulativeFireLevel));
 
+    ControlJsonValue sceneTransition = ControlJsonValue::objectValueOf();
+    sceneTransition.set("paletteSmoothingChance",
+        ControlJsonValue::numberValueOf(
+            config.sceneTransition.paletteSmoothingChance));
+    sceneTransition.set("paletteSmoothSeconds",
+        ControlJsonValue::numberValueOf(
+            config.sceneTransition.paletteSmoothSeconds));
+
     ControlJsonValue state = ControlJsonValue::objectValueOf();
     state.set("v", ControlJsonValue::numberValueOf(1));
     state.set("type", ControlJsonValue::stringValueOf("state"));
@@ -202,6 +210,7 @@ ControlJsonValue buildControlStateSnapshot(
     state.set("display", display);
     state.set("audio", audio);
     state.set("autoChange", autoChange);
+    state.set("sceneTransition", sceneTransition);
     state.set("locks", lockStateFor(selections, extraLocks));
     return state;
 }

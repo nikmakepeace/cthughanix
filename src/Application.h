@@ -44,6 +44,7 @@ class ImageOption;
 class InterfaceRuntime;
 class DisplayRuntimeConfigContributor;
 class LegacyRuntimeConfigContributor;
+class FrameGeneratorRuntimeConfigContributor;
 class MixerControls;
 class MixerDevice;
 class MixerSession;
@@ -55,6 +56,7 @@ class RuntimeConfigRegistry;
 class RuntimeCommandTargetRouter;
 class RuntimeDisplayControls;
 class RuntimeEffectControls;
+class RuntimeFrameGeneratorControls;
 class RuntimePersistence;
 class RuntimeShutdown;
 class Scene;
@@ -119,6 +121,8 @@ class Application {
     std::unique_ptr<RuntimeConfigRegistry> runtimeConfigRegistryValue;
     std::unique_ptr<DisplayRuntimeConfigContributor> displayConfigContributorValue;
     std::unique_ptr<AudioRuntimeConfigContributor> audioConfigContributorValue;
+    std::unique_ptr<FrameGeneratorRuntimeConfigContributor>
+        frameGeneratorConfigContributorValue;
     std::unique_ptr<ApplicationRuntimeConfigContributor> appConfigContributorValue;
     std::unique_ptr<LegacyRuntimeConfigContributor> legacyConfigContributorValue;
     std::unique_ptr<RuntimePersistence> runtimePersistenceValue;
@@ -126,6 +130,8 @@ class Application {
     std::unique_ptr<RuntimeDisplayControls> runtimeDisplayControlsValue;
     std::unique_ptr<RuntimeAudioControls> runtimeAudioControlsValue;
     std::unique_ptr<RuntimeAutoChangeControls> runtimeAutoChangeControlsValue;
+    std::unique_ptr<RuntimeFrameGeneratorControls>
+        runtimeFrameGeneratorControlsValue;
     std::unique_ptr<RuntimeEffectControls> runtimeEffectControlsValue;
     std::unique_ptr<RuntimeChangeMediator> runtimeChangeMediatorValue;
 #ifdef CTH_CONTROL_IPC

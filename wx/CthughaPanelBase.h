@@ -19,10 +19,10 @@
 #include <wx/choice.h>
 #include <wx/checkbox.h>
 #include <wx/statline.h>
+#include <wx/slider.h>
 #include <wx/radiobut.h>
 #include <wx/sizer.h>
 #include <wx/gauge.h>
-#include <wx/slider.h>
 #include <wx/scrolwin.h>
 #include <wx/frame.h>
 
@@ -64,6 +64,9 @@ class CthughaPanelBase : public wxFrame
 		wxStaticLine* m_staticline1;
 		wxStaticLine* m_staticline11;
 		wxStaticLine* m_staticline12;
+		wxStaticText* m_paletteSmoothing_staticText;
+		wxSlider* m_paletteSmoothing_slider;
+		wxStaticText* m_paletteSmoothing_text;
 		wxRadioButton* m_autochangeAll_radioBtn;
 		wxRadioButton* m_autochangeLittle_radioBtn;
 		wxRadioButton* m_autochangeNone_radioBtn;

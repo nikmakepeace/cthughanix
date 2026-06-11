@@ -8,6 +8,7 @@ RuntimeCommand::RuntimeCommand(RuntimeCommandType type_)
     : type(type_)
     , sceneTarget(RuntimeSceneFlame)
     , value(0)
+    , number(0.0)
     , text(0)
     , effectControlTarget(0)
     , optionTarget(0)
@@ -128,6 +129,12 @@ RuntimeCommand RuntimeCommand::changeAutoChangeCumulativeFireLevelTo(
     RuntimeCommand command(
         RuntimeCommandChangeAutoChangeCumulativeFireLevelTo);
     command.value = threshold;
+    return command;
+}
+
+RuntimeCommand RuntimeCommand::changePaletteSmoothingChanceTo(double chance) {
+    RuntimeCommand command(RuntimeCommandChangePaletteSmoothingChanceTo);
+    command.number = chance;
     return command;
 }
 

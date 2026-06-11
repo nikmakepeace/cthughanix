@@ -73,12 +73,30 @@ static int intMember(
     return fallback;
 }
 
+static double doubleMember(
+    const ControlJsonValue* value, const char* name, double fallback) {
+    const ControlJsonValue* member = objectMember(value, name);
+    if (member == 0)
+        return fallback;
+    if (member->type() == ControlJsonValue::NumberType)
+        return member->asNumber();
+    return fallback;
+}
+
 static int clampInt(int value, int minimum, int maximum) {
     if (value < minimum)
         return minimum;
     if (value > maximum)
         return maximum;
     return value;
+}
+
+static int percentFromChance(double chance) {
+    if (chance < 0.0)
+        chance = 0.0;
+    if (chance > 1.0)
+        chance = 1.0;
+    return clampInt(int(chance * 100.0 + 0.5), 0, 100);
 }
 
 static const char* messageType(const ControlJsonValue& message) {
@@ -174,6 +192,8 @@ void CthughaPanelFrame::initializeLabelFlashes() {
     registerFlashLabel("audio.processing", "Sound processing");
     registerFlashLabel("scene.palette", "Palette");
     registerFlashLabel("scene.flashlight", "Flashlight");
+    registerFlashLabel(
+        "sceneTransition.paletteSmoothingChance", "Palette smoothing");
     registerFlashLabel("autoChange.mode", "Autochange");
     registerFlashLabel(
         "autoChange.cumulativeFireLevel", "Fire threshold");
@@ -393,6 +413,8 @@ void CthughaPanelFrame::bindControlEvents() {
         &CthughaPanelFrame::onFireThresholdChanged, this);
     m_fireSensitivity_slider->Bind(wxEVT_SLIDER,
         &CthughaPanelFrame::onFireSensitivityChanged, this);
+    m_paletteSmoothing_slider->Bind(wxEVT_SLIDER,
+        &CthughaPanelFrame::onPaletteSmoothingChanged, this);
     m_maxFps_slider->Bind(wxEVT_SLIDER,
         &CthughaPanelFrame::onMaxFpsChanged, this);
 }
@@ -427,6 +449,7 @@ void CthughaPanelFrame::setControlsEnabled(int enabled) {
     m_fireLevel_gauge->Enable(enabled != 0);
     m_fireThreshold_slider->Enable(enabled != 0);
     m_fireSensitivity_slider->Enable(enabled != 0);
+    m_paletteSmoothing_slider->Enable(enabled != 0);
     m_maxFps_slider->Enable(enabled != 0);
 }
 
@@ -498,6 +521,15 @@ void CthughaPanelFrame::onFireSensitivityChanged(wxCommandEvent&) {
         return;
     client->sendSetNumber("audio.fireSensitivity",
         m_fireSensitivity_slider->GetValue());
+}
+
+void CthughaPanelFrame::onPaletteSmoothingChanged(wxCommandEvent&) {
+    updatePercentSliderText(
+        m_paletteSmoothing_slider, m_paletteSmoothing_text);
+    if (updatingControls)
+        return;
+    client->sendSetNumber("sceneTransition.paletteSmoothingChance",
+        double(m_paletteSmoothing_slider->GetValue()) / 100.0);
 }
 
 void CthughaPanelFrame::onMaxFpsChanged(wxCommandEvent&) {
@@ -577,6 +609,7 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
     const ControlJsonValue* display = message.member("display");
     const ControlJsonValue* audio = message.member("audio");
     const ControlJsonValue* autoChange = message.member("autoChange");
+    const ControlJsonValue* sceneTransition = message.member("sceneTransition");
     const ControlJsonValue* locks = message.member("locks");
 
     updatingControls = 1;
@@ -622,6 +655,11 @@ void CthughaPanelFrame::applyState(const ControlJsonValue& message) {
         0, 100);
     applySliderState(
         "audio.fireSensitivity", m_fireSensitivity_slider, fireSensitivity);
+    int paletteSmoothing = percentFromChance(doubleMember(sceneTransition,
+        "paletteSmoothingChance",
+        double(m_paletteSmoothing_slider->GetValue()) / 100.0));
+    applySliderState("sceneTransition.paletteSmoothingChance",
+        m_paletteSmoothing_slider, paletteSmoothing);
     int maxFps = intMember(display, "maxFps", m_maxFps_slider->GetValue());
     int maxFpsMaximum = maxFps > 120 ? maxFps : 120;
     m_maxFps_slider->SetMax(maxFpsMaximum);
@@ -726,9 +764,18 @@ void CthughaPanelFrame::updateSliderText(
     text->SetLabel(wxString::Format(wxT("%d"), slider->GetValue()));
 }
 
+void CthughaPanelFrame::updatePercentSliderText(
+    wxSlider* slider, wxStaticText* text) {
+    if (slider == 0 || text == 0)
+        return;
+    text->SetLabel(wxString::Format(wxT("%d%%"), slider->GetValue()));
+}
+
 void CthughaPanelFrame::updateSliderTexts() {
     updateSliderText(m_fireThreshold_slider, m_fireThreshold_text);
     updateSliderText(m_fireSensitivity_slider, m_fireSensitivity_text);
+    updatePercentSliderText(
+        m_paletteSmoothing_slider, m_paletteSmoothing_text);
     updateSliderText(m_maxFps_slider, m_maxFps_text);
 }
 

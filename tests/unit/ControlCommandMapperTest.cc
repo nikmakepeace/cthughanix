@@ -204,6 +204,22 @@ static void testMapsCumulativeFireThresholdCommand() {
     assert(mapped.command.value == 420);
 }
 
+static void testMapsPaletteSmoothingChanceCommand() {
+    ControlMappedCommand mapped;
+    std::string code;
+    std::string message;
+
+    assert(controlCommandFromJson(parseCommand(
+        "{\"v\":1,\"op\":\"set\","
+        "\"target\":\"sceneTransition.paletteSmoothingChance\","
+        "\"value\":0.75}"),
+        &mapped, &code, &message));
+
+    assert(mapped.command.type
+        == RuntimeCommandChangePaletteSmoothingChanceTo);
+    assert(mapped.command.number == 0.75);
+}
+
 static void testRejectsUnknownTargets() {
     ControlMappedCommand mapped;
     std::string code;
@@ -245,6 +261,7 @@ int main() {
     testMapsAutoChangeLittleCommand();
     testMapsSoundProcessingLockCommand();
     testMapsCumulativeFireThresholdCommand();
+    testMapsPaletteSmoothingChanceCommand();
     testRejectsUnknownTargets();
     testRejectsUnsupportedVersion();
     return 0;

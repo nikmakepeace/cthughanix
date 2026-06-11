@@ -39,6 +39,19 @@ public:
         int paletteSmoothSeconds);
 
     /**
+     * Sets only the probability that palette changes smooth.
+     *
+     * @param chance Probability clamped to 0..1.
+     */
+    void setPaletteSmoothingChance(double chance);
+
+    /** @return Probability that palette changes smooth, 0..1. */
+    double paletteSmoothingChance() const;
+
+    /** @return Duration of smoothed palette changes, in seconds. */
+    int paletteSmoothSeconds() const;
+
+    /**
      * Applies startup quiet-message configuration.
      *
      * @param quietMessageDurationMs Maximum quiet-message display duration.

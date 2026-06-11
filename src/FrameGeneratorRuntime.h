@@ -81,6 +81,19 @@ public:
     SilenceMessage& silenceMessages();
 
     /**
+     * Updates the live probability that palette changes are smoothed.
+     *
+     * @param chance Probability clamped to 0..1.
+     */
+    void setPaletteSmoothingChance(double chance);
+
+    /** @return Live palette-smoothing probability, 0..1. */
+    double paletteSmoothingChance() const;
+
+    /** @return Live palette-smoothing duration, in seconds. */
+    int paletteSmoothSeconds() const;
+
+    /**
      * Starts observing a Scene for generator-affecting changes.
      *
      * @param scene Scene to observe; not owned by the generator.

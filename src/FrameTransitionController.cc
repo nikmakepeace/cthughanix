@@ -5,6 +5,20 @@
 #include "ProcessServices.h"
 #include "imath.h"
 
+namespace {
+
+static double clampedPaletteSmoothingChance(double chance) {
+    if (chance != chance)
+        return 0.0;
+    if (chance < 0.0)
+        return 0.0;
+    if (chance > 1.0)
+        return 1.0;
+    return chance;
+}
+
+}
+
 FrameTransitionController::FrameTransitionController()
     : paletteSmoothingChanceValue(0.0)
     , paletteSmoothSecondsValue(1)
@@ -12,8 +26,21 @@ FrameTransitionController::FrameTransitionController()
 
 void FrameTransitionController::configureTransitions(
     double paletteSmoothingChance, int paletteSmoothSeconds) {
-    paletteSmoothingChanceValue = paletteSmoothingChance;
+    paletteSmoothingChanceValue
+        = clampedPaletteSmoothingChance(paletteSmoothingChance);
     paletteSmoothSecondsValue = paletteSmoothSeconds;
+}
+
+void FrameTransitionController::setPaletteSmoothingChance(double chance) {
+    paletteSmoothingChanceValue = clampedPaletteSmoothingChance(chance);
+}
+
+double FrameTransitionController::paletteSmoothingChance() const {
+    return paletteSmoothingChanceValue;
+}
+
+int FrameTransitionController::paletteSmoothSeconds() const {
+    return paletteSmoothSecondsValue;
 }
 
 void FrameTransitionController::configureQuietMessages(

@@ -58,6 +58,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
     void onAutoChangeModeChanged(wxCommandEvent& event);
     void onFireThresholdChanged(wxCommandEvent& event);
     void onFireSensitivityChanged(wxCommandEvent& event);
+    void onPaletteSmoothingChanged(wxCommandEvent& event);
     void onMaxFpsChanged(wxCommandEvent& event);
 
     void handleClientEvent(const ControlPanelClientEvent& event);
@@ -74,6 +75,7 @@ class CthughaPanelFrame : public CthughaPanelBase {
     std::string currentAutoChangeMode() const;
     std::string autoChangeModeOf(const ControlJsonValue* autoChange) const;
     void updateSliderText(wxSlider* slider, wxStaticText* text);
+    void updatePercentSliderText(wxSlider* slider, wxStaticText* text);
     void updateSliderTexts();
 
     void updateCatalogForTarget(const char* target, wxChoice* choice,

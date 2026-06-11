@@ -9,6 +9,7 @@
 #include "RuntimeCommandTargets.h"
 #include "RuntimeDisplayControls.h"
 #include "RuntimeEffectControls.h"
+#include "RuntimeFrameGeneratorControls.h"
 #include "RuntimePersistence.h"
 #include "RuntimeShutdown.h"
 #include "Scene.h"
@@ -545,6 +546,22 @@ public:
     }
 };
 
+class RecordingRuntimeFrameGeneratorControls
+    : public RuntimeFrameGeneratorControls {
+public:
+    int paletteSmoothingChanceToCalls;
+    double lastPaletteSmoothingChance;
+
+    RecordingRuntimeFrameGeneratorControls()
+        : paletteSmoothingChanceToCalls(0)
+        , lastPaletteSmoothingChance(0.0) { }
+
+    virtual void changePaletteSmoothingChanceTo(double chance) {
+        paletteSmoothingChanceToCalls++;
+        lastPaletteSmoothingChance = chance;
+    }
+};
+
 class RecordingRuntimeAutoChangeControls : public RuntimeAutoChangeControls {
 public:
     int lockToggles;
@@ -686,6 +703,7 @@ public:
     RecordingRuntimeDisplayControls displayControls;
     RecordingRuntimeAudioControls audioControls;
     RecordingRuntimeAutoChangeControls autoChangeControls;
+    RecordingRuntimeFrameGeneratorControls frameGeneratorControls;
     RecordingRuntimeEffectControls effectControls;
     RecordingSceneCommandTarget sceneCommands;
     RuntimeChangeMediator mediator;
@@ -697,10 +715,12 @@ public:
         , displayControls()
         , audioControls()
         , autoChangeControls()
+        , frameGeneratorControls()
         , effectControls()
         , sceneCommands()
         , mediator(sceneCommands, persistence, shutdown, displayControls,
-              audioControls, autoChangeControls, effectControls)
+              audioControls, autoChangeControls, frameGeneratorControls,
+              effectControls)
         , targetRouter(mediator, displayControls, audioControls,
               autoChangeControls, effectControls) { }
 };
@@ -836,6 +856,12 @@ static void testReportsNonSceneRuntimeChanges() {
     assert(cumulativeFire.autoChangeChanged == 1);
     assert(harness.autoChangeControls.cumulativeFireToCalls == 1);
     assert(harness.autoChangeControls.lastCumulativeFireValue == 420);
+
+    RuntimeChangeSet paletteSmoothing = harness.mediator.apply(
+        RuntimeCommand::changePaletteSmoothingChanceTo(0.65));
+    assert(paletteSmoothing.uiChanged == 1);
+    assert(harness.frameGeneratorControls.paletteSmoothingChanceToCalls == 1);
+    assert(harness.frameGeneratorControls.lastPaletteSmoothingChance == 0.65);
 
     RuntimeChangeSet persist = harness.mediator.apply(RuntimeCommand::writeIni());
     assert(persist.persistenceRequested == 1);

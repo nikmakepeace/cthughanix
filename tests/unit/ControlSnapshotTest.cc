@@ -155,6 +155,7 @@ static Config sampleConfig() {
     config.autoChange.locked = 1;
     config.autoChange.changeLittle = 0;
     config.autoChange.cumulativeFireLevel = 500;
+    config.sceneTransition.paletteSmoothingChance = 0.25;
     return config;
 }
 
@@ -183,6 +184,8 @@ static void testStateSnapshotUsesRuntimeConfig() {
     assert(state.member("autoChange")->member("locked")->asBool() == true);
     assert(state.member("autoChange")->member("enabled")->asBool() == false);
     assert(state.member("autoChange")->member("cumulativeFireLevel")->asNumber() == 500);
+    assert(state.member("sceneTransition")
+        ->member("paletteSmoothingChance")->asNumber() == 0.25);
     assert(state.member("locks")->member("scene.wave")->asBool() == true);
     assert(state.member("locks")->member("display.screen")->asBool() == true);
     assert(state.member("locks")->member("audio.processing")->asBool() == false);

@@ -56,6 +56,18 @@ SilenceMessage& FrameGeneratorRuntime::silenceMessages() {
     return sceneBindingValue.silenceMessages();
 }
 
+void FrameGeneratorRuntime::setPaletteSmoothingChance(double chance) {
+    transitionControllerValue.setPaletteSmoothingChance(chance);
+}
+
+double FrameGeneratorRuntime::paletteSmoothingChance() const {
+    return transitionControllerValue.paletteSmoothingChance();
+}
+
+int FrameGeneratorRuntime::paletteSmoothSeconds() const {
+    return transitionControllerValue.paletteSmoothSeconds();
+}
+
 void FrameGeneratorRuntime::bindScene(Scene& scene) {
     sceneBindingValue.bindScene(scene);
 }

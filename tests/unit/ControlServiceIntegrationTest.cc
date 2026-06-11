@@ -199,6 +199,7 @@ static Config sampleConfig() {
     config.audioAnalysis.fireSensitivity = 100;
     config.audioAnalysis.fireSource = "raw-amplitude";
     config.autoChange.cumulativeFireLevel = 1000;
+    config.sceneTransition.paletteSmoothingChance = 0.5;
     return config;
 }
 
@@ -211,6 +212,7 @@ public:
     RuntimeCommandType lastType;
     std::string lastText;
     int lastValue;
+    double lastNumber;
 
     UpdatingRuntimeSink(RuntimeConfigRegistry& registry_, const Config& config_)
         : registry(registry_)
@@ -218,7 +220,8 @@ public:
         , calls(0)
         , lastType(RuntimeCommandChangeAll)
         , lastText()
-        , lastValue(0) { }
+        , lastValue(0)
+        , lastNumber(0.0) { }
 
     virtual RuntimeChangeSet apply(const RuntimeCommand& command) {
         RuntimeChangeSet changes;
@@ -226,6 +229,7 @@ public:
         lastType = command.type;
         lastText = command.text != 0 ? command.text : "";
         lastValue = command.value;
+        lastNumber = command.number;
 
         if (command.type == RuntimeCommandChangeMaxFpsTo) {
             configValue.display.maxFramesPerSecond = command.value;
@@ -262,6 +266,12 @@ public:
             configValue.autoChange.cumulativeFireLevel = command.value;
             registry.setBaseline(configValue);
             changes.autoChangeChanged = 1;
+        } else if (command.type
+            == RuntimeCommandChangePaletteSmoothingChanceTo) {
+            configValue.sceneTransition.paletteSmoothingChance
+                = command.number;
+            registry.setBaseline(configValue);
+            changes.uiChanged = 1;
         }
 
         return changes;
@@ -368,6 +378,16 @@ static std::string latestStateAudioFireSource(
     return source != 0 ? source->asString() : "";
 }
 
+static double latestStatePaletteSmoothingChance(
+    const ObservedMessages& observed, double fallback) {
+    const ControlJsonValue* state = latestMessageOfType(observed, "state");
+    const ControlJsonValue* sceneTransition
+        = state != 0 ? state->member("sceneTransition") : 0;
+    const ControlJsonValue* chance = sceneTransition != 0
+        ? sceneTransition->member("paletteSmoothingChance") : 0;
+    return chance != 0 ? chance->asNumber(fallback) : fallback;
+}
+
 static int latestAckId(const ObservedMessages& observed) {
     const ControlJsonValue* ack = latestMessageOfType(observed, "ack");
     const ControlJsonValue* id = ack != 0 ? ack->member("id") : 0;
@@ -445,6 +465,7 @@ static void testServiceClientSynchronizesBothDirections() {
     assert(observed.errors == 0);
     assert(latestMessageOfType(observed, "catalogs") != 0);
     assert(latestStateMaxFps(observed, -1) == 25);
+    assert(latestStatePaletteSmoothingChance(observed, -1.0) == 0.5);
 
     service.launchControlPanel();
     assert(launcher.calls == 1);
@@ -500,6 +521,15 @@ static void testServiceClientSynchronizesBothDirections() {
     assert(latestAckId(observed) == id);
     assert(latestStateAudioFireSource(observed)
         == "low-pass-150hz-amplitude");
+
+    id = client.sendSetNumber("sceneTransition.paletteSmoothingChance", 0.75);
+    pump(service, client, observed, 500);
+    assert(runtimeSink.calls == 7);
+    assert(runtimeSink.lastType
+        == RuntimeCommandChangePaletteSmoothingChanceTo);
+    assert(runtimeSink.lastNumber == 0.75);
+    assert(latestAckId(observed) == id);
+    assert(latestStatePaletteSmoothingChance(observed, -1.0) == 0.75);
 
     runtimeSink.setAppFlame("second");
     service.runtimeStateChanged();

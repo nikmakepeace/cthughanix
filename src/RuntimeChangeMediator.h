@@ -12,6 +12,7 @@ class RuntimeShutdown;
 class RuntimeDisplayControls;
 class RuntimeAudioControls;
 class RuntimeAutoChangeControls;
+class RuntimeFrameGeneratorControls;
 class RuntimeEffectControls;
 class SceneCommandTarget;
 
@@ -22,6 +23,7 @@ class RuntimeChangeMediator : public RuntimeCommandSink {
     RuntimeDisplayControls& displayControls;
     RuntimeAudioControls& audioControls;
     RuntimeAutoChangeControls& autoChangeControls;
+    RuntimeFrameGeneratorControls& frameGeneratorControls;
     RuntimeEffectControls& effectControls;
 
     RuntimeChangeSet applySceneBy(RuntimeSceneTarget target, int by);
@@ -37,6 +39,7 @@ public:
      * @param displayControls_ Display/presentation control port.
      * @param audioControls_ Audio control port.
      * @param autoChangeControls_ Automatic scene-change control port.
+     * @param frameGeneratorControls_ Frame-generation policy control port.
      * @param effectControls_ Legacy EffectControl state port.
      */
     RuntimeChangeMediator(SceneCommandTarget& sceneCommands_,
@@ -45,6 +48,7 @@ public:
         RuntimeDisplayControls& displayControls_,
         RuntimeAudioControls& audioControls_,
         RuntimeAutoChangeControls& autoChangeControls_,
+        RuntimeFrameGeneratorControls& frameGeneratorControls_,
         RuntimeEffectControls& effectControls_);
 
     /**

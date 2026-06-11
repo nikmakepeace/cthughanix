@@ -127,6 +127,17 @@ int ControlPanelClient::sendSetNumber(const std::string& target, int value) {
     return id;
 }
 
+int ControlPanelClient::sendSetNumber(
+    const std::string& target, double value) {
+    ControlJsonValue json = ControlJsonValue::numberValueOf(value);
+    std::lock_guard<std::mutex> lock(mutex);
+    int id = nextId++;
+    while (outbound.size() >= maxPendingClientMessages)
+        outbound.pop_front();
+    outbound.push_back(setMessage(id, target, json));
+    return id;
+}
+
 int ControlPanelClient::sendSetBool(const std::string& target, bool value) {
     ControlJsonValue json = ControlJsonValue::boolValueOf(value);
     std::lock_guard<std::mutex> lock(mutex);

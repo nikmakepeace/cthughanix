@@ -59,6 +59,7 @@ public:
 
     int sendSet(const std::string& target, const std::string& value);
     int sendSetNumber(const std::string& target, int value);
+    int sendSetNumber(const std::string& target, double value);
     int sendSetBool(const std::string& target, bool value);
 };
 
