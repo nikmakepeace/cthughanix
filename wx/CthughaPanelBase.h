@@ -65,7 +65,6 @@ class CthughaPanelBase : public wxFrame
 		wxStaticLine* m_staticline11;
 		wxStaticLine* m_staticline12;
 		wxRadioButton* m_autochangeAll_radioBtn;
-		wxRadioButton* m_radioBtn4;
 		wxRadioButton* m_autochangeLittle_radioBtn;
 		wxRadioButton* m_autochangeNone_radioBtn;
 		wxGauge* m_fireLevel_gauge;

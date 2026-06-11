@@ -201,10 +201,7 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_autochangeAll_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("Many"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
 	bSizer2->Add( m_autochangeAll_radioBtn, 0, wxALL, 5 );
 
-	m_radioBtn4 = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("One"), wxDefaultPosition, wxDefaultSize, 0 );
-	bSizer2->Add( m_radioBtn4, 0, wxALL, 5 );
-
-	m_autochangeLittle_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("All"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
+	m_autochangeLittle_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("One"), wxDefaultPosition, wxDefaultSize, 0 );
 	bSizer2->Add( m_autochangeLittle_radioBtn, 0, wxALL, 5 );
 
 	m_autochangeNone_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
