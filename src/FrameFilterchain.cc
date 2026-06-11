@@ -148,6 +148,32 @@ int FrameFilterchain::setStageMode(unsigned int stage, FrameFilterRunMode mode) 
     return matched;
 }
 
+int FrameFilterchain::setStageEnabled(unsigned int stage, int enabled) {
+    int matched = 0;
+    int enabledValue = enabled != 0;
+
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].stage == stage) {
+            matched++;
+            if (filters[i].enabled != enabledValue)
+                filters[i].enabled = enabledValue;
+        }
+    }
+
+    logValue->trace("frame filterchain",
+        "set stage=%u enabled=%d entries=%d\n", stage, enabledValue, matched);
+    return matched;
+}
+
+int FrameFilterchain::stageEnabled(unsigned int stage) const {
+    for (unsigned int i = 0; i < filters.size(); i++) {
+        if (filters[i].stage == stage)
+            return filters[i].enabled;
+    }
+
+    return 0;
+}
+
 FrameFilterRunMode FrameFilterchain::stageMode(unsigned int stage) const {
     for (unsigned int i = 0; i < filters.size(); i++) {
         if (filters[i].stage == stage)
@@ -197,6 +223,15 @@ void FrameFilterchain::run(FrameRenderTarget& buffer, const FrameGeneratorContex
         for (unsigned int filterIndex = 0; filterIndex < filters.size(); filterIndex++) {
             if (filters[filterIndex].stage != stage)
                 continue;
+
+            if (!filters[filterIndex].enabled) {
+                logValue->trace("frame filterchain",
+                    "skipping unchecked stage=%u filter=%s ptr=%p\n",
+                    filters[filterIndex].stage, filters[filterIndex].filter->name(),
+                    filters[filterIndex].filter);
+                skippedFilters++;
+                continue;
+            }
 
             if (filters[filterIndex].mode == FrameFilterDisabled) {
                 logValue->trace("frame filterchain",

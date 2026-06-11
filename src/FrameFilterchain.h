@@ -108,12 +108,14 @@ class FrameFilterchain {
         unsigned int stage;
         FrameFilter* filter;
         int owned;
+        int enabled;
         FrameFilterRunMode mode;
 
         Entry(unsigned int stage_, FrameFilter* filter_, int owned_)
             : stage(stage_)
             , filter(filter_)
             , owned(owned_)
+            , enabled(1)
             , mode(FrameFilterDisabled) { }
     };
 
@@ -177,6 +179,24 @@ public:
      * @return Number of filters matched by the stage id.
      */
     int setStageMode(unsigned int stage, FrameFilterRunMode mode);
+
+    /**
+     * Sets whether every filter registered under a stage is allowed to execute.
+     *
+     * This gate is independent of run mode, so scene binding can still decide
+     * whether an enabled stage is active, disabled, or armed for one frame.
+     *
+     * @param stage Stage id to update.
+     * @param enabled Nonzero to allow execution, zero to bypass the stage.
+     * @return Number of filters matched by the stage id.
+     */
+    int setStageEnabled(unsigned int stage, int enabled);
+
+    /**
+     * @param stage Stage id to query.
+     * @return First matching filter's enabled gate, or zero if not found.
+     */
+    int stageEnabled(unsigned int stage) const;
 
     /**
      * @param stage Stage id to query.

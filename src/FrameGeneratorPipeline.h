@@ -44,6 +44,13 @@ public:
     /** @return Nonzero after the filterchain has been created. */
     int initialized() const;
 
+    /**
+     * Replaces the stage sequence used by the current or next filterchain run.
+     *
+     * @param sequence Stage sequence to install.
+     */
+    void setSequence(const FrameFilterchainSequence& sequence);
+
     /** Deletes the owned filterchain and published frame descriptor. */
     void reset();
 

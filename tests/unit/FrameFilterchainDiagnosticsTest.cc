@@ -48,9 +48,14 @@ protected:
 
 class NoOpFrameFilter : public FrameFilter {
 public:
+    int executions;
+
+    NoOpFrameFilter()
+        : executions(0) { }
+
     virtual const char* name() const { return "test-filter"; }
 
-    virtual void execute(FrameFilterFrame&) { }
+    virtual void execute(FrameFilterFrame&) { executions++; }
 };
 
 static void testFrameFilterchainUsesInjectedLogSink() {
@@ -72,7 +77,15 @@ static void testFrameFilterchainUsesInjectedLogSink() {
 
     FrameRenderTarget target;
     FrameGeneratorContext context;
+    assert(filterchain.stageEnabled(7) == 1);
+    assert(filterchain.setStageEnabled(7, 0) == 1);
+    assert(filterchain.stageEnabled(7) == 0);
     filterchain.run(target, context);
+    assert(filter.executions == 0);
+    assert(filterchain.setStageEnabled(7, 1) == 1);
+    assert(filterchain.stageEnabled(7) == 1);
+    filterchain.run(target, context);
+    assert(filter.executions == 1);
 
     int sawFilterTiming = 0;
     int sawRunTiming = 0;
