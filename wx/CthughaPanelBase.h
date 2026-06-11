@@ -38,7 +38,7 @@ class CthughaPanelBase : public wxFrame
 	protected:
 		wxScrolledWindow* m_scrolledWindow1;
 		wxStaticText* m_staticText171;
-		wxStaticText* m_staticText32;
+		wxStaticText* m_wave_staticText;
 		wxChoice* m_wave_choice;
 		wxCheckBox* m_lockWave_checkBox;
 		wxChoice* m_flame_choice;
@@ -65,6 +65,7 @@ class CthughaPanelBase : public wxFrame
 		wxStaticLine* m_staticline11;
 		wxStaticLine* m_staticline12;
 		wxRadioButton* m_autochangeAll_radioBtn;
+		wxRadioButton* m_radioBtn4;
 		wxRadioButton* m_autochangeLittle_radioBtn;
 		wxRadioButton* m_autochangeNone_radioBtn;
 		wxGauge* m_fireLevel_gauge;
@@ -83,3 +84,4 @@ class CthughaPanelBase : public wxFrame
 		~CthughaPanelBase();
 
 };
+

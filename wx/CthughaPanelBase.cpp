@@ -41,22 +41,22 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_staticText171->Wrap( -1 );
 	fgSizer2->Add( m_staticText171, 0, wxALL, 5 );
 
-	m_staticText32 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText32->Wrap( -1 );
-	fgSizer2->Add( m_staticText32, 0, wxALL, 5 );
+	m_wave_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_wave_staticText->Wrap( -1 );
+	fgSizer2->Add( m_wave_staticText, 0, wxALL, 5 );
 
 	wxArrayString m_wave_choiceChoices;
 	m_wave_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_wave_choiceChoices, 0 );
 	m_wave_choice->SetSelection( 0 );
-	fgSizer2->Add( m_wave_choice, 0, wxALL, 5 );
+	fgSizer2->Add( m_wave_choice, 0, wxALL|wxEXPAND, 5 );
 
 	m_lockWave_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockWave_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText4;
-	m_staticText4 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Flame"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText4->Wrap( -1 );
-	fgSizer2->Add( m_staticText4, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_flame_staticText;
+	m_flame_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Flame"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_flame_staticText->Wrap( -1 );
+	fgSizer2->Add( m_flame_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_flame_choiceChoices;
 	m_flame_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_flame_choiceChoices, 0 );
@@ -66,10 +66,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockFlame_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockFlame_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText7;
-	m_staticText7 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Translation"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText7->Wrap( -1 );
-	fgSizer2->Add( m_staticText7, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_translation_staticText;
+	m_translation_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Translation"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_translation_staticText->Wrap( -1 );
+	fgSizer2->Add( m_translation_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_translation_choiceChoices;
 	m_translation_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_translation_choiceChoices, 0 );
@@ -79,10 +79,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockTranslation_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockTranslation_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText8;
-	m_staticText8 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Image"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText8->Wrap( -1 );
-	fgSizer2->Add( m_staticText8, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_image_staticText;
+	m_image_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Image"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_image_staticText->Wrap( -1 );
+	fgSizer2->Add( m_image_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_image_choiceChoices;
 	m_image_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_image_choiceChoices, 0 );
@@ -92,10 +92,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockImage_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockImage_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText9;
-	m_staticText9 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Object"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText9->Wrap( -1 );
-	fgSizer2->Add( m_staticText9, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_object_staticText;
+	m_object_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Object"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_object_staticText->Wrap( -1 );
+	fgSizer2->Add( m_object_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_object_choiceChoices;
 	m_object_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_object_choiceChoices, 0 );
@@ -105,10 +105,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockObject_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockObject_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText10;
-	m_staticText10 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave table"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText10->Wrap( -1 );
-	fgSizer2->Add( m_staticText10, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_waveTable_staticText;
+	m_waveTable_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave table"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_waveTable_staticText->Wrap( -1 );
+	fgSizer2->Add( m_waveTable_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_waveTable_choiceChoices;
 	m_waveTable_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_waveTable_choiceChoices, 0 );
@@ -118,10 +118,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockWaveTable_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockWaveTable_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText14;
-	m_staticText14 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave scale"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText14->Wrap( -1 );
-	fgSizer2->Add( m_staticText14, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_waveScale_staticText;
+	m_waveScale_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Wave scale"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_waveScale_staticText->Wrap( -1 );
+	fgSizer2->Add( m_waveScale_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_waveScale_choiceChoices;
 	m_waveScale_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_waveScale_choiceChoices, 0 );
@@ -131,10 +131,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockWaveScale_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockWaveScale_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText16;
-	m_staticText16 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Screen"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText16->Wrap( -1 );
-	fgSizer2->Add( m_staticText16, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_screen_staticText;
+	m_screen_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Screen"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_screen_staticText->Wrap( -1 );
+	fgSizer2->Add( m_screen_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_screen_choiceChoices;
 	m_screen_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_screen_choiceChoices, 0 );
@@ -144,10 +144,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockScreen_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockScreen_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText11;
-	m_staticText11 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Sound processing"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText11->Wrap( -1 );
-	fgSizer2->Add( m_staticText11, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_soundProcessing_staticText;
+	m_soundProcessing_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Sound processing"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_soundProcessing_staticText->Wrap( -1 );
+	fgSizer2->Add( m_soundProcessing_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_soundProcessing_choiceChoices;
 	m_soundProcessing_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_soundProcessing_choiceChoices, 0 );
@@ -157,10 +157,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockSoundProcessing_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockSoundProcessing_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText12;
-	m_staticText12 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Palette"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText12->Wrap( -1 );
-	fgSizer2->Add( m_staticText12, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_palette_staticText;
+	m_palette_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Palette"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_palette_staticText->Wrap( -1 );
+	fgSizer2->Add( m_palette_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxArrayString m_palette_choiceChoices;
 	m_palette_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_palette_choiceChoices, 0 );
@@ -170,10 +170,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_lockPalette_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_lockPalette_checkBox, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText13;
-	m_staticText13 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Flashlight"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText13->Wrap( -1 );
-	fgSizer2->Add( m_staticText13, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_flashlight_staticText;
+	m_flashlight_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Flashlight"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_flashlight_staticText->Wrap( -1 );
+	fgSizer2->Add( m_flashlight_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	m_flashlight_checkBox = new wxCheckBox( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer2->Add( m_flashlight_checkBox, 0, wxALL|wxEXPAND, 5 );
@@ -190,21 +190,24 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_staticline12 = new wxStaticLine( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL );
 	fgSizer2->Add( m_staticline12, 0, wxEXPAND | wxALL, 5 );
 
-	wxStaticText* m_staticText17;
-	m_staticText17 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Autochange"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText17->Wrap( -1 );
-	fgSizer2->Add( m_staticText17, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_autochange_staticText;
+	m_autochange_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Autochange"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_autochange_staticText->Wrap( -1 );
+	fgSizer2->Add( m_autochange_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	wxBoxSizer* bSizer2;
 	bSizer2 = new wxBoxSizer( wxHORIZONTAL );
 
-	m_autochangeAll_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("All"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
+	m_autochangeAll_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("Many"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
 	bSizer2->Add( m_autochangeAll_radioBtn, 0, wxALL, 5 );
 
-	m_autochangeLittle_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("Little"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_radioBtn4 = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("One"), wxDefaultPosition, wxDefaultSize, 0 );
+	bSizer2->Add( m_radioBtn4, 0, wxALL, 5 );
+
+	m_autochangeLittle_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("All"), wxDefaultPosition, wxDefaultSize, wxRB_GROUP );
 	bSizer2->Add( m_autochangeLittle_radioBtn, 0, wxALL, 5 );
 
-	m_autochangeNone_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("Off"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_autochangeNone_radioBtn = new wxRadioButton( m_scrolledWindow1, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize, 0 );
 	bSizer2->Add( m_autochangeNone_radioBtn, 0, wxALL, 5 );
 
 
@@ -213,10 +216,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 
 	fgSizer2->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	wxStaticText* m_staticText18;
-	m_staticText18 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire level"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText18->Wrap( -1 );
-	fgSizer2->Add( m_staticText18, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	wxStaticText* m_fireLevel_staticText;
+	m_fireLevel_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire level"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_fireLevel_staticText->Wrap( -1 );
+	fgSizer2->Add( m_fireLevel_staticText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 	m_fireLevel_gauge = new wxGauge( m_scrolledWindow1, wxID_ANY, 1000, wxDefaultPosition, wxDefaultSize, wxGA_HORIZONTAL );
 	m_fireLevel_gauge->SetValue( 0 );
@@ -225,10 +228,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 
 	fgSizer2->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	wxStaticText* m_staticText21;
-	m_staticText21 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire source"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText21->Wrap( -1 );
-	fgSizer2->Add( m_staticText21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	wxStaticText* m_fireSource_staticText;
+	m_fireSource_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire source"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_fireSource_staticText->Wrap( -1 );
+	fgSizer2->Add( m_fireSource_staticText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 	wxArrayString m_fireSource_choiceChoices;
 	m_fireSource_choice = new wxChoice( m_scrolledWindow1, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_fireSource_choiceChoices, 0 );
@@ -238,10 +241,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 
 	fgSizer2->Add( 0, 0, 1, wxEXPAND, 5 );
 
-	wxStaticText* m_staticText19;
-	m_staticText19 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire threshold"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText19->Wrap( -1 );
-	fgSizer2->Add( m_staticText19, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	wxStaticText* m_fireThreshold_staticText;
+	m_fireThreshold_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire threshold"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_fireThreshold_staticText->Wrap( -1 );
+	fgSizer2->Add( m_fireThreshold_staticText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 	m_fireThreshold_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 1000, 0, 5000, wxDefaultPosition, wxSize( -1,-1 ), wxSL_HORIZONTAL );
 	fgSizer2->Add( m_fireThreshold_slider, 0, wxALL|wxEXPAND, 5 );
@@ -250,10 +253,10 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_fireThreshold_text->Wrap( -1 );
 	fgSizer2->Add( m_fireThreshold_text, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText20;
-	m_staticText20 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire sensitivity"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText20->Wrap( -1 );
-	fgSizer2->Add( m_staticText20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+	wxStaticText* m_fireSensitivity_staticText;
+	m_fireSensitivity_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Fire sensitivity"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_fireSensitivity_staticText->Wrap( -1 );
+	fgSizer2->Add( m_fireSensitivity_staticText, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 	m_fireSensitivity_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL );
 	fgSizer2->Add( m_fireSensitivity_slider, 0, wxALL|wxEXPAND, 5 );
@@ -262,13 +265,13 @@ CthughaPanelBase::CthughaPanelBase( wxWindow* parent, wxWindowID id, const wxStr
 	m_fireSensitivity_text->Wrap( -1 );
 	fgSizer2->Add( m_fireSensitivity_text, 0, wxALL, 5 );
 
-	wxStaticText* m_staticText15;
-	m_staticText15 = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Max FPS"), wxDefaultPosition, wxDefaultSize, 0 );
-	m_staticText15->Wrap( -1 );
-	fgSizer2->Add( m_staticText15, 0, wxALL|wxEXPAND, 5 );
+	wxStaticText* m_maxFps_staticText;
+	m_maxFps_staticText = new wxStaticText( m_scrolledWindow1, wxID_ANY, _("Max FPS"), wxDefaultPosition, wxDefaultSize, 0 );
+	m_maxFps_staticText->Wrap( -1 );
+	fgSizer2->Add( m_maxFps_staticText, 0, wxALL|wxEXPAND, 5 );
 
 	m_maxFps_slider = new wxSlider( m_scrolledWindow1, wxID_ANY, 50, 5, 120, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL );
-	fgSizer2->Add( m_maxFps_slider, 0, wxALL, 5 );
+	fgSizer2->Add( m_maxFps_slider, 0, wxALL|wxEXPAND, 5 );
 
 	m_maxFps_text = new wxStaticText( m_scrolledWindow1, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
 	m_maxFps_text->Wrap( -1 );
