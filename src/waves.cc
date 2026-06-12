@@ -659,57 +659,163 @@ static void draw_axis_wire_model(FrameRenderTarget& buffer, WaveRuntime& runtime
     }
 }
 
-void putat(FrameRenderTarget& buffer, int x, int y, int val) {
-    int a = addr(x, y);
+static int positiveRoundedScale(int value, int referenceValue) {
+    if (value <= 0 || referenceValue <= 0)
+        return 1;
 
-    buffer.activePixels()[a] = val;
-    buffer.activePixels()[a - 1] = val;
-    buffer.activePixels()[a + 1] = val;
-    buffer.activePixels()[a + buffer.pitch()] = val;
-    buffer.activePixels()[a - buffer.pitch()] = val;
+    int scale = (value + referenceValue / 2) / referenceValue;
+    return scale > 0 ? scale : 1;
 }
 
-void putat_cut(FrameRenderTarget& buffer, int x, int y, int val) {
+static int scaledReferencePixels(int value, int actualPixels, int referencePixels) {
+    if (value < 0)
+        return -scaledReferencePixels(-value, actualPixels, referencePixels);
+    if (actualPixels <= 0 || referencePixels <= 0)
+        return value;
+
+    return (value * actualPixels + referencePixels / 2) / referencePixels;
+}
+
+struct WaveDrawingScale {
+    int bufferWidth;
+    int bufferHeight;
+    int width;
+    int height;
+
+    /* One reference pixel is 1/320 of the buffer width and 1/240 of the height. */
+    explicit WaveDrawingScale(const FrameRenderTarget& buffer)
+        : bufferWidth(buffer.width())
+        , bufferHeight(buffer.height())
+        , width(positiveRoundedScale(buffer.width(), 320))
+        , height(positiveRoundedScale(buffer.height(), 240)) { }
+
+    int xOffset(int referencePixels) const {
+        return scaledReferencePixels(referencePixels, bufferWidth, 320);
+    }
+
+    int yOffset(int referencePixels) const {
+        return scaledReferencePixels(referencePixels, bufferHeight, 240);
+    }
+
+    int referenceYDistance(int actualPixels) const {
+        if (actualPixels < 0)
+            return -referenceYDistance(-actualPixels);
+        if (bufferHeight <= 0)
+            return actualPixels;
+
+        return (actualPixels * 240 + bufferHeight / 2) / bufferHeight;
+    }
+};
+
+static void put_brush_cut(FrameRenderTarget& buffer,
+    const WaveDrawingScale& scale, int x, int y, int val) {
     if ((x < 0) || (x >= buffer.width()))
         return;
     if ((y < 0) || (y >= buffer.height()))
         return;
+
+    int left = x - (scale.width - 1) / 2;
+    int right = x + scale.width / 2;
+    int top = y - (scale.height - 1) / 2;
+    int bottom = y + scale.height / 2;
+
+    if (left < 0)
+        left = 0;
+    if (right >= buffer.width())
+        right = buffer.width() - 1;
+    if (top < 0)
+        top = 0;
+    if (bottom >= buffer.height())
+        bottom = buffer.height() - 1;
+
+    for (int yy = top; yy <= bottom; yy++) {
+        unsigned char* row = buffer.activeRow(yy);
+        for (int xx = left; xx <= right; xx++)
+            row[xx] = (unsigned char)val;
+    }
+}
+
+static void fill_horizontal_span_cut(FrameRenderTarget& buffer,
+    int left, int right, int y, int val) {
+    if (y < 0 || y >= buffer.height())
+        return;
+
+    if (left > right) {
+        int temp = left;
+        left = right;
+        right = temp;
+    }
+
+    if (right < 0 || left >= buffer.width())
+        return;
+    if (left < 0)
+        left = 0;
+    if (right >= buffer.width())
+        right = buffer.width() - 1;
+
+    unsigned char* row = buffer.activeRow(y);
+    for (int x = left; x <= right; x++)
+        row[x] = (unsigned char)val;
+}
+
+static void put_brush_cut(FrameRenderTarget& buffer, int x, int y, int val) {
+    WaveDrawingScale scale(buffer);
+    put_brush_cut(buffer, scale, x, y, val);
+}
+
+static void put_reference_cross_cut(FrameRenderTarget& buffer,
+    const WaveDrawingScale& scale, int x, int y, int val) {
+    put_brush_cut(buffer, scale, x, y, val);
+    put_brush_cut(buffer, scale, x - scale.xOffset(1), y, val);
+    put_brush_cut(buffer, scale, x + scale.xOffset(1), y, val);
+    put_brush_cut(buffer, scale, x, y - scale.yOffset(1), val);
+    put_brush_cut(buffer, scale, x, y + scale.yOffset(1), val);
+}
+
+void putat(FrameRenderTarget& buffer, int x, int y, int val) {
+    WaveDrawingScale scale(buffer);
+    put_reference_cross_cut(buffer, scale, x, y, val);
+}
+
+void putat_cut(FrameRenderTarget& buffer, int x, int y, int val) {
     putat(buffer, x, y, val);
 }
 
 void putpixel_cut(FrameRenderTarget& buffer, int x, int y, int val) {
-    if ((x < 0) || (x >= buffer.width()))
-        return;
-    if ((y < 0) || (y >= buffer.height()))
-        return;
-    buffer.activePixels()[addr(x, y)] = val;
+    put_brush_cut(buffer, x, y, val);
 }
 
 void draw_line(FrameRenderTarget& buffer, int x1, int y1, int x2, int y2, int c) {
     int lx, ly, dx, dy;
     int i, j, k;
+    WaveDrawingScale scale(buffer);
 
     if (x1 < 0)
         x1 = 0;
-    if (x1 > buffer.width())
-        x1 = buffer.width();
+    if (x1 >= buffer.width())
+        x1 = buffer.width() - 1;
     if (x2 < 0)
         x2 = 0;
-    if (x2 > buffer.width())
-        x2 = buffer.width();
+    if (x2 >= buffer.width())
+        x2 = buffer.width() - 1;
     if (y1 < 0)
         y1 = 0;
-    if (y1 > buffer.height())
-        y1 = buffer.height();
+    if (y1 >= buffer.height())
+        y1 = buffer.height() - 1;
     if (y2 < 0)
         y2 = 0;
-    if (y2 > buffer.height())
-        y2 = buffer.height();
+    if (y2 >= buffer.height())
+        y2 = buffer.height() - 1;
 
     lx = abs(x1 - x2);
     ly = abs(y1 - y2);
     dx = (x1 > x2) ? -1 : 1;
     dy = (y1 > y2) ? -1 : 1;
+
+    if (lx == 0 && ly == 0) {
+        put_brush_cut(buffer, scale, x1, y1, c);
+        return;
+    }
 
     if (lx > ly) {
         for (i = x1, j = y1, k = 0; i != x2; i += dx, k += ly) {
@@ -717,7 +823,7 @@ void draw_line(FrameRenderTarget& buffer, int x1, int y1, int x2, int y2, int c)
                 k -= lx;
                 j += dy;
             }
-            buffer.activePixels()[buffer.visibleOffset(i, j)] = c;
+            put_brush_cut(buffer, scale, i, j, c);
         }
     } else {
         for (i = y1, j = x1, k = 0; i != y2; i += dy, k += lx) {
@@ -725,14 +831,16 @@ void draw_line(FrameRenderTarget& buffer, int x1, int y1, int x2, int y2, int c)
                 k -= ly;
                 j += dx;
             }
-            buffer.activePixels()[buffer.visibleOffset(j, i)] = c;
+            put_brush_cut(buffer, scale, j, i, c);
         }
     }
 }
 
 void do_vwave(FrameRenderTarget& buffer, int ystart, int yend, int x, int val) {
     int ys, ye;
-    unsigned char* pos;
+    WaveDrawingScale scale(buffer);
+    int left = x - (scale.width - 1) / 2;
+    int right = x + scale.width / 2;
 
     if (ystart > yend)
         ys = yend, ye = ystart;
@@ -748,16 +856,15 @@ void do_vwave(FrameRenderTarget& buffer, int ystart, int yend, int x, int val) {
     if (ye >= buffer.height())
         ye = buffer.height() - 1;
 
-    pos = buffer.activePixels() + addr(x, ys);
-    for (; ys <= ye; ys++) {
-        *pos = (char)val;
-        pos += buffer.pitch();
-    }
+    for (; ys <= ye; ys++)
+        fill_horizontal_span_cut(buffer, left, right, ys, val);
 }
 
 void do_hwave(FrameRenderTarget& buffer, int xstart, int xend, int y, int val) {
     int xs, xe;
-    unsigned char* pos;
+    WaveDrawingScale scale(buffer);
+    int top = y - (scale.height - 1) / 2;
+    int bottom = y + scale.height / 2;
 
     if (xstart > xend)
         xs = xend, xe = xstart;
@@ -778,11 +885,13 @@ void do_hwave(FrameRenderTarget& buffer, int xstart, int xend, int y, int val) {
     if (xe >= buffer.width())
         xe = buffer.width() - 1;
 
-    pos = buffer.activePixels() + addr(xs, y);
-    for (; xs <= xe; xs++) {
-        *pos = (char)val;
-        pos++;
-    }
+    if (top < 0)
+        top = 0;
+    if (bottom >= buffer.height())
+        bottom = buffer.height() - 1;
+
+    for (; top <= bottom; top++)
+        fill_horizontal_span_cut(buffer, xs, xe, top, val);
 }
 
 class PreparedWaveSamples {
@@ -823,6 +932,16 @@ protected:
     static int scaledSample(int value, int waveScale) {
         return value >> waveScale;
     }
+
+    static int scaledXSample(const WaveDrawingScale& scale, int value,
+        int waveScale) {
+        return scale.xOffset(scaledSample(value, waveScale));
+    }
+
+    static int scaledYSample(const WaveDrawingScale& scale, int value,
+        int waveScale) {
+        return scale.yOffset(scaledSample(value, waveScale));
+    }
 };
 
 class DotWaveRenderer : public ProcessedWaveDataRenderer {
@@ -841,6 +960,7 @@ public:
 
     void execute(FrameRenderTarget& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) const {
         int x, sample;
+        WaveDrawingScale scale(buffer);
 
         if (orientation == Horizontal) {
             PreparedWaveSamples sound(context, buffer.width());
@@ -848,12 +968,12 @@ public:
             for (x = 0; x < buffer.width(); x++) {
                 sample = sound.sample(x, 0);
                 putpixel_cut(buffer, x >> 1,
-                    LOW_LINE - scaledSample(sample, runtime.waveScale),
+                    LOW_LINE - scaledYSample(scale, sample, runtime.waveScale),
                     color(runtime, sample));
 
                 sample = sound.sample(x, 1);
                 putpixel_cut(buffer, (x + buffer.width()) >> 1,
-                    LOW_LINE - scaledSample(sample, runtime.waveScale),
+                    LOW_LINE - scaledYSample(scale, sample, runtime.waveScale),
                     color(runtime, sample));
             }
             return;
@@ -864,12 +984,12 @@ public:
         for (x = 0; x < BOTTOM; x++) {
             sample = sound.sample(x, 0);
             putpixel_cut(buffer,
-                MID_X - scaledSample(sample, runtime.waveScale), x,
+                MID_X - scaledXSample(scale, sample, runtime.waveScale), x,
                 color(runtime, sample));
 
             sample = sound.sample(x, 1);
             putpixel_cut(buffer,
-                MID_X + scaledSample(sample, runtime.waveScale), x,
+                MID_X + scaledXSample(scale, sample, runtime.waveScale), x,
                 color(runtime, sample));
         }
     }
@@ -927,6 +1047,7 @@ private:
         WaveRuntime& runtime) const {
         int x, y, sample;
         HorizontalState& state = runtime.state<HorizontalState>();
+        WaveDrawingScale scale(buffer);
 
         PreparedWaveSamples sound(context, buffer.width());
 
@@ -934,8 +1055,8 @@ private:
             for (x = 0; x < buffer.width(); x++) {
                 sample = sound.sample(x, y);
                 do_vwave(buffer,
-                    MID_Y - ((sample - 128) >> runtime.waveScale),
-                    MID_Y - ((state.last - 128) >> runtime.waveScale),
+                    MID_Y - scaledYSample(scale, sample - 128, runtime.waveScale),
+                    MID_Y - scaledYSample(scale, state.last - 128, runtime.waveScale),
                     y ? ((x + buffer.width()) >> 1) : (x >> 1),
                     color(runtime, sample));
                 state.last = sample;
@@ -948,21 +1069,22 @@ private:
         int x, sample;
         int last1 = 128;
         int last2 = 128;
+        WaveDrawingScale scale(buffer);
 
         PreparedWaveSamples sound(context, BOTTOM);
 
         for (x = 0; x < BOTTOM; x++) {
             sample = sound.sample(x, 0);
             do_hwave(buffer,
-                MID_X - scaledSample(sample, runtime.waveScale),
-                MID_X - scaledSample(last1, runtime.waveScale), x,
+                MID_X - scaledXSample(scale, sample, runtime.waveScale),
+                MID_X - scaledXSample(scale, last1, runtime.waveScale), x,
                 color(runtime, sample));
             last1 = sample;
 
             sample = sound.sample(x, 1);
             do_hwave(buffer,
-                MID_X + scaledSample(sample, runtime.waveScale),
-                MID_X + scaledSample(last2, runtime.waveScale), x,
+                MID_X + scaledXSample(scale, sample, runtime.waveScale),
+                MID_X + scaledXSample(scale, last2, runtime.waveScale), x,
                 color(runtime, sample));
             last2 = sample;
         }
@@ -974,6 +1096,7 @@ private:
         int last1 = 128;
         int last2 = 128;
         WalkingState& state = runtime.state<WalkingState>();
+        WaveDrawingScale scale(buffer);
 
         state.column = (state.column + 1) % buffer.width();
 
@@ -982,15 +1105,15 @@ private:
         for (x = 0; x < BOTTOM; x++) {
             sample = sound.sample(x, 0);
             do_hwave(buffer,
-                state.column - scaledSample(sample, runtime.waveScale),
-                state.column - scaledSample(last1, runtime.waveScale), x,
+                state.column - scaledXSample(scale, sample, runtime.waveScale),
+                state.column - scaledXSample(scale, last1, runtime.waveScale), x,
                 color(runtime, sample));
             last1 = sample;
 
             sample = sound.sample(x, 1);
             do_hwave(buffer,
-                state.column + scaledSample(sample, runtime.waveScale),
-                state.column + scaledSample(last2, runtime.waveScale), x,
+                state.column + scaledXSample(scale, sample, runtime.waveScale),
+                state.column + scaledXSample(scale, last2, runtime.waveScale), x,
                 color(runtime, sample));
             last2 = sample;
         }
@@ -1000,22 +1123,23 @@ private:
         WaveRuntime& runtime) const {
         int x, sample;
         int last = 128;
+        WaveDrawingScale scale(buffer);
 
         PreparedWaveSamples sound(context, BOTTOM);
 
         for (x = 0; x < BOTTOM; x++) {
             sample = sound.sample(x, 0);
             do_hwave(buffer,
-                MID_X - scaledSample(sample, runtime.waveScale),
-                MID_X - scaledSample(last, runtime.waveScale), x,
+                MID_X - scaledXSample(scale, sample, runtime.waveScale),
+                MID_X - scaledXSample(scale, last, runtime.waveScale), x,
                 color(runtime, sample));
             last = sample;
         }
         for (x = 0; x < BOTTOM; x++) {
             sample = sound.sample(x, 1);
             do_hwave(buffer,
-                MID_X - 40 + scaledSample(sample, runtime.waveScale),
-                MID_X - 40 + scaledSample(last, runtime.waveScale), x,
+                MID_X - scale.xOffset(40) + scaledXSample(scale, sample, runtime.waveScale),
+                MID_X - scale.xOffset(40) + scaledXSample(scale, last, runtime.waveScale), x,
                 color(runtime, sample));
             last = sample;
         }
@@ -1044,25 +1168,40 @@ public:
     }
 
 private:
+    static void drawFilledColumn(FrameRenderTarget& buffer,
+        const WaveDrawingScale& scale, WaveRuntime& runtime, int x,
+        int height) {
+        if (height <= 0)
+            return;
+        if (height >= BOTTOM)
+            height = BOTTOM - 1;
+
+        int left = x - (scale.width - 1) / 2;
+        int right = x + scale.width / 2;
+
+        for (int y = 0; y < height; y++) {
+            int referenceY = scale.referenceYDistance(y);
+            if (referenceY > 255)
+                referenceY = 255;
+            fill_horizontal_span_cut(buffer, left, right, BOTTOM - y,
+                color(runtime, referenceY));
+        }
+    }
+
     void executeFilled(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
         WaveRuntime& runtime) const {
-        int x, sample, y;
+        int x, sample;
+        WaveDrawingScale scale(buffer);
 
         PreparedWaveSamples sound(context, buffer.width(), 0);
 
         for (x = 0; x < buffer.width(); x++) {
-            sample = (2 * abs(sound.sample(x, 0))) >> runtime.waveScale;
-            if (sample >= BOTTOM)
-                sample = BOTTOM - 1;
-            for (y = 0; y < sample; y++)
-                putat(buffer, x >> 1, BOTTOM - y, color(runtime, y));
+            sample = scale.yOffset((2 * abs(sound.sample(x, 0))) >> runtime.waveScale);
+            drawFilledColumn(buffer, scale, runtime, x >> 1, sample);
 
-            sample = (2 * abs(sound.sample(x, 1))) >> runtime.waveScale;
-            if (sample >= BOTTOM)
-                sample = BOTTOM - 1;
-            for (y = 0; y < sample; y++)
-                putat(buffer, (x + buffer.width()) >> 1, BOTTOM - y,
-                    color(runtime, y));
+            sample = scale.yOffset((2 * abs(sound.sample(x, 1))) >> runtime.waveScale);
+            drawFilledColumn(buffer, scale, runtime,
+                (x + buffer.width()) >> 1, sample);
         }
     }
 
@@ -1070,12 +1209,13 @@ private:
         WaveRuntime& runtime) const {
         int channel, x, sample;
         int last = 0;
+        WaveDrawingScale scale(buffer);
 
         PreparedWaveSamples sound(context, buffer.width(), 0);
 
         for (channel = 0; channel < 2; channel++) {
             for (x = 0; x < buffer.width(); x++) {
-                sample = (2 * abs(sound.sample(x, channel))) >> runtime.waveScale;
+                sample = scale.yOffset((2 * abs(sound.sample(x, channel))) >> runtime.waveScale);
                 do_vwave(buffer, BOTTOM - sample, BOTTOM - last,
                     channel ? ((x + buffer.width()) >> 1) : (x >> 1),
                     color(runtime, sample));
@@ -1264,6 +1404,7 @@ void wave_buff10(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 /* Writes table-mapped left-channel sample indices, tableColor(runtime, sample), across 0..255. */
 void wave_buff11(FrameRenderTarget& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) { /* Lissa */
     int tmp, x, tmp2;
+    WaveDrawingScale scale(buffer);
 
     PreparedWaveSamples sound(context, buffer.width());
 
@@ -1271,7 +1412,8 @@ void wave_buff11(FrameRenderTarget& buffer, const FrameGeneratorContext& context
         tmp = sound.sample(x, 0);
         tmp2 = sound.sample(x, 1);
 
-        putat(buffer, (tmp2 + 32) % buffer.width(), (tmp + 200 - 28) % BOTTOM, tableColor(runtime, tmp));
+        putat(buffer, scale.xOffset(tmp2 + 32) % buffer.width(),
+            scale.yOffset(tmp + 200 - 28) % BOTTOM, tableColor(runtime, tmp));
     }
 }
 
@@ -1302,14 +1444,22 @@ void wave_pete0(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
             , yoff1(100) { }
     };
     State& state = runtime.state<State>();
+    WaveDrawingScale scale(buffer);
+
+    if (runtime.needsConfiguration()) {
+        state.xoff0 = scale.xOffset(160) % buffer.width();
+        state.yoff0 = scale.yOffset(100) % buffer.height();
+        state.xoff1 = state.xoff0;
+        state.yoff1 = state.yoff0;
+    }
 
     PreparedWaveSamples sound(context, buffer.width());
 
-    state.xoff0 += (sound.sample(0, 0)) % 9 - 4;
-    state.yoff0 += (sound.sample(1, 0)) % 9 - 4;
+    state.xoff0 += scale.xOffset((sound.sample(0, 0)) % 9 - 4);
+    state.yoff0 += scale.yOffset((sound.sample(1, 0)) % 9 - 4);
 
-    state.xoff1 += (sound.sample(0, 1)) % 9 - 4;
-    state.yoff1 += (sound.sample(1, 1)) % 9 - 4;
+    state.xoff1 += scale.xOffset((sound.sample(0, 1)) % 9 - 4);
+    state.yoff1 += scale.yOffset((sound.sample(1, 1)) % 9 - 4);
 
     while (state.xoff0 < 0)
         state.xoff0 += buffer.width();
@@ -1331,12 +1481,16 @@ void wave_pete0(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
         temp = sound.sample(x, 0);
         temp2 = sound.sample((x + 80) % buffer.width(), 0);
 
-        putat(buffer, ((temp2 >> 2) + state.xoff0) % buffer.width(), ((temp >> 2) + state.yoff0) % BOTTOM, tableColor(runtime, temp));
+        putat(buffer, (scale.xOffset(temp2 >> 2) + state.xoff0) % buffer.width(),
+            (scale.yOffset(temp >> 2) + state.yoff0) % BOTTOM,
+            tableColor(runtime, temp));
 
         temp = sound.sample(x, 1) + 128;
         temp2 = sound.sample((x + 80) % buffer.width(), 1) + 128;
 
-        putat(buffer, ((temp2 >> 2) + state.xoff1) % buffer.width(), ((temp >> 2) + state.yoff1) % BOTTOM, tableColor(runtime, temp));
+        putat(buffer, (scale.xOffset(temp2 >> 2) + state.xoff1) % buffer.width(),
+            (scale.yOffset(temp >> 2) + state.yoff1) % BOTTOM,
+            tableColor(runtime, temp));
     }
 }
 
@@ -1344,6 +1498,7 @@ void wave_pete0(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
 void wave_pete1(FrameRenderTarget& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) {
     int tmp, x, left = 0, right = 0;
     const int* widthSine = runtime.sineForWidth(buffer.width());
+    WaveDrawingScale scale(buffer);
 
     if (widthSine == 0)
         return;
@@ -1363,26 +1518,27 @@ void wave_pete1(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
 
     for (x = 0; x < MID_X; x++) {
         tmp = sound.sample(x, 0);
-        putat_cut(buffer, x, BOTTOM - (abs(left * widthSine[x]) >> 8), tableColor(runtime, tmp));
+        putat_cut(buffer, x, BOTTOM - scale.yOffset(abs(left * widthSine[x]) >> 8), tableColor(runtime, tmp));
     }
     for (x = MID_X; x < buffer.width(); x++) {
         tmp = sound.sample(x, 1);
-        putat_cut(buffer, x, BOTTOM - (abs(right * widthSine[x]) >> 8), tableColor(runtime, tmp));
+        putat_cut(buffer, x, BOTTOM - scale.yOffset(abs(right * widthSine[x]) >> 8), tableColor(runtime, tmp));
     }
 }
 
 /* Writes table-mapped sine lookup indices from runtime-owned sine tables. */
 void wave_pete2(FrameRenderTarget& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) { /* Dot VS sine */
     int x, tmp;
+    WaveDrawingScale scale(buffer);
 
     PreparedWaveSamples sound(context, buffer.height());
 
     for (x = 0; x < buffer.height(); x++) {
         tmp = sound.sample(x, 0);
-        putat_cut(buffer, MID_X - (tmp >> runtime.waveScale), x,
+        putat_cut(buffer, MID_X - scale.xOffset(tmp >> runtime.waveScale), x,
             tableColor(runtime, runtime.legacySine(tmp)));
         tmp = sound.sample(x, 1);
-        putat_cut(buffer, MID_X + (tmp >> runtime.waveScale), x,
+        putat_cut(buffer, MID_X + scale.xOffset(tmp >> runtime.waveScale), x,
             tableColor(runtime, runtime.legacySine(tmp)));
     }
 }
@@ -1400,12 +1556,13 @@ void wave_fract1(FrameRenderTarget& buffer, const FrameGeneratorContext& context
             , yoff1(0) { }
     };
     State& state = runtime.state<State>();
+    WaveDrawingScale scale(buffer);
 
     PreparedWaveSamples sound(context, buffer.width());
 
     temp = sound.sample(0, 0);
     for (x = 0; x < buffer.width() - 2; x += 2) {
-        state.xoff0 += (sound.sample(x, 0) - temp) >> 1;
+        state.xoff0 += scale.xOffset((sound.sample(x, 0) - temp) >> 1);
         temp = sound.sample(x, 0);
 
         while (state.xoff0 < 0)
@@ -1415,7 +1572,7 @@ void wave_fract1(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
         putat(buffer, state.xoff0, state.yoff0, tableColor(runtime, temp));
 
-        state.yoff0 += (sound.sample(x + 1, 0) - temp) >> 1;
+        state.yoff0 += scale.yOffset((sound.sample(x + 1, 0) - temp) >> 1);
         temp = sound.sample(x + 1, 0);
 
         while (state.yoff0 < 0)
@@ -1428,7 +1585,7 @@ void wave_fract1(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
     temp = sound.sample(0, 1);
     for (x = 0; x < buffer.width() - 2; x += 2) {
-        state.xoff1 += (sound.sample(x, 1) - temp) >> 1;
+        state.xoff1 += scale.xOffset((sound.sample(x, 1) - temp) >> 1);
         temp = sound.sample(x, 1);
 
         if (state.xoff1 < 0)
@@ -1438,7 +1595,7 @@ void wave_fract1(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
         putat(buffer, state.xoff1, state.yoff1, tableColor(runtime, temp));
 
-        state.yoff1 -= (sound.sample(x + 1, 1) - temp) >> 1;
+        state.yoff1 -= scale.yOffset((sound.sample(x + 1, 1) - temp) >> 1);
         temp = sound.sample(x + 1, 1);
 
         if (state.yoff1 < 0)
@@ -1463,12 +1620,13 @@ void wave_fract2(FrameRenderTarget& buffer, const FrameGeneratorContext& context
             , yoff1(0) { }
     };
     State& state = runtime.state<State>();
+    WaveDrawingScale scale(buffer);
 
     PreparedWaveSamples sound(context, buffer.width());
 
     temp = sound.sample(0, 0);
     for (x = 0; x < buffer.width() - 2; x += 2) {
-        state.xoff0 += (sound.sample(x, 0) - temp);
+        state.xoff0 += scale.xOffset(sound.sample(x, 0) - temp);
         temp = sound.sample(x, 0);
 
         if (state.xoff0 < 0)
@@ -1478,7 +1636,7 @@ void wave_fract2(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
         putat(buffer, state.xoff0, state.yoff0, tableColor(runtime, temp));
 
-        state.yoff0 += (sound.sample(x + 1, 0) - temp);
+        state.yoff0 += scale.yOffset(sound.sample(x + 1, 0) - temp);
         temp = sound.sample(x + 1, 0);
 
         if (state.yoff0 < 0)
@@ -1491,7 +1649,7 @@ void wave_fract2(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
     temp = sound.sample(0, 1);
     for (x = 0; x < buffer.width() - 2; x += 2) {
-        state.xoff1 += (sound.sample(x, 1) - temp);
+        state.xoff1 += scale.xOffset(sound.sample(x, 1) - temp);
         temp = sound.sample(x, 1);
 
         if (state.xoff1 < 0)
@@ -1501,7 +1659,7 @@ void wave_fract2(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 
         putat(buffer, state.xoff1, state.yoff1, tableColor(runtime, temp));
 
-        state.yoff1 -= (sound.sample(x + 1, 1) - temp);
+        state.yoff1 -= scale.yOffset(sound.sample(x + 1, 1) - temp);
         temp = sound.sample(x + 1, 1);
 
         if (state.yoff1 < 0)
@@ -1517,6 +1675,7 @@ void wave_fract2(FrameRenderTarget& buffer, const FrameGeneratorContext& context
 void wave_test(FrameRenderTarget& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) { /* Test */
     int temp, x, left = 0, right = 0;
     const int* widthSine = runtime.sineForWidth(buffer.width());
+    WaveDrawingScale scale(buffer);
 
     if (widthSine == 0)
         return;
@@ -1536,11 +1695,11 @@ void wave_test(FrameRenderTarget& buffer, const FrameGeneratorContext& context, 
 
     for (x = 0; x < MID_X; x++) {
         temp = sound.sample(x, 0) + 128;
-        putat_cut(buffer, x, BOTTOM - (abs((left)*widthSine[x]) >> 8), tableColor(runtime, temp));
+        putat_cut(buffer, x, BOTTOM - scale.yOffset(abs((left)*widthSine[x]) >> 8), tableColor(runtime, temp));
     }
     for (x = MID_X; x < buffer.width(); x++) {
         temp = sound.sample(x, 1) + 128;
-        putat_cut(buffer, x, BOTTOM - (abs((right)*widthSine[x]) >> 8), tableColor(runtime, temp));
+        putat_cut(buffer, x, BOTTOM - scale.yOffset(abs((right)*widthSine[x]) >> 8), tableColor(runtime, temp));
     }
 }
 
@@ -1568,12 +1727,15 @@ void wave_aaron(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     };
     State& state = runtime.state<State>();
     int txl = 0, tyl = 0, txr = 0, tyr = 0;
+    WaveDrawingScale scale(buffer);
 
-    if (state.first) {
+    if (state.first || runtime.needsConfiguration()) {
         state.first = 0;
-        state.cxl = ((buffer.width() - 256) / 2) + 64 + 128;
-        state.cxr = ((buffer.width() - 256) / 2) - 64 + 128;
-        state.cyl = ((BOTTOM - 256) / 2) + 128;
+        state.cxl = ((buffer.width() - scale.xOffset(256)) / 2)
+            + scale.xOffset(64 + 128);
+        state.cxr = ((buffer.width() - scale.xOffset(256)) / 2)
+            - scale.xOffset(64) + scale.xOffset(128);
+        state.cyl = ((BOTTOM - scale.yOffset(256)) / 2) + scale.yOffset(128);
         state.cyr = state.cyl;
     }
 
@@ -1589,18 +1751,18 @@ void wave_aaron(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
                 state.x -= 320;
             tmp = sound.sample(i, 0);
 
-            sx = (runtime.legacySine(state.x) * tmp) >> 9;
+            sx = scale.xOffset((runtime.legacySine(state.x) * tmp) >> 9);
             txl += sx;
-            sy = (runtime.legacySine(state.y) * tmp) >> 9;
+            sy = scale.yOffset((runtime.legacySine(state.y) * tmp) >> 9);
             tyl += sy;
 
             putat_cut(buffer, state.cxl + sx, state.cyl + sy, tableColor(runtime, tmp));
 
             tmp = sound.sample(i, 1);
 
-            sx = (runtime.legacySine(state.x) * tmp) >> 9;
+            sx = scale.xOffset((runtime.legacySine(state.x) * tmp) >> 9);
             txr += sx;
-            sy = (runtime.legacySine(state.y) * tmp) >> 9;
+            sy = scale.yOffset((runtime.legacySine(state.y) * tmp) >> 9);
             tyr += sy;
 
             putat_cut(buffer, state.cxr - sx, state.cyr - sy, tableColor(runtime, tmp));
@@ -1638,19 +1800,22 @@ void wave_lineHLdiff(FrameRenderTarget& buffer, const FrameGeneratorContext& con
             : last(0) { }
     };
     State& state = runtime.state<State>();
+    WaveDrawingScale scale(buffer);
 
     PreparedWaveSamples sound(context, buffer.width(), 0);
 
     if (buffer.height() < 300) {
         for (x = 0; x < buffer.width(); x++) {
             tmp = sound.sample(x, 0) - sound.sample(x, 1);
-            do_vwave(buffer, MID_Y - tmp, MID_Y - state.last, x, tableColor(runtime, tmp + 128));
+            do_vwave(buffer, MID_Y - scale.yOffset(tmp),
+                MID_Y - scale.yOffset(state.last), x, tableColor(runtime, tmp + 128));
             state.last = tmp;
         }
     } else {
         for (x = 0; x < buffer.width(); x++) {
             tmp = sound.sample(x, 0) - sound.sample(x, 1);
-            do_vwave(buffer, MID_Y - tmp, MID_Y - state.last, x, tableColor(runtime, tmp + 128));
+            do_vwave(buffer, MID_Y - scale.yOffset(tmp),
+                MID_Y - scale.yOffset(state.last), x, tableColor(runtime, tmp + 128));
             state.last = tmp << 1;
         }
     }
@@ -2399,21 +2564,26 @@ void wave_laser(FrameRenderTarget& buffer, const FrameGeneratorContext& context,
     };
     State& state = runtime.state<State>();
     int x, samples;
+    WaveDrawingScale scale(buffer);
 
     samples = buffer.width() / 10;
     PreparedWaveSamples sound(context, samples + 1, 0);
 
-    state.y = (state.y + 2) % buffer.height();
+    state.y = (state.y + scale.yOffset(2)) % buffer.height();
     //y = buffer.height() / 10;
 
     for (x = 0; x < samples; x++) {
         draw_line(buffer, buffer.width() / 2, buffer.height() / 2, state.xl, state.y,
             tableColor(runtime, laser_intensity_index(sound.sample(x, 0))));
-        state.xl = (state.xl + abs(sound.sample(x, 0) - sound.sample(x + 1, 0))) % buffer.width();
+        state.xl = (state.xl
+            + scale.xOffset(abs(sound.sample(x, 0) - sound.sample(x + 1, 0))))
+            % buffer.width();
 
         draw_line(buffer, buffer.width() / 2, buffer.height() / 2, state.xr, buffer.height() - state.y,
             tableColor(runtime, laser_intensity_index(sound.sample(x, 1))));
-        state.xr = (state.xr + abs(sound.sample(x, 1) - sound.sample(x + 1, 1))) % buffer.width();
+        state.xr = (state.xr
+            + scale.xOffset(abs(sound.sample(x, 1) - sound.sample(x + 1, 1))))
+            % buffer.width();
     }
 }
 
@@ -2427,38 +2597,47 @@ void wave_corner(FrameRenderTarget& buffer, const FrameGeneratorContext& context
             , y(0) { }
     };
     State& state = runtime.state<State>();
+    WaveDrawingScale scale(buffer);
 
     if (runtime.fire()) {
         int i, j, t;
         int fire = runtime.fire();
+        int marginX = max(1, scale.xOffset(8));
+        int marginY = max(1, scale.yOffset(8));
+        int rangeX = max(1, buffer.width() - marginX * 2);
+        int rangeY = max(1, buffer.height() - marginY * 2);
 
-        state.x = (state.x + runtime.randomInt(fire)) % (buffer.width() - 16) + 8;
-        state.y = (state.y + runtime.randomInt(fire)) % (buffer.height() - 16) + 8;
+        state.x = (state.x + runtime.randomInt(fire)) % rangeX + marginX;
+        state.y = (state.y + runtime.randomInt(fire)) % rangeY + marginY;
 
         t = min(fire >> 2, 8);
 
         if (runtime.randomInt(2)) {
             /* draw corner pointing right down */
             for (i = 0; i < t; i++) {
+                int dx = scale.xOffset(i);
+                int dy = scale.yOffset(i);
                 for (j = 0; j < state.x; j++) {
-                    putat(buffer, j, state.y + i, 255 >> i);
-                    putat(buffer, j, state.y - i, 255 >> i);
+                    putat(buffer, j, state.y + dy, 255 >> i);
+                    putat(buffer, j, state.y - dy, 255 >> i);
                 }
                 for (j = 0; j < state.y; j++) {
-                    putat(buffer, state.x - i, j, 255 >> i);
-                    putat(buffer, state.x + i, j, 255 >> i);
+                    putat(buffer, state.x - dx, j, 255 >> i);
+                    putat(buffer, state.x + dx, j, 255 >> i);
                 }
             }
         } else {
             /* draw corner pointer up left */
             for (i = 0; i < t; i++) {
+                int dx = scale.xOffset(i);
+                int dy = scale.yOffset(i);
                 for (j = state.x; j < buffer.width(); j++) {
-                    putat(buffer, j, state.y + i, 255 >> i);
-                    putat(buffer, j, state.y - i, 255 >> i);
+                    putat(buffer, j, state.y + dy, 255 >> i);
+                    putat(buffer, j, state.y - dy, 255 >> i);
                 }
                 for (j = state.y; j < buffer.height(); j++) {
-                    putat(buffer, state.x - i, j, 255 >> i);
-                    putat(buffer, state.x + i, j, 255 >> i);
+                    putat(buffer, state.x - dx, j, 255 >> i);
+                    putat(buffer, state.x + dx, j, 255 >> i);
                 }
             }
         }
@@ -2483,10 +2662,11 @@ void wave_jump(FrameRenderTarget& buffer, const FrameGeneratorContext& context, 
     };
     State& state = runtime.state<State>();
     state.resize(buffer.width());
+    WaveDrawingScale drawingScale(buffer);
 
     PreparedWaveSamples sound(context, buffer.width());
 
-    const int scale = 2 + runtime.waveScale;
+    const int sampleScale = 2 + runtime.waveScale;
     for (int i = 0; i < buffer.width(); i++) {
         int e = sound.sample(i, 0) + sound.sample(i, 1);
         if (state.pos[i] < abs(e)) {
@@ -2502,9 +2682,13 @@ void wave_jump(FrameRenderTarget& buffer, const FrameGeneratorContext& context, 
             state.speed[i] -= frameRate(context);
 
         if (state.dir[i] > 0)
-            putat_cut(buffer, i, (state.pos[i] >> scale) + buffer.height() / 2, 255);
+            putat_cut(buffer, i,
+                drawingScale.yOffset(state.pos[i] >> sampleScale) + buffer.height() / 2,
+                255);
         else
-            putat_cut(buffer, i, -(state.pos[i] >> scale) + buffer.height() / 2, 255);
+            putat_cut(buffer, i,
+                -drawingScale.yOffset(state.pos[i] >> sampleScale) + buffer.height() / 2,
+                255);
     }
 }
 
