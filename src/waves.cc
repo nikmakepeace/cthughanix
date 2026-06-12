@@ -676,25 +676,29 @@ static int scaledReferencePixels(int value, int actualPixels, int referencePixel
     return (value * actualPixels + referencePixels / 2) / referencePixels;
 }
 
+static const int waveReferenceWidth = 320;
+static const int waveReferenceHeight = 240;
+static const int legacySinePeriod = 320;
+
 struct WaveDrawingScale {
     int bufferWidth;
     int bufferHeight;
     int width;
     int height;
 
-    /* One reference pixel is 1/320 of the buffer width and 1/240 of the height. */
+    /* One reference pixel is one baseline pixel of the historical wave frame. */
     explicit WaveDrawingScale(const FrameStageBuffer& buffer)
         : bufferWidth(buffer.width())
         , bufferHeight(buffer.height())
-        , width(positiveRoundedScale(buffer.width(), 320))
-        , height(positiveRoundedScale(buffer.height(), 240)) { }
+        , width(positiveRoundedScale(buffer.width(), waveReferenceWidth))
+        , height(positiveRoundedScale(buffer.height(), waveReferenceHeight)) { }
 
     int xOffset(int referencePixels) const {
-        return scaledReferencePixels(referencePixels, bufferWidth, 320);
+        return scaledReferencePixels(referencePixels, bufferWidth, waveReferenceWidth);
     }
 
     int yOffset(int referencePixels) const {
-        return scaledReferencePixels(referencePixels, bufferHeight, 240);
+        return scaledReferencePixels(referencePixels, bufferHeight, waveReferenceHeight);
     }
 
     int referenceYDistance(int actualPixels) const {
@@ -703,7 +707,7 @@ struct WaveDrawingScale {
         if (bufferHeight <= 0)
             return actualPixels;
 
-        return (actualPixels * 240 + bufferHeight / 2) / bufferHeight;
+        return (actualPixels * waveReferenceHeight + bufferHeight / 2) / bufferHeight;
     }
 };
 
@@ -1321,18 +1325,20 @@ public:
 private:
     void drawChannel(FrameStageBuffer& buffer, const PreparedWaveSamples& sound,
         int channel, int startX) const {
-        int last = startX;
+        int lastX = startX;
+        int lastY = 0;
 
         for (int y = 0; y < BOTTOM; y++) {
-            int x = (sound.sample(y, channel) >> sampleShift) + last;
+            int x = (sound.sample(y, channel) >> sampleShift) + lastX;
 
             if (x >= buffer.width())
                 x = buffer.width() - 1;
             if (x < 0)
                 x = 0;
 
-            do_hwave(buffer, x, last, y, 255);
-            last = x;
+            draw_line(buffer, lastX, lastY, x, y, 255);
+            lastX = x;
+            lastY = y;
         }
     }
 };
@@ -1823,10 +1829,10 @@ void wave_aaron(FrameStageBuffer& buffer, const FrameGeneratorContext& context, 
         PreparedWaveSamples sound(context, buffer.width());
 
         for (i = 0; i < buffer.width(); i++) {
-            if (state.y >= 320)
-                state.y -= 320;
-            if (state.x >= 320)
-                state.x -= 320;
+            if (state.y >= legacySinePeriod)
+                state.y -= legacySinePeriod;
+            if (state.x >= legacySinePeriod)
+                state.x -= legacySinePeriod;
             tmp = sound.sample(i, 0);
 
             sx = scale.xOffset((runtime.legacySine(state.x) * tmp) >> 9);
@@ -2143,7 +2149,7 @@ static void init_wire2_copy(WaveRuntime& runtime, int loc[3], int& psi, int& rat
     int j, k;
 
     loc[1] = runtime.randomInt(whirlyRadius * 2) - whirlyRadius;
-    j = runtime.randomInt(320);
+    j = runtime.randomInt(legacySinePeriod);
     k = 1 + runtime.randomInt(whirlyRadius - 1);
     loc[0] = int(runtime.sineDegrees(j) * k);
     loc[2] = int(runtime.cosineDegrees(j) * k);
@@ -2151,7 +2157,7 @@ static void init_wire2_copy(WaveRuntime& runtime, int loc[3], int& psi, int& rat
     rate = 1 + runtime.randomInt(7);
     if (runtime.randomInt(2))
         rate *= -1;
-    psi = runtime.randomInt(320);
+    psi = runtime.randomInt(legacySinePeriod);
     col = random_wire_color(runtime);
 }
 
@@ -2384,7 +2390,7 @@ void wave_spiral(FrameStageBuffer& buffer, const FrameGeneratorContext& context,
     state.col++;
     state.col %= 256;
     state.ofs++;
-    state.ofs %= 320;
+    state.ofs %= legacySinePeriod;
 
     if (state.loopcount <= 0) {
         state.loopcount = 1 + runtime.randomInt(32);
@@ -2414,7 +2420,7 @@ void wave_spiral(FrameStageBuffer& buffer, const FrameGeneratorContext& context,
     oy = int(a * runtime.legacySine(state.ofs)
         + ra * runtime.legacySine(0) / 2);
 
-    for (i = 1; i < 320; i++) {
+    for (i = 1; i < legacySinePeriod; i++) {
 
         x = a * runtime.legacySine(i + state.ofs + 120)
             + la * runtime.legacySine((i * state.loops) + 120) / 2;
@@ -2540,6 +2546,21 @@ typedef struct {
     int r, s, theta, omg, trails, col, rgrav;
 } WarpRing;
 
+static int warp_reference_pixels(const FrameStageBuffer& buffer, int referencePixels) {
+    int scaled = scaledReferencePixels(referencePixels, buffer.maxDimension(),
+        waveReferenceWidth);
+    return scaled > 0 ? scaled : 1;
+}
+
+static int warp_reference_trails(const FrameStageBuffer& buffer, int referenceTrails) {
+    if (referenceTrails <= 0)
+        return 1;
+
+    double scale = sqrt((double)buffer.maxDimension() / (double)waveReferenceWidth);
+    int scaled = (int)(referenceTrails * scale + 0.5);
+    return scaled > 0 ? scaled : 1;
+}
+
 /* Writes per-ring random table-mapped indices, tableColor(runtime, random 0..255). */
 void wave_warp(FrameStageBuffer& buffer, const FrameGeneratorContext& context, WaveRuntime& runtime) {
     int i, x1, y1;
@@ -2615,8 +2636,10 @@ void wave_warp(FrameStageBuffer& buffer, const FrameGeneratorContext& context, W
 
             /* fire off a new warp ring */
             state.theWarps[i].r = 0;
-            state.theWarps[i].s = 3 + fire * 4 * 20 / state.maxA;
-            state.theWarps[i].trails = 1 + fire * 4 * maxWarpTrails / state.maxA;
+            state.theWarps[i].s = warp_reference_pixels(buffer,
+                3 + fire * 4 * 20 / state.maxA);
+            state.theWarps[i].trails = 1 + fire * 4
+                * warp_reference_trails(buffer, maxWarpTrails) / state.maxA;
             state.theWarps[i].theta = runtime.randomInt(360);
             state.theWarps[i].omg = (runtime.randomInt(16) - 8) * fire * 4 / state.maxA;
             state.theWarps[i].col = runtime.randomInt(256);

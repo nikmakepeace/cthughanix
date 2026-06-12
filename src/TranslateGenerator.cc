@@ -8,6 +8,12 @@
 #include <stdint.h>
 
 static const double PI = 3.14159265358979323846;
+static const int translationReferenceWidth = 320;
+static const int translationReferenceHeight = 200;
+
+static const int hurricaneReferenceEyeYOffset = 10;
+static const double hurricaneEyeSlowRadiusSquared = 2500.0;
+static const long hurricaneRotationDivisor = 700L;
 
 class GeneratorRandom {
     uint32_t state;
@@ -41,6 +47,23 @@ static int clampInt(int value, int low, int high) {
     if (value > high)
         return high;
     return value;
+}
+
+static int scaledReferencePixels(int value, int actualPixels, int referencePixels) {
+    if (value < 0)
+        return -scaledReferencePixels(-value, actualPixels, referencePixels);
+    if (actualPixels <= 0 || referencePixels <= 0)
+        return value;
+
+    return (value * actualPixels + referencePixels / 2) / referencePixels;
+}
+
+static double referenceDeltaPixels(int value, int actualPixels,
+    int referencePixels) {
+    if (actualPixels <= 0 || referencePixels <= 0)
+        return (double)value;
+
+    return (double)value * (double)referencePixels / (double)actualPixels;
 }
 
 static unsigned int randomSeedBase(RandomSource& randomSource) {
@@ -322,7 +345,9 @@ public:
         table.assign(target.size, 0);
 
         int xCenter = target.width / 3;
-        int yCenter = target.height / 2 - 10;
+        int yCenter = target.height / 2
+            - scaledReferencePixels(hurricaneReferenceEyeYOffset,
+                target.height, translationReferenceHeight);
         int speed = clampInt(options.speed, 30, 300);
         int speedJitterPercent = clampInt(options.speedJitterPercent, 0, 100);
 
@@ -341,18 +366,25 @@ public:
                 int dy = y - yCenter;
 
                 if (options.slowX || options.slowY) {
-                    long dSquared = (long)dx * dx + (long)dy * dy + 1;
+                    double referenceDx = referenceDeltaPixels(dx,
+                        target.width, translationReferenceWidth);
+                    double referenceDy = referenceDeltaPixels(dy,
+                        target.height, translationReferenceHeight);
+                    double dSquared = referenceDx * referenceDx
+                        + referenceDy * referenceDy + 1.0;
                     if (options.slowY)
-                        dx = (int)(dx * 2500L / dSquared);
+                        dx = (int)((double)dx * hurricaneEyeSlowRadiusSquared
+                            / dSquared);
                     if (options.slowX)
-                        dy = (int)(dy * 2500L / dSquared);
+                        dy = (int)((double)dy * hurricaneEyeSlowRadiusSquared
+                            / dSquared);
                 }
 
                 if (options.reverse)
                     sp = -sp;
 
-                int mapX = (int)(x + (dy * sp) / 700);
-                int mapY = (int)(y - (dx * sp) / 700);
+                int mapX = (int)(x + (dy * sp) / hurricaneRotationDivisor);
+                int mapY = (int)(y - (dx * sp) / hurricaneRotationDivisor);
 
                 while (mapY < 0)
                     mapY += target.height;
