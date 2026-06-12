@@ -3,78 +3,12 @@
 #include "FrameGeneratorRuntime.h"
 
 #include "FrameFilterchain.h"
+#include "FrameFilterchainUserStages.h"
 #include "IndexedFrame.h"
 #include "ProcessServices.h"
 #include "SceneGeometry.h"
 
 namespace {
-
-static int stageFromUserName(
-    const std::string& name, FrameFilterchainSequence::Stage* stage) {
-    if (name == "image") {
-        *stage = FrameFilterchainSequence::ImageStage;
-        return 1;
-    }
-    if (name == "border") {
-        *stage = FrameFilterchainSequence::BorderStage;
-        return 1;
-    }
-    if (name == "flame") {
-        *stage = FrameFilterchainSequence::FlameStage;
-        return 1;
-    }
-    if (name == "translate") {
-        *stage = FrameFilterchainSequence::TranslateStage;
-        return 1;
-    }
-    if (name == "wave") {
-        *stage = FrameFilterchainSequence::WaveStage;
-        return 1;
-    }
-    if (name == "text") {
-        *stage = FrameFilterchainSequence::TextStage;
-        return 1;
-    }
-    if (name == "flashlight") {
-        *stage = FrameFilterchainSequence::FlashlightStage;
-        return 1;
-    }
-    return 0;
-}
-
-static void appendUniqueStage(
-    FrameFilterchainSequence& sequence, FrameFilterchainSequence::Stage stage) {
-    if (!sequence.includes(stage))
-        sequence.append(stage);
-}
-
-static void appendDefaultUserStages(FrameFilterchainSequence& sequence) {
-    appendUniqueStage(sequence, FrameFilterchainSequence::ImageStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::BorderStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::FlameStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::TranslateStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::WaveStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::TextStage);
-    appendUniqueStage(sequence, FrameFilterchainSequence::FlashlightStage);
-}
-
-static FrameFilterchainSequence filterchainSequenceFromStageNames(
-    const std::vector<std::string>& stages) {
-    FrameFilterchainSequence sequence;
-    for (std::vector<std::string>::const_iterator it = stages.begin();
-         it != stages.end(); ++it) {
-        FrameFilterchainSequence::Stage stage
-            = FrameFilterchainSequence::ImageStage;
-        if (stageFromUserName(*it, &stage))
-            appendUniqueStage(sequence, stage);
-    }
-
-    appendDefaultUserStages(sequence);
-    sequence.append(FrameFilterchainSequence::FrameCommitStage);
-    sequence.append(FrameFilterchainSequence::PaletteStage);
-    sequence.append(FrameFilterchainSequence::IndexedFrameStage);
-    return sequence;
-}
 
 static void applyFilterchainStageGate(FrameFilterchain& filterchain,
     FrameFilterchainSequence::Stage stage, int enabled) {
@@ -149,7 +83,8 @@ int FrameGeneratorRuntime::filterchainStageEnabled(
     for (std::size_t i = 0; i < filterchainStageNamesValue.size(); i++) {
         FrameFilterchainSequence::Stage candidate
             = FrameFilterchainSequence::ImageStage;
-        if (!stageFromUserName(filterchainStageNamesValue[i], &candidate)
+        if (!frameFilterchainUserStageFromName(filterchainStageNamesValue[i],
+                &candidate)
             || candidate != stage)
             continue;
 
@@ -179,9 +114,6 @@ void FrameGeneratorRuntime::applyFilterchainStageGates() {
         filterchainStageEnabled(FrameFilterchainSequence::WaveStage));
     applyFilterchainStageGate(filterchain, FrameFilterchainSequence::TextStage,
         filterchainStageEnabled(FrameFilterchainSequence::TextStage));
-    applyFilterchainStageGate(filterchain,
-        FrameFilterchainSequence::FlashlightStage,
-        filterchainStageEnabled(FrameFilterchainSequence::FlashlightStage));
 }
 
 void FrameGeneratorRuntime::setFilterchainSequence(
@@ -189,7 +121,7 @@ void FrameGeneratorRuntime::setFilterchainSequence(
     filterchainStageNamesValue = stages;
     filterchainStageEnabledValue = enabled;
     filterchainStagePolicyActive = 1;
-    filterchainSequenceValue = filterchainSequenceFromStageNames(stages);
+    filterchainSequenceValue = frameFilterchainSequenceFromUserStageNames(stages);
     pipelineValue.setSequence(filterchainSequenceValue);
     applyFilterchainStageGates();
 }

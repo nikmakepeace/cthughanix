@@ -63,7 +63,7 @@ public:
     /**
      * Runs the owned filterchain against explicit storage and context.
      *
-     * @param target Active/passive indexed render target to mutate.
+     * @param target Source/destination indexed render target to mutate.
      * @param context Borrowed inputs for this frame only.
      * @return Published frame descriptor owned by the filterchain.
      */

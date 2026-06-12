@@ -128,8 +128,29 @@ static wxColour blendedColour(
         blendedChannel(base.Blue(), flash.Blue(), remaining, total));
 }
 
+static wxString normalizedFilterchainLabel(const wxString& label) {
+    wxString normalized = label.Lower();
+    normalized.Replace(wxT(" "), wxT(""));
+    normalized.Replace(wxT("-"), wxT(""));
+    return normalized;
+}
+
+static int isReorderableFilterchainLabel(const wxString& label) {
+    wxString normalized = normalizedFilterchainLabel(label);
+    return normalized == wxT("image")
+        || normalized == wxT("border")
+        || normalized == wxT("flame")
+        || normalized == wxT("translate")
+        || normalized == wxT("translation")
+        || normalized == wxT("wave")
+        || normalized == wxT("text");
+}
+
 static void appendFilterchainStage(wxArrayString& items, wxArrayInt& order,
     const wxString& label) {
+    if (!isReorderableFilterchainLabel(label))
+        return;
+
     order.Add(int(items.GetCount()));
     items.Add(label);
 }
@@ -142,13 +163,10 @@ static void appendDefaultFilterchainStages(
     appendFilterchainStage(items, order, wxT("Translate"));
     appendFilterchainStage(items, order, wxT("Wave"));
     appendFilterchainStage(items, order, wxT("Text"));
-    appendFilterchainStage(items, order, wxT("Flashlight"));
 }
 
 static std::string filterchainStageNameForLabel(const wxString& label) {
-    wxString normalized = label.Lower();
-    normalized.Replace(wxT(" "), wxT(""));
-    normalized.Replace(wxT("-"), wxT(""));
+    wxString normalized = normalizedFilterchainLabel(label);
 
     if (normalized == wxT("image"))
         return "image";

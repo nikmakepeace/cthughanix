@@ -36,7 +36,7 @@ struct FrameGeneratorRuntimeConfig {
 /**
  * Application-owned root for indexed frame generation.
  *
- * FrameGeneratorRuntime owns frame geometry, active/passive storage,
+ * FrameGeneratorRuntime owns frame geometry, source/destination storage,
  * filterchain state, scene binding, transition policy, and generator
  * diagnostics. All runtime collaborators are supplied through construction,
  * configuration, binding, or render context.
